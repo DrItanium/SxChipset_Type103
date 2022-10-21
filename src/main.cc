@@ -97,13 +97,65 @@ X(7),
     Capture6 = PortA6,
     Capture7 = PortA7,
 };
+enum class Port : byte {
+    A,
+    B,
+    C,
+    D,
+    None,
+};
+using PortOutputRegister = volatile byte&;
+using PortInputRegister = volatile byte&;
+using PortDirectionRegister = volatile byte&;
+constexpr Port getPort(Pinout pin) noexcept {
+    switch (pin) {
+#define X(port, ind) case Pinout :: Port ## port ## ind : return Port:: port 
+#define Y(port) \
+        X(port, 0); \
+        X(port, 1); \
+        X(port, 2); \
+        X(port, 3); \
+        X(port, 4); \
+        X(port, 5); \
+        X(port, 6); \
+        X(port, 7)
+        Y(A);
+        Y(B);
+        Y(C);
+        Y(D);
+#undef Y
+#undef X
+        default: return Port::None;
+    }
+}
+constexpr bool validPort(Port port) noexcept {
+    switch (port) {
+        case Port::A:
+        case Port::B:
+        case Port::C:
+        case Port::D:
+            return true;
+        default:
+            return false;
+    }
+}
 constexpr bool isPhysicalPin(Pinout pin) noexcept {
-    return static_cast<byte>(pin) < static_cast<byte>(Pinout::Count);
+    return validPort(getPort(pin));
 }
 
 template<Pinout pin>
 constexpr auto IsPhysicalPin_v = isPhysicalPin(pin);
 
+PortOutputRegister 
+getOutputRegister(Port port) noexcept {
+    switch (port) {
+        case Port::A: return PORTA;
+        case Port::B: return PORTB;
+        case Port::C: return PORTC;
+        case Port::D: return PORTD;
+        default: return GPIOR0;
+    }
+}
 [[gnu::always_inline]] 
 inline void 
 digitalWrite(Pinout pin, decltype(LOW) value) noexcept { 

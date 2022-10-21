@@ -158,6 +158,14 @@ getOutputRegister(Port port) noexcept {
         default: return GPIOR0;
     }
 }
+
+template<Port port>
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortOutputRegister 
+getOutputRegister() noexcept {
+    return getOutputRegister(port);
+}
 [[gnu::always_inline]]
 [[nodiscard]] 
 inline PortInputRegister 
@@ -170,6 +178,13 @@ getInputRegister(Port port) noexcept {
         default: return GPIOR1;
     }
 }
+template<Port port>
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortInputRegister 
+getInputRegister() noexcept {
+    return getInputRegister(port);
+}
 [[gnu::always_inline]]
 [[nodiscard]] 
 inline PortDirectionRegister 
@@ -181,6 +196,13 @@ getDirectionRegister(Port port) noexcept {
         case Port::D: return DDRD;
         default: return GPIOR2;
     }
+}
+template<Port port>
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortDirectionRegister 
+getDirectionRegister() noexcept {
+    return getDirectionRegister(port);
 }
 [[gnu::always_inline]] 
 inline void 

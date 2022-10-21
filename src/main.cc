@@ -370,6 +370,7 @@ void setInputChannel(byte value) noexcept {
 }
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;
+bool handleInitialBoot() noexcept;
 void 
 setup() {
     Serial.begin(115200);
@@ -393,11 +394,21 @@ setup() {
             break;
         }
     }
+    if (!handleInitialBoot()) {
+        Serial.println(F("CHECKSUM FAILURE!"));
+        while (true);
+    }
     // handle data requests here
 }
 
 void 
 loop() {
+    if (digitalRead<Pin::FAIL>() == HIGH) {
+        Serial.println(F("CHECKSUM FAILURE!"));
+        while (true);
+    }
+    while (digitalRead<Pin::DEN>() == HIGH);
+
     delay(1000);
 }
 
@@ -449,4 +460,10 @@ inline void doReset(decltype(LOW) value) noexcept {
         theGPIO |= 1;
     }
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA>(static_cast<byte>(Pin::CS1), theGPIO);
+}
+
+bool
+handleInitialBoot() noexcept {
+    /// @todo code goes here
+    return digitalRead<Pin::FAIL>() != LOW;
 }

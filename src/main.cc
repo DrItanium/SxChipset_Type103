@@ -25,11 +25,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Arduino.h>
 #include <SPI.h>
+#include <Wire.h>
+#include <SD.h>
+class CacheEntry {
+
+};
 
 void 
 setup() {
     Serial.begin(115200);
     SPI.begin();
+    Wire.begin();
 }
 
 void 

@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <Wire.h>
 #include <SdFat.h>
+#include "MCP23S17.h"
 SdFat SD;
 enum class Pin : byte {
 #define DefPin(port, index) Port ## port ## index 
@@ -55,6 +56,10 @@ Ready,
 SD_EN,
 GPIOSelect,
 SPI1_EN3,
+PSRAM0,
+PSRAM1,
+PSRAM2,
+PSRAM3,
 ADDR_INT0,
 ADDR_INT1,
 ADDR_INT2,
@@ -285,6 +290,10 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
             case Pin::SD_EN:
             case Pin::SPI1_EN3:
             case Pin::GPIOSelect:
+            case Pin::PSRAM0:
+            case Pin::PSRAM1:
+            case Pin::PSRAM2:
+            case Pin::PSRAM3:
                 digitalWrite(Pin::CS1, value);
                 break;
             default:
@@ -339,7 +348,16 @@ inline void
 signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
-void setSPI0Channel(byte index) noexcept;
+void setSPI0Channel(byte index) noexcept {
+    digitalWrite<Pin::SPI_OFFSET0>(index & 0b001 ? HIGH : LOW);
+    digitalWrite<Pin::SPI_OFFSET1>(index & 0b010 ? HIGH : LOW);
+    digitalWrite<Pin::SPI_OFFSET2>(index & 0b100 ? HIGH : LOW);
+}
+void setSPI1Channel(byte index) noexcept {
+    digitalWrite<Pin::SPI2_OFFSET0>(index & 0b001 ? HIGH : LOW);
+    digitalWrite<Pin::SPI2_OFFSET1>(index & 0b010 ? HIGH : LOW);
+    digitalWrite<Pin::SPI2_OFFSET2>(index & 0b100 ? HIGH : LOW);
+}
 class CacheEntry {
 
 };
@@ -386,13 +404,8 @@ configurePins() noexcept {
     pinMode(Pin::Capture5, INPUT);
     pinMode(Pin::Capture6, INPUT);
     pinMode(Pin::Capture7, INPUT);
-
-    digitalWrite<Pin::SPI_OFFSET0, LOW>();
-    digitalWrite<Pin::SPI_OFFSET1, LOW>();
-    digitalWrite<Pin::SPI_OFFSET2, LOW>();
-    digitalWrite<Pin::SPI2_OFFSET0, LOW>();
-    digitalWrite<Pin::SPI2_OFFSET1, LOW>();
-    digitalWrite<Pin::SPI2_OFFSET2, LOW>();
+    setSPI0Channel(0);
+    setSPI1Channel(0);
     digitalWrite<Pin::HOLD, LOW>();
     digitalWrite<Pin::CS1, HIGH>();
     digitalWrite<Pin::CS2, HIGH>();

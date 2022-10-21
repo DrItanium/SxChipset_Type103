@@ -195,18 +195,9 @@ namespace MCP23S17 {
         digitalWrite(pin, HIGH);
         return result;
     }
-    template<HardwareDeviceAddress address, Registers opcode, typename Pin>
-    inline uint8_t read8() noexcept {
-        Pin::assertPin();
-        SPI.transfer(generateReadOpcode(address));
-        SPI.transfer(static_cast<uint8_t>(opcode));
-        auto result = SPI.transfer(0);
-        Pin::deassertPin();
-        return result;
-    }
     template<HardwareDeviceAddress address, Registers opcode>
-    inline SplitWord16 read16(byte pin) noexcept {
-        SplitWord16 output(0);
+    inline uint16_t read16(byte pin) noexcept {
+        uint16_t output = 0;
         digitalWrite(pin, LOW);
         SPDR = generateReadOpcode(address);
         asm volatile("nop");
@@ -221,35 +212,12 @@ namespace MCP23S17 {
         SPDR = 0;
         asm volatile("nop");
         {
-            output.bytes[0] = lower;
+            output = lower;
         }
         while (!(SPSR & _BV(SPIF))) ; // wait
-        output.bytes[1] = SPDR;
+        auto value = SPDR;
+        output |= (static_cast<uint16_t>(value) << 8);
         digitalWrite(pin, HIGH);
-        return output;
-    }
-    template<HardwareDeviceAddress address, Registers opcode, typename Pin>
-    inline SplitWord16 read16() noexcept {
-        SplitWord16 output(0);
-        Pin::assertPin();
-        SPDR = generateReadOpcode(address);
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = static_cast<byte>(opcode) ;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = 0;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        auto lower = SPDR;
-        SPDR = 0;
-        asm volatile("nop");
-        {
-            output.bytes[0] = lower;
-        }
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        output.bytes[1] = SPDR;
-        Pin::deassertPin();
         return output;
     }
     template<HardwareDeviceAddress addr, Registers opcode>
@@ -272,61 +240,24 @@ namespace MCP23S17 {
         while (!(SPSR & _BV(SPIF))) ; // wait
         digitalWrite(pin, HIGH);
     }
-    template<HardwareDeviceAddress addr, Registers opcode, typename Pin>
-    inline void write8(byte value) noexcept {
-        Pin::assertPin();
-        SPDR = generateWriteOpcode(addr);
-        /*
-         * The following NOP introduces a small delay that can prevent the wait
-         * loop form iterating when running at the maximum speed. This gives
-         * about 10% more speed, even if it seems counter-intuitive. At lower
-         * speeds it is unnoticed.
-         */
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = static_cast<byte>(opcode);
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = value;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        Pin::deassertPin();
-    }
     template<HardwareDeviceAddress addr, Registers opcode>
     inline void write16(byte pin, uint16_t v) noexcept {
-        SplitWord16 valueDiv(v);
         digitalWrite(pin, LOW);
         SPDR = generateWriteOpcode(addr);
         asm volatile("nop");
+        uint8_t lower = v;
         while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = static_cast<byte>(opcode);
         asm volatile("nop");
+        uint8_t upper = static_cast<uint8_t>(v >> 8);
         while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = valueDiv.bytes[0];
+        SPDR = lower;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = valueDiv.bytes[1];
+        SPDR = upper;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
         digitalWrite(pin, HIGH);
-    }
-    template<HardwareDeviceAddress addr, Registers opcode, typename Pin>
-    inline void write16(uint16_t v) noexcept {
-        SplitWord16 valueDiv(v);
-        Pin::assertPin();
-        SPDR = generateWriteOpcode(addr);
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = static_cast<byte>(opcode);
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = valueDiv.bytes[0];
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = valueDiv.bytes[1];
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        Pin::deassertPin();
     }
     /**
      * @brief Read all 16 GPIOs of an io expander
@@ -334,12 +265,8 @@ namespace MCP23S17 {
      * @return The contents of the GPIO register pair
      */
     template<HardwareDeviceAddress addr>
-    inline SplitWord16 readGPIO16(byte pin) noexcept {
+    inline auto readGPIO16(byte pin) noexcept {
         return read16<addr, Registers::GPIO>(pin);
-    }
-    template<HardwareDeviceAddress addr, typename Pin>
-    inline SplitWord16 readGPIO16() noexcept {
-        return read16<addr, Registers::GPIO, Pin>();
     }
     /**
      * @brief Set all 16 GPIOs of an io expander
@@ -350,10 +277,6 @@ namespace MCP23S17 {
      template<HardwareDeviceAddress addr>
     inline void writeGPIO16(byte pin, uint16_t value) noexcept {
         write16<addr, Registers::GPIO>(pin, value);
-    }
-    template<HardwareDeviceAddress addr, typename Pin>
-    inline void writeGPIO16(uint16_t value) noexcept {
-        write16<addr, Registers::GPIO, Pin>(value);
     }
     /**
      * @brief Describe the directions of all 16 pins on a given io expander.
@@ -376,93 +299,19 @@ namespace MCP23S17 {
      * @return The 16-bits of direction information for the target io expander
      */
     template<HardwareDeviceAddress addr>
-    inline SplitWord16 readDirection(byte pin) noexcept {
+    inline auto readDirection(byte pin) noexcept {
         return read16<addr, Registers::IODIR>(pin);
-    }
-    template<HardwareDeviceAddress addr, typename Pin>
-    inline SplitWord16 readDirection() noexcept {
-        return read16<addr, Registers::IODIR, Pin>();
     }
     template<HardwareDeviceAddress addr>
     IOCON readIOCON(byte pin) noexcept {
         return IOCON(read8<addr, Registers::IOCON>(pin));
-    }
-    template<HardwareDeviceAddress addr, typename Pin>
-    IOCON readIOCON() noexcept {
-        return IOCON(read8<addr, Registers::IOCON, Pin>());
     }
 
     template<HardwareDeviceAddress addr>
     void writeIOCON(byte pin, const IOCON& value) noexcept {
         write8<addr, Registers::IOCON>(pin, value.getRegister());
     }
-    template<HardwareDeviceAddress addr, typename Pin>
-    void writeIOCON(const IOCON& value) noexcept {
-        write8<addr, Pin, Registers::IOCON>(value.getRegister());
-    }
 
-    template<HardwareDeviceAddress addr, uint16_t mask, typename Pin>
-    inline void pinMode(decltype(INPUT) direction) {
-        auto directionBits = readDirection<addr, Pin>().wholeValue_;
-        uint16_t pullupBits = read16<addr, Registers::GPPU, Pin>().wholeValue_;
-        switch (direction) {
-            case OUTPUT:
-                directionBits &= ~mask;
-                pullupBits &= ~mask;
-                break;
-            case INPUT_PULLUP:
-                // we need to activate the pullup
-                directionBits |= mask;
-                pullupBits |= mask;
-                break;
-            case INPUT:
-                pullupBits &= ~mask;
-                directionBits |= mask;
-                break;
-            default:
-                return;
-        }
-        writeDirection<addr, Pin>(directionBits);
-        write16<addr, Registers::GPPU, Pin>(pullupBits);
-    }
-    template<HardwareDeviceAddress addr, uint16_t mask, typename Pin>
-    inline decltype(HIGH) digitalRead() noexcept {
-        return (readGPIO16<addr, Pin>().wholeValue_ & mask) != 0 ? HIGH : LOW;
-    }
-    template<HardwareDeviceAddress addr, uint16_t mask, typename Pin>
-    inline void digitalWrite(decltype(HIGH) value) noexcept {
-        if (auto result = readGPIO16<addr, Pin>(); value == LOW) {
-            result.wholeValue_ &= ~mask;
-            writeGPIO16<addr, Pin>(result.wholeValue_);
-        } else {
-            result.wholeValue_ |= mask;
-            writeGPIO16<addr, Pin>(result.wholeValue_);
-        }
-    }
-    template<HardwareDeviceAddress addr, uint16_t mask, typename Pin, decltype(HIGH) value>
-    inline void digitalWrite() noexcept {
-        if constexpr (auto result = readGPIO16<addr, Pin>(); value == LOW) {
-            result.wholeValue_ &= ~mask;
-            writeGPIO16<addr, Pin>(result.wholeValue_);
-        } else {
-            result.wholeValue_ |= mask;
-            writeGPIO16<addr, Pin>(result.wholeValue_);
-        }
-    }
-    template<HardwareDeviceAddress addr, uint16_t mask, typename Pin>
-    inline decltype(INPUT) getMode() noexcept {
-        auto direction = readDirection<addr, Pin>();
-        if ((direction.wholeValue_ & mask) == 0) {
-            return OUTPUT;
-        } else {
-            auto pullups = read16<addr, Registers::GPPU, Pin>();
-            if ((pullups.wholeValue_ & mask) == 0) {
-                return INPUT;
-            } else {
-                return INPUT_PULLUP;
-            }
-        }
-    }
 } // end namespace MCP23S17
 
 #endif //SXCHIPSET_TYPE103_MCP23S17_H

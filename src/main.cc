@@ -343,6 +343,26 @@ void setSPI0Channel(byte index) noexcept;
 class CacheEntry {
 
 };
+void configurePins() noexcept;
+void setupIOExpanders() noexcept;
+void 
+setup() {
+    Serial.begin(115200);
+    SPI.begin();
+    setupIOExpanders();
+    configurePins();
+    while (!SD.begin()) {
+        Serial.println(F("NO SD CARD FOUND...WAITING!"));
+        delay(1000);
+    }
+    Serial.println(F("SD CARD FOUND!"));
+}
+
+void 
+loop() {
+    delay(1000);
+}
+
 void 
 configurePins() noexcept {
     pinMode(Pin::HOLD, OUTPUT);
@@ -380,20 +400,8 @@ configurePins() noexcept {
     digitalWrite<Pin::INT3_, HIGH>();
     digitalWrite<Pin::SEL, LOW>();
 }
-void 
-setup() {
-    Serial.begin(115200);
-    SPI.begin();
-    setupIOExpanders();
-    configurePins();
-    while (!SD.begin()) {
-        Serial.println(F("NO SD CARD FOUND...WAITING!"));
-        delay(1000);
-    }
-    Serial.println(F("SD CARD FOUND!"));
-}
 
-void 
-loop() {
-    delay(1000);
+void
+setupIOExpanders() noexcept {
+
 }

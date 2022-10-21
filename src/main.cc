@@ -139,6 +139,30 @@ constexpr bool validPort(Port port) noexcept {
             return false;
     }
 }
+template<Pin pin>
+[[gnu::always_inline]]
+[[nodiscard]] constexpr decltype(auto) getPinMask() noexcept {
+    switch (pin) {
+#define PIN(port, offset) case Pin:: Port ## port ## offset : return _BV ( P ## port ## offset )
+#define PORT(port) \
+        PIN(port, 0); \
+        PIN(port, 1); \
+        PIN(port, 2); \
+        PIN(port, 3); \
+        PIN(port, 4); \
+        PIN(port, 5); \
+        PIN(port, 6); \
+        PIN(port, 7)
+        PORT(A);
+        PORT(B);
+        PORT(C);
+        PORT(D);
+#undef PIN
+#undef PORT
+        default:
+            return 0xFF;
+    }
+}
 constexpr bool isPhysicalPin(Pin pin) noexcept {
     return validPort(getPort(pin));
 }
@@ -227,24 +251,100 @@ inline void
 pinMode(Pin pin, decltype(INPUT) direction) noexcept {
     pinMode(static_cast<int>(pin), direction);
 }
+template<Pin pin>
+[[gnu::always_inline]] 
+inline void 
+digitalWrite(decltype(LOW) value) noexcept { 
+    if constexpr (IsPhysicalPin_v<pin>) {
+        if (auto &thePort = getOutputRegister<pin>(); value == LOW) {
+            thePort = thePort & ~getPinMask<pin>();
+        } else {
+            thePort = thePort | getPinMask<pin>();
+        }
+    } else {
+        ::digitalWrite(pin, value); 
+    }
+}
+void setSPI0Channel(byte index) noexcept;
+template<Pin pin, decltype(LOW) value>
+[[gnu::always_inline]] 
+inline void 
+digitalWrite() noexcept { 
+    if constexpr (IsPhysicalPin_v<pin>) {
+        if constexpr (auto &thePort = getOutputRegister<pin>(); value == LOW) {
+            thePort = thePort & ~getPinMask<pin>();
+        } else {
+            thePort = thePort | getPinMask<pin>();
+        }
+    } else {
+        switch (pin) {
+            case Pin::SPI2_EN0:
+            case Pin::SPI2_EN1:
+            case Pin::SPI2_EN2:
+            case Pin::SPI2_EN3:
+            case Pin::SPI2_EN4:
+            case Pin::SPI2_EN5:
+            case Pin::SPI2_EN6:
+            case Pin::SPI2_EN7:
+                digitalWrite<Pin::CS2, value>();
+                break;
+            case Pin::Ready:
+            case Pin::SD_EN:
+            case Pin::SPI1_EN3:
+            case Pin::GPIOSelect:
+                digitalWrite<Pin::CS1, value>();
+                break;
+            default:
+                ::digitalWrite(pin, value); 
+                break;
+        }
+    }
+}
 class CacheEntry {
 
 };
-[[gnu::noinline]]
 void 
-portTest() noexcept {
-    getOutputRegister<Pin::CS1>() |= (1 << 4);
-    getOutputRegister<Pin::CS2>() |= (1 << 4);
+configurePins() noexcept {
+    pinMode(Pin::HOLD, OUTPUT);
+    pinMode(Pin::HLDA, INPUT);
+    pinMode(Pin::CS1, OUTPUT);
+    pinMode(Pin::CS2, OUTPUT);
+    pinMode(Pin::SPI_OFFSET0, OUTPUT);
+    pinMode(Pin::SPI_OFFSET1, OUTPUT);
+    pinMode(Pin::SPI_OFFSET2, OUTPUT);
+    pinMode(Pin::SPI2_OFFSET0, OUTPUT);
+    pinMode(Pin::SPI2_OFFSET1, OUTPUT);
+    pinMode(Pin::SPI2_OFFSET2, OUTPUT);
+    pinMode(Pin::INT0_, OUTPUT);
+    pinMode(Pin::SEL, OUTPUT);
+    pinMode(Pin::INT3_, OUTPUT);
+    pinMode(Pin::Capture0, INPUT);
+    pinMode(Pin::Capture1, INPUT);
+    pinMode(Pin::Capture2, INPUT);
+    pinMode(Pin::Capture3, INPUT);
+    pinMode(Pin::Capture4, INPUT);
+    pinMode(Pin::Capture5, INPUT);
+    pinMode(Pin::Capture6, INPUT);
+    pinMode(Pin::Capture7, INPUT);
+
+    digitalWrite<Pin::SPI_OFFSET0, LOW>();
+    digitalWrite<Pin::SPI_OFFSET1, LOW>();
+    digitalWrite<Pin::SPI_OFFSET2, LOW>();
+    digitalWrite<Pin::SPI2_OFFSET0, LOW>();
+    digitalWrite<Pin::SPI2_OFFSET1, LOW>();
+    digitalWrite<Pin::SPI2_OFFSET2, LOW>();
+    digitalWrite<Pin::HOLD, LOW>();
+    digitalWrite<Pin::CS1, HIGH>();
+    digitalWrite<Pin::CS2, HIGH>();
+    digitalWrite<Pin::INT0_, HIGH>();
+    digitalWrite<Pin::INT3_, HIGH>();
+    digitalWrite<Pin::SEL, LOW>();
 }
 void 
 setup() {
     Serial.begin(115200);
     SPI.begin();
-    pinMode(Pin::HOLD, OUTPUT);
-    pinMode(Pin::HLDA, INPUT);
-    pinMode(Pin::CS1, OUTPUT);
-    pinMode(Pin::CS2, OUTPUT);
-    portTest();
+    configurePins();
     while (!SD.begin()) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);

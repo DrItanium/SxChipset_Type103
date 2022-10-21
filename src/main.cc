@@ -46,6 +46,32 @@ DefPort(A),
 Count,
 #undef DefPin
 #undef DefPort
+// concepts
+DEN,
+W_R_,
+FAIL,
+Ready,
+SD_EN,
+GPIOSelect,
+SPI1_EN3,
+ADDR_INT0,
+ADDR_INT1,
+ADDR_INT2,
+ADDR_INT3,
+DATA_INT0,
+DATA_INT1,
+XIO_INT,
+RAM_IO,
+#define X(ind) SPI2_EN ## ind 
+X(0),
+X(1),
+X(2),
+X(3),
+X(4),
+X(5),
+X(6),
+X(7),
+#undef X
     HOLD = PortB0,
     CLKO = PortB1,
     HLDA = PortB2,
@@ -71,17 +97,23 @@ Count,
     Capture6 = PortA6,
     Capture7 = PortA7,
 };
+constexpr bool isPhysicalPin(Pinout pin) noexcept {
+    return static_cast<byte>(pin) < static_cast<byte>(Pinout::Count);
+}
+
+template<Pinout pin>
+constexpr auto IsPhysicalPin_v = isPhysicalPin(pin);
 
 [[gnu::always_inline]] 
 inline void 
 digitalWrite(Pinout pin, decltype(LOW) value) noexcept { 
-    digitalWrite(static_cast<int>(pin), value); 
+    digitalWrite(static_cast<byte>(pin), value); 
 }
 
 [[gnu::always_inline]] 
 inline decltype(LOW)
 digitalRead(Pinout pin) noexcept { 
-    return digitalRead(static_cast<int>(pin));
+    return digitalRead(static_cast<byte>(pin));
 }
 class CacheEntry {
 

@@ -202,6 +202,13 @@ inline PortOutputRegister
 getOutputRegister() noexcept {
     return getOutputRegister<getPort(pin)>();
 }
+
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortOutputRegister 
+getOutputRegister(Pin pin) noexcept {
+    return getOutputRegister(getPort(pin));
+}
 [[gnu::always_inline]]
 [[nodiscard]] 
 inline PortInputRegister 
@@ -256,7 +263,35 @@ getDirectionRegister() noexcept {
 [[gnu::always_inline]] 
 inline void 
 digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
-    digitalWrite(static_cast<byte>(pin), value); 
+    if (isPhysicalPin(pin)) {
+        if (auto &thePort = getOutputRegister(pin); value == LOW) {
+            thePort = thePort & ~getPinMask(pin);
+        } else {
+            thePort = thePort | getPinMask(pin);
+        }
+    } else {
+        switch (pin) {
+            case Pin::SPI2_EN0:
+            case Pin::SPI2_EN1:
+            case Pin::SPI2_EN2:
+            case Pin::SPI2_EN3:
+            case Pin::SPI2_EN4:
+            case Pin::SPI2_EN5:
+            case Pin::SPI2_EN6:
+            case Pin::SPI2_EN7:
+                digitalWrite(Pin::CS2, value);
+                break;
+            case Pin::Ready:
+            case Pin::SD_EN:
+            case Pin::SPI1_EN3:
+            case Pin::GPIOSelect:
+                digitalWrite(Pin::CS1, value);
+                break;
+            default:
+                digitalWrite(static_cast<byte>(pin), value); 
+                break;
+        }
+    }
 }
 
 [[gnu::always_inline]] 
@@ -283,37 +318,8 @@ template<Pin pin>
 [[gnu::always_inline]] 
 inline void 
 digitalWrite(decltype(LOW) value) noexcept { 
-    if constexpr (IsPhysicalPin_v<pin>) {
-        if (auto &thePort = getOutputRegister<pin>(); value == LOW) {
-            thePort = thePort & ~getPinMask<pin>();
-        } else {
-            thePort = thePort | getPinMask<pin>();
-        }
-    } else {
-        switch (pin) {
-            case Pin::SPI2_EN0:
-            case Pin::SPI2_EN1:
-            case Pin::SPI2_EN2:
-            case Pin::SPI2_EN3:
-            case Pin::SPI2_EN4:
-            case Pin::SPI2_EN5:
-            case Pin::SPI2_EN6:
-            case Pin::SPI2_EN7:
-                digitalWrite<Pin::CS2>(value);
-                break;
-            case Pin::Ready:
-            case Pin::SD_EN:
-            case Pin::SPI1_EN3:
-            case Pin::GPIOSelect:
-                digitalWrite<Pin::CS1>(value);
-                break;
-            default:
-                ::digitalWrite(pin, value); 
-                break;
-        }
-    }
+    digitalWrite(pin, value);
 }
-void setSPI0Channel(byte index) noexcept;
 template<Pin pin, decltype(LOW) value>
 [[gnu::always_inline]] 
 inline void 
@@ -333,6 +339,7 @@ inline void
 signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
+void setSPI0Channel(byte index) noexcept;
 class CacheEntry {
 
 };

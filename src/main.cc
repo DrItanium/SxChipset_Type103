@@ -47,6 +47,7 @@ Count,
 #undef DefPin
 #undef DefPort
 // concepts
+Reset960,
 DEN,
 W_R_,
 FAIL,
@@ -246,6 +247,16 @@ inline decltype(LOW)
 digitalRead(Pin pin) noexcept { 
     return digitalRead(static_cast<byte>(pin));
 }
+template<Pin pin>
+[[gnu::always_inline]] 
+inline decltype(LOW)
+digitalRead() noexcept { 
+    if constexpr (IsPhysicalPin_v<pin>) {
+        return (getInputRegister<pin>() & getPinMask<pin>()) ? HIGH : LOW;
+    } else {
+        return digitalRead(pin);
+    }
+}
 [[gnu::always_inline]] 
 inline void 
 pinMode(Pin pin, decltype(INPUT) direction) noexcept {
@@ -290,35 +301,7 @@ template<Pin pin, decltype(LOW) value>
 [[gnu::always_inline]] 
 inline void 
 digitalWrite() noexcept { 
-    if constexpr (IsPhysicalPin_v<pin>) {
-        if constexpr (auto &thePort = getOutputRegister<pin>(); value == LOW) {
-            thePort = thePort & ~getPinMask<pin>();
-        } else {
-            thePort = thePort | getPinMask<pin>();
-        }
-    } else {
-        switch (pin) {
-            case Pin::SPI2_EN0:
-            case Pin::SPI2_EN1:
-            case Pin::SPI2_EN2:
-            case Pin::SPI2_EN3:
-            case Pin::SPI2_EN4:
-            case Pin::SPI2_EN5:
-            case Pin::SPI2_EN6:
-            case Pin::SPI2_EN7:
-                digitalWrite<Pin::CS2, value>();
-                break;
-            case Pin::Ready:
-            case Pin::SD_EN:
-            case Pin::SPI1_EN3:
-            case Pin::GPIOSelect:
-                digitalWrite<Pin::CS1, value>();
-                break;
-            default:
-                ::digitalWrite(pin, value); 
-                break;
-        }
-    }
+    digitalWrite<pin>(value);
 }
 template<Pin pin, decltype(LOW) to, decltype(HIGH) from>
 [[gnu::always_inline]]

@@ -49,9 +49,6 @@ Count,
 #undef DefPort
 // concepts
 Reset960,
-DEN,
-W_R_,
-FAIL,
 Ready,
 SD_EN,
 GPIOSelect,
@@ -60,14 +57,6 @@ PSRAM0,
 PSRAM1,
 PSRAM2,
 PSRAM3,
-ADDR_INT0,
-ADDR_INT1,
-ADDR_INT2,
-ADDR_INT3,
-DATA_INT0,
-DATA_INT1,
-XIO_INT,
-RAM_IO,
 #define X(ind) SPI2_EN ## ind 
 X(0),
 X(1),
@@ -102,6 +91,14 @@ X(7),
     Capture5 = PortA5,
     Capture6 = PortA6,
     Capture7 = PortA7,
+    DEN = Capture0, BE0 = Capture0,
+    W_R_ = Capture1, BE1 = Capture1,
+    FAIL = Capture2, BLAST_ = Capture2,
+    Channel0_3 = Capture3, XIO_INT = Capture3,
+    ADDR_INT0 = Capture4, DATA_INT0 = Capture4,
+    ADDR_INT1 = Capture5, DATA_INT1 = Capture5,
+    ADDR_INT2 = Capture6, RAM_IO = Capture6, 
+    ADDR_INT3 = Capture7, Channel1_7 = Capture7,
 };
 enum class Port : byte {
     A,
@@ -364,9 +361,13 @@ void setSPI1Channel(byte index) noexcept {
     digitalWrite<Pin::SPI2_OFFSET1>(index & 0b010 ? HIGH : LOW);
     digitalWrite<Pin::SPI2_OFFSET2>(index & 0b100 ? HIGH : LOW);
 }
-class CacheEntry {
-
-};
+void setInputChannel(byte value) noexcept {
+    if (value & 0b1) {
+        digitalWrite<Pin::SEL, HIGH>();
+    } else {
+        digitalWrite<Pin::SEL, LOW>();
+    }
+}
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;
 void 
@@ -380,6 +381,19 @@ setup() {
         delay(1000);
     }
     Serial.println(F("SD CARD FOUND!"));
+    setInputChannel(0);
+    digitalWrite<Pin::Reset960, HIGH>(); // put the i960 into reset
+    while (digitalRead<Pin::FAIL>() == LOW) {
+        if (digitalRead<Pin::DEN>() == LOW) {
+            break;
+        }
+    }
+    while (digitalRead<Pin::FAIL>() == HIGH) {
+        if (digitalRead<Pin::DEN>() == LOW) {
+            break;
+        }
+    }
+    // handle data requests here
 }
 
 void 
@@ -410,14 +424,16 @@ configurePins() noexcept {
     pinMode(Pin::Capture5, INPUT);
     pinMode(Pin::Capture6, INPUT);
     pinMode(Pin::Capture7, INPUT);
+    pinMode(Pin::Reset960, OUTPUT);
     setSPI0Channel(0);
     setSPI1Channel(0);
+    digitalWrite<Pin::Reset960, LOW>(); // put the i960 into reset
     digitalWrite<Pin::HOLD, LOW>();
     digitalWrite<Pin::CS1, HIGH>();
     digitalWrite<Pin::CS2, HIGH>();
     digitalWrite<Pin::INT0_, HIGH>();
     digitalWrite<Pin::INT3_, HIGH>();
-    digitalWrite<Pin::SEL, LOW>();
+    setInputChannel(0);
 }
 
 void

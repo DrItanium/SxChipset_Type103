@@ -146,7 +146,9 @@ constexpr bool isPhysicalPin(Pinout pin) noexcept {
 template<Pinout pin>
 constexpr auto IsPhysicalPin_v = isPhysicalPin(pin);
 
-PortOutputRegister 
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortOutputRegister 
 getOutputRegister(Port port) noexcept {
     switch (port) {
         case Port::A: return PORTA;
@@ -154,6 +156,30 @@ getOutputRegister(Port port) noexcept {
         case Port::C: return PORTC;
         case Port::D: return PORTD;
         default: return GPIOR0;
+    }
+}
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortInputRegister 
+getInputRegister(Port port) noexcept {
+    switch (port) {
+        case Port::A: return PINA;
+        case Port::B: return PINB;
+        case Port::C: return PINC;
+        case Port::D: return PIND;
+        default: return GPIOR1;
+    }
+}
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortDirectionRegister 
+getDirectionRegister(Port port) noexcept {
+    switch (port) {
+        case Port::A: return DDRA;
+        case Port::B: return DDRB;
+        case Port::C: return DDRC;
+        case Port::D: return DDRD;
+        default: return GPIOR2;
     }
 }
 [[gnu::always_inline]] 

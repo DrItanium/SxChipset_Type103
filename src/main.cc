@@ -262,7 +262,27 @@ digitalWrite(decltype(LOW) value) noexcept {
             thePort = thePort | getPinMask<pin>();
         }
     } else {
-        ::digitalWrite(pin, value); 
+        switch (pin) {
+            case Pin::SPI2_EN0:
+            case Pin::SPI2_EN1:
+            case Pin::SPI2_EN2:
+            case Pin::SPI2_EN3:
+            case Pin::SPI2_EN4:
+            case Pin::SPI2_EN5:
+            case Pin::SPI2_EN6:
+            case Pin::SPI2_EN7:
+                digitalWrite<Pin::CS2>(value);
+                break;
+            case Pin::Ready:
+            case Pin::SD_EN:
+            case Pin::SPI1_EN3:
+            case Pin::GPIOSelect:
+                digitalWrite<Pin::CS1>(value);
+                break;
+            default:
+                ::digitalWrite(pin, value); 
+                break;
+        }
     }
 }
 void setSPI0Channel(byte index) noexcept;
@@ -362,6 +382,7 @@ setup() {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);
     }
+    Serial.println(F("SD CARD FOUND!"));
 }
 
 void 

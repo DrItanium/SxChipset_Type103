@@ -396,7 +396,29 @@ setup() {
     }
     // okay so we got past this, just start performing actions
 }
-
+union Channel0Value {
+    explicit Channel0Value(uint8_t value) noexcept : value_(value) { }
+    uint8_t value_;
+    struct {
+        uint8_t den : 1;
+        uint8_t w_r_ : 1;
+        uint8_t fail : 1;
+        uint8_t unused : 1;
+        uint8_t addrInt : 4;
+    } bits;
+};
+union Channel1Value {
+    explicit Channel0Value(uint8_t value) noexcept : value_(value) { }
+    uint8_t value_;
+    struct {
+        uint8_t byteEnable : 2;
+        uint8_t blast : 1;
+        uint8_t xioint : 1;
+        uint8_t dataInt : 2;
+        uint8_t ramIO : 1;
+        uint8_t unused : 1;
+    } bits;
+};
 void 
 loop() {
     setInputChannel(0);
@@ -406,8 +428,9 @@ loop() {
     }
     while (digitalRead<Pin::DEN>() == HIGH);
     // grab the entire state of port A
-    auto m0 = PINA;
+    Channel0Value m0(PINA);
     setInputChannel(1);
+    setSPI0Channel(0); // GPIO
 }
 
 void 
@@ -460,3 +483,16 @@ inline void doReset(decltype(LOW) value) noexcept {
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA>(static_cast<byte>(Pin::CS1), theGPIO);
 }
 
+/**
+ * @brief Hacked sdCsInit that assumes the only pin we care about is SD_EN, otherwise failure
+ * @param pin
+ */
+void sdCsInit(SdCsPin_t pin) {
+    /// @todo implement
+}
+
+void sdCsWrite(SdCsPin_t, bool level) {
+    /// @todo implement
+    setSPI0Channel(1);
+    digitalWrite<Pin::SD_EN>(level);
+}

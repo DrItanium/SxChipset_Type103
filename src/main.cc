@@ -399,12 +399,15 @@ setup() {
 
 void 
 loop() {
+    setInputChannel(0);
     if (digitalRead<Pin::FAIL>() == HIGH) {
         Serial.println(F("CHECKSUM FAILURE!"));
         while (true);
     }
     while (digitalRead<Pin::DEN>() == HIGH);
-
+    // grab the entire state of port A
+    auto m0 = PINA;
+    setInputChannel(1);
 }
 
 void 

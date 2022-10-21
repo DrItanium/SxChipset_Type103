@@ -368,22 +368,32 @@ void setInputChannel(byte value) noexcept {
         digitalWrite<Pin::SEL, LOW>();
     }
 }
+void putCPUInReset() noexcept {
+    setInputChannel(0);
+    digitalWrite<Pin::Reset960, LOW>();
+}
+void pullCPUOutOfReset() noexcept {
+    setInputChannel(0);
+    digitalWrite<Pin::Reset960, HIGH>();
+}
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;
-bool handleInitialBoot() noexcept;
+void setupCache() noexcept;
+void installMemoryImage() noexcept;
 void 
 setup() {
     Serial.begin(115200);
     SPI.begin();
     setupIOExpanders();
     configurePins();
+    setupCache();
     while (!SD.begin()) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);
     }
     Serial.println(F("SD CARD FOUND!"));
-    setInputChannel(0);
-    digitalWrite<Pin::Reset960, HIGH>(); // put the i960 into reset
+    installMemoryImage();
+    pullCPUOutOfReset();
     while (digitalRead<Pin::FAIL>() == LOW) {
         if (digitalRead<Pin::DEN>() == LOW) {
             break;
@@ -431,6 +441,8 @@ loop() {
     Channel0Value m0(PINA);
     setInputChannel(1);
     setSPI0Channel(0); // GPIO
+    // okay so we need to read data lines in
+
 }
 
 void 
@@ -459,13 +471,13 @@ configurePins() noexcept {
     pinMode(Pin::Reset960, OUTPUT);
     setSPI0Channel(0);
     setSPI1Channel(0);
-    digitalWrite<Pin::Reset960, LOW>(); // put the i960 into reset
     digitalWrite<Pin::HOLD, LOW>();
     digitalWrite<Pin::CS1, HIGH>();
     digitalWrite<Pin::CS2, HIGH>();
     digitalWrite<Pin::INT0_, HIGH>();
     digitalWrite<Pin::INT3_, HIGH>();
     setInputChannel(0);
+    putCPUInReset();
 }
 
 void
@@ -495,4 +507,13 @@ void sdCsWrite(SdCsPin_t, bool level) {
     /// @todo implement
     setSPI0Channel(1);
     digitalWrite<Pin::SD_EN>(level);
+}
+
+void setupCache() noexcept {
+
+}
+
+void 
+installMemoryImage() noexcept {
+
 }

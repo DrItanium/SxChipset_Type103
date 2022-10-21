@@ -300,6 +300,19 @@ digitalWrite() noexcept {
         }
     }
 }
+template<Pin pin, decltype(LOW) to, decltype(HIGH) from>
+[[gnu::always_inline]]
+inline void
+pulse() noexcept {
+    digitalWrite<pin, to>();
+    digitalWrite<pin, from>();
+}
+
+[[gnu::always_inline]] 
+inline void 
+signalReady() noexcept {
+    pulse<Pin::Ready, LOW, HIGH>();
+}
 class CacheEntry {
 
 };

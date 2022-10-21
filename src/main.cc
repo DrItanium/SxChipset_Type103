@@ -408,7 +408,7 @@ union Channel0Value {
     } bits;
 };
 union Channel1Value {
-    explicit Channel0Value(uint8_t value) noexcept : value_(value) { }
+    explicit Channel1Value(uint8_t value) noexcept : value_(value) { }
     uint8_t value_;
     struct {
         uint8_t byteEnable : 2;

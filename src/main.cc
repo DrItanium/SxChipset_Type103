@@ -1,6 +1,6 @@
 /*
 i960SxChipset_Type103
-Copyright (c) 2022-2021, Joshua Scoggins
+Copyright (c) 2022, Joshua Scoggins
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -384,6 +384,7 @@ void
 setup() {
     Serial.begin(115200);
     SPI.begin();
+    setupIOExpanders();
     configurePins();
     while (!SD.begin()) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));

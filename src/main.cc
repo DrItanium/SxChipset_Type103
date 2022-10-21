@@ -28,6 +28,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Wire.h>
 #include <SdFat.h>
 SdFat SD;
+enum class Pinout : byte {
+#define DefPin(port, index) Port ## port ## index 
+#define DefPort(port) \
+    DefPin(port, 0), \
+    DefPin(port, 1), \
+    DefPin(port, 2), \
+    DefPin(port, 3), \
+    DefPin(port, 4), \
+    DefPin(port, 5), \
+    DefPin(port, 6), \
+    DefPin(port, 7)
+DefPort(B),
+DefPort(D),
+DefPort(C),
+DefPort(A),
+Count,
+#undef DefPin
+#undef DefPort
+    HOLD = PortB0,
+    CLKO = PortB1,
+    HLDA = PortB2,
+    CS2 = PortB3,
+    CS1 = PortB4,
+
+    INT0_ = PortD5,
+    SEL = PortD6,
+    INT3_ = PortD7,
+
+    SPI_OFFSET0 = PortC2,
+    SPI_OFFSET1 = PortC3,
+    SPI_OFFSET2 = PortC4,
+    SPI2_OFFSET0 = PortC5,
+    SPI2_OFFSET1 = PortC6,
+    SPI2_OFFSET2 = PortC7,
+    Capture0 = PortA0,
+    Capture1 = PortA1,
+    Capture2 = PortA2,
+    Capture3 = PortA3,
+    Capture4 = PortA4,
+    Capture5 = PortA5,
+    Capture6 = PortA6,
+    Capture7 = PortA7,
+};
+
+[[gnu::always_inline]] 
+inline void 
+digitalWrite(Pinout pin, decltype(LOW) value) noexcept { 
+    digitalWrite(static_cast<int>(pin), value); 
+}
+
+[[gnu::always_inline]] 
+inline decltype(LOW)
+digitalRead(Pinout pin) noexcept { 
+    return digitalRead(static_cast<int>(pin));
+}
 class CacheEntry {
 
 };

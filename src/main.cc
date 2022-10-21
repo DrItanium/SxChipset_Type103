@@ -265,6 +265,9 @@ inline PortDirectionRegister
 getDirectionRegister() noexcept {
     return getDirectionRegister(port);
 }
+constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
+inline void doReset(decltype(LOW) value) noexcept;
+
 [[gnu::always_inline]] 
 inline void 
 digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
@@ -295,6 +298,9 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
             case Pin::PSRAM2:
             case Pin::PSRAM3:
                 digitalWrite(Pin::CS1, value);
+                break;
+            case Pin::Reset960: 
+                doReset(value);
                 break;
             default:
                 digitalWrite(static_cast<byte>(pin), value); 
@@ -417,4 +423,14 @@ configurePins() noexcept {
 void
 setupIOExpanders() noexcept {
 
+}
+inline void doReset(decltype(LOW) value) noexcept {
+    setSPI0Channel(0);
+    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA>(static_cast<byte>(Pin::CS1)); 
+    if (value == LOW) {
+        theGPIO &= ~1;
+    } else {
+        theGPIO |= 1;
+    }
+    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA>(static_cast<byte>(Pin::CS1), theGPIO);
 }

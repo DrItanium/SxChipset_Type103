@@ -66,6 +66,10 @@ namespace MCP23S17 {
         GPINTEN = GPINTENA,
         IPOL = IPOLA,
     };
+    constexpr uint16_t AllInput16 = 0xFFFF;
+    constexpr uint8_t AllInput8 = 0xFF;
+    constexpr uint8_t AllOutput8 = 0;
+    constexpr uint16_t AllOutput16 = 0;
     union IOCON {
         uint8_t whole;
         struct {
@@ -311,7 +315,6 @@ namespace MCP23S17 {
     void writeIOCON(byte pin, const IOCON& value) noexcept {
         write8<addr, Registers::IOCON>(pin, value.getRegister());
     }
-
 } // end namespace MCP23S17
 
 #endif //SXCHIPSET_TYPE103_MCP23S17_H

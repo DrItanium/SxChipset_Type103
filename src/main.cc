@@ -26,7 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <SD.h>
+#include <SdFat.h>
+SdFat SD;
 class CacheEntry {
 
 };
@@ -35,7 +36,10 @@ void
 setup() {
     Serial.begin(115200);
     SPI.begin();
-    Wire.begin();
+    while (!SD.begin()) {
+        Serial.println(F("NO SD CARD FOUND...WAITING!"));
+        delay(1000);
+    }
 }
 
 void 

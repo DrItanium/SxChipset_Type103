@@ -230,13 +230,21 @@ pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 class CacheEntry {
 
 };
-
+[[gnu::noinline]]
+void 
+portTest() noexcept {
+    getOutputRegister<Pin::CS1>() |= (1 << 4);
+    getOutputRegister<Pin::CS2>() |= (1 << 4);
+}
 void 
 setup() {
     Serial.begin(115200);
     SPI.begin();
+    pinMode(Pin::HOLD, OUTPUT);
+    pinMode(Pin::HLDA, INPUT);
     pinMode(Pin::CS1, OUTPUT);
-    getOutputRegister<Pin::CS1>() |= (1 << 4);
+    pinMode(Pin::CS2, OUTPUT);
+    portTest();
     while (!SD.begin()) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);

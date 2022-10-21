@@ -140,9 +140,8 @@ constexpr bool validPort(Port port) noexcept {
             return false;
     }
 }
-template<Pin pin>
 [[gnu::always_inline]]
-[[nodiscard]] constexpr decltype(auto) getPinMask() noexcept {
+[[nodiscard]] constexpr decltype(auto) getPinMask(Pin pin) noexcept {
     switch (pin) {
 #define PIN(port, offset) case Pin:: Port ## port ## offset : return _BV ( P ## port ## offset )
 #define PORT(port) \
@@ -163,6 +162,11 @@ template<Pin pin>
         default:
             return 0xFF;
     }
+}
+template<Pin pin>
+[[gnu::always_inline]]
+[[nodiscard]] constexpr decltype(auto) getPinMask() noexcept {
+    return getPinMask(pin);
 }
 constexpr bool isPhysicalPin(Pin pin) noexcept {
     return validPort(getPort(pin));
@@ -217,6 +221,19 @@ inline PortInputRegister
 getInputRegister() noexcept {
     return getInputRegister(port);
 }
+template<Pin pin>
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortInputRegister 
+getInputRegister() noexcept {
+    return getInputRegister<getPort(pin)>();
+}
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortInputRegister 
+getInputRegister(Pin pin) noexcept {
+    return getInputRegister(getPort(pin));
+}
 [[gnu::always_inline]]
 [[nodiscard]] 
 inline PortDirectionRegister 
@@ -245,17 +262,17 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
 [[gnu::always_inline]] 
 inline decltype(LOW)
 digitalRead(Pin pin) noexcept { 
-    return digitalRead(static_cast<byte>(pin));
+    if (isPhysicalPin(pin)) {
+        return (getInputRegister(pin) & getPinMask(pin)) ? HIGH : LOW;
+    } else {
+        return digitalRead(static_cast<byte>(pin));
+    }
 }
 template<Pin pin>
 [[gnu::always_inline]] 
 inline decltype(LOW)
 digitalRead() noexcept { 
-    if constexpr (IsPhysicalPin_v<pin>) {
-        return (getInputRegister<pin>() & getPinMask<pin>()) ? HIGH : LOW;
-    } else {
-        return digitalRead(pin);
-    }
+    return digitalRead(pin);
 }
 [[gnu::always_inline]] 
 inline void 

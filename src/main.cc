@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Wire.h>
 #include <SdFat.h>
 SdFat SD;
-enum class Pinout : byte {
+enum class Pin : byte {
 #define DefPin(port, index) Port ## port ## index 
 #define DefPort(port) \
     DefPin(port, 0), \
@@ -107,9 +107,9 @@ enum class Port : byte {
 using PortOutputRegister = volatile byte&;
 using PortInputRegister = volatile byte&;
 using PortDirectionRegister = volatile byte&;
-constexpr Port getPort(Pinout pin) noexcept {
+constexpr Port getPort(Pin pin) noexcept {
     switch (pin) {
-#define X(port, ind) case Pinout :: Port ## port ## ind : return Port:: port 
+#define X(port, ind) case Pin :: Port ## port ## ind : return Port:: port 
 #define Y(port) \
         X(port, 0); \
         X(port, 1); \
@@ -139,11 +139,11 @@ constexpr bool validPort(Port port) noexcept {
             return false;
     }
 }
-constexpr bool isPhysicalPin(Pinout pin) noexcept {
+constexpr bool isPhysicalPin(Pin pin) noexcept {
     return validPort(getPort(pin));
 }
 
-template<Pinout pin>
+template<Pin pin>
 constexpr auto IsPhysicalPin_v = isPhysicalPin(pin);
 
 [[gnu::always_inline]]
@@ -165,6 +165,13 @@ template<Port port>
 inline PortOutputRegister 
 getOutputRegister() noexcept {
     return getOutputRegister(port);
+}
+template<Pin pin>
+[[gnu::always_inline]]
+[[nodiscard]] 
+inline PortOutputRegister 
+getOutputRegister() noexcept {
+    return getOutputRegister<getPort(pin)>();
 }
 [[gnu::always_inline]]
 [[nodiscard]] 
@@ -206,14 +213,19 @@ getDirectionRegister() noexcept {
 }
 [[gnu::always_inline]] 
 inline void 
-digitalWrite(Pinout pin, decltype(LOW) value) noexcept { 
+digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
     digitalWrite(static_cast<byte>(pin), value); 
 }
 
 [[gnu::always_inline]] 
 inline decltype(LOW)
-digitalRead(Pinout pin) noexcept { 
+digitalRead(Pin pin) noexcept { 
     return digitalRead(static_cast<byte>(pin));
+}
+[[gnu::always_inline]] 
+inline void 
+pinMode(Pin pin, decltype(INPUT) direction) noexcept {
+    pinMode(static_cast<int>(pin), direction);
 }
 class CacheEntry {
 
@@ -223,6 +235,8 @@ void
 setup() {
     Serial.begin(115200);
     SPI.begin();
+    pinMode(Pin::CS1, OUTPUT);
+    getOutputRegister<Pin::CS1>() |= (1 << 4);
     while (!SD.begin()) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);

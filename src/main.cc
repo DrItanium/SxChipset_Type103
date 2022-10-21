@@ -394,11 +394,7 @@ setup() {
             break;
         }
     }
-    if (!handleInitialBoot()) {
-        Serial.println(F("CHECKSUM FAILURE!"));
-        while (true);
-    }
-    // handle data requests here
+    // okay so we got past this, just start performing actions
 }
 
 void 
@@ -409,7 +405,6 @@ loop() {
     }
     while (digitalRead<Pin::DEN>() == HIGH);
 
-    delay(1000);
 }
 
 void 
@@ -462,8 +457,3 @@ inline void doReset(decltype(LOW) value) noexcept {
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA>(static_cast<byte>(Pin::CS1), theGPIO);
 }
 
-bool
-handleInitialBoot() noexcept {
-    /// @todo code goes here
-    return digitalRead<Pin::FAIL>() != LOW;
-}

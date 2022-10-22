@@ -47,11 +47,8 @@ Count,
 // concepts
 SD_EN,
 GPIOSelect,
-SPI1_EN3,
 PSRAM0,
 PSRAM1,
-PSRAM2,
-PSRAM3,
 Reset960,
 #define X(ind) SPI2_EN ## ind 
 X(0),

@@ -283,7 +283,7 @@ configurePins() noexcept {
 
 void
 setupIOExpanders() noexcept {
-
+    
 }
 
 /**
@@ -342,12 +342,9 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
                 digitalWrite(Pin::CS2, value);
                 break;
             case Pin::SD_EN:
-            case Pin::SPI1_EN3:
             case Pin::GPIOSelect:
             case Pin::PSRAM0:
             case Pin::PSRAM1:
-            case Pin::PSRAM2:
-            case Pin::PSRAM3:
                 digitalWrite(Pin::CS1, value);
                 break;
             case Pin::Reset960: 

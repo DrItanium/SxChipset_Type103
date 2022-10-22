@@ -204,3 +204,59 @@ doReset(decltype(LOW) value) noexcept {
     }
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::CS1>(theGPIO);
 }
+
+[[gnu::always_inline]] 
+inline void 
+digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
+    if (isPhysicalPin(pin)) {
+        if (auto &thePort = getOutputRegister(pin); value == LOW) {
+            thePort = thePort & ~getPinMask(pin);
+        } else {
+            thePort = thePort | getPinMask(pin);
+        }
+    } else {
+        switch (pin) {
+            case Pin::SPI2_EN0:
+            case Pin::SPI2_EN1:
+            case Pin::SPI2_EN2:
+            case Pin::SPI2_EN3:
+            case Pin::SPI2_EN4:
+            case Pin::SPI2_EN5:
+            case Pin::SPI2_EN6:
+            case Pin::SPI2_EN7:
+                digitalWrite(Pin::CS2, value);
+                break;
+            case Pin::Ready:
+            case Pin::SD_EN:
+            case Pin::SPI1_EN3:
+            case Pin::GPIOSelect:
+            case Pin::PSRAM0:
+            case Pin::PSRAM1:
+            case Pin::PSRAM2:
+            case Pin::PSRAM3:
+                digitalWrite(Pin::CS1, value);
+                break;
+            case Pin::Reset960: 
+                doReset(value);
+                break;
+            default:
+                digitalWrite(static_cast<byte>(pin), value); 
+                break;
+        }
+    }
+}
+[[gnu::always_inline]] 
+inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
+    if (isPhysicalPin(pin)) {
+        pinMode(static_cast<int>(pin), direction);
+    } else if (pin == Pin::Reset960) {
+        setSPIChannel0(0);
+        auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::CS1>();
+        if (direction == INPUT || direction == INPUT_PULLUP) {
+            theDirection |= 0b1;
+        } else if (direction == OUTPUT) {
+            theDirection &= ~0b1;
+        }
+        MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::CS1>(theDirection);
+    }
+}

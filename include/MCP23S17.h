@@ -158,8 +158,7 @@ namespace MCP23S17 {
         Device6 = 0b1100,
         Device7 = 0b1110,
     };
-
-    enum class PinIndex : byte {
+    enum class ExpanderPin {
         Pin0,
         Pin1,
         Pin2,
@@ -176,9 +175,8 @@ namespace MCP23S17 {
         Pin13,
         Pin14,
         Pin15,
+        Count,
     };
-    constexpr PinIndex validate(uint8_t index) noexcept { return static_cast<PinIndex>(index & 0b1111); }
-    constexpr uint16_t getMask(PinIndex value) noexcept { return 1u << static_cast<uint8_t>(value); }
     constexpr byte generateReadOpcode(uint8_t address, bool shift) noexcept {
         return 0b0100'0001 | (shift ? (address << 1) : address);
     }
@@ -191,10 +189,14 @@ namespace MCP23S17 {
     constexpr byte generateWriteOpcode(HardwareDeviceAddress address) noexcept {
         return generateWriteOpcode(static_cast<uint8_t>(address), false);
     }
+    template<HardwareDeviceAddress addr>
+    constexpr auto ReadOpcode_v = generateReadOpcode(addr);
+    template<HardwareDeviceAddress addr>
+    constexpr auto WriteOpcode_v = generateWriteOpcode(addr);
     template<HardwareDeviceAddress address, Registers opcode, Pin pin>
     inline uint8_t read8() noexcept {
         digitalWrite<pin, LOW>();
-        SPDR = generateReadOpcode(address);
+        SPDR = ReadOpcode_v<address>;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = static_cast<byte>(opcode) ;
@@ -211,7 +213,7 @@ namespace MCP23S17 {
     inline uint16_t read16() noexcept {
         uint16_t output = 0;
         digitalWrite<pin, LOW>();
-        SPDR = generateReadOpcode(address);
+        SPDR = ReadOpcode_v<address>;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = static_cast<byte>(opcode) ;
@@ -235,7 +237,7 @@ namespace MCP23S17 {
     template<HardwareDeviceAddress addr, Registers opcode, Pin pin>
     inline void write8(byte value) noexcept {
         digitalWrite<pin, LOW>();
-        SPDR = generateWriteOpcode(addr);
+        SPDR = WriteOpcode_v<addr>;
         /*
          * The following NOP introduces a small delay that can prevent the wait
          * loop form iterating when running at the maximum speed. This gives
@@ -255,7 +257,7 @@ namespace MCP23S17 {
     template<HardwareDeviceAddress addr, Registers opcode, Pin pin>
     inline void write16(uint16_t v) noexcept {
         digitalWrite<pin, LOW>();
-        SPDR = generateWriteOpcode(addr);
+        SPDR = WriteOpcode_v<addr>;
         asm volatile("nop");
         uint8_t lower = v;
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -300,25 +302,21 @@ namespace MCP23S17 {
     inline void writeDirection(uint16_t value) noexcept {
         write16<addr, Registers::IODIR, pin>(value) ;
     }
-    /**
-     * @brief Get all 16 direction bits for the given io expander
-     * @param pin The CS pin
-     * @param index The biased hardware address of the io expander
-     * @return The 16-bits of direction information for the target io expander
-     */
-    template<HardwareDeviceAddress addr, Pin pin>
+    template<HardwareDeviceAddress addr>
     inline auto readDirection() noexcept {
-        return read16<addr, Registers::IODIR, pin>();
+        return read16<addr, Registers::IODIR, Pin::CS1>();
     }
-    template<HardwareDeviceAddress addr, Pin pin>
+    template<HardwareDeviceAddress addr>
     IOCON readIOCON() noexcept {
-        return IOCON(read8<addr, Registers::IOCON, pin>());
+        return IOCON(read8<addr, Registers::IOCON, Pin::CS1>());
     }
 
-    template<HardwareDeviceAddress addr, Pin pin>
+    template<HardwareDeviceAddress addr>
     void writeIOCON(const IOCON& value) noexcept {
-        write8<addr, Registers::IOCON, pin>(value.getRegister());
+        write8<addr, Registers::IOCON, Pin::CS1>(value.getRegister());
     }
+
+    template<HardwareDeviceAddress addr, Registers register, Pin cs, 
 } // end namespace MCP23S17
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;

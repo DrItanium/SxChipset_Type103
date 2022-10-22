@@ -248,7 +248,7 @@ configurePins() noexcept {
     pinMode(Pin::CS2, OUTPUT);
     pinMode(Pin::SPI_OFFSET0, OUTPUT);
     pinMode(Pin::SPI_OFFSET1, OUTPUT);
-    pinMode(Pin::SPI_OFFSET2, OUTPUT);
+    pinMode(Pin::Ready, OUTPUT);
     pinMode(Pin::SPI2_OFFSET0, OUTPUT);
     pinMode(Pin::SPI2_OFFSET1, OUTPUT);
     pinMode(Pin::SPI2_OFFSET2, OUTPUT);

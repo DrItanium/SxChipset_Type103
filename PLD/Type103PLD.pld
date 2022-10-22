@@ -33,3 +33,5 @@ The each interrupt is from a 32-bit port comprised of two 16-bit ports.
 IN0, IN1, and OUT0 go unused but are exposed on the board itself
 
 OUT1 is listed on the board, it is used for the READY signal because I forgot to directly connect it.
+
+

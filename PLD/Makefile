@@ -1,7 +1,12 @@
+%.jed: %.pld
+	@echo -n Compiling $< into $@...
+	@galette $< 
+	@echo done.
 
-all: pld
+all: Type103PLD.jed
 
-pld: Type103PLD.pld
-	galette Type103PLD.pld
 
+
+install: Type103PLD.jed
+	minipro -p ATF16V8C --write Type103PLD.jed 
 

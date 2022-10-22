@@ -123,6 +123,22 @@ union Channel1Value {
         uint8_t unused : 1;
     } bits;
 };
+template<typename W, typename E>
+constexpr auto ElementCount = sizeof(W) / sizeof(E);
+template<typename W, typename T>
+using ElementContainer = T[ElementCount<W, T>];
+
+union SplitWord32 {
+    uint32_t full;
+    ElementContainer<uint32_t, uint16_t> halves;
+    ElementContainer<uint32_t, uint8_t> bytes;
+    [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
+    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
+    constexpr explicit SplitWord32(uint32_t value) : full(value) { }
+    constexpr explicit SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
+    constexpr explicit SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
+};
+
 void 
 loop() {
     setInputChannel(0);
@@ -134,7 +150,45 @@ loop() {
     // grab the entire state of port A
     Channel0Value m0(PINA);
     setInputChannel(1);
-    setSPI0Channel(0); // GPIO
+    // update the address as a full 32-bit update for now
+    SplitWord32 addr{0};
+    setSPI0Channel(0);
+    digitalWrite<Pin::CS1, LOW>();
+    SPDR = MCP23S17::generateReadOpcode(AddressUpper);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = 0;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    auto result = SPDR;
+    SPDR = 0;
+    nop;
+    addr.bytes[3] = result;
+    while (!(SPSR & _BV(SPIF))) ;
+    digitalWrite<Pin::CS1, HIGH>();
+    digitalWrite<Pin::CS1, LOW>();
+    result = SPDR;
+    SPDR = MCP23S17::generateReadOpcode(AddressLower);
+    nop;
+    addr.bytes[2] = result;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = 0;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    result = SPDR;
+    SPDR = 0;
+    nop;
+    addr.bytes[0] = result;
+    while (!(SPSR & _BV(SPIF))) ;
+    addr.bytes[1] = SPDR;
+    digitalWrite<Pin::CS1, HIGH>();
+    /// @todo read the m0.bits.addrInt field at some point in the future
     // okay so we need to read data lines in
 
 }

@@ -31,8 +31,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MCP23S17.h"
 SdFat SD;
 
-constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
 
+[[gnu::always_inline]] 
+inline void 
+signalReady() noexcept {
+    pulse<Pin::Ready, LOW, HIGH>();
+}
 void setSPI0Channel(byte index) noexcept {
     digitalWrite<Pin::SPI_OFFSET0>(index & 0b001 ? HIGH : LOW);
     digitalWrite<Pin::SPI_OFFSET1>(index & 0b010 ? HIGH : LOW);
@@ -192,11 +196,11 @@ installMemoryImage() noexcept {
 void 
 doReset(decltype(LOW) value) noexcept {
     setSPI0Channel(0);
-    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA>(static_cast<byte>(Pin::CS1)); 
+    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::CS1>(); 
     if (value == LOW) {
         theGPIO &= ~1;
     } else {
         theGPIO |= 1;
     }
-    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA>(static_cast<byte>(Pin::CS1), theGPIO);
+    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::CS1>(theGPIO);
 }

@@ -191,19 +191,26 @@ namespace MCP23S17 {
     constexpr byte generateWriteOpcode(HardwareDeviceAddress address) noexcept {
         return generateWriteOpcode(static_cast<uint8_t>(address), false);
     }
-    template<HardwareDeviceAddress address, Registers opcode>
-    inline uint8_t read8(byte pin) noexcept {
-        digitalWrite(pin, LOW);
-        SPI.transfer(generateReadOpcode(address));
-        SPI.transfer(static_cast<uint8_t>(opcode));
-        auto result = SPI.transfer(0);
-        digitalWrite(pin, HIGH);
+    template<HardwareDeviceAddress address, Registers opcode, Pin pin>
+    inline uint8_t read8() noexcept {
+        digitalWrite<pin, LOW>();
+        SPDR = generateReadOpcode(address);
+        asm volatile("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = static_cast<byte>(opcode) ;
+        asm volatile("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = 0;
+        asm volatile("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        auto result = SPDR;
+        digitalWrite<pin, HIGH>();
         return result;
     }
-    template<HardwareDeviceAddress address, Registers opcode>
-    inline uint16_t read16(byte pin) noexcept {
+    template<HardwareDeviceAddress address, Registers opcode, Pin pin>
+    inline uint16_t read16() noexcept {
         uint16_t output = 0;
-        digitalWrite(pin, LOW);
+        digitalWrite<pin, LOW>();
         SPDR = generateReadOpcode(address);
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -222,12 +229,12 @@ namespace MCP23S17 {
         while (!(SPSR & _BV(SPIF))) ; // wait
         auto value = SPDR;
         output |= (static_cast<uint16_t>(value) << 8);
-        digitalWrite(pin, HIGH);
+        digitalWrite<pin, HIGH>();
         return output;
     }
-    template<HardwareDeviceAddress addr, Registers opcode>
-    inline void write8(byte pin, byte value) noexcept {
-        digitalWrite(pin, LOW);
+    template<HardwareDeviceAddress addr, Registers opcode, Pin pin>
+    inline void write8(byte value) noexcept {
+        digitalWrite<pin, LOW>();
         SPDR = generateWriteOpcode(addr);
         /*
          * The following NOP introduces a small delay that can prevent the wait
@@ -243,11 +250,11 @@ namespace MCP23S17 {
         SPDR = value;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
-        digitalWrite(pin, HIGH);
+        digitalWrite<pin, HIGH>();
     }
-    template<HardwareDeviceAddress addr, Registers opcode>
-    inline void write16(byte pin, uint16_t v) noexcept {
-        digitalWrite(pin, LOW);
+    template<HardwareDeviceAddress addr, Registers opcode, Pin pin>
+    inline void write16(uint16_t v) noexcept {
+        digitalWrite<pin, LOW>();
         SPDR = generateWriteOpcode(addr);
         asm volatile("nop");
         uint8_t lower = v;
@@ -262,16 +269,16 @@ namespace MCP23S17 {
         SPDR = upper;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
-        digitalWrite(pin, HIGH);
+        digitalWrite<pin, HIGH>();
     }
     /**
      * @brief Read all 16 GPIOs of an io expander
      * @tparam addr The io expander to read from
      * @return The contents of the GPIO register pair
      */
-    template<HardwareDeviceAddress addr>
-    inline auto readGPIO16(byte pin) noexcept {
-        return read16<addr, Registers::GPIO>(pin);
+    template<HardwareDeviceAddress addr, Pin pin>
+    inline auto readGPIO16() noexcept {
+        return read16<addr, Registers::GPIO, pin>();
     }
     /**
      * @brief Set all 16 GPIOs of an io expander
@@ -279,9 +286,9 @@ namespace MCP23S17 {
      * @tparam standalone When true, wrap the call in a begin/endTransaction call. When false omit them because you are doing many spi operations back to back and the begin/end is handled manually (default true)
      * @param value The value to set the gpios to
      */
-     template<HardwareDeviceAddress addr>
-    inline void writeGPIO16(byte pin, uint16_t value) noexcept {
-        write16<addr, Registers::GPIO>(pin, value);
+    template<HardwareDeviceAddress addr, Pin pin>
+    inline void writeGPIO16(uint16_t value) noexcept {
+        write16<addr, Registers::GPIO, pin>(value);
     }
     /**
      * @brief Describe the directions of all 16 pins on a given io expander.
@@ -289,13 +296,9 @@ namespace MCP23S17 {
      * @tparam standalone When true, wrap the call in a begin/endTransaction call. When false omit them because you are doing many spi operations back to back and the begin/end is handled manually (default true)
      * @param value The 16-bit direction mask to write to the io expander (a 1 means input, a 0 means output)
      */
-    template<HardwareDeviceAddress addr>
-    inline void writeDirection(byte pin, uint16_t value) noexcept {
-        write16<addr, Registers::IODIR>(pin, value) ;
-    }
-    template<HardwareDeviceAddress addr, typename Pin>
+    template<HardwareDeviceAddress addr, Pin pin>
     inline void writeDirection(uint16_t value) noexcept {
-        write16<addr, Registers::IODIR, Pin>(value) ;
+        write16<addr, Registers::IODIR, pin>(value) ;
     }
     /**
      * @brief Get all 16 direction bits for the given io expander
@@ -303,19 +306,26 @@ namespace MCP23S17 {
      * @param index The biased hardware address of the io expander
      * @return The 16-bits of direction information for the target io expander
      */
-    template<HardwareDeviceAddress addr>
-    inline auto readDirection(byte pin) noexcept {
-        return read16<addr, Registers::IODIR>(pin);
+    template<HardwareDeviceAddress addr, Pin pin>
+    inline auto readDirection() noexcept {
+        return read16<addr, Registers::IODIR, pin>();
     }
-    template<HardwareDeviceAddress addr>
-    IOCON readIOCON(byte pin) noexcept {
-        return IOCON(read8<addr, Registers::IOCON>(pin));
+    template<HardwareDeviceAddress addr, Pin pin>
+    IOCON readIOCON() noexcept {
+        return IOCON(read8<addr, Registers::IOCON, pin>());
     }
 
-    template<HardwareDeviceAddress addr>
-    void writeIOCON(byte pin, const IOCON& value) noexcept {
-        write8<addr, Registers::IOCON>(pin, value.getRegister());
+    template<HardwareDeviceAddress addr, Pin pin>
+    void writeIOCON(const IOCON& value) noexcept {
+        write8<addr, Registers::IOCON, pin>(value.getRegister());
     }
 } // end namespace MCP23S17
-
+constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
+constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
+constexpr auto AddressLower = MCP23S17::HardwareDeviceAddress::Device2;
+constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
+constexpr auto GPIOA_Lower = MCP23S17::HardwareDeviceAddress::Device4;
+constexpr auto GPIOA_Upper = MCP23S17::HardwareDeviceAddress::Device5;
+constexpr auto GPIOB_Lower = MCP23S17::HardwareDeviceAddress::Device6;
+constexpr auto GPIOB_Upper = MCP23S17::HardwareDeviceAddress::Device7;
 #endif //SXCHIPSET_TYPE103_MCP23S17_H

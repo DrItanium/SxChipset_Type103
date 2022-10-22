@@ -344,7 +344,6 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
             case Pin::SD_EN:
             case Pin::GPIOSelect:
             case Pin::PSRAM0:
-            case Pin::PSRAM1:
                 digitalWrite(Pin::CS1, value);
                 break;
             case Pin::Reset960: 

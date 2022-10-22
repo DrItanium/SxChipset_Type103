@@ -48,7 +48,6 @@ Count,
 SD_EN,
 GPIOSelect,
 PSRAM0,
-PSRAM1,
 Reset960,
 #define X(ind) SPI2_EN ## ind 
 X(0),

@@ -48,7 +48,6 @@ signalReady() noexcept {
 void setSPI0Channel(byte index) noexcept {
     digitalWrite<Pin::SPI_OFFSET0>(index & 0b001 ? HIGH : LOW);
     digitalWrite<Pin::SPI_OFFSET1>(index & 0b010 ? HIGH : LOW);
-    digitalWrite<Pin::SPI_OFFSET2>(index & 0b100 ? HIGH : LOW);
 }
 void setSPI1Channel(byte index) noexcept {
     digitalWrite<Pin::SPI2_OFFSET0>(index & 0b001 ? HIGH : LOW);
@@ -336,7 +335,6 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
             case Pin::SPI2_EN7:
                 digitalWrite(Pin::CS2, value);
                 break;
-            case Pin::Ready:
             case Pin::SD_EN:
             case Pin::SPI1_EN3:
             case Pin::GPIOSelect:

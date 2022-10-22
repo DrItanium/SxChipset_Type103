@@ -45,7 +45,6 @@ Count,
 #undef DefPin
 #undef DefPort
 // concepts
-Ready,
 SD_EN,
 GPIOSelect,
 SPI1_EN3,
@@ -76,7 +75,7 @@ X(7),
 
     SPI_OFFSET0 = PortC2,
     SPI_OFFSET1 = PortC3,
-    SPI_OFFSET2 = PortC4,
+    Ready = PortC4,
     SPI2_OFFSET0 = PortC5,
     SPI2_OFFSET1 = PortC6,
     SPI2_OFFSET2 = PortC7,

@@ -188,8 +188,32 @@ loop() {
     while (!(SPSR & _BV(SPIF))) ;
     addr.bytes[1] = SPDR;
     digitalWrite<Pin::CS1, HIGH>();
-    /// @todo read the m0.bits.addrInt field at some point in the future
-    // okay so we need to read data lines in
+
+    /// @todo implement optimization to only update this if necessary
+    // set data lines direction
+    digitalWrite<Pin::CS1, LOW>();
+    SPDR = MCP23S17::generateWriteOpcode(DataLines);
+    nop;
+    // read in this case means output since the i960 is Reading 
+    // write in this case means input since the i960 is Writing
+    auto lower = m0.bits.w_r_ == 0 ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = static_cast<byte>(MCP23S17::Registers::IODIR);
+    nop;
+    // better utilization of wait states by duplicating behavior for now
+    // read in this case means output since the i960 is Reading 
+    // write in this case means input since the i960 is Writing
+    auto upper = m0.bits.w_r_ == 0 ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = lower;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = upper;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    digitalWrite<Pin::CS1, HIGH>();
+    // okay now we can service the transaction request 
+    
 
 }
 

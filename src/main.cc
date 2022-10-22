@@ -137,6 +137,21 @@ union SplitWord32 {
     constexpr explicit SplitWord32(uint32_t value) : full(value) { }
     constexpr explicit SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr explicit SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
+    struct {
+        uint32_t a0 : 1;
+        uint32_t offset : 3;
+        uint32_t rest : 28;
+    } address;
+    struct {
+        static constexpr auto OffsetSize = 4; // 16-byte line
+        static constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
+                                           // lines with 4 lines per set
+                                           // (4-way)
+        static constexpr auto KeySize = 32 - (OffsetSize + TagSize);
+        uint32_t offset : OffsetSize;
+        uint32_t tag : TagSize; 
+        uint32_t key : KeySize;
+    } cacheAddress;
 };
 
 void 
@@ -214,7 +229,16 @@ loop() {
     digitalWrite<Pin::CS1, HIGH>();
     // okay now we can service the transaction request 
     
-
+    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        /// @todo insert handler code here
+        setSPI0Channel(2);
+        digitalWrite<Pin::Ready, LOW>();
+        digitalWrite<Pin::Ready, HIGH>();
+        if (isBurstLast) {
+            break;
+        }
+    }
 }
 
 void 

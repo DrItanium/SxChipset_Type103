@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_MCP23S17_H
 #define SXCHIPSET_TYPE103_MCP23S17_H
 #include <Arduino.h>
+#include "Pinout.h"
 
 namespace MCP23S17 {
     /**

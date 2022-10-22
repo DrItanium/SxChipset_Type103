@@ -304,16 +304,16 @@ namespace MCP23S17 {
     }
     template<HardwareDeviceAddress addr>
     inline auto readDirection() noexcept {
-        return read16<addr, Registers::IODIR, Pin::CS1>();
+        return read16<addr, Registers::IODIR, Pin::GPIOSelect>();
     }
     template<HardwareDeviceAddress addr>
     IOCON readIOCON() noexcept {
-        return IOCON(read8<addr, Registers::IOCON, Pin::CS1>());
+        return IOCON(read8<addr, Registers::IOCON, Pin::GPIOSelect>());
     }
 
     template<HardwareDeviceAddress addr>
     void writeIOCON(const IOCON& value) noexcept {
-        write8<addr, Registers::IOCON, Pin::CS1>(value.getRegister());
+        write8<addr, Registers::IOCON, Pin::GPIOSelect>(value.getRegister());
     }
 } // end namespace MCP23S17
 #endif //SXCHIPSET_TYPE103_MCP23S17_H

@@ -45,10 +45,6 @@ inline void
 signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
-void setSPI0Channel(byte index) noexcept {
-    digitalWrite<Pin::SPI_OFFSET0>(index & 0b001 ? HIGH : LOW);
-    digitalWrite<Pin::SPI_OFFSET1>(index & 0b010 ? HIGH : LOW);
-}
 void setSPI1Channel(byte index) noexcept {
     digitalWrite<Pin::SPI2_OFFSET0>(index & 0b001 ? HIGH : LOW);
     digitalWrite<Pin::SPI2_OFFSET1>(index & 0b010 ? HIGH : LOW);
@@ -167,8 +163,7 @@ loop() {
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
     // interleave operations into the accessing of address lines
-    setSPI0Channel(0);
-    digitalWrite<Pin::CS1, LOW>();
+    digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::generateReadOpcode(AddressUpper);
     nop;
     Channel0Value m0(PINA);
@@ -191,8 +186,8 @@ loop() {
     addr.bytes[3] = result;
     auto accessesCache = result != 0xFF;
     while (!(SPSR & _BV(SPIF))) ;
-    digitalWrite<Pin::CS1, HIGH>();
-    digitalWrite<Pin::CS1, LOW>();
+    digitalWrite<Pin::GPIOSelect, HIGH>();
+    digitalWrite<Pin::GPIOSelect, LOW>();
     result = SPDR;
     SPDR = MCP23S17::generateReadOpcode(AddressLower);
     nop;
@@ -210,11 +205,11 @@ loop() {
     addr.bytes[0] = result;
     while (!(SPSR & _BV(SPIF))) ;
     addr.bytes[1] = SPDR;
-    digitalWrite<Pin::CS1, HIGH>();
+    digitalWrite<Pin::GPIOSelect, HIGH>();
 
     /// @todo implement optimization to only update this if necessary
     // set data lines direction
-    digitalWrite<Pin::CS1, LOW>();
+    digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::generateWriteOpcode(DataLines);
     nop;
     while (!(SPSR & _BV(SPIF))) ;
@@ -227,7 +222,7 @@ loop() {
     SPDR = directionBits;
     nop;
     while (!(SPSR & _BV(SPIF))) ;
-    digitalWrite<Pin::CS1, HIGH>();
+    digitalWrite<Pin::GPIOSelect, HIGH>();
     // okay now we can service the transaction request 
     for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
@@ -236,7 +231,6 @@ loop() {
 
         }
         /// @todo insert handler code here
-        setSPI0Channel(2);
         digitalWrite<Pin::Ready, LOW>();
         digitalWrite<Pin::Ready, HIGH>();
         if (isBurstLast) {
@@ -249,10 +243,10 @@ void
 configurePins() noexcept {
     pinMode(Pin::HOLD, OUTPUT);
     pinMode(Pin::HLDA, INPUT);
-    pinMode(Pin::CS1, OUTPUT);
+    pinMode(Pin::GPIOSelect, OUTPUT);
     pinMode(Pin::CS2, OUTPUT);
-    pinMode(Pin::SPI_OFFSET0, OUTPUT);
-    pinMode(Pin::SPI_OFFSET1, OUTPUT);
+    pinMode(Pin::SD_EN, OUTPUT);
+    pinMode(Pin::PSRAM0, OUTPUT);
     pinMode(Pin::Ready, OUTPUT);
     pinMode(Pin::SPI2_OFFSET0, OUTPUT);
     pinMode(Pin::SPI2_OFFSET1, OUTPUT);
@@ -269,14 +263,15 @@ configurePins() noexcept {
     pinMode(Pin::Capture6, INPUT);
     pinMode(Pin::Capture7, INPUT);
     pinMode(Pin::Reset960, OUTPUT);
-    setSPI0Channel(0);
     setSPI1Channel(0);
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::HOLD, LOW>();
-    digitalWrite<Pin::CS1, HIGH>();
+    digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::CS2, HIGH>();
     digitalWrite<Pin::INT0_, HIGH>();
     digitalWrite<Pin::INT3_, HIGH>();
+    digitalWrite<Pin::PSRAM0, HIGH>();
+    digitalWrite<Pin::SD_EN, HIGH>();
     setInputChannel(0);
     putCPUInReset();
 }
@@ -291,12 +286,17 @@ setupIOExpanders() noexcept {
  * @param pin
  */
 void sdCsInit(SdCsPin_t pin) {
-    /// @todo implement
+    if (static_cast<Pin>(pin) != Pin::SD_EN) {
+        Serial.println(F("ERROR! sdCsInit provided sd pin which is not SD_EN"));
+        while (true) {
+            delay(100);
+        }
+    } else {
+        pinMode(pin, OUTPUT);
+    }
 }
 
 void sdCsWrite(SdCsPin_t, bool level) {
-    /// @todo implement
-    setSPI0Channel(1);
     digitalWrite<Pin::SD_EN>(level);
 }
 
@@ -310,14 +310,13 @@ installMemoryImage() noexcept {
 }
 void 
 doReset(decltype(LOW) value) noexcept {
-    setSPI0Channel(0);
-    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::CS1>(); 
+    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
     if (value == LOW) {
         theGPIO &= ~1;
     } else {
         theGPIO |= 1;
     }
-    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::CS1>(theGPIO);
+    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
 }
 
 [[gnu::always_inline]] 
@@ -341,11 +340,6 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
             case Pin::SPI2_EN7:
                 digitalWrite(Pin::CS2, value);
                 break;
-            case Pin::SD_EN:
-            case Pin::GPIOSelect:
-            case Pin::PSRAM0:
-                digitalWrite(Pin::CS1, value);
-                break;
             case Pin::Reset960: 
                 doReset(value);
                 break;
@@ -360,13 +354,12 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
     if (isPhysicalPin(pin)) {
         pinMode(static_cast<int>(pin), direction);
     } else if (pin == Pin::Reset960) {
-        setSPI0Channel(0);
-        auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::CS1>();
+        auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
         if (direction == INPUT || direction == INPUT_PULLUP) {
             theDirection |= 0b1;
         } else if (direction == OUTPUT) {
             theDirection &= ~0b1;
         }
-        MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::CS1>(theDirection);
+        MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
     }
 }

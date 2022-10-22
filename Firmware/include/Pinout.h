@@ -45,9 +45,6 @@ Count,
 #undef DefPin
 #undef DefPort
 // concepts
-SD_EN,
-GPIOSelect,
-PSRAM0,
 Reset960,
 #define X(ind) SPI2_EN ## ind 
 X(0),
@@ -63,14 +60,14 @@ X(7),
     CLKO = PortB1,
     HLDA = PortB2,
     CS2 = PortB3,
-    CS1 = PortB4,
+    GPIOSelect = PortB4,
 
     INT0_ = PortD5,
     SEL = PortD6,
     INT3_ = PortD7,
 
-    SPI_OFFSET0 = PortC2,
-    SPI_OFFSET1 = PortC3,
+    SD_EN = PortC2,
+    PSRAM0 = PortC3,
     Ready = PortC4,
     SPI2_OFFSET0 = PortC5,
     SPI2_OFFSET1 = PortC6,

@@ -271,6 +271,7 @@ configurePins() noexcept {
     pinMode(Pin::Reset960, OUTPUT);
     setSPI0Channel(0);
     setSPI1Channel(0);
+    digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::HOLD, LOW>();
     digitalWrite<Pin::CS1, HIGH>();
     digitalWrite<Pin::CS2, HIGH>();

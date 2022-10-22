@@ -109,6 +109,8 @@ union Channel0Value {
         uint8_t unused : 1;
         uint8_t addrInt : 4;
     } bits;
+    constexpr bool isReadOperation() const noexcept { return bits.w_r_ == 0; }
+    constexpr bool isWriteOperation() const noexcept { return bits.w_r_ != 0; }
 };
 union Channel1Value {
     explicit Channel1Value(uint8_t value) noexcept : value_(value) { }
@@ -162,25 +164,32 @@ loop() {
     }
     while (digitalRead<Pin::DEN>() == HIGH);
     // grab the entire state of port A
-    Channel0Value m0(PINA);
-    setInputChannel(1);
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
+    // interleave operations into the accessing of address lines
     setSPI0Channel(0);
     digitalWrite<Pin::CS1, LOW>();
     SPDR = MCP23S17::generateReadOpcode(AddressUpper);
     nop;
+    Channel0Value m0(PINA);
+    auto isReadOperation = m0.isReadOperation();
     while (!(SPSR & _BV(SPIF))) ;
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
     nop;
+    // read in this case means output since the i960 is Reading 
+    // write in this case means input since the i960 is Writing
+    byte directionBits = isReadOperation ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
     while (!(SPSR & _BV(SPIF))) ;
     SPDR = 0;
     nop;
+    // switch to the second input channel since this will go on regardless
+    setInputChannel(1);
     while (!(SPSR & _BV(SPIF))) ;
     auto result = SPDR;
     SPDR = 0;
     nop;
     addr.bytes[3] = result;
+    auto accessesCache = result != 0xFF;
     while (!(SPSR & _BV(SPIF))) ;
     digitalWrite<Pin::CS1, HIGH>();
     digitalWrite<Pin::CS1, LOW>();
@@ -208,28 +217,24 @@ loop() {
     digitalWrite<Pin::CS1, LOW>();
     SPDR = MCP23S17::generateWriteOpcode(DataLines);
     nop;
-    // read in this case means output since the i960 is Reading 
-    // write in this case means input since the i960 is Writing
-    auto lower = m0.bits.w_r_ == 0 ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
     while (!(SPSR & _BV(SPIF))) ;
     SPDR = static_cast<byte>(MCP23S17::Registers::IODIR);
     nop;
-    // better utilization of wait states by duplicating behavior for now
-    // read in this case means output since the i960 is Reading 
-    // write in this case means input since the i960 is Writing
-    auto upper = m0.bits.w_r_ == 0 ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
     while (!(SPSR & _BV(SPIF))) ;
-    SPDR = lower;
+    SPDR = directionBits;
     nop;
     while (!(SPSR & _BV(SPIF))) ;
-    SPDR = upper;
+    SPDR = directionBits;
     nop;
     while (!(SPSR & _BV(SPIF))) ;
     digitalWrite<Pin::CS1, HIGH>();
     // okay now we can service the transaction request 
-    
     for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        Channel1Value c1(PINA);
+        if (m0.isReadOperation()) {
+
+        }
         /// @todo insert handler code here
         setSPI0Channel(2);
         digitalWrite<Pin::Ready, LOW>();

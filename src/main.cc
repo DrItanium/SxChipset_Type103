@@ -31,6 +31,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MCP23S17.h"
 SdFat SD;
 
+constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
+constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
+constexpr auto AddressLower = MCP23S17::HardwareDeviceAddress::Device2;
+constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
+constexpr auto GPIOA_Lower = MCP23S17::HardwareDeviceAddress::Device4;
+constexpr auto GPIOA_Upper = MCP23S17::HardwareDeviceAddress::Device5;
+constexpr auto GPIOB_Lower = MCP23S17::HardwareDeviceAddress::Device6;
+constexpr auto GPIOB_Upper = MCP23S17::HardwareDeviceAddress::Device7;
 
 [[gnu::always_inline]] 
 inline void 
@@ -250,7 +258,7 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
     if (isPhysicalPin(pin)) {
         pinMode(static_cast<int>(pin), direction);
     } else if (pin == Pin::Reset960) {
-        setSPIChannel0(0);
+        setSPI0Channel(0);
         auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::CS1>();
         if (direction == INPUT || direction == INPUT_PULLUP) {
             theDirection |= 0b1;

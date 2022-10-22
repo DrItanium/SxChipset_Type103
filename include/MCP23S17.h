@@ -315,15 +315,5 @@ namespace MCP23S17 {
     void writeIOCON(const IOCON& value) noexcept {
         write8<addr, Registers::IOCON, Pin::CS1>(value.getRegister());
     }
-
-    template<HardwareDeviceAddress addr, Registers register, Pin cs, 
 } // end namespace MCP23S17
-constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
-constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
-constexpr auto AddressLower = MCP23S17::HardwareDeviceAddress::Device2;
-constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
-constexpr auto GPIOA_Lower = MCP23S17::HardwareDeviceAddress::Device4;
-constexpr auto GPIOA_Upper = MCP23S17::HardwareDeviceAddress::Device5;
-constexpr auto GPIOB_Lower = MCP23S17::HardwareDeviceAddress::Device6;
-constexpr auto GPIOB_Upper = MCP23S17::HardwareDeviceAddress::Device7;
 #endif //SXCHIPSET_TYPE103_MCP23S17_H

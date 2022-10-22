@@ -10,8 +10,8 @@ Pin 19 = OUT0         XOR = 0   AC1 = 0
   6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 18 = RDY          XOR = 0   AC1 = 0
-  8  ---- ---- ---- ---- ---- -x-- x--- -x-x
+Pin 18 = RDY          XOR = 1   AC1 = 0
+  8  ---- ---- ---- ---- ---- ---- ---- x---
   9  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  10  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  11  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -41,7 +41,7 @@ Pin 16 = INT1         XOR = 1   AC1 = 0
  31  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 15 = MB0          XOR = 0   AC1 = 0
- 32  ---- ---- ---- ---- ---- ---- ---- x--x
+ 32  ---- ---- ---- ---- ---- -x-- x--- ---x
  33  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  34  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  35  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -51,7 +51,7 @@ Pin 15 = MB0          XOR = 0   AC1 = 0
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 14 = SD           XOR = 0   AC1 = 0
- 40  ---- ---- ---- ---- ---- x--- -x-- -x-x
+ 40  ---- ---- ---- ---- ---- x--- -x-- ---x
  41  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  42  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  43  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -61,7 +61,7 @@ Pin 14 = SD           XOR = 0   AC1 = 0
  47  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 13 = SEN3         XOR = 0   AC1 = 0
- 48  ---- ---- ---- ---- ---- x--- x--- -x-x
+ 48  ---- ---- ---- ---- ---- x--- x--- ---x
  49  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  50  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  51  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -71,7 +71,7 @@ Pin 13 = SEN3         XOR = 0   AC1 = 0
  55  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 12 = IO           XOR = 0   AC1 = 0
- 56  ---- ---- ---- ---- ---- -x-- -x-- -x-x
+ 56  ---- ---- ---- ---- ---- -x-- -x-- ---x
  57  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  58  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  59  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

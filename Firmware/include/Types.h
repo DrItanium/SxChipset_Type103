@@ -61,6 +61,13 @@ union SplitWord32 {
         uint32_t offset : 8;
         uint32_t key : 24;
     } ioDeviceAddress;
+    struct {
+        uint32_t p0 : 8;
+        uint32_t p1 : 8;
+        uint32_t p2 : 4;
+        uint32_t size : 4;
+        uint32_t opcode : 8;
+    } ioRequestAddress;
 };
 
 union SplitWord16 {

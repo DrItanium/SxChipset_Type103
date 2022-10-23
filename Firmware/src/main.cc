@@ -480,7 +480,36 @@ struct DataCache : public Cache{
     }
     DataCacheSet cache[128];
 };
-DataCache cache;
+struct IOSpace : public Cache {
+    ~IOSpace() override = default;
+    void clear() noexcept override {
+
+    }
+    CacheLine& find(SplitWord32 address) noexcept override {
+        // assume that if we got here that address is in correct range :)
+        tmp.clear();
+        return tmp;
+    }
+    DataCacheLine tmp;
+};
+struct MultipartCache : public Cache {
+    ~MultipartCache() override = default;
+    void clear() noexcept {
+        io_.clear();
+        cache_.clear();
+    }
+    CacheLine& find(SplitWord32 address) noexcept override {
+        if (address.bytes[3] == 0xFE) {
+            address.bytes[3] = 0;
+            return io_.find(address);
+        } else {
+            return cache_.find(address);
+        }
+    }
+    IOSpace io_;
+    DataCache cache_;
+};
+MultipartCache cache;
 void 
 setupCache() noexcept {
     if (!ramFile.open("ram.bin", FILE_WRITE)) {

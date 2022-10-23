@@ -78,6 +78,7 @@ struct DataCacheLine : public CacheLine {
             metadata.dirty_ = true;
         }
     }
+    bool requiresSPIBus() const noexcept { return false; }
 
 };
 struct DataCacheSet : public CacheSet {
@@ -158,6 +159,7 @@ struct ConfigurationSpace : public IODevice {
         constexpr auto getDisplayCtl() const noexcept { return addrs[4].full; }
         constexpr auto getRtcCtl() const noexcept { return addrs[5].full; }
 
+        bool requiresSPIBus() const noexcept { return false; }
     private:
         union {
             uint8_t bytes[256];
@@ -188,6 +190,7 @@ struct SerialDevice : public IODevice {
                     break;
             }
         }
+        bool requiresSPIBus() const noexcept { return false; }
 };
 struct IOSpace : public Cache {
     ~IOSpace() override = default;

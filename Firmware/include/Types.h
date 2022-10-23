@@ -106,6 +106,13 @@ struct CacheLine {
     virtual uint16_t getWord(byte offset) const noexcept = 0;
     virtual void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
     virtual void begin() noexcept { }
+    /**
+     * @brief Does calling get or set word require the use of the SPI bus? If
+     * so then we have to go down a separate path where we can't hold the spi
+     * bus open on the data lines
+     * @return true if the given cache line will interact with the SPI bus during read/write operations
+     */
+    virtual bool requiresSPIBus() const noexcept = 0;
 };
 struct Cache {
     virtual ~Cache() = default;
@@ -137,6 +144,7 @@ struct LineSink final : public CacheLine {
     bool matches(SplitWord32) const noexcept override { return true; }
     uint16_t getWord(byte) const noexcept override { return 0; }
     void setWord(byte, uint16_t, bool, bool) noexcept override { } 
+    bool requiresSPIBus() const noexcept { return false; }
 };
 using IOSink = LineSink;
 
@@ -146,6 +154,7 @@ struct IODevice : public CacheLine {
     void reset(SplitWord32 ) noexcept override { }
     void clear() noexcept override { }
     bool matches(SplitWord32 other) const noexcept override { return other.ioDeviceAddress.key == addr_.ioDeviceAddress.key; }
+    bool requiresSPIBus() const noexcept { return false; }
     private:
         SplitWord32 addr_;
 };

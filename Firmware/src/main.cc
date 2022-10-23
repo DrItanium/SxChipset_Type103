@@ -317,7 +317,7 @@ configurePins() noexcept {
 }
 void
 setupIOExpanders() noexcept {
-    
+    /// @todo implement
 }
 
 /**

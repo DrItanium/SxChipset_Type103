@@ -124,7 +124,11 @@ template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
-
+constexpr auto OffsetSize = 4; // 16-byte line
+constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
+                                   // lines with 4 lines per set
+                                   // (4-way)
+constexpr auto KeySize = 32 - (OffsetSize + TagSize);
 union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
@@ -140,16 +144,12 @@ union SplitWord32 {
         uint32_t rest : 28;
     } address;
     struct {
-        static constexpr auto OffsetSize = 4; // 16-byte line
-        static constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
-                                           // lines with 4 lines per set
-                                           // (4-way)
-        static constexpr auto KeySize = 32 - (OffsetSize + TagSize);
         uint32_t offset : OffsetSize;
         uint32_t tag : TagSize; 
         uint32_t key : KeySize;
     } cacheAddress;
 };
+
 
 void 
 loop() {
@@ -234,6 +234,7 @@ loop() {
         digitalWrite<Pin::Ready, LOW>();
         digitalWrite<Pin::Ready, HIGH>();
         if (isBurstLast) {
+            setInputChannel(0);
             break;
         }
     }
@@ -300,9 +301,6 @@ void sdCsWrite(SdCsPin_t, bool level) {
     digitalWrite<Pin::SD_EN>(level);
 }
 
-void setupCache() noexcept {
-
-}
 
 void 
 installMemoryImage() noexcept {
@@ -362,4 +360,91 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
         }
         MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
     }
+}
+void memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+void memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+struct CacheLine {
+    void clear() {
+        ctl.raw = 0;
+        key = 0;
+        for (int i = 0; i < 8; ++i) {
+            words[i] = 0;
+        }
+    }
+    uint32_t key : KeySize;
+    union {
+        uint8_t raw;
+        struct {
+            uint8_t valid : 1;
+            uint8_t dirty : 1;
+        };
+    } ctl;
+    union {
+        uint8_t bytes[16];
+        uint16_t words[sizeof(bytes)/sizeof(uint16_t)];
+    };
+    void reset(SplitWord32 newAddress) noexcept {
+        if (ctl.valid && ctl.dirty) {
+            auto copy = newAddress;
+            copy.cacheAddress.offset = 0;
+            copy.cacheAddress.key = key;
+            memoryWrite(copy, bytes, 16);
+        }
+        ctl.valid = 1;
+        ctl.dirty = 0;
+        key = newAddress.cacheAddress.key;
+        auto copy2 = newAddress;
+        copy2.cacheAddress.offset = 0;
+        memoryRead(copy2, bytes, 16);
+    }
+   constexpr bool matches(SplitWord32 other) const noexcept {
+        return ctl.valid && (other.cacheAddress.key == key);
+    }
+};
+
+struct CacheSet {
+    static constexpr auto NumberOfLines = 4;
+    CacheLine& find(SplitWord32 address) noexcept {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            if (lines[i].matches(address)) {
+                return lines[i];
+            }
+        }
+        auto& target = lines[replacementIndex_];
+        ++replacementIndex_;
+        replacementIndex_ %= NumberOfLines;
+        target.reset(address);
+        return target;
+    }
+    void clear() noexcept {
+        replacementIndex_ = 0;
+        for (int i = 0; i < NumberOfLines; ++i) {
+            lines[i].clear();
+        }
+    }
+    CacheLine lines[NumberOfLines];
+    byte replacementIndex_ = 0;
+};
+class Cache {
+    public:
+        void clear() {
+            for (int i = 0; i < 128; ++i) {
+                cache[i].clear();
+            }
+        }
+        CacheLine& find(SplitWord32 address) noexcept {
+            return cache[address.cacheAddress.tag].find(address);
+        }
+        byte* viewAsMemoryArray() noexcept {
+            return reinterpret_cast<byte*>(cache);
+        }
+        constexpr size_t memoryArraySize() const noexcept {
+            return sizeof(cache);
+        }
+        CacheSet cache[128];
+};
+Cache cache;
+void 
+setupCache() noexcept {
+    cache.clear();
 }

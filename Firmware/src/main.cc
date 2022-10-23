@@ -150,6 +150,15 @@ union SplitWord32 {
     } cacheAddress;
 };
 
+union SplitWord16 {
+    uint16_t full;
+    ElementContainer<uint16_t, uint8_t> bytes;
+    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
+    constexpr SplitWord16() : full(0) { }
+    constexpr explicit SplitWord16(uint16_t value) : full(value) { }
+    constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
+};
+
 
 void 
 loop() {
@@ -364,41 +373,56 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 void memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 void memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 struct CacheLine {
+    static constexpr auto NumberOfWords = 8;
+    static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
     void clear() {
-        ctl.raw = 0;
+        valid_ = false;
+        dirty_ = false;
         key = 0;
-        for (int i = 0; i < 8; ++i) {
-            words[i] = 0;
+        for (int i = 0; i < NumberOfWords; ++i) {
+            words[i].full = 0;
         }
     }
-    uint32_t key : KeySize;
-    union {
-        uint8_t raw;
-        struct {
-            uint8_t valid : 1;
-            uint8_t dirty : 1;
-        };
-    } ctl;
-    union {
-        uint8_t bytes[16];
-        uint16_t words[sizeof(bytes)/sizeof(uint16_t)];
-    };
+    uint32_t key = 0;
+    bool valid_ = false;
+    bool dirty_ = false;
+    SplitWord16 words[NumberOfWords];
     void reset(SplitWord32 newAddress) noexcept {
-        if (ctl.valid && ctl.dirty) {
+        if (valid_ && dirty_) {
             auto copy = newAddress;
             copy.cacheAddress.offset = 0;
             copy.cacheAddress.key = key;
-            memoryWrite(copy, bytes, 16);
+            memoryWrite(copy, reinterpret_cast<byte*>(words), NumberOfDataBytes);
         }
-        ctl.valid = 1;
-        ctl.dirty = 0;
+        valid_ = true;
+        dirty_ = false;
         key = newAddress.cacheAddress.key;
         auto copy2 = newAddress;
         copy2.cacheAddress.offset = 0;
-        memoryRead(copy2, bytes, 16);
+        memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
     }
-   constexpr bool matches(SplitWord32 other) const noexcept {
-        return ctl.valid && (other.cacheAddress.key == key);
+    constexpr bool matches(SplitWord32 other) const noexcept {
+        return valid_ && (other.cacheAddress.key == key);
+    }
+    uint16_t getWord(byte offset) noexcept {
+        return words[offset & 0b111].full; 
+    }
+    template<bool enableLower, bool enableUpper>
+    void setWord(byte offset, uint16_t value) noexcept {
+        if constexpr (auto realOffset = offset & 0b111; enableLower) {
+           if constexpr (enableUpper) {
+                words[realOffset].full = value;
+                dirty_ = true;
+           } else {
+                words[realOffset].bytes[0] = value; 
+                dirty_ = true;
+           }
+        } else {
+            if constexpr (enableUpper) {
+                words[realOffset].bytes[1] = static_cast<uint8_t>(value >> 8);
+                dirty_ = true;
+            } 
+        }
     }
 };
 
@@ -433,7 +457,11 @@ class Cache {
             }
         }
         CacheLine& find(SplitWord32 address) noexcept {
-            return cache[address.cacheAddress.tag].find(address);
+            if (address.bytes[3] >= 0xFE) {
+                // go down a different path
+            } else {
+                return cache[address.cacheAddress.tag].find(address);
+            }
         }
         byte* viewAsMemoryArray() noexcept {
             return reinterpret_cast<byte*>(cache);
@@ -442,6 +470,8 @@ class Cache {
             return sizeof(cache);
         }
         CacheSet cache[128];
+        static constexpr auto ConfigurationSpaceBase = 0xFE00'0000;
+        // also hold onto other data structures we can easily access
 };
 Cache cache;
 void 

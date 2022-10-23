@@ -70,6 +70,32 @@ union SplitWord16 {
     constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
 };
 
+union Channel0Value {
+    explicit Channel0Value(uint8_t value) noexcept : value_(value) { }
+    uint8_t value_;
+    struct {
+        uint8_t den : 1;
+        uint8_t w_r_ : 1;
+        uint8_t fail : 1;
+        uint8_t unused : 1;
+        uint8_t addrInt : 4;
+    } bits;
+    constexpr bool isReadOperation() const noexcept { return bits.w_r_ == 0; }
+    constexpr bool isWriteOperation() const noexcept { return bits.w_r_ != 0; }
+};
+union Channel1Value {
+    explicit Channel1Value(uint8_t value) noexcept : value_(value) { }
+    uint8_t value_;
+    struct {
+        uint8_t byteEnable : 2;
+        uint8_t blast : 1;
+        uint8_t xioint : 1;
+        uint8_t dataInt : 2;
+        uint8_t ramIO : 1;
+        uint8_t unused : 1;
+    } bits;
+};
+
 struct CacheLine {
     virtual ~CacheLine() = default;
     virtual void clear() noexcept = 0;
@@ -101,5 +127,15 @@ struct SplitCache : public Cache {
     }
 };
 SplitCache& getCache() noexcept;
+struct LineSink final : public CacheLine {
+    ~LineSink() override = default;
+    void reset(SplitWord32) noexcept override { }
+    void clear() noexcept override { }
+    void begin() noexcept override { }
+    bool matches(SplitWord32) const noexcept override { return true; }
+    uint16_t getWord(byte) const noexcept override { return 0; }
+    void setWord(byte, uint16_t, bool, bool) noexcept override { } 
+};
+using IOSink = LineSink;
 
 #endif //SXCHIPSET_TYPE103_TYPES_H

@@ -58,17 +58,15 @@ union SplitWord32 {
         uint32_t key : KeySize;
     } cacheAddress;
     struct {
-        uint32_t offset : 8;
-        uint32_t key : 24;
-    } ioDeviceAddress;
-    struct {
         uint32_t p0 : 8;
         uint32_t p1 : 8;
         uint32_t p2 : 4;
         uint32_t size : 4;
-        uint32_t opcode : 8;
+        uint32_t req : 8;
     } ioRequestAddress;
+    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xFE; }
 };
+
 
 union SplitWord16 {
     uint16_t full;
@@ -105,67 +103,111 @@ union Channel1Value {
     } bits;
 };
 
-struct CacheLine {
-    virtual ~CacheLine() = default;
-    virtual void clear() noexcept = 0;
-    virtual void reset(SplitWord32 newAddress) noexcept = 0;
-    virtual bool matches(SplitWord32 other) const noexcept = 0;
-    virtual uint16_t getWord(byte offset) const noexcept = 0;
-    virtual void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
-    virtual void begin() noexcept { }
-    /**
-     * @brief Does calling get or set word require the use of the SPI bus? If
-     * so then we have to go down a separate path where we can't hold the spi
-     * bus open on the data lines
-     * @return true if the given cache line will interact with the SPI bus during read/write operations
-     */
-    virtual bool requiresSPIBus() const noexcept = 0;
-};
-struct Cache {
-    virtual ~Cache() = default;
-    virtual void clear() noexcept = 0;
-    virtual CacheLine& find(SplitWord32 address) noexcept = 0;
-    virtual void begin() noexcept = 0;
-};
-
-struct CacheSet {
-    virtual ~CacheSet() = default;
-    virtual CacheLine& find(SplitWord32 address) noexcept = 0;
-    virtual void clear() noexcept = 0;
-    virtual void begin() noexcept = 0;
-};
-
-struct SplitCache : public Cache {
-    ~SplitCache() override = default;
-    virtual Cache& findCache(uint8_t address) noexcept = 0;
-    CacheLine& find(SplitWord32 address) noexcept override {
-        return findCache(address.bytes[3]).find(address);
+size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+struct DataCacheLine {
+    static constexpr auto NumberOfWords = 8;
+    static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
+    uint16_t getWord(byte offset) const noexcept {
+        return words[offset & 0b111].full;
     }
-};
-SplitCache& getCache() noexcept;
-struct LineSink final : public CacheLine {
-    ~LineSink() override = default;
-    void reset(SplitWord32) noexcept override { }
-    void clear() noexcept override { }
-    void begin() noexcept override { }
-    bool matches(SplitWord32) const noexcept override { return true; }
-    uint16_t getWord(byte) const noexcept override { return 0; }
-    void setWord(byte, uint16_t, bool, bool) noexcept override { } 
-    bool requiresSPIBus() const noexcept { return false; }
-};
-using IOSink = LineSink;
+    void clear() noexcept {
+        metadata.reg = 0;
+        for (int i = 0; i < NumberOfWords; ++i) {
+            words[i].full = 0;
+        }
+    }
+    bool matches(SplitWord32 other) const noexcept {
+        return metadata.valid_ && (other.cacheAddress.key == metadata.key);
+    }
+    void reset(SplitWord32 newAddress) noexcept {
+        if (metadata.valid_ && metadata.dirty_) {
+            auto copy = newAddress;
+            copy.cacheAddress.offset = 0;
+            copy.cacheAddress.key = metadata.key;
+            memoryWrite(copy, reinterpret_cast<byte*>(words), NumberOfDataBytes);
+        }
+        metadata.valid_ = true;
+        metadata.dirty_ = false;
+        metadata.key = newAddress.cacheAddress.key;
+        auto copy2 = newAddress;
+        copy2.cacheAddress.offset = 0;
+        memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
+    }
+    template<bool enableLower, bool enableUpper>
+    void setWord(byte offset, uint16_t value) noexcept {
+        if constexpr (enableLower) {
+            words[offset & 0b111].bytes[0] = value;
+            metadata.dirty_ = true;
+        }
+        if constexpr (enableUpper) {
+            words[offset & 0b111].bytes[1] = value >> 8;
+            metadata.dirty_ = true;
+        }
+    }
+    union {
+        uint32_t reg;
+        struct {
+            uint32_t key : KeySize;
+            uint32_t valid_ : 1;
+            uint32_t dirty_ : 1;
+        };
+    } metadata;
+    static_assert(sizeof(metadata) == sizeof(uint32_t), "Too many flags specified for metadata");
+    SplitWord16 words[NumberOfWords];
+    void begin() noexcept { }
 
-struct IODevice : public CacheLine {
-    IODevice(uint32_t address) noexcept : addr_(address) { }
-    ~IODevice() override = default;
-    void reset(SplitWord32 ) noexcept override { }
-    void clear() noexcept override { }
-    bool matches(SplitWord32 other) const noexcept override { return other.ioDeviceAddress.key == addr_.ioDeviceAddress.key; }
-    bool requiresSPIBus() const noexcept { return false; }
+};
+struct DataCacheSet {
+    static constexpr auto NumberOfLines = 4;
+    void begin() noexcept {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            lines[i].begin();
+        }
+    }
+    auto& find(SplitWord32 address) noexcept {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            if (lines[i].matches(address)) {
+                return lines[i];
+            }
+        }
+        auto& target = lines[replacementIndex_];
+        ++replacementIndex_;
+        replacementIndex_ %= NumberOfLines;
+        target.reset(address);
+        return target;
+    }
+    void clear() noexcept {
+        replacementIndex_ = 0;
+        for (int i = 0; i < NumberOfLines; ++i) {
+            lines[i].clear();
+        }
+    }
     private:
-        SplitWord32 addr_;
+        DataCacheLine lines[NumberOfLines];
+        byte replacementIndex_ = 0;
+};
+struct DataCache {
+    void clear() noexcept {
+        for (int i = 0; i < 128; ++i) {
+            cache[i].clear();
+        }
+    }
+    auto& find(SplitWord32 address) noexcept {
+        return cache[address.cacheAddress.tag].find(address);
+    }
+    void begin() noexcept {
+        for (auto& set : cache) {
+            set.begin();
+        }
+    }
+    private:
+        DataCacheSet cache[128];
 };
 
+
+
+DataCache& getCache() noexcept;
 void setupCache() noexcept;
 
 #endif //SXCHIPSET_TYPE103_TYPES_H

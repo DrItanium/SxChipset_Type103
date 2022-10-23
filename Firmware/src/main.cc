@@ -130,7 +130,6 @@ loop() {
     SPDR = 0;
     nop;
     addr.bytes[3] = result;
-    auto& targetCache = getCache().findCache(result);
     while (!(SPSR & _BV(SPIF))) ;
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::GPIOSelect, LOW>();

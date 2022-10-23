@@ -627,13 +627,18 @@ struct MultipartCache : public Cache {
         io_.clear();
         cache_.clear();
     }
-    CacheLine& find(SplitWord32 address) noexcept override {
-        if (address.bytes[3] == 0xFE) {
-            address.bytes[3] = 0;
-            return io_.find(address);
+    /**
+     * @brief Return the cache associated with the upper most 8-bits
+     */
+    Cache& findCache(uint8_t topLevel) noexcept {
+        if (topLevel == 0xFE) {
+            return io_;
         } else {
-            return cache_.find(address);
+            return cache_;
         }
+    }
+    CacheLine& find(SplitWord32 address) noexcept override {
+        return findCache(address.bytes[3]).find(address);
     }
     void begin() noexcept {
         io_.begin();

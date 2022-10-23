@@ -93,4 +93,13 @@ struct CacheSet {
     virtual void begin() noexcept = 0;
 };
 
+struct SplitCache : public Cache {
+    ~SplitCache() override = default;
+    virtual Cache& findCache(uint8_t address) noexcept = 0;
+    CacheLine& find(SplitWord32 address) noexcept override {
+        return findCache(address.bytes[3]).find(address);
+    }
+};
+SplitCache& getCache() noexcept;
+
 #endif //SXCHIPSET_TYPE103_TYPES_H

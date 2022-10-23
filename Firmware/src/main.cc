@@ -652,6 +652,7 @@ setupCache() noexcept {
             delay(1000);
         }
     }
+    cache.begin();
     cache.clear();
 }
 void 

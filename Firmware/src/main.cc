@@ -376,33 +376,37 @@ struct CacheLine {
     static constexpr auto NumberOfWords = 8;
     static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
     void clear() {
-        valid_ = false;
-        dirty_ = false;
-        key = 0;
+        metadata.reg = 0;
         for (int i = 0; i < NumberOfWords; ++i) {
             words[i].full = 0;
         }
     }
-    uint32_t key = 0;
-    bool valid_ = false;
-    bool dirty_ = false;
+    union {
+        uint32_t reg;
+        struct {
+            uint32_t key : KeySize;
+            uint32_t valid_ : 1;
+            uint32_t dirty_ : 1;
+        };
+    } metadata;
+    static_assert(sizeof(metadata) == sizeof(uint32_t), "Too many flags specified for metadata");
     SplitWord16 words[NumberOfWords];
     void reset(SplitWord32 newAddress) noexcept {
-        if (valid_ && dirty_) {
+        if (metadata.valid_ && metadata.dirty_) {
             auto copy = newAddress;
             copy.cacheAddress.offset = 0;
-            copy.cacheAddress.key = key;
+            copy.cacheAddress.key = metadata.key;
             memoryWrite(copy, reinterpret_cast<byte*>(words), NumberOfDataBytes);
         }
-        valid_ = true;
-        dirty_ = false;
-        key = newAddress.cacheAddress.key;
+        metadata.valid_ = true;
+        metadata.dirty_ = false;
+        metadata.key = newAddress.cacheAddress.key;
         auto copy2 = newAddress;
         copy2.cacheAddress.offset = 0;
         memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
     }
     constexpr bool matches(SplitWord32 other) const noexcept {
-        return valid_ && (other.cacheAddress.key == key);
+        return metadata.valid_ && (other.cacheAddress.key == metadata.key);
     }
     uint16_t getWord(byte offset) noexcept {
         return words[offset & 0b111].full; 
@@ -412,15 +416,15 @@ struct CacheLine {
         if constexpr (auto realOffset = offset & 0b111; enableLower) {
            if constexpr (enableUpper) {
                 words[realOffset].full = value;
-                dirty_ = true;
+                metadata.dirty_ = true;
            } else {
                 words[realOffset].bytes[0] = value; 
-                dirty_ = true;
+                metadata.dirty_ = true;
            }
         } else {
             if constexpr (enableUpper) {
                 words[realOffset].bytes[1] = static_cast<uint8_t>(value >> 8);
-                dirty_ = true;
+                metadata.dirty_ = true;
             } 
         }
     }

@@ -378,14 +378,14 @@ struct CacheLine {
     virtual void reset(SplitWord32 newAddress) noexcept = 0;
     virtual bool matches(SplitWord32 other) const noexcept;
     virtual uint16_t getWord(byte offset) const noexcept = 0;
-    void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
+    virtual void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
 
 };
 
 struct DataCacheLine : public CacheLine {
     static constexpr auto NumberOfWords = 8;
     static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
-    ~CacheLine() override = default;
+    ~DataCacheLine() override = default;
     union {
         uint32_t reg;
         struct {
@@ -396,8 +396,8 @@ struct DataCacheLine : public CacheLine {
     } metadata;
     static_assert(sizeof(metadata) == sizeof(uint32_t), "Too many flags specified for metadata");
     SplitWord16 words[NumberOfWords];
-    SplitWord16& getWord(byte offset) noexcept override {
-        return words[offset & 0b111]; 
+    uint16_t getWord(byte offset) const noexcept override {
+        return words[offset & 0b111].full;
     }
     void clear() noexcept override {
         metadata.reg = 0;
@@ -424,11 +424,11 @@ struct DataCacheLine : public CacheLine {
     }
     void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept override {
         if (enableLower) {
-            words[realOffset & 0b111].bytes[0] = value;
+            words[offset & 0b111].bytes[0] = value;
             metadata.dirty_ = true;
         }
-        if (enableIpper) {
-            words[realOffset & 0b111].bytes[1] = value >> 8;
+        if (enableUpper) {
+            words[offset & 0b111].bytes[1] = value >> 8;
             metadata.dirty_ = true;
         }
     }

@@ -285,7 +285,7 @@ configurePins() noexcept {
     setInputChannel(0);
     putCPUInReset();
 }
-
+File ramFile;
 void
 setupIOExpanders() noexcept {
     
@@ -373,14 +373,19 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 void memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 void memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 struct CacheLine {
+    virtual ~CacheLine() = default;
+    virtual void clear() noexcept = 0;
+    virtual void reset(SplitWord32 newAddress) noexcept = 0;
+    virtual bool matches(SplitWord32 other) const noexcept;
+    virtual uint16_t getWord(byte offset) const noexcept = 0;
+    void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
+
+};
+
+struct DataCacheLine : public CacheLine {
     static constexpr auto NumberOfWords = 8;
     static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
-    void clear() {
-        metadata.reg = 0;
-        for (int i = 0; i < NumberOfWords; ++i) {
-            words[i].full = 0;
-        }
-    }
+    ~CacheLine() override = default;
     union {
         uint32_t reg;
         struct {
@@ -391,7 +396,19 @@ struct CacheLine {
     } metadata;
     static_assert(sizeof(metadata) == sizeof(uint32_t), "Too many flags specified for metadata");
     SplitWord16 words[NumberOfWords];
-    void reset(SplitWord32 newAddress) noexcept {
+    SplitWord16& getWord(byte offset) noexcept override {
+        return words[offset & 0b111]; 
+    }
+    void clear() noexcept override {
+        metadata.reg = 0;
+        for (int i = 0; i < NumberOfWords; ++i) {
+            words[i].full = 0;
+        }
+    }
+    bool matches(SplitWord32 other) const noexcept override {
+        return metadata.valid_ && (other.cacheAddress.key == metadata.key);
+    }
+    void reset(SplitWord32 newAddress) noexcept override {
         if (metadata.valid_ && metadata.dirty_) {
             auto copy = newAddress;
             copy.cacheAddress.offset = 0;
@@ -405,29 +422,17 @@ struct CacheLine {
         copy2.cacheAddress.offset = 0;
         memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
     }
-    constexpr bool matches(SplitWord32 other) const noexcept {
-        return metadata.valid_ && (other.cacheAddress.key == metadata.key);
-    }
-    uint16_t getWord(byte offset) noexcept {
-        return words[offset & 0b111].full; 
-    }
-    template<bool enableLower, bool enableUpper>
-    void setWord(byte offset, uint16_t value) noexcept {
-        if constexpr (auto realOffset = offset & 0b111; enableLower) {
-           if constexpr (enableUpper) {
-                words[realOffset].full = value;
-                metadata.dirty_ = true;
-           } else {
-                words[realOffset].bytes[0] = value; 
-                metadata.dirty_ = true;
-           }
-        } else {
-            if constexpr (enableUpper) {
-                words[realOffset].bytes[1] = static_cast<uint8_t>(value >> 8);
-                metadata.dirty_ = true;
-            } 
+    void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept override {
+        if (enableLower) {
+            words[realOffset & 0b111].bytes[0] = value;
+            metadata.dirty_ = true;
+        }
+        if (enableIpper) {
+            words[realOffset & 0b111].bytes[1] = value >> 8;
+            metadata.dirty_ = true;
         }
     }
+
 };
 
 struct CacheSet {
@@ -480,5 +485,22 @@ class Cache {
 Cache cache;
 void 
 setupCache() noexcept {
+    if (!ramFile.open("ram.bin", FILE_WRITE)) {
+        Serial.println(F("Could not open ram.bin!"));
+        while (true) {
+            delay(1000);
+        }
+    }
     cache.clear();
+}
+void 
+memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+    ramFile.seekSet(baseAddress.full);
+    ramFile.write(bytes, count);
+}
+void 
+memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+    ramFile.seekSet(baseAddress.full);
+    ramFile.read(bytes, count);
+    
 }

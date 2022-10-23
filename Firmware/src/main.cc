@@ -636,7 +636,8 @@ struct MultipartCache : public Cache {
         }
     }
     void begin() noexcept {
-
+        io_.begin();
+        cache_.begin();
     }
 
     IOSpace io_;

@@ -165,6 +165,30 @@ union SplitWord16 {
     constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
 };
 
+struct CacheLine {
+    virtual ~CacheLine() = default;
+    virtual void clear() noexcept = 0;
+    virtual void reset(SplitWord32 newAddress) noexcept = 0;
+    virtual bool matches(SplitWord32 other) const noexcept = 0;
+    virtual uint16_t getWord(byte offset) const noexcept = 0;
+    virtual void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
+    virtual void begin() noexcept { }
+};
+struct Cache {
+    virtual ~Cache() = default;
+    virtual void clear() noexcept = 0;
+    virtual CacheLine& find(SplitWord32 address) noexcept = 0;
+    virtual void begin() noexcept = 0;
+};
+
+struct SplitCache : public Cache {
+    ~SplitCache() override = default;
+    virtual Cache& findCache(uint8_t address) noexcept = 0;
+    CacheLine& find(SplitWord32 address) noexcept override {
+        return findCache(address.bytes[3]).find(address);
+    }
+};
+SplitCache& getCache() noexcept;
 
 void 
 loop() {
@@ -199,7 +223,7 @@ loop() {
     SPDR = 0;
     nop;
     addr.bytes[3] = result;
-    auto accessesCache = result != 0xFF;
+    auto& targetCache = getCache().findCache(result);
     while (!(SPSR & _BV(SPIF))) ;
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::GPIOSelect, LOW>();
@@ -377,16 +401,6 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 }
 void memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 void memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
-struct CacheLine {
-    virtual ~CacheLine() = default;
-    virtual void clear() noexcept = 0;
-    virtual void reset(SplitWord32 newAddress) noexcept = 0;
-    virtual bool matches(SplitWord32 other) const noexcept = 0;
-    virtual uint16_t getWord(byte offset) const noexcept = 0;
-    virtual void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
-    virtual void begin() noexcept { }
-
-};
 
 struct DataCacheLine : public CacheLine {
     static constexpr auto NumberOfWords = 8;
@@ -474,12 +488,6 @@ struct DataCacheSet : public CacheSet {
     }
     DataCacheLine lines[NumberOfLines];
     byte replacementIndex_ = 0;
-};
-struct Cache {
-    virtual ~Cache() = default;
-    virtual void clear() noexcept = 0;
-    virtual CacheLine& find(SplitWord32 address) noexcept = 0;
-    virtual void begin() noexcept = 0;
 };
 struct DataCache : public Cache{
     ~DataCache() override = default;
@@ -621,7 +629,7 @@ struct IOSpace : public Cache {
         CacheLine* devices[64] { nullptr } ;
         IOSink fallback_;
 };
-struct MultipartCache : public Cache {
+struct MultipartCache : public SplitCache {
     ~MultipartCache() override = default;
     void clear() noexcept override {
         io_.clear();
@@ -670,4 +678,9 @@ memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
     ramFile.seekSet(baseAddress.full);
     ramFile.read(bytes, count);
     
+}
+
+SplitCache& 
+getCache() noexcept {
+    return cache;
 }

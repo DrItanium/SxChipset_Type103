@@ -14,7 +14,7 @@
   10   | GND      | GND
   11   | CS1      | Input
   12   | IO       | Output
-  13   | SEN3     | Output
+  13   | SEN3     | NC
   14   | SD       | Output
   15   | MB0      | Output
   16   | INT1     | Output

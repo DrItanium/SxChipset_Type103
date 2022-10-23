@@ -40,8 +40,8 @@ Pin 16 = INT1         XOR = 1   AC1 = 0
  30  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  31  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 15 = MB0          XOR = 0   AC1 = 0
- 32  ---- ---- ---- ---- ---- -x-- x--- ---x
+Pin 15 = MB0          XOR = 1   AC1 = 0
+ 32  ---- ---- ---- ---- ---- ---- x--- ----
  33  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  34  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  35  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -50,8 +50,8 @@ Pin 15 = MB0          XOR = 0   AC1 = 0
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 14 = SD           XOR = 0   AC1 = 0
- 40  ---- ---- ---- ---- ---- x--- -x-- ---x
+Pin 14 = SD           XOR = 1   AC1 = 0
+ 40  ---- ---- ---- ---- ---- x--- ---- ----
  41  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  42  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  43  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -61,7 +61,7 @@ Pin 14 = SD           XOR = 0   AC1 = 0
  47  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 13 = SEN3         XOR = 0   AC1 = 0
- 48  ---- ---- ---- ---- ---- x--- x--- ---x
+ 48  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  49  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  50  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  51  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -70,8 +70,8 @@ Pin 13 = SEN3         XOR = 0   AC1 = 0
  54  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  55  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 12 = IO           XOR = 0   AC1 = 0
- 56  ---- ---- ---- ---- ---- -x-- -x-- ---x
+Pin 12 = IO           XOR = 1   AC1 = 0
+ 56  ---- ---- ---- ---- ---- ---- ---- --x-
  57  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  58  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  59  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

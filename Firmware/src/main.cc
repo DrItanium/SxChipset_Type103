@@ -509,6 +509,15 @@ struct IODevice : public CacheLine {
     private:
         SplitWord32 addr_;
 };
+struct IOSink final : public CacheLine {
+    ~IOSink() override = default;
+    void reset(SplitWord32) noexcept override { }
+    void clear() noexcept override { }
+    void begin() noexcept override { }
+    bool matches(SplitWord32) const noexcept override { return true; }
+    uint16_t getWord(byte) const noexcept override { return 0; }
+    void setWord(byte, uint16_t, bool, bool) noexcept override { } 
+};
 struct ConfigurationSpace : public IODevice {
     public:
         ConfigurationSpace() noexcept : IODevice(0xFE00'0000) { }
@@ -548,22 +557,69 @@ struct ConfigurationSpace : public IODevice {
             SplitWord32 addrs[sizeof(bytes)/sizeof(SplitWord32)];
         };
 };
+struct SerialDevice : public IODevice {
+    public:
+        SerialDevice(uint32_t address) noexcept : IODevice(address) { }
+        ~SerialDevice() override = default;
+        void begin() noexcept override  { }
+
+        uint16_t getWord(byte offset) const noexcept override {
+            switch (offset & 0b0111'1111) {
+                case 0: //read port
+                    return Serial.read();
+                default:
+                    return 0;
+            }
+        }
+        void setWord(byte offset, uint16_t value, bool, bool) noexcept override {
+            switch (offset & 0b0111'1111) {
+                case 0: // write port
+                    Serial.write(value);
+                    break;
+                default:
+                    break;
+            }
+        }
+};
 struct IOSpace : public Cache {
     ~IOSpace() override = default;
     void clear() noexcept override {
-
+        cfgSpace.clear();
+        for (auto* ptr : devices) {
+            ptr->clear();
+        }
     }
     CacheLine& find(SplitWord32 address) noexcept override {
         // assume that if we got here that address is in correct range :)
-        tmp.clear();
-        return tmp;
+        if (cfgSpace.matches(address)) {
+            return cfgSpace;
+        } else {
+            for (auto* dev : devices) {
+                if (dev->matches(address)) {
+                    return *dev;
+                }
+            }
+            return fallback_;
+        }
     }
     void begin() noexcept override {
-        cfgSpace = new ConfigurationSpace();
-        cfgSpace->begin();
+        if (!initialized_) {
+            initialized_ = true;
+            cfgSpace.begin();
+            devices[0] = new SerialDevice(cfgSpace.getSerialAddress());
+            for (int i = 1; i < 64; ++i) {
+                devices[i] = new IOSink();
+            }
+            for (auto* ptr : devices) {
+                ptr->begin();
+            }
+        }
     }
-    ConfigurationSpace* cfgSpace = nullptr;
-    DataCacheLine tmp;
+    private:
+        bool initialized_ = false;
+        ConfigurationSpace cfgSpace;
+        CacheLine* devices[64] { nullptr } ;
+        IOSink fallback_;
 };
 struct MultipartCache : public Cache {
     ~MultipartCache() override = default;

@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <Wire.h>
 #include <SdFat.h>
 #include "Types.h"
 #include "Pinout.h"
@@ -409,17 +408,6 @@ struct DataCache : public Cache{
         }
     }
     DataCacheSet cache[128];
-};
-struct IODevice : public CacheLine {
-    IODevice(uint32_t address) noexcept : addr_(address) { }
-    ~IODevice() override = default;
-    void reset(SplitWord32 ) noexcept override { }
-    void clear() noexcept override {
-
-    }
-    bool matches(SplitWord32 other) const noexcept override { return other.ioDeviceAddress.key == addr_.ioDeviceAddress.key; }
-    private:
-        SplitWord32 addr_;
 };
 struct ConfigurationSpace : public IODevice {
     public:

@@ -26,11 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_TYPES_H
 #define SXCHIPSET_TYPE103_TYPES_H
 #include <Arduino.h>
+#include <SdFat.h>
 
 template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
+extern SdFat SD;
 constexpr auto OffsetSize = 4; // 16-byte line
 constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
                                    // lines with 4 lines per set
@@ -137,5 +139,15 @@ struct LineSink final : public CacheLine {
     void setWord(byte, uint16_t, bool, bool) noexcept override { } 
 };
 using IOSink = LineSink;
+
+struct IODevice : public CacheLine {
+    IODevice(uint32_t address) noexcept : addr_(address) { }
+    ~IODevice() override = default;
+    void reset(SplitWord32 ) noexcept override { }
+    void clear() noexcept override { }
+    bool matches(SplitWord32 other) const noexcept override { return other.ioDeviceAddress.key == addr_.ioDeviceAddress.key; }
+    private:
+        SplitWord32 addr_;
+};
 
 #endif //SXCHIPSET_TYPE103_TYPES_H

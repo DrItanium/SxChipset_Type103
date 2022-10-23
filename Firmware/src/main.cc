@@ -434,10 +434,15 @@ struct DataCacheLine : public CacheLine {
     }
 
 };
-
 struct CacheSet {
+    virtual ~CacheSet() = default;
+    virtual CacheLine& find(SplitWord32 address) noexcept = 0;
+    virtual void clear() noexcept = 0;
+};
+struct DataCacheSet : public CacheSet {
     static constexpr auto NumberOfLines = 4;
-    CacheLine& find(SplitWord32 address) noexcept {
+    ~DataCacheSet() override = default;
+    CacheLine& find(SplitWord32 address) noexcept override {
         for (int i = 0; i < NumberOfLines; ++i) {
             if (lines[i].matches(address)) {
                 return lines[i];
@@ -449,40 +454,33 @@ struct CacheSet {
         target.reset(address);
         return target;
     }
-    void clear() noexcept {
+    void clear() noexcept override {
         replacementIndex_ = 0;
         for (int i = 0; i < NumberOfLines; ++i) {
             lines[i].clear();
         }
     }
-    CacheLine lines[NumberOfLines];
+    DataCacheLine lines[NumberOfLines];
     byte replacementIndex_ = 0;
 };
-class Cache {
-    public:
-        void clear() {
-            for (int i = 0; i < 128; ++i) {
-                cache[i].clear();
-            }
-        }
-        CacheLine& find(SplitWord32 address) noexcept {
-            if (address.bytes[3] >= 0xFE) {
-                // go down a different path
-            } else {
-                return cache[address.cacheAddress.tag].find(address);
-            }
-        }
-        byte* viewAsMemoryArray() noexcept {
-            return reinterpret_cast<byte*>(cache);
-        }
-        constexpr size_t memoryArraySize() const noexcept {
-            return sizeof(cache);
-        }
-        CacheSet cache[128];
-        static constexpr auto ConfigurationSpaceBase = 0xFE00'0000;
-        // also hold onto other data structures we can easily access
+struct Cache {
+    virtual ~Cache() = default;
+    virtual void clear() noexcept = 0;
+    virtual CacheLine& find(SplitWord32 address) noexcept = 0;
 };
-Cache cache;
+struct DataCache : public Cache{
+    ~DataCache() override = default;
+    void clear() noexcept override {
+        for (int i = 0; i < 128; ++i) {
+            cache[i].clear();
+        }
+    }
+    CacheLine& find(SplitWord32 address) noexcept override {
+        return cache[address.cacheAddress.tag].find(address);
+    }
+    DataCacheSet cache[128];
+};
+DataCache cache;
 void 
 setupCache() noexcept {
     if (!ramFile.open("ram.bin", FILE_WRITE)) {

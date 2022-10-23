@@ -150,4 +150,6 @@ struct IODevice : public CacheLine {
         SplitWord32 addr_;
 };
 
+void setupCache() noexcept;
+
 #endif //SXCHIPSET_TYPE103_TYPES_H

@@ -27,9 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <Wire.h>
 #include <SdFat.h>
+#include <ArduinoJson.h>
 #include "Pinout.h"
 #include "MCP23S17.h"
 SdFat SD;
+File ramFile;
+File configurationSpace;
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
@@ -285,7 +288,6 @@ configurePins() noexcept {
     setInputChannel(0);
     putCPUInReset();
 }
-File ramFile;
 void
 setupIOExpanders() noexcept {
     

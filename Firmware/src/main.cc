@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <Wire.h>
 #include <SdFat.h>
-#include <ArduinoJson.h>
+#include "Types.h"
 #include "Pinout.h"
 #include "MCP23S17.h"
 SdFat SD;
@@ -122,64 +122,7 @@ union Channel1Value {
         uint8_t unused : 1;
     } bits;
 };
-template<typename W, typename E>
-constexpr auto ElementCount = sizeof(W) / sizeof(E);
-template<typename W, typename T>
-using ElementContainer = T[ElementCount<W, T>];
-constexpr auto OffsetSize = 4; // 16-byte line
-constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
-                                   // lines with 4 lines per set
-                                   // (4-way)
-constexpr auto KeySize = 32 - (OffsetSize + TagSize);
-union SplitWord32 {
-    uint32_t full;
-    ElementContainer<uint32_t, uint16_t> halves;
-    ElementContainer<uint32_t, uint8_t> bytes;
-    [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
-    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
-    constexpr SplitWord32(uint32_t value) : full(value) { }
-    constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
-    constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
-    struct {
-        uint32_t a0 : 1;
-        uint32_t offset : 3;
-        uint32_t rest : 28;
-    } address;
-    struct {
-        uint32_t offset : OffsetSize;
-        uint32_t tag : TagSize; 
-        uint32_t key : KeySize;
-    } cacheAddress;
-    struct {
-        uint32_t offset : 8;
-        uint32_t key : 24;
-    } ioDeviceAddress;
-};
 
-union SplitWord16 {
-    uint16_t full;
-    ElementContainer<uint16_t, uint8_t> bytes;
-    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
-    constexpr SplitWord16() : full(0) { }
-    constexpr explicit SplitWord16(uint16_t value) : full(value) { }
-    constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
-};
-
-struct CacheLine {
-    virtual ~CacheLine() = default;
-    virtual void clear() noexcept = 0;
-    virtual void reset(SplitWord32 newAddress) noexcept = 0;
-    virtual bool matches(SplitWord32 other) const noexcept = 0;
-    virtual uint16_t getWord(byte offset) const noexcept = 0;
-    virtual void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
-    virtual void begin() noexcept { }
-};
-struct Cache {
-    virtual ~Cache() = default;
-    virtual void clear() noexcept = 0;
-    virtual CacheLine& find(SplitWord32 address) noexcept = 0;
-    virtual void begin() noexcept = 0;
-};
 
 struct SplitCache : public Cache {
     ~SplitCache() override = default;
@@ -453,12 +396,6 @@ struct DataCacheLine : public CacheLine {
         }
     }
 
-};
-struct CacheSet {
-    virtual ~CacheSet() = default;
-    virtual CacheLine& find(SplitWord32 address) noexcept = 0;
-    virtual void clear() noexcept = 0;
-    virtual void begin() noexcept = 0;
 };
 struct DataCacheSet : public CacheSet {
     static constexpr auto NumberOfLines = 4;

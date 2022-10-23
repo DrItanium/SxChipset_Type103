@@ -32,7 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MCP23S17.h"
 SdFat SD;
 File ramFile;
-File configurationSpace;
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
@@ -138,9 +137,9 @@ union SplitWord32 {
     ElementContainer<uint32_t, uint8_t> bytes;
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
-    constexpr explicit SplitWord32(uint32_t value) : full(value) { }
-    constexpr explicit SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
-    constexpr explicit SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
+    constexpr SplitWord32(uint32_t value) : full(value) { }
+    constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
+    constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
     struct {
         uint32_t a0 : 1;
         uint32_t offset : 3;
@@ -151,6 +150,10 @@ union SplitWord32 {
         uint32_t tag : TagSize; 
         uint32_t key : KeySize;
     } cacheAddress;
+    struct {
+        uint32_t offset : 8;
+        uint32_t key : 24;
+    } ioDeviceAddress;
 };
 
 union SplitWord16 {
@@ -378,9 +381,10 @@ struct CacheLine {
     virtual ~CacheLine() = default;
     virtual void clear() noexcept = 0;
     virtual void reset(SplitWord32 newAddress) noexcept = 0;
-    virtual bool matches(SplitWord32 other) const noexcept;
+    virtual bool matches(SplitWord32 other) const noexcept = 0;
     virtual uint16_t getWord(byte offset) const noexcept = 0;
     virtual void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept = 0;
+    virtual void begin() noexcept { }
 
 };
 
@@ -440,10 +444,16 @@ struct CacheSet {
     virtual ~CacheSet() = default;
     virtual CacheLine& find(SplitWord32 address) noexcept = 0;
     virtual void clear() noexcept = 0;
+    virtual void begin() noexcept = 0;
 };
 struct DataCacheSet : public CacheSet {
     static constexpr auto NumberOfLines = 4;
     ~DataCacheSet() override = default;
+    void begin() noexcept override {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            lines[i].begin();
+        }
+    }
     CacheLine& find(SplitWord32 address) noexcept override {
         for (int i = 0; i < NumberOfLines; ++i) {
             if (lines[i].matches(address)) {
@@ -469,6 +479,7 @@ struct Cache {
     virtual ~Cache() = default;
     virtual void clear() noexcept = 0;
     virtual CacheLine& find(SplitWord32 address) noexcept = 0;
+    virtual void begin() noexcept = 0;
 };
 struct DataCache : public Cache{
     ~DataCache() override = default;
@@ -480,7 +491,62 @@ struct DataCache : public Cache{
     CacheLine& find(SplitWord32 address) noexcept override {
         return cache[address.cacheAddress.tag].find(address);
     }
+    void begin() noexcept override {
+        for (auto& set : cache) {
+            set.begin();
+        }
+    }
     DataCacheSet cache[128];
+};
+struct IODevice : public CacheLine {
+    IODevice(uint32_t address) noexcept : addr_(address) { }
+    ~IODevice() override = default;
+    void reset(SplitWord32 ) noexcept override { }
+    void clear() noexcept override {
+
+    }
+    bool matches(SplitWord32 other) const noexcept override { return other.ioDeviceAddress.key == addr_.ioDeviceAddress.key; }
+    private:
+        SplitWord32 addr_;
+};
+struct ConfigurationSpace : public IODevice {
+    public:
+        ConfigurationSpace() noexcept : IODevice(0xFE00'0000) { }
+        ~ConfigurationSpace() override = default;
+        void begin() noexcept override  {
+            if (File configurationSpaceBinary; !configurationSpaceBinary.open("cfgspace.bin", FILE_READ)) {
+                Serial.println(F("Could not open cfgspace.bin!"));
+                while (true) {
+                    delay(1000);
+                }
+            } else {
+                // load the addresses from SDCard and use it to setup the address space
+                // on startup
+                configurationSpaceBinary.seekSet(0);
+                configurationSpaceBinary.read(reinterpret_cast<byte*>(words), 256);
+                configurationSpaceBinary.close();
+            }
+        }
+        uint16_t getWord(byte offset) const noexcept override {
+            // lowest bit ignored
+            return words[offset & 0b0111'1111].full;
+        }
+        void setWord(byte, uint16_t, bool, bool) noexcept override {
+            // ignore attempts to write values out 
+        }
+        constexpr auto getSerialAddress() const noexcept { return addrs[0].full; }
+        constexpr auto getSDCtl() const noexcept { return addrs[1].full; }
+        constexpr auto getSDFilesStart() const noexcept { return addrs[2].full; }
+        constexpr auto getSeesawCtl() const noexcept { return addrs[3].full; }
+        constexpr auto getDisplayCtl() const noexcept { return addrs[4].full; }
+        constexpr auto getRtcCtl() const noexcept { return addrs[5].full; }
+
+    private:
+        union {
+            uint8_t bytes[256];
+            SplitWord16 words[sizeof(bytes)/sizeof(SplitWord16)];
+            SplitWord32 addrs[sizeof(bytes)/sizeof(SplitWord32)];
+        };
 };
 struct IOSpace : public Cache {
     ~IOSpace() override = default;
@@ -492,11 +558,16 @@ struct IOSpace : public Cache {
         tmp.clear();
         return tmp;
     }
+    void begin() noexcept override {
+        cfgSpace = new ConfigurationSpace();
+        cfgSpace->begin();
+    }
+    ConfigurationSpace* cfgSpace = nullptr;
     DataCacheLine tmp;
 };
 struct MultipartCache : public Cache {
     ~MultipartCache() override = default;
-    void clear() noexcept {
+    void clear() noexcept override {
         io_.clear();
         cache_.clear();
     }
@@ -508,6 +579,10 @@ struct MultipartCache : public Cache {
             return cache_.find(address);
         }
     }
+    void begin() noexcept {
+
+    }
+
     IOSpace io_;
     DataCache cache_;
 };

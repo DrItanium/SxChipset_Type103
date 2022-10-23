@@ -26,8 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Types.h"
 
-void memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
-void memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 struct DataCacheLine : public CacheLine {
     static constexpr auto NumberOfWords = 8;
     static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
@@ -262,28 +262,41 @@ struct MultipartCache : public SplitCache {
 namespace {
     MultipartCache cache;
     File ramFile;
+    File configurationSpace;
 }
 
 SplitCache& 
 getCache() noexcept {
     return cache;
 }
-
-void 
+size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
     ramFile.seekSet(baseAddress.full);
-    ramFile.write(bytes, count);
+    return ramFile.write(bytes, count);
 }
-void 
+size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    ramFile.seekSet(baseAddress.full);
-    ramFile.read(bytes, count);
+    if (baseAddress.ioDeviceAddress.key == 0xFE0000) {
+        // okay we are reading from configuration space file
+        // just load it as needed, this just becomes a standard cache line
+        configurationSpace.seekSet(baseAddress.ioDeviceAddress.offset);
+        return configurationSpace.read(bytes, count);
+    } else {
+        ramFile.seekSet(baseAddress.full);
+        return ramFile.read(bytes, count);
+    }
     
 }
 void 
 setupCache() noexcept {
     if (!ramFile.open("ram.bin", FILE_WRITE)) {
         Serial.println(F("Could not open ram.bin!"));
+        while (true) {
+            delay(1000);
+        }
+    }
+    if (!configurationSpace.open("cfgspace.bin", FILE_READ)) {
+        Serial.println(F("Could not open cfgspace.bin!"));
         while (true) {
             delay(1000);
         }

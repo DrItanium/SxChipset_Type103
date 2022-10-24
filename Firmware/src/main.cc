@@ -243,9 +243,13 @@ setupIOExpanders() noexcept {
     MCP23S17::writeDirection<XIO>(MCP23S17::AllInput16);
     reg.interruptIsActiveHigh();
     MCP23S17::writeIOCON<GPIOA_Lower>(reg);
+    MCP23S17::writeDirection<GPIOA_Lower>(MCP23S17::AllInput16);
     MCP23S17::writeIOCON<GPIOA_Upper>(reg);
+    MCP23S17::writeDirection<GPIOA_Upper>(MCP23S17::AllInput16);
     MCP23S17::writeIOCON<GPIOB_Lower>(reg);
+    MCP23S17::writeDirection<GPIOB_Lower>(MCP23S17::AllInput16);
     MCP23S17::writeIOCON<GPIOB_Upper>(reg);
+    MCP23S17::writeDirection<GPIOB_Upper>(MCP23S17::AllInput16);
 }
 
 /**

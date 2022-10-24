@@ -289,7 +289,7 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 
 
 void 
-handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept {
+handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, uint16_t directionBits) noexcept {
     while (!(SPSR & _BV(SPIF))) ;
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::GPIOSelect, LOW>();
@@ -379,8 +379,12 @@ constexpr IOGroup getGroup(uint8_t value) noexcept {
             return IOGroup::Undefined;
     }
 }
+void
+handleSerial(const SplitWord32& addr, const Channel0Value m0, bool isReadOperation) noexcept {
+
+}
 void 
-handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept {
+handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, uint16_t directionBits) noexcept {
     // When we are in io space, we are treating the address as an opcode which
     // we can decompose while getting the pieces from the io expanders. Thus we
     // can overlay the act of decoding while getting the next part

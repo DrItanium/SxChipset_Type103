@@ -72,81 +72,38 @@ void
 setup() {
     Serial.begin(115200);
     SPI.begin();
-    setupIOExpanders();
-    configurePins();
-    setupCache();
-    while (!SD.begin()) {
-        Serial.println(F("NO SD CARD FOUND...WAITING!"));
-        delay(1000);
-    }
-    Serial.println(F("SD CARD FOUND!"));
-    installMemoryImage();
-    pullCPUOutOfReset();
-    while (digitalRead<Pin::FAIL>() == LOW) {
-        if (digitalRead<Pin::DEN>() == LOW) {
-            break;
-        }
-    }
-    while (digitalRead<Pin::FAIL>() == HIGH) {
-        if (digitalRead<Pin::DEN>() == LOW) {
-            break;
-        }
-    }
-    // okay so we got past this, just start performing actions
-}
+    // setup the IO Expanders
+    MCP23S17::IOCON reg;
+    reg.makeInterruptPinsIndependent();
+    reg.treatDeviceAsOne16BitPort();
+    reg.enableHardwareAddressing();
+    reg.interruptIsActiveLow();
+    reg.configureInterruptsAsActiveDriver();
+    reg.disableSequentialOperation();
+    // at the start all of the io expanders will respond to the same address
+    // so first just make sure we write out the initial iocon
+    MCP23S17::writeIOCON<MCP23S17::HardwareDeviceAddress::Device0>(reg);
+    // now make sure that everything is configured correctly initially
+    MCP23S17::writeIOCON<DataLines>(reg);
+    MCP23S17::writeDirection<DataLines>(MCP23S17::AllInput16);
+    MCP23S17::writeIOCON<AddressLower>(reg);
+    MCP23S17::writeDirection<AddressLower>(MCP23S17::AllInput16);
+    MCP23S17::writeIOCON<AddressUpper>(reg);
+    MCP23S17::writeDirection<AddressUpper>(MCP23S17::AllInput16);
+    reg.mirrorInterruptPins();
+    MCP23S17::writeIOCON<XIO>(reg);
+    MCP23S17::writeDirection<XIO>(MCP23S17::AllInput16);
+    reg.interruptIsActiveHigh();
+    MCP23S17::writeIOCON<GPIOA_Lower>(reg);
+    MCP23S17::writeDirection<GPIOA_Lower>(MCP23S17::AllInput16);
+    MCP23S17::writeIOCON<GPIOA_Upper>(reg);
+    MCP23S17::writeDirection<GPIOA_Upper>(MCP23S17::AllInput16);
+    MCP23S17::writeIOCON<GPIOB_Lower>(reg);
+    MCP23S17::writeDirection<GPIOB_Lower>(MCP23S17::AllInput16);
+    MCP23S17::writeIOCON<GPIOB_Upper>(reg);
+    MCP23S17::writeDirection<GPIOB_Upper>(MCP23S17::AllInput16);
 
-
-void handleIOOperation(const SplitWord32& addr, const Channel0Value m0) noexcept;
-void 
-loop() {
-    setInputChannel(0);
-    if (digitalRead<Pin::FAIL>() == HIGH) {
-        Serial.println(F("CHECKSUM FAILURE!"));
-        while (true);
-    }
-    while (digitalRead<Pin::DEN>() == HIGH);
-    // grab the entire state of port A
-    // update the address as a full 32-bit update for now
-    SplitWord32 addr{0};
-    Channel0Value m0(PINA);
-    setInputChannel(1);
-    SplitWord16 up(MCP23S17::readGPIO16<AddressUpper>());
-    addr.bytes[3] = up.bytes[0];
-    addr.bytes[2] = up.bytes[1];
-    SplitWord16 down(MCP23S17::readGPIO16<AddressLower>());
-    addr.bytes[0] = down.bytes[0];
-    addr.bytes[1] = down.bytes[1];
-    MCP23S17::writeDirection<DataLines>(m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16);
-    // interleave operations into the accessing of address lines
-    if (addr.isIOInstruction()) {
-        handleIOOperation(addr, m0);
-    } else {
-        // okay now we can service the transaction request since it will be going
-        // to ram.
-        auto& line = getCache().find(addr);
-        auto isReadOp = m0.isReadOperation();
-        for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
-            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            Channel1Value c1(PINA);
-            /// @todo implement
-            if (isReadOp) {
-                // okay it is a read operation, so... pull a cache line out 
-                MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
-            } else {
-                // so we are writing to the cache
-                line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
-            }
-            digitalWrite<Pin::Ready, LOW>();
-            digitalWrite<Pin::Ready, HIGH>();
-            if (isBurstLast) {
-                break;
-            }
-        }
-    }
-}
-
-void 
-configurePins() noexcept {
+    // configure pins
     pinMode(Pin::HOLD, OUTPUT);
     pinMode(Pin::HLDA, INPUT);
     pinMode(Pin::GPIOSelect, OUTPUT);
@@ -180,38 +137,39 @@ configurePins() noexcept {
     digitalWrite<Pin::SD_EN, HIGH>();
     setInputChannel(0);
     putCPUInReset();
+    setupCache();
+    while (!SD.begin()) {
+        Serial.println(F("NO SD CARD FOUND...WAITING!"));
+        delay(1000);
+    }
+    Serial.println(F("SD CARD FOUND!"));
+    installMemoryImage();
+    pullCPUOutOfReset();
+    while (digitalRead<Pin::FAIL>() == LOW) {
+        if (digitalRead<Pin::DEN>() == LOW) {
+            break;
+        }
+    }
+    while (digitalRead<Pin::FAIL>() == HIGH) {
+        if (digitalRead<Pin::DEN>() == LOW) {
+            break;
+        }
+    }
+    // okay so we got past this, just start performing actions
 }
-void
-setupIOExpanders() noexcept {
-    MCP23S17::IOCON reg;
-    reg.makeInterruptPinsIndependent();
-    reg.treatDeviceAsOne16BitPort();
-    reg.enableHardwareAddressing();
-    reg.interruptIsActiveLow();
-    reg.configureInterruptsAsActiveDriver();
-    reg.disableSequentialOperation();
-    // at the start all of the io expanders will respond to the same address
-    // so first just make sure we write out the initial iocon
-    MCP23S17::writeIOCON<MCP23S17::HardwareDeviceAddress::Device0>(reg);
-    // now make sure that everything is configured correctly initially
-    MCP23S17::writeIOCON<DataLines>(reg);
-    MCP23S17::writeDirection<DataLines>(MCP23S17::AllInput16);
-    MCP23S17::writeIOCON<AddressLower>(reg);
-    MCP23S17::writeDirection<AddressLower>(MCP23S17::AllInput16);
-    MCP23S17::writeIOCON<AddressUpper>(reg);
-    MCP23S17::writeDirection<AddressUpper>(MCP23S17::AllInput16);
-    reg.mirrorInterruptPins();
-    MCP23S17::writeIOCON<XIO>(reg);
-    MCP23S17::writeDirection<XIO>(MCP23S17::AllInput16);
-    reg.interruptIsActiveHigh();
-    MCP23S17::writeIOCON<GPIOA_Lower>(reg);
-    MCP23S17::writeDirection<GPIOA_Lower>(MCP23S17::AllInput16);
-    MCP23S17::writeIOCON<GPIOA_Upper>(reg);
-    MCP23S17::writeDirection<GPIOA_Upper>(MCP23S17::AllInput16);
-    MCP23S17::writeIOCON<GPIOB_Lower>(reg);
-    MCP23S17::writeDirection<GPIOB_Lower>(MCP23S17::AllInput16);
-    MCP23S17::writeIOCON<GPIOB_Upper>(reg);
-    MCP23S17::writeDirection<GPIOB_Upper>(MCP23S17::AllInput16);
+
+
+void handleIOOperation(const SplitWord32& addr, const Channel0Value m0) noexcept;
+void handleTransaction() noexcept;
+void 
+loop() {
+    setInputChannel(0);
+    if (digitalRead<Pin::FAIL>() == HIGH) {
+        Serial.println(F("CHECKSUM FAILURE!"));
+        while (true);
+    }
+    while (digitalRead<Pin::DEN>() == HIGH);
+    handleTransaction();
 }
 
 /**
@@ -341,5 +299,47 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value m0) noexcept {
             break;
         default:
             break;
+    }
+}
+
+void 
+handleTransaction() noexcept {
+    // grab the entire state of port A
+    // update the address as a full 32-bit update for now
+    SplitWord32 addr{0};
+    Channel0Value m0(PINA);
+    setInputChannel(1);
+    SplitWord16 up(MCP23S17::readGPIO16<AddressUpper>());
+    addr.bytes[3] = up.bytes[0];
+    addr.bytes[2] = up.bytes[1];
+    SplitWord16 down(MCP23S17::readGPIO16<AddressLower>());
+    addr.bytes[0] = down.bytes[0];
+    addr.bytes[1] = down.bytes[1];
+    MCP23S17::writeDirection<DataLines>(m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16);
+    // interleave operations into the accessing of address lines
+    if (addr.isIOInstruction()) {
+        handleIOOperation(addr, m0);
+    } else {
+        // okay now we can service the transaction request since it will be going
+        // to ram.
+        auto& line = getCache().find(addr);
+        auto isReadOp = m0.isReadOperation();
+        for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            Channel1Value c1(PINA);
+            /// @todo implement
+            if (isReadOp) {
+                // okay it is a read operation, so... pull a cache line out 
+                MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
+            } else {
+                // so we are writing to the cache
+                line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
+            }
+            digitalWrite<Pin::Ready, LOW>();
+            digitalWrite<Pin::Ready, HIGH>();
+            if (isBurstLast) {
+                break;
+            }
+        }
     }
 }

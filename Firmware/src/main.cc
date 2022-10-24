@@ -257,7 +257,7 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
  */
 void
 fallbackIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    MCP23S17::writeGPIO16<DataLines>(0);
+    MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(0);
     for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         digitalWrite<Pin::Ready, LOW>();
@@ -275,7 +275,7 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
         if (m0.isReadOperation()) {
-            MCP23S17::writeGPIO16<DataLines>(onRead(addr, m0, c1, offset));
+            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(onRead(addr, m0, c1, offset));
         } else {
             onWrite(addr, m0, c1, offset, MCP23S17::readGPIO16<DataLines>());
         }
@@ -307,6 +307,13 @@ performSerialWrite_Compact(const SplitWord32&, const Channel0Value&, const Chann
     Serial.write(reinterpret_cast<byte*>(&value), sizeof(value));
 }
 void
+performNullWrite(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t) noexcept {
+}
+uint16_t
+performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+    return 0;
+}
+void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.ioRequestAddress.function) {
         case 0: // read/write fast
@@ -314,6 +321,10 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
             break;
         case 1: // read/write compact
             genericIOHandler(addr, m0, performSerialRead_Compact, performSerialWrite_Compact);
+            break;
+        case 2: // flush
+            Serial.flush();
+            fallbackIOHandler(addr, m0);
             break;
         default:
             fallbackIOHandler(addr, m0);

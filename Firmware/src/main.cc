@@ -96,7 +96,8 @@ setup() {
 }
 
 
-
+void handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept;
+void handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept;
 void 
 loop() {
     setInputChannel(0);
@@ -130,58 +131,10 @@ loop() {
     SPDR = 0;
     nop;
     addr.bytes[3] = result;
-    while (!(SPSR & _BV(SPIF))) ;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    result = SPDR;
-    SPDR = MCP23S17::generateReadOpcode(AddressLower);
-    nop;
-    addr.bytes[2] = result;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = 0;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    result = SPDR;
-    SPDR = 0;
-    nop;
-    addr.bytes[0] = result;
-    while (!(SPSR & _BV(SPIF))) ;
-    addr.bytes[1] = SPDR;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-
-    /// @todo implement optimization to only update this if necessary
-    // set data lines direction
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    SPDR = MCP23S17::generateWriteOpcode(DataLines);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = static_cast<byte>(MCP23S17::Registers::IODIR);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = directionBits;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = directionBits;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-    // okay now we can service the transaction request 
-    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        Channel1Value c1(PINA);
-        if (m0.isReadOperation()) {
-
-        }
-        /// @todo insert handler code here
-        digitalWrite<Pin::Ready, LOW>();
-        digitalWrite<Pin::Ready, HIGH>();
-        if (isBurstLast) {
-            setInputChannel(0);
-            break;
-        }
+    if (addr.isIOInstruction()) {
+        handleIOOperation(addr, m0, isReadOperation, directionBits);
+    } else {
+        handleMemoryRequest(addr, m0, isReadOperation, directionBits);
     }
 }
 
@@ -335,3 +288,104 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 }
 
 
+void 
+handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept {
+    while (!(SPSR & _BV(SPIF))) ;
+    digitalWrite<Pin::GPIOSelect, HIGH>();
+    digitalWrite<Pin::GPIOSelect, LOW>();
+    auto result = SPDR;
+    SPDR = MCP23S17::generateReadOpcode(AddressLower);
+    nop;
+    addr.bytes[2] = result;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = 0;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    result = SPDR;
+    SPDR = 0;
+    nop;
+    addr.bytes[0] = result;
+    while (!(SPSR & _BV(SPIF))) ;
+    addr.bytes[1] = SPDR;
+    digitalWrite<Pin::GPIOSelect, HIGH>();
+
+    /// @todo implement optimization to only update this if necessary
+    // set data lines direction
+    digitalWrite<Pin::GPIOSelect, LOW>();
+    SPDR = MCP23S17::generateWriteOpcode(DataLines);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = static_cast<byte>(MCP23S17::Registers::IODIR);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = directionBits;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = directionBits;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    digitalWrite<Pin::GPIOSelect, HIGH>();
+    // okay now we can service the transaction request since it will be going
+    // to ram.
+    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        Channel1Value c1(PINA);
+        if (m0.isReadOperation()) {
+
+        }
+        /// @todo insert handler code here
+        digitalWrite<Pin::Ready, LOW>();
+        digitalWrite<Pin::Ready, HIGH>();
+        if (isBurstLast) {
+            setInputChannel(0);
+            break;
+        }
+    }
+}
+
+void 
+handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept {
+
+    while (!(SPSR & _BV(SPIF))) ;
+    digitalWrite<Pin::GPIOSelect, HIGH>();
+    digitalWrite<Pin::GPIOSelect, LOW>();
+    auto result = SPDR;
+    SPDR = MCP23S17::generateReadOpcode(AddressLower);
+    nop;
+    addr.bytes[2] = result;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = 0;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    result = SPDR;
+    SPDR = 0;
+    nop;
+    addr.bytes[0] = result;
+    while (!(SPSR & _BV(SPIF))) ;
+    addr.bytes[1] = SPDR;
+    digitalWrite<Pin::GPIOSelect, HIGH>();
+
+    /// @todo implement optimization to only update this if necessary
+    // set data lines direction
+    digitalWrite<Pin::GPIOSelect, LOW>();
+    SPDR = MCP23S17::generateWriteOpcode(DataLines);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = static_cast<byte>(MCP23S17::Registers::IODIR);
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = directionBits;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    SPDR = directionBits;
+    nop;
+    while (!(SPSR & _BV(SPIF))) ;
+    digitalWrite<Pin::GPIOSelect, HIGH>();
+    // okay so we are actually
+}

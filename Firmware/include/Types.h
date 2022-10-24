@@ -58,12 +58,12 @@ union SplitWord32 {
         uint32_t key : KeySize;
     } cacheAddress;
     struct {
-        uint32_t subfunction : 8;
+        uint32_t subfunction : 16;
         uint32_t function : 8;
-        uint32_t group : 8;
-        uint32_t req : 8;
+        uint32_t group : 4;
+        uint32_t req : 4;
     } ioRequestAddress;
-    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xFE; }
+    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
 };
 
 

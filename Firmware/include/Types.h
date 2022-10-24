@@ -122,6 +122,13 @@ union Channel0Value {
     constexpr bool isReadOperation() const noexcept { return bits.w_r_ == 0; }
     constexpr bool isWriteOperation() const noexcept { return bits.w_r_ != 0; }
 };
+constexpr uint8_t makeByteEnable(uint8_t be0, uint8_t be1) noexcept {
+    return be0 | be1 << 1;
+}
+static_assert(makeByteEnable(0,0) == 0b00);
+static_assert(makeByteEnable(1,0) == 0b01);
+static_assert(makeByteEnable(0,1) == 0b10);
+static_assert(makeByteEnable(1,1) == 0b11);
 union Channel1Value {
     explicit Channel1Value(uint8_t value) noexcept : value_(value) { }
     uint8_t value_;
@@ -134,6 +141,9 @@ union Channel1Value {
         uint8_t ramIO : 1;
         uint8_t unused : 1;
     } bits;
+    constexpr uint8_t getByteEnable() const noexcept {
+        return makeByteEnable(bits.be0, bits.be1);
+    }
 };
 
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;

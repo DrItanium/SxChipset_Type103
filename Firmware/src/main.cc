@@ -275,9 +275,9 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
         if (m0.isReadOperation()) {
-            MCP23S17::write16<DataLines>(onRead(addr, m0, c1, offset));
+            MCP23S17::writeGPIO16<DataLines>(onRead(addr, m0, c1, offset));
         } else {
-
+            onWrite(addr, m0, c1, offset, MCP23S17::readGPIO16<DataLines>());
         }
         digitalWrite<Pin::Ready, LOW>();
         digitalWrite<Pin::Ready, HIGH>();
@@ -286,10 +286,19 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         }
     }
 }
+uint16_t
+performSerialRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+    return Serial.read();
+}
+void
+performSerialWrite(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t value) noexcept {
+    Serial.write(static_cast<uint8_t>(value));
+}
 void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.ioRequestAddress.function) {
         case 0: // read/write
+            genericIOHandler(addr, m0, performSerialRead, performSerialWrite);
             break;
         default:
             fallbackIOHandler(addr, m0);

@@ -287,18 +287,33 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
     }
 }
 uint16_t
-performSerialRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+performSerialRead_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
     return Serial.read();
 }
+
+uint16_t
+performSerialRead_Compact(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+    uint16_t output = 0xFFFF;
+    (void)Serial.readBytes(reinterpret_cast<byte*>(&output), sizeof(output));
+    return output;
+}
 void
-performSerialWrite(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t value) noexcept {
+performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t value) noexcept {
     Serial.write(static_cast<uint8_t>(value));
+}
+
+void
+performSerialWrite_Compact(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t value) noexcept {
+    Serial.write(reinterpret_cast<byte*>(&value), sizeof(value));
 }
 void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.ioRequestAddress.function) {
-        case 0: // read/write
-            genericIOHandler(addr, m0, performSerialRead, performSerialWrite);
+        case 0: // read/write fast
+            genericIOHandler(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
+            break;
+        case 1: // read/write compact
+            genericIOHandler(addr, m0, performSerialRead_Compact, performSerialWrite_Compact);
             break;
         default:
             fallbackIOHandler(addr, m0);

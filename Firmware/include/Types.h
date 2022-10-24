@@ -93,7 +93,8 @@ union Channel1Value {
     explicit Channel1Value(uint8_t value) noexcept : value_(value) { }
     uint8_t value_;
     struct {
-        uint8_t byteEnable : 2;
+        uint8_t be0 : 1;
+        uint8_t be1 : 1;
         uint8_t blast : 1;
         uint8_t xioint : 1;
         uint8_t dataInt : 2;
@@ -133,13 +134,12 @@ struct DataCacheLine {
         copy2.cacheAddress.offset = 0;
         memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
     }
-    template<bool enableLower, bool enableUpper>
-    void setWord(byte offset, uint16_t value) noexcept {
-        if constexpr (enableLower) {
+    void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept {
+        if (enableLower) {
             words[offset & 0b111].bytes[0] = value;
             metadata.dirty_ = true;
         }
-        if constexpr (enableUpper) {
+        if (enableUpper) {
             words[offset & 0b111].bytes[1] = value >> 8;
             metadata.dirty_ = true;
         }

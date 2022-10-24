@@ -330,17 +330,21 @@ handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperat
     digitalWrite<Pin::GPIOSelect, HIGH>();
     // okay now we can service the transaction request since it will be going
     // to ram.
+    auto& line = getCache().find(addr);
     for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
-        if (m0.isReadOperation()) {
-
+        /// @todo implement
+        if (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out 
+            MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
+        } else {
+            // so we are writing to the cache
+            line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
         }
-        /// @todo insert handler code here
         digitalWrite<Pin::Ready, LOW>();
         digitalWrite<Pin::Ready, HIGH>();
         if (isBurstLast) {
-            setInputChannel(0);
             break;
         }
     }

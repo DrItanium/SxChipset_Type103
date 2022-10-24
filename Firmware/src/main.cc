@@ -96,8 +96,7 @@ setup() {
 }
 
 
-void handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, uint16_t directionBits) noexcept;
-void handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, uint16_t directionBits) noexcept;
+void handleIOOperation(const SplitWord32& addr, const Channel0Value m0) noexcept;
 void 
 loop() {
     setInputChannel(0);
@@ -109,32 +108,40 @@ loop() {
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
-    // interleave operations into the accessing of address lines
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    SPDR = MCP23S17::generateReadOpcode(AddressUpper);
-    nop;
     Channel0Value m0(PINA);
-    auto isReadOperation = m0.isReadOperation();
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
-    nop;
-    // read in this case means output since the i960 is Reading 
-    // write in this case means input since the i960 is Writing
-    auto directionBits = isReadOperation ? MCP23S17::AllOutput16: MCP23S17::AllInput16;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = 0;
-    nop;
-    // switch to the second input channel since this will go on regardless
     setInputChannel(1);
-    while (!(SPSR & _BV(SPIF))) ;
-    auto result = SPDR;
-    SPDR = 0;
-    nop;
-    addr.bytes[3] = result;
+    SplitWord16 up(MCP23S17::readGPIO16<AddressUpper>());
+    addr.bytes[3] = up.bytes[0];
+    addr.bytes[2] = up.bytes[1];
+    SplitWord16 down(MCP23S17::readGPIO16<AddressLower>());
+    addr.bytes[0] = down.bytes[0];
+    addr.bytes[1] = down.bytes[1];
+    MCP23S17::writeDirection<DataLines>(m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16);
+    // interleave operations into the accessing of address lines
     if (addr.isIOInstruction()) {
-        handleIOOperation(addr, m0, isReadOperation, directionBits);
+        handleIOOperation(addr, m0);
     } else {
-        handleMemoryRequest(addr, m0, isReadOperation, directionBits);
+        // okay now we can service the transaction request since it will be going
+        // to ram.
+        auto& line = getCache().find(addr);
+        auto isReadOp = m0.isReadOperation();
+        for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            Channel1Value c1(PINA);
+            /// @todo implement
+            if (isReadOp) {
+                // okay it is a read operation, so... pull a cache line out 
+                MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
+            } else {
+                // so we are writing to the cache
+                line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
+            }
+            digitalWrite<Pin::Ready, LOW>();
+            digitalWrite<Pin::Ready, HIGH>();
+            if (isBurstLast) {
+                break;
+            }
+        }
     }
 }
 
@@ -288,52 +295,6 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 }
 
 
-void 
-handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, uint16_t directionBits) noexcept {
-    while (!(SPSR & _BV(SPIF))) ;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    auto result = SPDR;
-    SPDR = MCP23S17::generateReadOpcode(AddressLower);
-    nop;
-    addr.bytes[2] = result;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = 0;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    result = SPDR;
-    SPDR = 0;
-    nop;
-    addr.bytes[0] = result;
-    while (!(SPSR & _BV(SPIF))) ;
-    addr.bytes[1] = SPDR;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-
-    MCP23S17::writeDirection<DataLines>(directionBits);
-    // okay now we can service the transaction request since it will be going
-    // to ram.
-    auto& line = getCache().find(addr);
-    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        Channel1Value c1(PINA);
-        /// @todo implement
-        if (isReadOperation) {
-            // okay it is a read operation, so... pull a cache line out 
-            MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
-        } else {
-            // so we are writing to the cache
-            line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
-        }
-        digitalWrite<Pin::Ready, LOW>();
-        digitalWrite<Pin::Ready, HIGH>();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
 enum class IOGroup : byte{
     /**
      * @brief Serial console related operations
@@ -351,18 +312,6 @@ enum class IOGroup : byte{
      * @brief Operations relating to the second SPI bus that we have exposed
      */
     SPI2,
-    /**
-     * @brief Onboard registers
-     */
-    Registers,
-    /**
-     * @brief DMA functionality
-     */
-    DMA,
-    /**
-     * @brief MMU functionality
-     */
-    MMU,
     Undefined,
 };
 constexpr IOGroup getGroup(uint8_t value) noexcept {
@@ -371,20 +320,13 @@ constexpr IOGroup getGroup(uint8_t value) noexcept {
         case IOGroup::GPIOA:
         case IOGroup::GPIOB:
         case IOGroup::SPI2:
-        case IOGroup::Registers:
-        case IOGroup::DMA:
-        case IOGroup::MMU:
             return static_cast<IOGroup>(value);
         default:
             return IOGroup::Undefined;
     }
 }
-void
-handleSerial(const SplitWord32& addr, const Channel0Value m0, bool isReadOperation) noexcept {
-
-}
 void 
-handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, uint16_t directionBits) noexcept {
+handleIOOperation(const SplitWord32& addr, const Channel0Value m0) noexcept {
     // When we are in io space, we are treating the address as an opcode which
     // we can decompose while getting the pieces from the io expanders. Thus we
     // can overlay the act of decoding while getting the next part
@@ -393,28 +335,11 @@ handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperatio
     //
     // This system does not care about the size but it does care about where
     // one starts when performing a write operation
-    while (!(SPSR & _BV(SPIF))) ;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    auto result = SPDR;
-    SPDR = MCP23S17::generateReadOpcode(AddressLower);
-    nop;
-    addr.bytes[2] = result;
-    IOGroup group = getGroup(result);
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = 0;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    result = SPDR;
-    SPDR = 0;
-    nop;
-    addr.bytes[0] = result;
-    while (!(SPSR & _BV(SPIF))) ;
-    addr.bytes[1] = SPDR;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-    
-    MCP23S17::writeDirection<DataLines>(directionBits);
+    //IOGroup group = getGroup(addr.bytes[2]);
+    switch (getGroup(addr.ioRequestAddress.group)) {
+        case IOGroup::Serial:
+            break;
+        default:
+            break;
+    }
 }

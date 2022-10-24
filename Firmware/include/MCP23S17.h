@@ -193,7 +193,7 @@ namespace MCP23S17 {
     constexpr auto ReadOpcode_v = generateReadOpcode(addr);
     template<HardwareDeviceAddress addr>
     constexpr auto WriteOpcode_v = generateWriteOpcode(addr);
-    template<HardwareDeviceAddress address, Registers opcode, Pin pin>
+    template<HardwareDeviceAddress address, Registers opcode, Pin pin = Pin::GPIOSelect>
     inline uint8_t read8() noexcept {
         digitalWrite<pin, LOW>();
         SPDR = ReadOpcode_v<address>;
@@ -209,7 +209,7 @@ namespace MCP23S17 {
         digitalWrite<pin, HIGH>();
         return result;
     }
-    template<HardwareDeviceAddress address, Registers opcode, Pin pin>
+    template<HardwareDeviceAddress address, Registers opcode, Pin pin = Pin::GPIOSelect>
     inline uint16_t read16() noexcept {
         uint16_t output = 0;
         digitalWrite<pin, LOW>();
@@ -234,7 +234,7 @@ namespace MCP23S17 {
         digitalWrite<pin, HIGH>();
         return output;
     }
-    template<HardwareDeviceAddress addr, Registers opcode, Pin pin>
+    template<HardwareDeviceAddress addr, Registers opcode, Pin pin = Pin::GPIOSelect>
     inline void write8(byte value) noexcept {
         digitalWrite<pin, LOW>();
         SPDR = WriteOpcode_v<addr>;
@@ -254,7 +254,7 @@ namespace MCP23S17 {
         while (!(SPSR & _BV(SPIF))) ; // wait
         digitalWrite<pin, HIGH>();
     }
-    template<HardwareDeviceAddress addr, Registers opcode, Pin pin>
+    template<HardwareDeviceAddress addr, Registers opcode, Pin pin = Pin::GPIOSelect>
     inline void write16(uint16_t v) noexcept {
         digitalWrite<pin, LOW>();
         SPDR = WriteOpcode_v<addr>;
@@ -278,7 +278,7 @@ namespace MCP23S17 {
      * @tparam addr The io expander to read from
      * @return The contents of the GPIO register pair
      */
-    template<HardwareDeviceAddress addr, Pin pin>
+    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
     inline auto readGPIO16() noexcept {
         return read16<addr, Registers::GPIO, pin>();
     }
@@ -288,7 +288,7 @@ namespace MCP23S17 {
      * @tparam standalone When true, wrap the call in a begin/endTransaction call. When false omit them because you are doing many spi operations back to back and the begin/end is handled manually (default true)
      * @param value The value to set the gpios to
      */
-    template<HardwareDeviceAddress addr, Pin pin>
+    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
     inline void writeGPIO16(uint16_t value) noexcept {
         write16<addr, Registers::GPIO, pin>(value);
     }
@@ -298,7 +298,7 @@ namespace MCP23S17 {
      * @tparam standalone When true, wrap the call in a begin/endTransaction call. When false omit them because you are doing many spi operations back to back and the begin/end is handled manually (default true)
      * @param value The 16-bit direction mask to write to the io expander (a 1 means input, a 0 means output)
      */
-    template<HardwareDeviceAddress addr, Pin pin>
+    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
     inline void writeDirection(uint16_t value) noexcept {
         write16<addr, Registers::IODIR, pin>(value) ;
     }

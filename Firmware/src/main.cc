@@ -224,6 +224,28 @@ configurePins() noexcept {
 void
 setupIOExpanders() noexcept {
     /// @todo implement
+    MCP23S17::IOCON reg;
+    reg.makeInterruptPinsIndependent();
+    reg.treatDeviceAsOne16BitPort();
+    reg.enableHardwareAddressing();
+    reg.interruptIsActiveLow();
+    reg.configureInterruptsAsActiveDriver();
+    reg.disableSequentialOperation();
+    // at the start all of the io expanders will respond to the same address
+    // so first just make sure we write out the initial iocon
+    MCP23S17::writeIOCON<MCP23S17::HardwareDeviceAddress::Device0>(reg);
+    // now make sure that everything is configured correctly initially
+    MCP23S17::writeIOCON<DataLines>(reg);
+    MCP23S17::writeIOCON<AddressLower>(reg);
+    MCP23S17::writeIOCON<AddressUpper>(reg);
+    reg.mirrorInterruptPins();
+    MCP23S17::writeIOCON<XIO>(reg);
+    MCP23S17::writeDirection<XIO>(MCP23S17::AllInput16);
+    reg.interruptIsActiveHigh();
+    MCP23S17::writeIOCON<GPIOA_Lower>(reg);
+    MCP23S17::writeIOCON<GPIOA_Upper>(reg);
+    MCP23S17::writeIOCON<GPIOB_Lower>(reg);
+    MCP23S17::writeIOCON<GPIOB_Upper>(reg);
 }
 
 /**

@@ -326,6 +326,8 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
             Serial.flush();
             fallbackIOHandler(addr, m0);
             break;
+        case 3: // dma style read/write
+                /// @todo implement
         default:
             fallbackIOHandler(addr, m0);
             break;

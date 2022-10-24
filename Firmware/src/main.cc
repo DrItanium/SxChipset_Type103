@@ -96,8 +96,8 @@ setup() {
 }
 
 
-void handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept;
-void handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept;
+void handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, uint16_t directionBits) noexcept;
+void handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, uint16_t directionBits) noexcept;
 void 
 loop() {
     setInputChannel(0);
@@ -120,7 +120,7 @@ loop() {
     nop;
     // read in this case means output since the i960 is Reading 
     // write in this case means input since the i960 is Writing
-    byte directionBits = isReadOperation ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
+    auto directionBits = isReadOperation ? MCP23S17::AllOutput16: MCP23S17::AllInput16;
     while (!(SPSR & _BV(SPIF))) ;
     SPDR = 0;
     nop;
@@ -312,22 +312,7 @@ handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperat
     addr.bytes[1] = SPDR;
     digitalWrite<Pin::GPIOSelect, HIGH>();
 
-    /// @todo implement optimization to only update this if necessary
-    // set data lines direction
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    SPDR = MCP23S17::generateWriteOpcode(DataLines);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = static_cast<byte>(MCP23S17::Registers::IODIR);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = directionBits;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = directionBits;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
+    MCP23S17::writeDirection<DataLines>(directionBits);
     // okay now we can service the transaction request since it will be going
     // to ram.
     auto& line = getCache().find(addr);
@@ -412,7 +397,6 @@ handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperatio
     nop;
     addr.bytes[2] = result;
     IOGroup group = getGroup(result);
-    /// @todo keep setting up operations as we go through things
     while (!(SPSR & _BV(SPIF))) ;
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
     nop;
@@ -427,22 +411,6 @@ handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperatio
     while (!(SPSR & _BV(SPIF))) ;
     addr.bytes[1] = SPDR;
     digitalWrite<Pin::GPIOSelect, HIGH>();
-
-    /// @todo implement optimization to only update this if necessary
-    // set data lines direction
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    SPDR = MCP23S17::generateWriteOpcode(DataLines);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = static_cast<byte>(MCP23S17::Registers::IODIR);
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = directionBits;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    SPDR = directionBits;
-    nop;
-    while (!(SPSR & _BV(SPIF))) ;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-    // okay so we are actually
+    
+    MCP23S17::writeDirection<DataLines>(directionBits);
 }

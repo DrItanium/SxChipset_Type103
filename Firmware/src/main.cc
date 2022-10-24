@@ -344,7 +344,6 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     //
     // This system does not care about the size but it does care about where
     // one starts when performing a write operation
-    //IOGroup group = getGroup(addr.bytes[2]);
     switch (addr.getIOGroup()) {
         case IOGroup::Serial:
             handleSerialOperation<isReadOperation>(addr, m0);
@@ -361,6 +360,37 @@ dispatchIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
         handleIOOperation<true>(addr, m0);
     } else {
         handleIOOperation<false>(addr, m0);
+    }
+}
+template<bool isReadOperation>
+void
+handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    // okay now we can service the transaction request since it will be going
+    // to ram.
+    auto& line = getCache().find(addr);
+    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        Channel1Value c1(PINA);
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out 
+            MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
+        } else {
+            // so we are writing to the cache
+            line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
+        }
+        digitalWrite<Pin::Ready, LOW>();
+        digitalWrite<Pin::Ready, HIGH>();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+void
+dispatchCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    if (m0.isReadOperation()) {
+        handleCacheOperation<true>(addr, m0);
+    } else {
+        handleCacheOperation<false>(addr, m0);
     }
 }
 
@@ -383,33 +413,6 @@ handleTransaction() noexcept {
     if (addr.isIOInstruction()) {
         dispatchIOOperation(addr, m0);
     } else {
-        // okay now we can service the transaction request since it will be going
-        // to ram.
-        auto& line = getCache().find(addr);
-        if (m0.isReadOperation()) {
-            for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
-                auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-                Channel1Value c1(PINA);
-                // okay it is a read operation, so... pull a cache line out 
-                MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
-                digitalWrite<Pin::Ready, LOW>();
-                digitalWrite<Pin::Ready, HIGH>();
-                if (isBurstLast) {
-                    break;
-                }
-            }
-        } else {
-            for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
-                auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-                Channel1Value c1(PINA);
-                // so we are writing to the cache
-                line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
-                digitalWrite<Pin::Ready, LOW>();
-                digitalWrite<Pin::Ready, HIGH>();
-                if (isBurstLast) {
-                    break;
-                }
-            }
-        }
+        dispatchCacheOperation(addr, m0);
     }
 }

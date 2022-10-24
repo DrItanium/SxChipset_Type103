@@ -269,12 +269,13 @@ fallbackIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
 }
 using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte);
 using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t);
+template<bool isReadOperation>
 void
 genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead, WriteOperation onWrite) noexcept {
     for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
-        if (m0.isReadOperation()) {
+        if constexpr (isReadOperation) {
             MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(onRead(addr, m0, c1, offset));
         } else {
             onWrite(addr, m0, c1, offset, MCP23S17::readGPIO16<DataLines>());
@@ -313,14 +314,15 @@ uint16_t
 performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
     return 0;
 }
+template<bool isReadOperation>
 void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIOFunction<SerialGroupFunction>()) {
         case SerialGroupFunction::RWFast:
-            genericIOHandler(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
+            genericIOHandler<isReadOperation>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
             break;
         case SerialGroupFunction::RWCompact:
-            genericIOHandler(addr, m0, performSerialRead_Compact, performSerialWrite_Compact);
+            genericIOHandler<isReadOperation>(addr, m0, performSerialRead_Compact, performSerialWrite_Compact);
             break;
         case SerialGroupFunction::Flush:
             Serial.flush();
@@ -331,7 +333,7 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
             break;
     }
 }
-
+template<bool isReadOperation>
 void 
 handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     // When we are in io space, we are treating the address as an opcode which
@@ -345,11 +347,20 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     //IOGroup group = getGroup(addr.bytes[2]);
     switch (addr.getIOGroup()) {
         case IOGroup::Serial:
-            handleSerialOperation(addr, m0);
+            handleSerialOperation<isReadOperation>(addr, m0);
             break;
         default:
             fallbackIOHandler(addr, m0);
             break;
+    }
+}
+
+void
+dispatchIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    if (m0.isReadOperation()) {
+        handleIOOperation<true>(addr, m0);
+    } else {
+        handleIOOperation<false>(addr, m0);
     }
 }
 
@@ -370,27 +381,34 @@ handleTransaction() noexcept {
     MCP23S17::writeDirection<DataLines>(m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16);
     // interleave operations into the accessing of address lines
     if (addr.isIOInstruction()) {
-        handleIOOperation(addr, m0);
+        dispatchIOOperation(addr, m0);
     } else {
         // okay now we can service the transaction request since it will be going
         // to ram.
         auto& line = getCache().find(addr);
-        auto isReadOp = m0.isReadOperation();
-        for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
-            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            Channel1Value c1(PINA);
-            /// @todo implement
-            if (isReadOp) {
+        if (m0.isReadOperation()) {
+            for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+                auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+                Channel1Value c1(PINA);
                 // okay it is a read operation, so... pull a cache line out 
                 MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
-            } else {
+                digitalWrite<Pin::Ready, LOW>();
+                digitalWrite<Pin::Ready, HIGH>();
+                if (isBurstLast) {
+                    break;
+                }
+            }
+        } else {
+            for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+                auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+                Channel1Value c1(PINA);
                 // so we are writing to the cache
                 line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
-            }
-            digitalWrite<Pin::Ready, LOW>();
-            digitalWrite<Pin::Ready, HIGH>();
-            if (isBurstLast) {
-                break;
+                digitalWrite<Pin::Ready, LOW>();
+                digitalWrite<Pin::Ready, HIGH>();
+                if (isBurstLast) {
+                    break;
+                }
             }
         }
     }

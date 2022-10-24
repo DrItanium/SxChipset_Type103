@@ -159,7 +159,6 @@ setup() {
 }
 
 
-void handleIOOperation(const SplitWord32& addr, const Channel0Value m0) noexcept;
 void handleTransaction() noexcept;
 void 
 loop() {
@@ -251,40 +250,55 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
         MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
     }
 }
-
-
-enum class IOGroup : byte{
-    /**
-     * @brief Serial console related operations
-     */
-    Serial,
-    /**
-     * @brief First 32-bit port accessor
-     */
-    GPIOA,
-    /**
-     * @brief Second 32-bit port accessor
-     */
-    GPIOB,
-    /**
-     * @brief Operations relating to the second SPI bus that we have exposed
-     */
-    SPI2,
-    Undefined,
-};
-constexpr IOGroup getGroup(uint8_t value) noexcept {
-    switch (static_cast<IOGroup>(value)) {
-        case IOGroup::Serial:
-        case IOGroup::GPIOA:
-        case IOGroup::GPIOB:
-        case IOGroup::SPI2:
-            return static_cast<IOGroup>(value);
-        default:
-            return IOGroup::Undefined;
+/**
+ * @brief Generic fallback handler when an io operation doesn't directly map to * anything
+ * @param addr The address/opcode
+ * @param m0 The channel0 value contents
+ */
+void
+fallbackIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    MCP23S17::writeGPIO16<DataLines>(0);
+    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        digitalWrite<Pin::Ready, LOW>();
+        digitalWrite<Pin::Ready, HIGH>();
+        if (isBurstLast) {
+            break;
+        }
     }
 }
+using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte);
+using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t);
+void
+genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead, WriteOperation onWrite) noexcept {
+    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        Channel1Value c1(PINA);
+        if (m0.isReadOperation()) {
+            MCP23S17::write16<DataLines>(onRead(addr, m0, c1, offset));
+        } else {
+
+        }
+        digitalWrite<Pin::Ready, LOW>();
+        digitalWrite<Pin::Ready, HIGH>();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+void
+handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    switch (addr.ioRequestAddress.function) {
+        case 0: // read/write
+            break;
+        default:
+            fallbackIOHandler(addr, m0);
+            break;
+    }
+}
+
 void 
-handleIOOperation(const SplitWord32& addr, const Channel0Value m0) noexcept {
+handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     // When we are in io space, we are treating the address as an opcode which
     // we can decompose while getting the pieces from the io expanders. Thus we
     // can overlay the act of decoding while getting the next part
@@ -294,10 +308,12 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value m0) noexcept {
     // This system does not care about the size but it does care about where
     // one starts when performing a write operation
     //IOGroup group = getGroup(addr.bytes[2]);
-    switch (getGroup(addr.ioRequestAddress.group)) {
+    switch (addr.getIOGroup()) {
         case IOGroup::Serial:
+            handleSerialOperation(addr, m0);
             break;
         default:
+            fallbackIOHandler(addr, m0);
             break;
     }
 }
@@ -309,6 +325,7 @@ handleTransaction() noexcept {
     SplitWord32 addr{0};
     Channel0Value m0(PINA);
     setInputChannel(1);
+    /// @todo expand this out in the future
     SplitWord16 up(MCP23S17::readGPIO16<AddressUpper>());
     addr.bytes[3] = up.bytes[0];
     addr.bytes[2] = up.bytes[1];

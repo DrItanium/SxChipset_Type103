@@ -38,6 +38,37 @@ constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
                                    // lines with 4 lines per set
                                    // (4-way)
 constexpr auto KeySize = 32 - (OffsetSize + TagSize);
+enum class IOGroup : byte{
+    /**
+     * @brief Serial console related operations
+     */
+    Serial,
+    /**
+     * @brief First 32-bit port accessor
+     */
+    GPIOA,
+    /**
+     * @brief Second 32-bit port accessor
+     */
+    GPIOB,
+    /**
+     * @brief Operations relating to the second SPI bus that we have exposed
+     */
+    SPI2,
+    Undefined,
+};
+static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");
+constexpr IOGroup getGroup(uint8_t value) noexcept {
+    switch (static_cast<IOGroup>(value & 0b1111)) {
+        case IOGroup::Serial:
+        case IOGroup::GPIOA:
+        case IOGroup::GPIOB:
+        case IOGroup::SPI2:
+            return static_cast<IOGroup>(value);
+        default:
+            return IOGroup::Undefined;
+    }
+}
 union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
@@ -64,6 +95,8 @@ union SplitWord32 {
         uint32_t req : 4;
     } ioRequestAddress;
     [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
+    [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
+    [[nodiscard]] constexpr uint8_t getIOFunction() const noexcept { return ioRequestAddress.function; }
 };
 
 

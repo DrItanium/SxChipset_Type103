@@ -75,6 +75,19 @@ enum class SerialGroupFunction : byte {
     RWDMAStyle,
     Flush,
 };
+enum class GPIOFunction : byte {
+    IODIR,
+    IPOL,
+    GPINTEN,
+    DEFVAL,
+    INTCON,
+    IOCON,
+    GPPU,
+    INTF,
+    INTCAP,
+    GPIO,
+    OLAT,
+};
 union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;

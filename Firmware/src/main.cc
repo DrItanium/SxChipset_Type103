@@ -345,10 +345,61 @@ handleMemoryRequest(SplitWord32& addr, const Channel0Value m0, bool isReadOperat
         }
     }
 }
-
+enum class IOGroup : byte{
+    /**
+     * @brief Serial console related operations
+     */
+    Serial,
+    /**
+     * @brief First 32-bit port accessor
+     */
+    GPIOA,
+    /**
+     * @brief Second 32-bit port accessor
+     */
+    GPIOB,
+    /**
+     * @brief Operations relating to the second SPI bus that we have exposed
+     */
+    SPI2,
+    /**
+     * @brief Onboard registers
+     */
+    Registers,
+    /**
+     * @brief DMA functionality
+     */
+    DMA,
+    /**
+     * @brief MMU functionality
+     */
+    MMU,
+    Undefined,
+};
+constexpr IOGroup getGroup(uint8_t value) noexcept {
+    switch (static_cast<IOGroup>(value)) {
+        case IOGroup::Serial:
+        case IOGroup::GPIOA:
+        case IOGroup::GPIOB:
+        case IOGroup::SPI2:
+        case IOGroup::Registers:
+        case IOGroup::DMA:
+        case IOGroup::MMU:
+            return static_cast<IOGroup>(value);
+        default:
+            return IOGroup::Undefined;
+    }
+}
 void 
 handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperation, byte directionBits) noexcept {
-
+    // When we are in io space, we are treating the address as an opcode which
+    // we can decompose while getting the pieces from the io expanders. Thus we
+    // can overlay the act of decoding while getting the next part
+    // 
+    // The W/~R pin is used to figure out if this is a read or write operation
+    //
+    // This system does not care about the size but it does care about where
+    // one starts when performing a write operation
     while (!(SPSR & _BV(SPIF))) ;
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::GPIOSelect, LOW>();
@@ -356,6 +407,8 @@ handleIOOperation(SplitWord32& addr, const Channel0Value m0, bool isReadOperatio
     SPDR = MCP23S17::generateReadOpcode(AddressLower);
     nop;
     addr.bytes[2] = result;
+    IOGroup group = getGroup(result);
+    /// @todo keep setting up operations as we go through things
     while (!(SPSR & _BV(SPIF))) ;
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIO);
     nop;

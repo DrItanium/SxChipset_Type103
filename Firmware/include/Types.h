@@ -69,6 +69,12 @@ constexpr IOGroup getGroup(uint8_t value) noexcept {
             return IOGroup::Undefined;
     }
 }
+enum class SerialGroupFunction : byte {
+    RWFast,
+    RWCompact,
+    RWDMAStyle,
+    Flush,
+};
 union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
@@ -96,7 +102,9 @@ union SplitWord32 {
     } ioRequestAddress;
     [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
     [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
-    [[nodiscard]] constexpr uint8_t getIOFunction() const noexcept { return ioRequestAddress.function; }
+    [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
+    template<typename E>
+    [[nodiscard]] constexpr E getIOFunction() const noexcept { return static_cast<E>(getIOFunctionCode()); }
 };
 
 

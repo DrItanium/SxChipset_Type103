@@ -315,19 +315,17 @@ performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, 
 }
 void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    switch (addr.ioRequestAddress.function) {
-        case 0: // read/write fast
+    switch (addr.getIOFunction<SerialGroupFunction>()) {
+        case SerialGroupFunction::RWFast:
             genericIOHandler(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
             break;
-        case 1: // read/write compact
+        case SerialGroupFunction::RWCompact:
             genericIOHandler(addr, m0, performSerialRead_Compact, performSerialWrite_Compact);
             break;
-        case 2: // flush
+        case SerialGroupFunction::Flush:
             Serial.flush();
             fallbackIOHandler(addr, m0);
             break;
-        case 3: // dma style read/write
-                /// @todo implement
         default:
             fallbackIOHandler(addr, m0);
             break;

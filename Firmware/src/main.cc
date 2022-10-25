@@ -211,7 +211,7 @@ installMemoryImage() noexcept {
             if (numRead < 0) {
                 SD.errorHalt();
             }
-            if ((j % 16) == 0) {
+            if ((j % 256) == 0) {
                 Serial.print(F("."));
             }
         }

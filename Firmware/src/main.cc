@@ -202,7 +202,8 @@ installMemoryImage() noexcept {
         // write out to the data cache as we go along, when we do a miss then
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
-        for (uint32_t i = 0; i < memoryImage.size(); i += 16) {
+        Serial.println(F("installing memory image from sd"));
+        for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += 16, ++j) {
             while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
             auto& cacheLine = getCache().find(currentAddressLine);
@@ -210,8 +211,13 @@ installMemoryImage() noexcept {
             if (numRead < 0) {
                 SD.errorHalt();
             }
+            if ((j % 16) == 0) {
+                Serial.print(F("."));
+            }
         }
         memoryImage.close();
+        Serial.println();
+        Serial.println(F("transfer complete!"));
     }
 }
 void 
@@ -225,7 +231,7 @@ doReset(decltype(LOW) value) noexcept {
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
 }
 
-[[gnu::always_inline]] 
+[[gnu::always_inline]]
 inline void 
 digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
     if (isPhysicalPin(pin)) {

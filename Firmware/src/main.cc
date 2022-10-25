@@ -58,11 +58,9 @@ void setInputChannel(byte value) noexcept {
     }
 }
 void putCPUInReset() noexcept {
-    setInputChannel(0);
     digitalWrite<Pin::Reset960, LOW>();
 }
 void pullCPUOutOfReset() noexcept {
-    setInputChannel(0);
     digitalWrite<Pin::Reset960, HIGH>();
 }
 void configurePins() noexcept;
@@ -137,12 +135,12 @@ setup() {
     digitalWrite<Pin::SD_EN, HIGH>();
     setInputChannel(0);
     putCPUInReset();
-    setupCache();
-    while (!SD.begin()) {
+    while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);
     }
     Serial.println(F("SD CARD FOUND!"));
+    setupCache();
     installMemoryImage();
     pullCPUOutOfReset();
     while (digitalRead<Pin::FAIL>() == LOW) {
@@ -178,6 +176,8 @@ loop() {
 void sdCsInit(SdCsPin_t pin) {
     if (static_cast<Pin>(pin) != Pin::SD_EN) {
         Serial.println(F("ERROR! sdCsInit provided sd pin which is not SD_EN"));
+        Serial.print(F("Pin is "));
+        Serial.println(static_cast<byte>(pin));
         while (true) {
             delay(100);
         }

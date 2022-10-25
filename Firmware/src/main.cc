@@ -396,11 +396,12 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
     // to ram.
     auto& line = getCache().find(addr);
     for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+        Serial.print(F("\tOffset: 0x")); Serial.println(offset, HEX);
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out 
-            MCP23S17::writeGPIO16<DataLines>(line.getWord(offset));
+            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(line.getWord(offset));
         } else {
             // so we are writing to the cache
             line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);

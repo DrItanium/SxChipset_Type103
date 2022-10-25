@@ -153,6 +153,7 @@ setup() {
             break;
         }
     }
+    Serial.println(F("STARTUP COMPLETE! BOOTING..."));
     // okay so we got past this, just start performing actions
 }
 
@@ -203,17 +204,16 @@ installMemoryImage() noexcept {
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
-        for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += 16, ++j) {
+        uint8_t buffer[512];
+        for (uint32_t i = 0; i < memoryImage.size(); i += 512) {
             while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
-            auto& cacheLine = getCache().find(currentAddressLine);
-            auto numRead = memoryImage.read(cacheLine.data(), cacheLine.numBytes());
+            auto numRead = memoryImage.read(buffer, 512);
             if (numRead < 0) {
                 SD.errorHalt();
             }
-            if ((j % 256) == 0) {
-                Serial.print(F("."));
-            }
+            memoryWrite(currentAddressLine, buffer, 512);
+            Serial.print(F("."));
         }
         memoryImage.close();
         Serial.println();

@@ -94,6 +94,7 @@ union SplitWord32 {
     ElementContainer<uint32_t, uint8_t> bytes;
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     constexpr SplitWord32(uint32_t value) : full(value) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }

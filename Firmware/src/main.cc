@@ -434,10 +434,14 @@ handleTransaction() noexcept {
     addr.bytes[0] = down.bytes[0];
     addr.bytes[1] = down.bytes[1];
     MCP23S17::writeDirection<DataLines>(m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16);
+    Serial.print(F("ADDR: 0x"));
+    Serial.println(addr.getWholeValue(), HEX);
     // interleave operations into the accessing of address lines
     if (addr.isIOInstruction()) {
+        Serial.println(F("IO Operation!"));
         dispatchIOOperation(addr, m0);
     } else {
+        Serial.println(F("Cache Operation!"));
         dispatchCacheOperation(addr, m0);
     }
 }

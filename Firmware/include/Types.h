@@ -219,6 +219,10 @@ struct DataCacheLine {
     static_assert(sizeof(metadata) == sizeof(uint32_t), "Too many flags specified for metadata");
     SplitWord16 words[NumberOfWords];
     void begin() noexcept { }
+    uint8_t* data() noexcept { return reinterpret_cast<uint8_t*>(words); }
+    [[nodiscard]] constexpr size_t numWords() const noexcept { return NumberOfWords; }
+    [[nodiscard]] constexpr size_t numBytes() const noexcept { return NumberOfDataBytes; }
+
 
 };
 struct DataCacheSet {

@@ -193,7 +193,26 @@ void sdCsWrite(SdCsPin_t, bool level) {
 
 void 
 installMemoryImage() noexcept {
-
+    if (File memoryImage; !memoryImage.open("boot.sys", FILE_READ)) {
+        Serial.println(F("Couldn't open boot.sys!"));
+        while (true) {
+            delay(1000);
+        }
+    } else {
+        // write out to the data cache as we go along, when we do a miss then
+        // we will be successful in writing out to main memory
+        memoryImage.seekSet(0);
+        for (uint32_t i = 0; i < memoryImage.size(); i += 16) {
+            while (memoryImage.isBusy());
+            SplitWord32 currentAddressLine(i);
+            auto& cacheLine = getCache().find(currentAddressLine);
+            auto numRead = memoryImage.read(cacheLine.data(), cacheLine.numBytes());
+            if (numRead < 0) {
+                SD.errorHalt();
+            }
+        }
+        memoryImage.close();
+    }
 }
 void 
 doReset(decltype(LOW) value) noexcept {

@@ -205,7 +205,7 @@ installMemoryImage() noexcept {
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
         uint8_t buffer[512];
-        for (uint32_t i = 0; i < memoryImage.size(); i += 512) {
+        for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += 512, ++j) {
             while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
             auto numRead = memoryImage.read(buffer, 512);
@@ -213,7 +213,9 @@ installMemoryImage() noexcept {
                 SD.errorHalt();
             }
             memoryWrite(currentAddressLine, buffer, 512);
-            Serial.print(F("."));
+            if ((j % 8) == 0) {
+                Serial.print(F("."));
+            }
         }
         memoryImage.close();
         Serial.println();

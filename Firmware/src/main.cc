@@ -166,16 +166,17 @@ setup() {
     setInputChannel(0);
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction();
+    setInputChannel(0);
+    if (digitalRead<Pin::FAIL>() == HIGH) {
+        Serial.println(F("CHECKSUM FAILURE!"));
+        while (true);
+    }
 }
 
 
 void 
 loop() {
     setInputChannel(0);
-    if (digitalRead<Pin::FAIL>() == HIGH) {
-        Serial.println(F("CHECKSUM FAILURE!"));
-        while (true);
-    }
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction();
 }

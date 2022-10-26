@@ -56,7 +56,12 @@ void setInputChannel(byte value) noexcept {
     } else {
         digitalWrite<Pin::SEL, LOW>();
     }
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
 }
+void handleTransaction() noexcept;
 void putCPUInReset() noexcept {
     digitalWrite<Pin::Reset960, LOW>();
 }
@@ -155,10 +160,15 @@ setup() {
     }
     Serial.println(F("STARTUP COMPLETE! BOOTING..."));
     // okay so we got past this, just start performing actions
+    setInputChannel(0);
+    while (digitalRead<Pin::DEN>() == HIGH);
+    handleTransaction();
+    setInputChannel(0);
+    while (digitalRead<Pin::DEN>() == HIGH);
+    handleTransaction();
 }
 
 
-void handleTransaction() noexcept;
 void 
 loop() {
     setInputChannel(0);
@@ -204,16 +214,17 @@ installMemoryImage() noexcept {
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
-        uint8_t buffer[512];
-        for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += 512, ++j) {
+        constexpr auto BufferSize = 1024;
+        uint8_t buffer[BufferSize];
+        for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
-            auto numRead = memoryImage.read(buffer, 512);
+            auto numRead = memoryImage.read(buffer, BufferSize);
             if (numRead < 0) {
                 SD.errorHalt();
             }
-            memoryWrite(currentAddressLine, buffer, 512);
-            if ((j % 8) == 0) {
+            memoryWrite(currentAddressLine, buffer, BufferSize);
+            if ((j % 16) == 0) {
                 Serial.print(F("."));
             }
         }
@@ -285,10 +296,9 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 void
 fallbackIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(0);
-    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+    for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        digitalWrite<Pin::Ready, LOW>();
-        digitalWrite<Pin::Ready, HIGH>();
+        signalReady();
         if (isBurstLast) {
             break;
         }
@@ -299,7 +309,7 @@ using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, const C
 template<bool isReadOperation>
 void
 genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead, WriteOperation onWrite) noexcept {
-    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
+    for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
         if constexpr (isReadOperation) {
@@ -307,8 +317,7 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         } else {
             onWrite(addr, m0, c1, offset, MCP23S17::readGPIO16<DataLines>());
         }
-        digitalWrite<Pin::Ready, LOW>();
-        digitalWrite<Pin::Ready, HIGH>();
+        signalReady();
         if (isBurstLast) {
             break;
         }
@@ -395,19 +404,18 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
     // okay now we can service the transaction request since it will be going
     // to ram.
     auto& line = getCache().find(addr);
-    for (byte offset = addr.address.offset; offset < 8 /* words per transaction */; ++offset) {
-        Serial.print(F("\tOffset: 0x")); Serial.println(offset, HEX);
+    for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out 
-            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(line.getWord(offset));
+            auto value = line.getWord(offset);
+            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(value);
         } else {
             // so we are writing to the cache
             line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
         }
-        digitalWrite<Pin::Ready, LOW>();
-        digitalWrite<Pin::Ready, HIGH>();
+        signalReady();
         if (isBurstLast) {
             break;
         }
@@ -437,14 +445,10 @@ handleTransaction() noexcept {
     addr.bytes[0] = down.bytes[0];
     addr.bytes[1] = down.bytes[1];
     MCP23S17::writeDirection<DataLines>(m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16);
-    Serial.print(F("ADDR: 0x"));
-    Serial.println(addr.getWholeValue(), HEX);
     // interleave operations into the accessing of address lines
     if (addr.isIOInstruction()) {
-        Serial.println(F("IO Operation!"));
         dispatchIOOperation(addr, m0);
     } else {
-        Serial.println(F("Cache Operation!"));
         dispatchCacheOperation(addr, m0);
     }
 }

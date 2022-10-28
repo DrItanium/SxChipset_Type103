@@ -498,7 +498,7 @@ handleTransaction() noexcept {
         SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
         asm volatile("nop");
         if (m0.isReadOperation()) {
-            while (!(SPSR & _BV(SPIF))) ; // wait
+            waitForByteTransfer();
             SPDR = 0;
             asm volatile("nop");
             waitForByteTransfer();

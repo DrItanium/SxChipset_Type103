@@ -439,12 +439,47 @@ handleTransaction() noexcept {
     Channel0Value m0(PINA);
     setInputChannel(1);
     /// @todo expand this out in the future
-    SplitWord16 up(MCP23S17::readGPIO16<AddressUpper>());
-    addr.bytes[3] = up.bytes[0];
-    addr.bytes[2] = up.bytes[1];
-    SplitWord16 down(MCP23S17::readGPIO16<AddressLower>());
-    addr.bytes[0] = down.bytes[0];
-    addr.bytes[1] = down.bytes[1];
+    digitalWrite<Pin::CS1, LOW>();
+    SPDR = ReadOpcode_v<AddressUpper>;
+    asm volatile("nop");
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
+    asm volatile("nop");
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    SPDR = 0;
+    asm volatile("nop");
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    auto lower = SPDR;
+    SPDR = 0;
+    asm volatile("nop");
+    {
+        addr.bytes[3] = lower;
+    }
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    auto value = SPDR;
+    digitalWrite<pin::CS1, HIGH>();
+    digitalWrite<Pin::CS1, LOW>();
+    SPDR = ReadOpcode_v<AddressLower>;
+    asm volatile("nop");
+    {
+        addr.bytes[2] = value;
+    }
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
+    asm volatile("nop");
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    SPDR = 0;
+    asm volatile("nop");
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    auto lower = SPDR;
+    SPDR = 0;
+    asm volatile("nop");
+    {
+        addr.bytes[0] = lower;
+    }
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    addr.bytes[1] = SPDR;
+    digitalWrite<pin::CS1, HIGH>();
     MCP23S17::writeDirection<DataLines>(m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16);
     // interleave operations into the accessing of address lines
     if (addr.isIOInstruction()) {

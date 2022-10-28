@@ -436,16 +436,14 @@ handleTransaction() noexcept {
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
-    Channel0Value m0(PINA);
-    setInputChannel(1);
-    /// @todo expand this out in the future
     digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::ReadOpcode_v<AddressUpper>;
     asm volatile("nop");
+    Channel0Value m0(PINA);
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
     asm volatile("nop");
-    auto direction = m0.isReadOperation() ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
+    setInputChannel(1);
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = 0;
     asm volatile("nop");
@@ -453,18 +451,14 @@ handleTransaction() noexcept {
     auto value = SPDR;
     SPDR = 0;
     asm volatile("nop");
-    {
-        addr.bytes[3] = value;
-    }
+    addr.bytes[3] = value;
     while (!(SPSR & _BV(SPIF))) ; // wait
     value = SPDR;
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::ReadOpcode_v<AddressLower>;
     asm volatile("nop");
-    {
-        addr.bytes[2] = value;
-    }
+    addr.bytes[2] = value;
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
     asm volatile("nop");
@@ -486,6 +480,7 @@ handleTransaction() noexcept {
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = static_cast<byte>(MCP23S17::Registers::IODIR) ;
     asm volatile("nop");
+    auto direction = m0.isReadOperation() ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = direction;
     asm volatile("nop");

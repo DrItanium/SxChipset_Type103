@@ -430,7 +430,6 @@ dispatchCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcep
         handleCacheOperation<false>(addr, m0);
     }
 }
-
 void 
 handleTransaction() noexcept {
     // grab the entire state of port A
@@ -447,6 +446,7 @@ handleTransaction() noexcept {
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = 0;
     asm volatile("nop");
+    auto direction = m0.isReadOperation() ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
     while (!(SPSR & _BV(SPIF))) ; // wait
     auto value = SPDR;
     SPDR = 0;
@@ -455,6 +455,7 @@ handleTransaction() noexcept {
     while (!(SPSR & _BV(SPIF))) ; // wait
     value = SPDR;
     digitalWrite<Pin::GPIOSelect, HIGH>();
+
     digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::ReadOpcode_v<AddressLower>;
     asm volatile("nop");
@@ -473,6 +474,7 @@ handleTransaction() noexcept {
     while (!(SPSR & _BV(SPIF))) ; // wait
     value = SPDR;
     digitalWrite<Pin::GPIOSelect, HIGH>();
+
     digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::WriteOpcode_v<DataLines>;
     asm volatile("nop");
@@ -480,7 +482,6 @@ handleTransaction() noexcept {
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = static_cast<byte>(MCP23S17::Registers::IODIR) ;
     asm volatile("nop");
-    auto direction = m0.isReadOperation() ? MCP23S17::AllOutput8 : MCP23S17::AllInput8;
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = direction;
     asm volatile("nop");

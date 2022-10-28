@@ -256,8 +256,9 @@ struct DataCacheSet {
         byte replacementIndex_ = 0;
 };
 struct DataCache {
+    static constexpr auto NumberOfSets = 128;
     void clear() noexcept {
-        for (int i = 0; i < 128; ++i) {
+        for (int i = 0; i < NumberOfSets; ++i) {
             cache[i].clear();
         }
     }
@@ -270,7 +271,7 @@ struct DataCache {
         }
     }
     private:
-        DataCacheSet cache[128];
+        DataCacheSet cache[NumberOfSets];
 };
 
 

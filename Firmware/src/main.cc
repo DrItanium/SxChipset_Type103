@@ -422,14 +422,6 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
         }
     }
 }
-void
-dispatchCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    if (m0.isReadOperation()) {
-        handleCacheOperation<true>(addr, m0);
-    } else {
-        handleCacheOperation<false>(addr, m0);
-    }
-}
 void 
 handleTransaction() noexcept {
     // grab the entire state of port A
@@ -464,35 +456,67 @@ handleTransaction() noexcept {
         while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
         asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = 0;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        value = SPDR;
-        SPDR = 0;
-        asm volatile("nop");
-        addr.bytes[0] = value;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        value = SPDR;
-        digitalWrite<Pin::GPIOSelect, HIGH>();
+        if (m0.isReadOperation()) {
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = 0;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            value = SPDR;
+            SPDR = 0;
+            asm volatile("nop");
+            addr.bytes[0] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            value = SPDR;
+            digitalWrite<Pin::GPIOSelect, HIGH>();
 
-        digitalWrite<Pin::GPIOSelect, LOW>();
-        SPDR = MCP23S17::WriteOpcode_v<DataLines>;
-        asm volatile("nop");
-        addr.bytes[1] = value;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = static_cast<byte>(MCP23S17::Registers::IODIR) ;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = direction;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = direction;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        digitalWrite<Pin::GPIOSelect, HIGH>();
-        // interleave operations into the accessing of address lines
-        dispatchIOOperation(addr, m0);
+            digitalWrite<Pin::GPIOSelect, LOW>();
+            SPDR = MCP23S17::WriteOpcode_v<DataLines>;
+            asm volatile("nop");
+            addr.bytes[1] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = static_cast<byte>(MCP23S17::Registers::IODIR) ;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = direction;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = direction;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            digitalWrite<Pin::GPIOSelect, HIGH>();
+            // interleave operations into the accessing of address lines
+            handleIOOperation<true>(addr, m0);
+        } else {
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = 0;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            value = SPDR;
+            SPDR = 0;
+            asm volatile("nop");
+            addr.bytes[0] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            value = SPDR;
+            digitalWrite<Pin::GPIOSelect, HIGH>();
+
+            digitalWrite<Pin::GPIOSelect, LOW>();
+            SPDR = MCP23S17::WriteOpcode_v<DataLines>;
+            asm volatile("nop");
+            addr.bytes[1] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = static_cast<byte>(MCP23S17::Registers::IODIR) ;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = direction;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = direction;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            digitalWrite<Pin::GPIOSelect, HIGH>();
+            // interleave operations into the accessing of address lines
+            handleIOOperation<false>(addr, m0);
+        }
     } else {
         while (!(SPSR & _BV(SPIF))) ; // wait
         value = SPDR;
@@ -505,34 +529,66 @@ handleTransaction() noexcept {
         while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
         asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = 0;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        value = SPDR;
-        SPDR = 0;
-        asm volatile("nop");
-        addr.bytes[0] = value;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        value = SPDR;
-        digitalWrite<Pin::GPIOSelect, HIGH>();
+        if (m0.isReadOperation()) {
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = 0;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            value = SPDR;
+            SPDR = 0;
+            asm volatile("nop");
+            addr.bytes[0] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            value = SPDR;
+            digitalWrite<Pin::GPIOSelect, HIGH>();
 
-        digitalWrite<Pin::GPIOSelect, LOW>();
-        SPDR = MCP23S17::WriteOpcode_v<DataLines>;
-        asm volatile("nop");
-        addr.bytes[1] = value;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = static_cast<byte>(MCP23S17::Registers::IODIR) ;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = direction;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = direction;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        digitalWrite<Pin::GPIOSelect, HIGH>();
-        // interleave operations into the accessing of address lines
-        dispatchCacheOperation(addr, m0);
+            digitalWrite<Pin::GPIOSelect, LOW>();
+            SPDR = MCP23S17::WriteOpcode_v<DataLines>;
+            asm volatile("nop");
+            addr.bytes[1] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = static_cast<byte>(MCP23S17::Registers::IODIR) ;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = direction;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = direction;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            digitalWrite<Pin::GPIOSelect, HIGH>();
+            // interleave operations into the accessing of address lines
+            handleCacheOperation<true>(addr, m0);
+        } else {
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = 0;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            value = SPDR;
+            SPDR = 0;
+            asm volatile("nop");
+            addr.bytes[0] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            value = SPDR;
+            digitalWrite<Pin::GPIOSelect, HIGH>();
+
+            digitalWrite<Pin::GPIOSelect, LOW>();
+            SPDR = MCP23S17::WriteOpcode_v<DataLines>;
+            asm volatile("nop");
+            addr.bytes[1] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = static_cast<byte>(MCP23S17::Registers::IODIR) ;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = direction;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = direction;
+            asm volatile("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            digitalWrite<Pin::GPIOSelect, HIGH>();
+            // interleave operations into the accessing of address lines
+            handleCacheOperation<false>(addr, m0);
+        }
     }
 }

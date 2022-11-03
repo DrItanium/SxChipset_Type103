@@ -58,8 +58,6 @@ void setInputChannel(byte value) noexcept {
     }
     asm volatile ("nop");
     asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
 }
 void handleTransaction() noexcept;
 void putCPUInReset() noexcept {

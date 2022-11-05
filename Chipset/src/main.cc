@@ -61,6 +61,7 @@ void setInputChannel(byte value) noexcept {
     asm volatile ("nop");
     asm volatile ("nop");
 }
+constexpr bool EnableDebugMode = true;
 void handleTransaction() noexcept;
 void putCPUInReset() noexcept {
     digitalWrite<Pin::Reset960, LOW>();
@@ -406,10 +407,19 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out 
             auto value = line.getWord(offset);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
             MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(value);
         } else {
+            auto value = MCP23S17::readGPIO16<DataLines>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
             // so we are writing to the cache
-            line.setWord(offset, MCP23S17::readGPIO16<DataLines>(), c1.bits.be0, c1.bits.be1);
+            line.setWord(offset, value, c1.bits.be0, c1.bits.be1);
         }
         signalReady();
         if (isBurstLast) {
@@ -423,6 +433,7 @@ inline void waitForByteTransfer() noexcept {
 }
 void 
 handleTransaction() noexcept {
+    delay(1);
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
@@ -465,7 +476,16 @@ handleTransaction() noexcept {
     waitForByteTransfer();
     addr.bytes[1] = SPDR;
     digitalWrite<Pin::GPIOSelect, HIGH>();
-
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("Target address: 0x"));
+        Serial.println(addr.getWholeValue(), HEX);
+        Serial.print(F("Operation: "));
+        if (m0.isReadOperation()) {
+            Serial.println(F("Read!"));
+        } else {
+            Serial.println(F("Write!"));
+        }
+    }
     MCP23S17::writeDirection<DataLines>(direction);
     if (addr.isIOInstruction()) {
         if (m0.isReadOperation()) {

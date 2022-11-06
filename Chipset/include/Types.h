@@ -196,6 +196,9 @@ struct DataCacheLine {
         copy2.cacheAddress.offset = 0;
         memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
     }
+    inline bool needsReset(SplitWord32 other) const noexcept {
+        return !matches(other);
+    }
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
         switch (style) {
             case EnableStyle::Full16:
@@ -236,7 +239,7 @@ struct DataCacheSet {
             lines[i].begin();
         }
     }
-    inline auto& find(SplitWord32 address) noexcept {
+    inline auto& find(SplitWord32 address, bool performReset = true) noexcept {
         for (int i = 0; i < NumberOfLines; ++i) {
             if (lines[i].matches(address)) {
                 return lines[i];
@@ -244,7 +247,9 @@ struct DataCacheSet {
         }
         auto& target = lines[replacementIndex_];
         ++replacementIndex_;
-        target.reset(address);
+        if (performReset) {
+            target.reset(address);
+        }
         return target;
     }
     inline void clear() noexcept {
@@ -264,8 +269,8 @@ struct DataCache {
             cache[i].clear();
         }
     }
-    inline auto& find(SplitWord32 address) noexcept {
-        return cache[address.cacheAddress.tag].find(address);
+    inline auto& find(SplitWord32 address, bool performReset = true) noexcept {
+        return cache[address.cacheAddress.tag].find(address, performReset);
     }
     inline void begin() noexcept {
         for (auto& set : cache) {
@@ -280,5 +285,8 @@ struct DataCache {
 
 DataCache& getCache() noexcept;
 void setupCache() noexcept;
+inline auto& selectCacheLine(SplitWord32 address) noexcept {
+    return getCache().find(address, false);
+}
 
 #endif //SXCHIPSET_TYPE103_TYPES_H

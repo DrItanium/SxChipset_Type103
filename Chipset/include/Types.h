@@ -33,8 +33,8 @@ constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 extern SdFat SD;
-constexpr auto OffsetSize = 4; // 16-byte line
-constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
+constexpr auto OffsetSize = 5; // 16-byte line
+constexpr auto TagSize = 6; // 8192 bytes divided into 16-byte
                                    // lines with 4 lines per set
                                    // (4-way)
 constexpr auto KeySize = 32 - (OffsetSize + TagSize);
@@ -168,10 +168,11 @@ union Channel1Value {
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 struct DataCacheLine {
-    static constexpr auto NumberOfWords = 8;
+    static constexpr auto NumberOfWords = 16;
     static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
+    static constexpr uint8_t WordMask = 0b1111;
     inline uint16_t getWord(byte offset) const noexcept {
-        return words[offset & 0b111].full;
+        return words[offset & WordMask].full;
     }
     inline void clear() noexcept {
         metadata.reg = 0;
@@ -202,15 +203,15 @@ struct DataCacheLine {
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
         switch (style) {
             case EnableStyle::Full16:
-                words[offset & 0b111].full = value;
+                words[offset & WordMask].full = value;
                 metadata.dirty_ = true;
                 break;
             case EnableStyle::Lower8:
-                words[offset & 0b111].bytes[0] = value;
+                words[offset & WordMask].bytes[0] = value;
                 metadata.dirty_ = true;
                 break;
             case EnableStyle::Upper8:
-                words[offset & 0b111].bytes[1] = (value >> 8);
+                words[offset & WordMask].bytes[1] = (value >> 8);
                 metadata.dirty_ = true;
                 break;
             default:
@@ -235,6 +236,7 @@ struct DataCacheSet {
     static constexpr auto NumberOfLines = 4;
     static constexpr auto NumberOfBits = 2;
     inline void begin() noexcept {
+        replacementIndex_ = 0;
         for (int i = 0; i < NumberOfLines; ++i) {
             lines[i].begin();
         }
@@ -263,7 +265,7 @@ struct DataCacheSet {
         byte replacementIndex_ : NumberOfBits;
 };
 struct DataCache {
-    static constexpr auto NumberOfSets = 128;
+    static constexpr auto NumberOfSets = 64;
     inline void clear() noexcept {
         for (int i = 0; i < NumberOfSets; ++i) {
             cache[i].clear();

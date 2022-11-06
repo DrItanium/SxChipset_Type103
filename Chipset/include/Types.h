@@ -230,6 +230,7 @@ struct DataCacheLine {
 };
 struct DataCacheSet {
     static constexpr auto NumberOfLines = 4;
+    static constexpr auto NumberOfBits = 2;
     void begin() noexcept {
         for (int i = 0; i < NumberOfLines; ++i) {
             lines[i].begin();
@@ -243,7 +244,6 @@ struct DataCacheSet {
         }
         auto& target = lines[replacementIndex_];
         ++replacementIndex_;
-        replacementIndex_ %= NumberOfLines;
         target.reset(address);
         return target;
     }
@@ -255,7 +255,7 @@ struct DataCacheSet {
     }
     private:
         DataCacheLine lines[NumberOfLines];
-        byte replacementIndex_ = 0;
+        byte replacementIndex_ : NumberOfBits;
 };
 struct DataCache {
     static constexpr auto NumberOfSets = 128;

@@ -73,6 +73,7 @@ void configurePins() noexcept;
 void setupIOExpanders() noexcept;
 void installMemoryImage() noexcept;
 uint16_t dataLinesDirection = MCP23S17::AllInput16;
+uint16_t currentDataLinesValue = 0;
 void 
 setup() {
     Serial.begin(115200);
@@ -108,6 +109,8 @@ setup() {
     MCP23S17::writeIOCON<GPIOB_Upper>(reg);
     MCP23S17::writeDirection<GPIOB_Upper>(MCP23S17::AllInput16);
     dataLinesDirection = MCP23S17::AllInput16;
+    currentDataLinesValue = 0;
+    MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
     // configure pins
     pinMode(Pin::HOLD, OUTPUT);
     pinMode(Pin::HLDA, INPUT);
@@ -309,6 +312,13 @@ fallbackIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
         }
     }
 }
+void 
+setDataLinesOutput(uint16_t value) noexcept {
+    if (currentDataLinesValue != value) {
+        currentDataLinesValue = value;
+        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
+    }
+}
 using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte);
 using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t);
 template<bool isReadOperation>
@@ -318,7 +328,7 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
         if constexpr (isReadOperation) {
-            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(onRead(addr, m0, c1, offset));
+            setDataLinesOutput(onRead(addr, m0, c1, offset));
         } else {
             onWrite(addr, m0, c1, offset, MCP23S17::readGPIO16<DataLines>());
         }
@@ -412,7 +422,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(value);
+            setDataLinesOutput(value);
         } else {
             auto value = MCP23S17::readGPIO16<DataLines>();
             if constexpr (EnableDebugMode) {

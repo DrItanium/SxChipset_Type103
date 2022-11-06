@@ -61,7 +61,7 @@ void setInputChannel(byte value) noexcept {
     asm volatile ("nop");
     asm volatile ("nop");
 }
-constexpr bool EnableDebugMode = true;
+constexpr bool EnableDebugMode = false;
 void handleTransaction() noexcept;
 void putCPUInReset() noexcept {
     digitalWrite<Pin::Reset960, LOW>();
@@ -72,6 +72,7 @@ void pullCPUOutOfReset() noexcept {
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;
 void installMemoryImage() noexcept;
+uint16_t dataLinesDirection = MCP23S17::AllInput16;
 void 
 setup() {
     Serial.begin(115200);
@@ -106,7 +107,7 @@ setup() {
     MCP23S17::writeDirection<GPIOB_Lower>(MCP23S17::AllInput16);
     MCP23S17::writeIOCON<GPIOB_Upper>(reg);
     MCP23S17::writeDirection<GPIOB_Upper>(MCP23S17::AllInput16);
-
+    dataLinesDirection = MCP23S17::AllInput16;
     // configure pins
     pinMode(Pin::HOLD, OUTPUT);
     pinMode(Pin::HLDA, INPUT);
@@ -433,7 +434,6 @@ inline void waitForByteTransfer() noexcept {
 }
 void 
 handleTransaction() noexcept {
-    delay(1);
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
@@ -486,7 +486,10 @@ handleTransaction() noexcept {
             Serial.println(F("Write!"));
         }
     }
-    MCP23S17::writeDirection<DataLines>(direction);
+    if (direction != dataLinesDirection) {
+        dataLinesDirection = direction;
+        MCP23S17::writeDirection<DataLines>(dataLinesDirection);
+    }
     if (addr.isIOInstruction()) {
         if (m0.isReadOperation()) {
             // interleave operations into the accessing of address lines

@@ -170,19 +170,19 @@ size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcep
 struct DataCacheLine {
     static constexpr auto NumberOfWords = 8;
     static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
-    uint16_t getWord(byte offset) const noexcept {
+    inline uint16_t getWord(byte offset) const noexcept {
         return words[offset & 0b111].full;
     }
-    void clear() noexcept {
+    inline void clear() noexcept {
         metadata.reg = 0;
         for (int i = 0; i < NumberOfWords; ++i) {
             words[i].full = 0;
         }
     }
-    bool matches(SplitWord32 other) const noexcept {
+    inline bool matches(SplitWord32 other) const noexcept {
         return metadata.valid_ && (other.cacheAddress.key == metadata.key);
     }
-    void reset(SplitWord32 newAddress) noexcept {
+    inline void reset(SplitWord32 newAddress) noexcept {
         if (metadata.valid_ && metadata.dirty_) {
             auto copy = newAddress;
             copy.cacheAddress.offset = 0;
@@ -196,7 +196,7 @@ struct DataCacheLine {
         copy2.cacheAddress.offset = 0;
         memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
     }
-    void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
+    inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
         switch (style) {
             case EnableStyle::Full16:
                 words[offset & 0b111].full = value;
@@ -225,21 +225,18 @@ struct DataCacheLine {
     static_assert(sizeof(metadata) == sizeof(uint32_t), "Too many flags specified for metadata");
     SplitWord16 words[NumberOfWords];
     void begin() noexcept { }
-    uint8_t* data() noexcept { return reinterpret_cast<uint8_t*>(words); }
-    [[nodiscard]] constexpr size_t numWords() const noexcept { return NumberOfWords; }
-    [[nodiscard]] constexpr size_t numBytes() const noexcept { return NumberOfDataBytes; }
 
 
 };
 struct DataCacheSet {
     static constexpr auto NumberOfLines = 4;
     static constexpr auto NumberOfBits = 2;
-    void begin() noexcept {
+    inline void begin() noexcept {
         for (int i = 0; i < NumberOfLines; ++i) {
             lines[i].begin();
         }
     }
-    auto& find(SplitWord32 address) noexcept {
+    inline auto& find(SplitWord32 address) noexcept {
         for (int i = 0; i < NumberOfLines; ++i) {
             if (lines[i].matches(address)) {
                 return lines[i];
@@ -250,7 +247,7 @@ struct DataCacheSet {
         target.reset(address);
         return target;
     }
-    void clear() noexcept {
+    inline void clear() noexcept {
         replacementIndex_ = 0;
         for (int i = 0; i < NumberOfLines; ++i) {
             lines[i].clear();
@@ -262,15 +259,15 @@ struct DataCacheSet {
 };
 struct DataCache {
     static constexpr auto NumberOfSets = 128;
-    void clear() noexcept {
+    inline void clear() noexcept {
         for (int i = 0; i < NumberOfSets; ++i) {
             cache[i].clear();
         }
     }
-    auto& find(SplitWord32 address) noexcept {
+    inline auto& find(SplitWord32 address) noexcept {
         return cache[address.cacheAddress.tag].find(address);
     }
-    void begin() noexcept {
+    inline void begin() noexcept {
         for (auto& set : cache) {
             set.begin();
         }

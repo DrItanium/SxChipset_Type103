@@ -440,6 +440,32 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
 inline void waitForByteTransfer() noexcept {
     while (!(SPSR & _BV(SPIF))) ; // wait
 }
+enum class TransactionKind {
+    // 0b00 -> cache + read
+    // 0b01 -> cache + write
+    // 0b10 -> io + read
+    // 0b11 -> io + write
+    CacheRead,
+    CacheWrite,
+    IORead,
+    IOWrite,
+};
+
+inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr) noexcept {
+    if (addr.isIOInstruction()) {
+        if (m0.isReadOperation()) {
+            return TransactionKind::IORead;
+        } else {
+            return TransactionKind::IOWrite;
+        }
+    } else {
+        if (m0.isReadOperation()) {
+            return TransactionKind::CacheRead;
+        } else {
+            return TransactionKind::CacheWrite;
+        }
+    }
+}
 void 
 handleTransaction() noexcept {
 
@@ -467,7 +493,7 @@ handleTransaction() noexcept {
     waitForByteTransfer();
     value = SPDR;
     digitalWrite<Pin::GPIOSelect, HIGH>();
-
+    using Function = void(*)(const SplitWord32&, const Channel0Value&);
     digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::ReadOpcode_v<AddressLower>;
     asm volatile("nop");
@@ -478,6 +504,21 @@ handleTransaction() noexcept {
     waitForByteTransfer();
     SPDR = 0;
     asm volatile("nop");
+    Function fn = fallbackIOHandler;
+    switch (getTransaction(m0, addr)) {
+        case TransactionKind::CacheRead:
+            fn = handleCacheOperation<true>;
+            break;
+        case TransactionKind::CacheWrite:
+            fn = handleCacheOperation<false>;
+            break;
+        case TransactionKind::IORead:
+            fn = handleIOOperation<true>;
+            break;
+        case TransactionKind::IOWrite:
+            fn = handleIOOperation<false>;
+            break;
+    }
     waitForByteTransfer();
     value = SPDR;
     SPDR = 0;
@@ -500,21 +541,6 @@ handleTransaction() noexcept {
         dataLinesDirection = direction;
         MCP23S17::writeDirection<DataLines>(dataLinesDirection);
     }
-    if (addr.isIOInstruction()) {
-        if (m0.isReadOperation()) {
-            // interleave operations into the accessing of address lines
-            handleIOOperation<true>(addr, m0);
-        } else {
-            handleIOOperation<false>(addr, m0);
-        }
-    } else {
-        if (m0.isReadOperation()) {
-            // interleave operations into the accessing of address lines
-            handleCacheOperation<true>(addr, m0);
-        } else {
-            // interleave operations into the accessing of address lines
-            handleCacheOperation<false>(addr, m0);
-        }
-    }
+    fn(addr, m0);
     SPI.endTransaction();
 }

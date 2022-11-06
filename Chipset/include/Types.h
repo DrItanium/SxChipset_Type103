@@ -88,6 +88,13 @@ enum class GPIOFunction : byte {
     GPIO,
     OLAT,
 };
+enum class EnableStyle : byte {
+    Full16 = 0b00,
+    Upper8 = 0b01,
+    Lower8 = 0b10,
+    Undefined = 0b11,
+};
+
 union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
@@ -144,30 +151,18 @@ union Channel0Value {
     constexpr bool isReadOperation() const noexcept { return bits.w_r_ == 0; }
     constexpr bool isWriteOperation() const noexcept { return bits.w_r_ != 0; }
 };
-constexpr uint8_t makeByteEnable(uint8_t be0, uint8_t be1) noexcept {
-    return be0 | be1 << 1;
-}
-static_assert(makeByteEnable(0,0) == 0b00);
-static_assert(makeByteEnable(1,0) == 0b01);
-static_assert(makeByteEnable(0,1) == 0b10);
-static_assert(makeByteEnable(1,1) == 0b11);
 union Channel1Value {
     explicit Channel1Value(uint8_t value) noexcept : value_(value) { }
     uint8_t value_;
     struct {
-        uint8_t be0 : 1;
-        uint8_t be1 : 1;
+        uint8_t be : 2;
         uint8_t blast : 1;
         uint8_t xioint : 1;
         uint8_t dataInt : 2;
         uint8_t ramIO : 1;
         uint8_t unused : 1;
     } bits;
-    constexpr uint8_t getByteEnable() const noexcept {
-        return makeByteEnable(bits.be0, bits.be1);
-    }
-    [[nodiscard]] constexpr bool getByteEnable0() const noexcept { return bits.be0 == 0; }
-    [[nodiscard]] constexpr bool getByteEnable1() const noexcept { return bits.be1 == 0; }
+    [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(bits.be); }
 };
 
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
@@ -201,14 +196,22 @@ struct DataCacheLine {
         copy2.cacheAddress.offset = 0;
         memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
     }
-    void setWord(byte offset, uint16_t value, bool enableLower, bool enableUpper) noexcept {
-        if (enableLower) {
-            words[offset & 0b111].bytes[0] = value;
-            metadata.dirty_ = true;
-        }
-        if (enableUpper) {
-            words[offset & 0b111].bytes[1] = value >> 8;
-            metadata.dirty_ = true;
+    void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
+        switch (style) {
+            case EnableStyle::Full16:
+                words[offset & 0b111].full = value;
+                metadata.dirty_ = true;
+                break;
+            case EnableStyle::Lower8:
+                words[offset & 0b111].bytes[0] = value;
+                metadata.dirty_ = true;
+                break;
+            case EnableStyle::Upper8:
+                words[offset & 0b111].bytes[1] = (value >> 8);
+                metadata.dirty_ = true;
+                break;
+            default:
+                break;
         }
     }
     union {

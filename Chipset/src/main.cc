@@ -58,8 +58,6 @@ void setInputChannel(byte value) noexcept {
     }
     asm volatile ("nop");
     asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
 }
 constexpr bool EnableDebugMode = false;
 void handleTransaction() noexcept;
@@ -312,7 +310,7 @@ fallbackIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
         }
     }
 }
-void 
+inline void 
 setDataLinesOutput(uint16_t value) noexcept {
     if (currentDataLinesValue != value) {
         currentDataLinesValue = value;
@@ -366,7 +364,7 @@ performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, 
     return 0;
 }
 template<bool isReadOperation>
-void
+inline void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIOFunction<SerialGroupFunction>()) {
         case SerialGroupFunction::RWFast:
@@ -386,7 +384,7 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
 }
 
 template<bool isReadOperation>
-void 
+inline void 
 handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     // When we are in io space, we are treating the address as an opcode which
     // we can decompose while getting the pieces from the io expanders. Thus we
@@ -430,7 +428,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
                 Serial.println(value, HEX);
             }
             // so we are writing to the cache
-            line.setWord(offset, value, c1.getByteEnable0(), c1.getByteEnable1());
+            line.setWord(offset, value, c1.getByteEnable());
         }
         signalReady();
         if (isBurstLast) {
@@ -444,6 +442,8 @@ inline void waitForByteTransfer() noexcept {
 }
 void 
 handleTransaction() noexcept {
+
+    SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
@@ -516,4 +516,5 @@ handleTransaction() noexcept {
             handleCacheOperation<false>(addr, m0);
         }
     }
+    SPI.endTransaction();
 }

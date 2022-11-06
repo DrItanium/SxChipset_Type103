@@ -166,6 +166,8 @@ union Channel1Value {
     constexpr uint8_t getByteEnable() const noexcept {
         return makeByteEnable(bits.be0, bits.be1);
     }
+    [[nodiscard]] constexpr bool getByteEnable0() const noexcept { return bits.be0 == 0; }
+    [[nodiscard]] constexpr bool getByteEnable1() const noexcept { return bits.be1 == 0; }
 };
 
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;

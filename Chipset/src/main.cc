@@ -419,7 +419,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
                 Serial.println(value, HEX);
             }
             // so we are writing to the cache
-            line.setWord(offset, value, c1.bits.be0, c1.bits.be1);
+            line.setWord(offset, value, c1.getByteEnable0(), c1.getByteEnable1());
         }
         signalReady();
         if (isBurstLast) {

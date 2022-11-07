@@ -33,8 +33,8 @@ constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 extern SdFat SD;
-constexpr auto OffsetSize = 6; // 16-byte line
-constexpr auto TagSize = 5; // 8192 bytes divided into 64-byte
+constexpr auto OffsetSize = 7; // 128-byte line
+constexpr auto TagSize = 4; // 8192 bytes divided into 64-byte
                                    // lines with 4 lines per set
                                    // (4-way)
 constexpr auto KeySize = 32 - (OffsetSize + TagSize);
@@ -107,8 +107,8 @@ union SplitWord32 {
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
     struct {
         uint32_t a0 : 1;
-        uint32_t offset : 5;
-        uint32_t rest : 26;
+        uint32_t offset : 6;
+        uint32_t rest : 25;
     } address;
     struct {
         uint32_t offset : OffsetSize;
@@ -168,9 +168,9 @@ union Channel1Value {
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 struct DataCacheLine {
-    static constexpr auto NumberOfWords = 32;
+    static constexpr auto NumberOfWords = 64;
     static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
-    static constexpr uint8_t WordMask = 0b11111;
+    static constexpr uint8_t WordMask = 0b111111;
     inline uint16_t getWord(byte offset) const noexcept {
         return words[offset & WordMask].full;
     }
@@ -228,7 +228,9 @@ struct DataCacheLine {
     } metadata;
     static_assert(sizeof(metadata) == sizeof(uint32_t), "Too many flags specified for metadata");
     SplitWord16 words[NumberOfWords];
-    void begin() noexcept { }
+    void begin() noexcept { 
+        clear();
+    }
 
 
 };
@@ -271,7 +273,7 @@ struct DataCacheSet {
         byte replacementIndex_ : NumberOfBits;
 };
 struct DataCache {
-    static constexpr auto NumberOfSets = 32;
+    static constexpr auto NumberOfSets = 16;
     inline void clear() noexcept {
         for (int i = 0; i < NumberOfSets; ++i) {
             cache[i].clear();

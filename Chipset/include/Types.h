@@ -193,12 +193,6 @@ struct DataCacheLine {
         return flags_.lineIsValid() && (other.cacheAddress.key == key_);
     }
     inline void reset(SplitWord32 newAddress) noexcept {
-        Serial.print(F("\tResetting cache line to 0x"));
-        Serial.print(newAddress.getWholeValue(), HEX);
-        Serial.print(F(" from, key: 0x"));
-        Serial.print(key_, HEX);
-        Serial.print(F(" tag: 0x"));
-        Serial.println(newAddress.cacheAddress.tag, HEX);
         newAddress.cacheAddress.offset = 0;
         if (flags_.lineIsValid() && flags_.lineIsDirty()) {
             auto copy = newAddress;

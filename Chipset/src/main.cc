@@ -378,10 +378,10 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
             break;
         case SerialGroupFunction::Flush:
             Serial.flush();
-            fallbackIOHandler(addr, m0);
+            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
             break;
         default:
-            fallbackIOHandler(addr, m0);
+            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
             break;
     }
 }
@@ -402,7 +402,7 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             handleSerialOperation<isReadOperation>(addr, m0);
             break;
         default:
-            fallbackIOHandler(addr, m0);
+            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
             break;
     }
 }
@@ -472,7 +472,7 @@ inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr)
 void 
 handleTransaction() noexcept {
 
-    SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+    SPI.beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
@@ -505,6 +505,7 @@ handleTransaction() noexcept {
     waitForByteTransfer();
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
     asm volatile("nop");
+    auto updateDataLines = direction != dataLinesDirection;
     waitForByteTransfer();
     SPDR = 0;
     asm volatile("nop");
@@ -527,7 +528,7 @@ handleTransaction() noexcept {
             Serial.println(F("Write!"));
         }
     }
-    if (direction != dataLinesDirection) {
+    if (updateDataLines) {
         dataLinesDirection = direction;
         MCP23S17::writeDirection<DataLines>(dataLinesDirection);
     }
@@ -543,9 +544,6 @@ handleTransaction() noexcept {
             break;
         case TransactionKind::IOWrite:
             handleIOOperation<false>(addr, m0);
-            break;
-        default:
-            fallbackIOHandler(addr, m0);
             break;
     }
     SPI.endTransaction();

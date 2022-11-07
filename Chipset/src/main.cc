@@ -297,22 +297,7 @@ inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
         MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
     }
 }
-/**
- * @brief Generic fallback handler when an io operation doesn't directly map to * anything
- * @param addr The address/opcode
- * @param m0 The channel0 value contents
- */
-void
-fallbackIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(0);
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
+
 inline void 
 setDataLinesOutput(uint16_t value) noexcept {
     if (currentDataLinesValue != value) {
@@ -406,7 +391,9 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             break;
     }
 }
-
+uint16_t getDataLines(const Channel1Value& c1) noexcept {
+    return MCP23S17::readGPIO16<DataLines>();
+}
 template<bool isReadOperation>
 void
 handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
@@ -425,7 +412,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
             }
             setDataLinesOutput(value);
         } else {
-            auto value = MCP23S17::readGPIO16<DataLines>();
+            auto value = getDataLines(c1);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);

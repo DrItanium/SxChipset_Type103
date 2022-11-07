@@ -107,8 +107,8 @@ union SplitWord32 {
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
     struct {
         uint32_t a0 : 1;
-        uint32_t offset : 3;
-        uint32_t rest : 28;
+        uint32_t offset : (OffsetSize - 1);
+        uint32_t rest : (32 - OffsetSize);
     } address;
     struct {
         uint32_t offset : OffsetSize;
@@ -222,12 +222,13 @@ struct DataCacheLine {
                 break;
         }
     }
-    uint32_t key_ :KeySize;
-    Word8 flags_;
-    SplitWord16 words[NumberOfWords];
     void begin() noexcept { 
         clear();
     }
+    private:
+        uint32_t key_ :KeySize;
+        Word8 flags_;
+        SplitWord16 words[NumberOfWords];
 
 
 };

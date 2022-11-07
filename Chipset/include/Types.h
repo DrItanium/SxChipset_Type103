@@ -138,8 +138,9 @@ union SplitWord16 {
     constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
 };
 
-union Channel0Value {
-    explicit Channel0Value(uint8_t value) noexcept : value_(value) { }
+union Word8 {
+    explicit Word8(uint8_t value = 0) noexcept : value_(value) { }
+
     uint8_t value_;
     struct {
         uint8_t den : 1;
@@ -147,13 +148,7 @@ union Channel0Value {
         uint8_t fail : 1;
         uint8_t unused : 1;
         uint8_t addrInt : 4;
-    } bits;
-    constexpr bool isReadOperation() const noexcept { return bits.w_r_ == 0; }
-    constexpr bool isWriteOperation() const noexcept { return bits.w_r_ != 0; }
-};
-union Channel1Value {
-    explicit Channel1Value(uint8_t value) noexcept : value_(value) { }
-    uint8_t value_;
+    } channel0;
     struct {
         uint8_t be : 2;
         uint8_t blast : 1;
@@ -161,9 +156,22 @@ union Channel1Value {
         uint8_t dataInt : 2;
         uint8_t ramIO : 1;
         uint8_t unused : 1;
-    } bits;
-    [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(bits.be); }
+    } channel1;
+    struct {
+            uint8_t valid_ : 1;
+            uint8_t dirty_ : 1;
+    } lineFlags;
+    [[nodiscard]] constexpr bool isReadOperation() const noexcept { return channel0.w_r_ == 0; }
+    [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return channel0.w_r_ != 0; }
+    [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel1.be); }
+    [[nodiscard]] constexpr auto lineIsValid() const noexcept { return lineFlags.valid_; }
+    [[nodiscard]] constexpr auto lineIsDirty() const noexcept { return lineFlags.dirty_; }
+    void clear() noexcept {
+        value_ = 0;
+    }
 };
+using Channel1Value = Word8;
+using Channel0Value = Word8;
 
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
@@ -175,65 +183,53 @@ struct DataCacheLine {
         return words[offset & WordMask].full;
     }
     inline void clear() noexcept {
-        metadata.reg = 0;
+        key_ = 0;
+        flags_.clear();
         for (int i = 0; i < NumberOfWords; ++i) {
             words[i].full = 0;
         }
     }
     inline bool matches(SplitWord32 other) const noexcept {
-        return metadata.valid_ && (other.cacheAddress.key == metadata.key);
+        return flags_.lineIsValid() && (other.cacheAddress.key == key_);
     }
     inline void reset(SplitWord32 newAddress) noexcept {
         Serial.print(F("\tResetting cache line to 0x"));
         Serial.print(newAddress.getWholeValue(), HEX);
         Serial.print(F(" from, key: 0x"));
-        Serial.print(metadata.key, HEX);
+        Serial.print(key_, HEX);
         Serial.print(F(" tag: 0x"));
         Serial.println(newAddress.cacheAddress.tag, HEX);
-                
-        if (metadata.valid_ && metadata.dirty_) {
+        newAddress.cacheAddress.offset = 0;
+        if (flags_.lineIsValid() && flags_.lineIsDirty()) {
             auto copy = newAddress;
-            copy.cacheAddress.offset = 0;
-            copy.cacheAddress.key = metadata.key;
+            copy.cacheAddress.key = key_;
             memoryWrite(copy, reinterpret_cast<byte*>(words), NumberOfDataBytes);
         }
-        metadata.valid_ = true;
-        metadata.dirty_ = false;
-        metadata.key = newAddress.cacheAddress.key;
-        auto copy2 = newAddress;
-        copy2.cacheAddress.offset = 0;
-        memoryRead(copy2, reinterpret_cast<byte*>(words), NumberOfDataBytes);
-    }
-    inline bool needsReset(SplitWord32 other) const noexcept {
-        return !matches(other);
+        flags_.lineFlags.valid_ = true;
+        flags_.lineFlags.dirty_ = false;
+        key_ = newAddress.cacheAddress.key;
+        memoryRead(newAddress, reinterpret_cast<byte*>(words), NumberOfDataBytes);
     }
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
         switch (style) {
             case EnableStyle::Full16:
                 words[offset & WordMask].full = value;
-                metadata.dirty_ = true;
+                flags_.lineFlags.dirty_ = true;
                 break;
             case EnableStyle::Lower8:
                 words[offset & WordMask].bytes[0] = value;
-                metadata.dirty_ = true;
+                flags_.lineFlags.dirty_ = true;
                 break;
             case EnableStyle::Upper8:
                 words[offset & WordMask].bytes[1] = (value >> 8);
-                metadata.dirty_ = true;
+                flags_.lineFlags.dirty_ = true;
                 break;
             default:
                 break;
         }
     }
-    union {
-        uint32_t reg;
-        struct {
-            uint32_t key : KeySize;
-            uint32_t valid_ : 1;
-            uint32_t dirty_ : 1;
-        };
-    } metadata;
-    static_assert(sizeof(metadata) == sizeof(uint32_t), "Too many flags specified for metadata");
+    uint32_t key_ :KeySize;
+    Word8 flags_;
     SplitWord16 words[NumberOfWords];
     void begin() noexcept { 
         clear();
@@ -242,46 +238,46 @@ struct DataCacheLine {
 
 };
 struct DataCacheSet {
-    static constexpr auto NumberOfLines = 4;
-    static constexpr auto NumberOfBits = 2;
+    static constexpr auto NumberOfLines = 5;
     inline void begin() noexcept {
         replacementIndex_ = 0;
-        for (int i = 0; i < NumberOfLines; ++i) {
-            lines[i].begin();
+        for (auto& line : lines) {
+            line.begin();
         }
     }
-    inline auto& find(SplitWord32 address, bool performReset = true) noexcept {
-        for (int i = 0; i < NumberOfLines; ++i) {
-            if (lines[i].matches(address)) {
-                return lines[i];
+    inline auto& find(SplitWord32 address) noexcept {
+        for (auto& line : lines) {
+            if (line.matches(address)) {
+                return line;
             }
         }
         auto& target = lines[replacementIndex_];
         ++replacementIndex_;
-        if (performReset) {
-            target.reset(address);
+        if (replacementIndex_ == NumberOfLines) {
+            replacementIndex_ = 0;
         }
+        target.reset(address);
         return target;
     }
     inline void clear() noexcept {
         replacementIndex_ = 0;
-        for (int i = 0; i < NumberOfLines; ++i) {
-            lines[i].clear();
+        for (auto& line : lines) {
+            line.clear();
         }
     }
     private:
         DataCacheLine lines[NumberOfLines];
-        byte replacementIndex_ : NumberOfBits;
+        byte replacementIndex_;
 };
 struct DataCache {
     static constexpr auto NumberOfSets = 128;
     inline void clear() noexcept {
-        for (int i = 0; i < NumberOfSets; ++i) {
-            cache[i].clear();
+        for (auto& set : cache) {
+            set.clear();
         }
     }
-    inline auto& find(SplitWord32 address, bool performReset = true) noexcept {
-        return cache[address.cacheAddress.tag].find(address, performReset);
+    inline auto& find(SplitWord32 address) noexcept {
+        return cache[address.cacheAddress.tag].find(address);
     }
     inline void begin() noexcept {
         for (auto& set : cache) {
@@ -296,8 +292,5 @@ struct DataCache {
 
 DataCache& getCache() noexcept;
 void setupCache() noexcept;
-inline auto& selectCacheLine(SplitWord32 address) noexcept {
-    return getCache().find(address, false);
-}
 
 #endif //SXCHIPSET_TYPE103_TYPES_H

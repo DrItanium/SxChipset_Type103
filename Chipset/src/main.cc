@@ -471,7 +471,6 @@ inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr)
 }
 void 
 handleTransaction() noexcept {
-    using Function = void(*)(const SplitWord32&, const Channel0Value&);
 
     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
@@ -509,21 +508,7 @@ handleTransaction() noexcept {
     waitForByteTransfer();
     SPDR = 0;
     asm volatile("nop");
-    Function fn = fallbackIOHandler;
-    switch (getTransaction(m0, addr)) {
-        case TransactionKind::CacheRead:
-            fn = handleCacheOperation<true>;
-            break;
-        case TransactionKind::CacheWrite:
-            fn = handleCacheOperation<false>;
-            break;
-        case TransactionKind::IORead:
-            fn = handleIOOperation<true>;
-            break;
-        case TransactionKind::IOWrite:
-            fn = handleIOOperation<false>;
-            break;
-    }
+    auto target = getTransaction(m0, addr);
     waitForByteTransfer();
     value = SPDR;
     SPDR = 0;
@@ -546,6 +531,22 @@ handleTransaction() noexcept {
         dataLinesDirection = direction;
         MCP23S17::writeDirection<DataLines>(dataLinesDirection);
     }
-    fn(addr, m0);
+    switch (target) {
+        case TransactionKind::CacheRead:
+            handleCacheOperation<true>(addr, m0);
+            break;
+        case TransactionKind::CacheWrite:
+            handleCacheOperation<false>(addr, m0);
+            break;
+        case TransactionKind::IORead:
+            handleIOOperation<true>(addr, m0);
+            break;
+        case TransactionKind::IOWrite:
+            handleIOOperation<false>(addr, m0);
+            break;
+        default:
+            fallbackIOHandler(addr, m0);
+            break;
+    }
     SPI.endTransaction();
 }

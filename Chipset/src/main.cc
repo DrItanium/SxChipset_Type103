@@ -245,7 +245,7 @@ trySetupRTCMicros() noexcept {
     return enable;
 }
 using DateTimeGetter = DateTime(*)();
-DateTimeGetter getDateTime = nullptr;
+DateTimeGetter now = nullptr;
 void 
 setupRTC() noexcept {
     // use short circuiting or to choose the first available rtc
@@ -254,42 +254,39 @@ setupRTC() noexcept {
         switch (activeRTC) {
             case InstalledRTC::DS1307:
                 Serial.println(F("DS1307"));
-                getDateTime = []() { return rtc1307.now(); };
+                now = []() { return rtc1307.now(); };
                 break;
             case InstalledRTC::DS3231:
                 Serial.println(F("DS3231"));
-                getDateTime = []() { return rtc3231.now(); };
+                now = []() { return rtc3231.now(); };
                 break;
             case InstalledRTC::PCF8523:
                 Serial.println(F("PCF8523"));
-                getDateTime = []() { return rtc8523.now(); };
+                now = []() { return rtc8523.now(); };
                 break;
             case InstalledRTC::PCF8563:
                 Serial.println(F("PCF8563"));
-                getDateTime = []() { return rtc8563.now(); };
+                now = []() { return rtc8563.now(); };
                 break;
             case InstalledRTC::Micros:
                 Serial.println(F("Internal micros counter"));
-                getDateTime = []() { return rtcMicros.now(); };
+                now = []() { return rtcMicros.now(); };
                 break;
             default:
                 Serial.println(F("Unknown"));
-                getDateTime = []() { return DateTime(F(__DATE__), F(__TIME__)); };
+                now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
                 break;
         }
     } else {
         Serial.println(F("No active RTC found!"));
-        getDateTime = []() { return DateTime(F(__DATE__), F(__TIME__)); };
+        now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
     }
-}
-DateTime
-now() noexcept {
-    return getDateTime();
 }
 void 
 setup() {
     Serial.begin(115200);
     setupRTC();
+    Serial.println(now().unixtime());
     SPI.begin();
     // setup the IO Expanders
     MCP23S17::IOCON reg;

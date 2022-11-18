@@ -514,7 +514,7 @@ inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr)
 void 
 handleTransaction() noexcept {
 
-    SPI.beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+    SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     SplitWord32 addr{0};
@@ -589,4 +589,38 @@ handleTransaction() noexcept {
             break;
     }
     SPI.endTransaction();
+}
+
+
+namespace {
+    size_t
+    psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        digitalWrite<Pin::PSRAM0, LOW>();
+        SPI.transfer(0x02); // write
+        SPI.transfer(baseAddress.bytes[2]);
+        SPI.transfer(baseAddress.bytes[1]);
+        SPI.transfer(baseAddress.bytes[0]);
+        SPI.transfer(bytes, count);
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        return count;
+    }
+    size_t
+    psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        digitalWrite<Pin::PSRAM0, LOW>();
+        SPI.transfer(0x03); //read 
+        SPI.transfer(baseAddress.bytes[2]);
+        SPI.transfer(baseAddress.bytes[1]);
+        SPI.transfer(baseAddress.bytes[0]);
+        SPI.transfer(bytes, count);
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        return count;
+    }
+}
+size_t
+memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+    return psramMemoryWrite(baseAddress, bytes, count);
+}
+size_t
+memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+    return psramMemoryRead(baseAddress, bytes, count);
 }

@@ -250,7 +250,7 @@ inline PortDirectionRegister
 getDirectionRegister() noexcept {
     return getDirectionRegister(port);
 }
-void digitalWrite(Pin pin, decltype(LOW) value) noexcept;
+[[gnu::always_inline]] inline void digitalWrite(Pin pin, decltype(LOW) value) noexcept;
 
 [[gnu::always_inline]] 
 inline decltype(LOW)
@@ -267,7 +267,7 @@ inline decltype(LOW)
 digitalRead() noexcept { 
     return digitalRead(pin);
 }
-void pinMode(Pin pin, decltype(INPUT) direction) noexcept;
+[[gnu::always_inline]] inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept;
 
 template<Pin pin>
 [[gnu::always_inline]] 

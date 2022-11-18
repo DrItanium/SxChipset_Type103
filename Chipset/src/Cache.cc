@@ -30,73 +30,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
     DataCache cache;
-    File ramFile;
-    size_t
-    swapMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        ramFile.seekSet(baseAddress.full);
-        return ramFile.write(bytes, count);
-    }
-    size_t
-    swapMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        ramFile.seekSet(baseAddress.full);
-        return ramFile.read(bytes, count);
-    }
-    size_t
-    psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        digitalWrite<Pin::PSRAM0, LOW>();
-        SPI.transfer(0x02); // write
-        SPI.transfer(baseAddress.bytes[2]);
-        SPI.transfer(baseAddress.bytes[1]);
-        SPI.transfer(baseAddress.bytes[0]);
-        for (size_t i = 0; i < count; ++i) {
-            SPI.transfer(bytes[i]);
-        }
-        digitalWrite<Pin::PSRAM0, HIGH>();
-        return count;
-    }
-    size_t
-    psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        digitalWrite<Pin::PSRAM0, LOW>();
-        SPI.transfer(0x03); //read 
-        SPI.transfer(baseAddress.bytes[2]);
-        SPI.transfer(baseAddress.bytes[1]);
-        SPI.transfer(baseAddress.bytes[0]);
-        for (size_t i = 0; i < count; ++i) {
-            bytes[i] = SPI.transfer(0);
-        }
-        digitalWrite<Pin::PSRAM0, HIGH>();
-        return count;
-    }
-
-    void
-    setupRAMFile() noexcept {
-        if (!ramFile.open("ram.bin", FILE_WRITE)) {
-            Serial.println(F("Could not open ram.bin!"));
-            while (true) {
-                delay(1000);
-            }
-        }
-    }
-
 }
 
 DataCache& 
 getCache() noexcept {
     return cache;
 }
-size_t
-memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryWrite(baseAddress, bytes, count);
-    //return swapMemoryWrite(baseAddress, bytes, count);
-}
-size_t
-memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryRead(baseAddress, bytes, count);
-    //return swapMemoryRead(baseAddress, bytes, count);
-}
 void 
 setupCache() noexcept {
-    //setupRAMFile();
     cache.begin();
     cache.clear();
 }

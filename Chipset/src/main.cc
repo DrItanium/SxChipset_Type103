@@ -29,7 +29,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 #include "MCP23S17.h"
+#include "Wire.h"
+#include "RTClib.h"
 SdFat SD;
+// the logging shield I'm using has a DS1307 RTC
+enum class InstalledRTC {
+    None,
+    DS1307,
+    PCF8523,
+    PCF8563,
+    DS3231,
+    Micros,
+};
+RTC_DS1307 rtc1307;
+volatile InstalledRTC activeRTC = InstalledRTC::None;
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
@@ -147,9 +160,51 @@ setupPSRAM() noexcept {
     }
     Serial.println(F("MEMORY TEST COMPLETE!"));
 }
+bool
+trySetupDS1307() noexcept {
+    if (rtc1307.begin()) {
+        activeRTC = InstalledRTC::DS1307;
+        if (!rtc1307.isrunning()) {
+            rtc1307.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+void 
+setupRTC() noexcept {
+    // use short circuiting or to choose the first available rtc
+    if (trySetupDS1307()) {
+        Serial.print(F("Found RTC: "));
+        switch (activeRTC) {
+            case InstalledRTC::DS1307:
+                Serial.println(F("DS1307"));
+                break;
+            case InstalledRTC::DS3231:
+                Serial.println(F("DS3231"));
+                break;
+            case InstalledRTC::PCF8523:
+                Serial.println(F("PCF8523"));
+                break;
+            case InstalledRTC::PCF8563:
+                Serial.println(F("PCF8563"));
+                break;
+            case InstalledRTC::Micros:
+                Serial.println(F("Internal micros counter"));
+                break;
+            default:
+                Serial.println(F("Unknown"));
+                break;
+        }
+    } else {
+        Serial.println(F("No active RTC found!"));
+    }
+}
 void 
 setup() {
     Serial.begin(115200);
+    setupRTC();
     SPI.begin();
     // setup the IO Expanders
     MCP23S17::IOCON reg;

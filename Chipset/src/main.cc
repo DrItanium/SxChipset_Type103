@@ -45,6 +45,12 @@ inline void
 signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
+void configureReset() noexcept {
+    // reset is always an output 
+    auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
+    theDirection &= ~0b1;
+    MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
+}
 void setSPI1Channel(byte index) noexcept {
     digitalWrite<Pin::SPI2_OFFSET0>(index & 0b001 ? HIGH : LOW);
     digitalWrite<Pin::SPI2_OFFSET1>(index & 0b010 ? HIGH : LOW);
@@ -61,11 +67,22 @@ void setInputChannel(byte value) noexcept {
 }
 constexpr bool EnableDebugMode = false;
 void handleTransaction() noexcept;
+
+[[gnu::always_inline]] inline void 
+doReset(decltype(LOW) value) noexcept {
+    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
+    if (value == LOW) {
+        theGPIO &= ~1;
+    } else {
+        theGPIO |= 1;
+    }
+    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
+}
 void putCPUInReset() noexcept {
-    digitalWrite<Pin::Reset960, LOW>();
+    doReset(LOW);
 }
 void pullCPUOutOfReset() noexcept {
-    digitalWrite<Pin::Reset960, HIGH>();
+    doReset(HIGH);
 }
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;
@@ -190,7 +207,7 @@ setup() {
     pinMode(Pin::Capture5, INPUT);
     pinMode(Pin::Capture6, INPUT);
     pinMode(Pin::Capture7, INPUT);
-    pinMode(Pin::Reset960, OUTPUT);
+    configureReset();
     setSPI1Channel(0);
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::HOLD, LOW>();
@@ -299,59 +316,7 @@ installMemoryImage() noexcept {
         Serial.println(F("transfer complete!"));
     }
 }
-void 
-doReset(decltype(LOW) value) noexcept {
-    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
-    if (value == LOW) {
-        theGPIO &= ~1;
-    } else {
-        theGPIO |= 1;
-    }
-    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
-}
 
-void 
-digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
-    if (isPhysicalPin(pin)) {
-        if (auto &thePort = getOutputRegister(pin); value == LOW) {
-            thePort = thePort & ~getPinMask(pin);
-        } else {
-            thePort = thePort | getPinMask(pin);
-        }
-    } else {
-        switch (pin) {
-            case Pin::SPI2_EN0:
-            case Pin::SPI2_EN1:
-            case Pin::SPI2_EN2:
-            case Pin::SPI2_EN3:
-            case Pin::SPI2_EN4:
-            case Pin::SPI2_EN5:
-            case Pin::SPI2_EN6:
-            case Pin::SPI2_EN7:
-                digitalWrite(Pin::CS2, value);
-                break;
-            case Pin::Reset960: 
-                doReset(value);
-                break;
-            default:
-                digitalWrite(static_cast<byte>(pin), value); 
-                break;
-        }
-    }
-}
-void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
-    if (isPhysicalPin(pin)) {
-        pinMode(static_cast<int>(pin), direction);
-    } else if (pin == Pin::Reset960) {
-        auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
-        if (direction == INPUT || direction == INPUT_PULLUP) {
-            theDirection |= 0b1;
-        } else if (direction == OUTPUT) {
-            theDirection &= ~0b1;
-        }
-        MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
-    }
-}
 
 inline void 
 setDataLinesOutput(uint16_t value) noexcept {

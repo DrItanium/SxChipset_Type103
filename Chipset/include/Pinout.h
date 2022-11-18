@@ -45,17 +45,6 @@ Count,
 #undef DefPin
 #undef DefPort
 // concepts
-Reset960,
-#define X(ind) SPI2_EN ## ind 
-X(0),
-X(1),
-X(2),
-X(3),
-X(4),
-X(5),
-X(6),
-X(7),
-#undef X
     HOLD = PortB0,
     CLKO = PortB1,
     HLDA = PortB2,
@@ -250,7 +239,19 @@ inline PortDirectionRegister
 getDirectionRegister() noexcept {
     return getDirectionRegister(port);
 }
-[[gnu::always_inline]] inline void digitalWrite(Pin pin, decltype(LOW) value) noexcept;
+[[gnu::always_inline]] inline 
+void 
+digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
+    if (isPhysicalPin(pin)) {
+        if (auto &thePort = getOutputRegister(pin); value == LOW) {
+            thePort = thePort & ~getPinMask(pin);
+        } else {
+            thePort = thePort | getPinMask(pin);
+        }
+    } else {
+        ::digitalWrite(static_cast<byte>(pin), value); 
+    }
+}
 
 [[gnu::always_inline]] 
 inline decltype(LOW)
@@ -267,7 +268,10 @@ inline decltype(LOW)
 digitalRead() noexcept { 
     return digitalRead(pin);
 }
-[[gnu::always_inline]] inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept;
+[[gnu::always_inline]] inline 
+void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
+    pinMode(static_cast<int>(pin), direction);
+}
 
 template<Pin pin>
 [[gnu::always_inline]] 

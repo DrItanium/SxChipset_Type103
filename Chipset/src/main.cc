@@ -36,12 +36,15 @@ SdFat SD;
 enum class InstalledRTC {
     None,
     DS1307,
+    DS3231,
     PCF8523,
     PCF8563,
-    DS3231,
     Micros,
 };
 RTC_DS1307 rtc1307;
+RTC_DS3231 rtc3231;
+RTC_PCF8523 rtc8523;
+RTC_PCF8563 rtc8563;
 volatile InstalledRTC activeRTC = InstalledRTC::None;
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
@@ -172,10 +175,70 @@ trySetupDS1307() noexcept {
         return false;
     }
 }
+bool
+trySetupDS3231() noexcept {
+    if (rtc3231.begin()) {
+        activeRTC = InstalledRTC::DS3231;
+        if (!rtc3231.lostPower()) {
+            rtc3231.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+template<bool performCalibration = true>
+bool
+trySetupPCF8523() noexcept {
+    if (rtc8523.begin()) {
+        activeRTC = InstalledRTC::PCF8523;
+        if (!rtc8523.lostPower()) {
+            rtc8523.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        }
+        rtc8523.start();
+        if constexpr (performCalibration) {
+            // The PCF8523 can be calibrated for:
+            //        - Aging adjustment
+            //        - Temperature compensation
+            //        - Accuracy tuning
+            // The offset mode to use, once every two hours or once every minute.
+            // The offset Offset value from -64 to +63. See the Application Note for calculation of offset values.
+            // https://www.nxp.com/docs/en/application-note/AN11247.pdf
+            // The deviation in parts per million can be calculated over a period of observation. Both the drift (which can be negative)
+            // and the observation period must be in seconds. For accuracy the variation should be observed over about 1 week.
+            // Note: any previous calibration should cancelled prior to any new observation period.
+            // Example - RTC gaining 43 seconds in 1 week
+            float drift = 43; // seconds plus or minus over oservation period - set to 0 to cancel previous calibration.
+            float period_sec = (7 * 86400);  // total obsevation period in seconds (86400 = seconds in 1 day:  7 days = (7 * 86400) seconds )
+            float deviation_ppm = (drift / period_sec * 1000000); //  deviation in parts per million (μs)
+            float drift_unit = 4.34; // use with offset mode PCF8523_TwoHours
+                                     // float drift_unit = 4.069; //For corrections every min the drift_unit is 4.069 ppm (use with offset mode PCF8523_OneMinute)
+            int offset = round(deviation_ppm / drift_unit);
+            rtc8523.calibrate(PCF8523_TwoHours, offset); // Un-comment to perform calibration once drift (seconds) and observation period (seconds) are correct
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool
+trySetupPCF8563() noexcept {
+    if (rtc8563.begin()) {
+        activeRTC = InstalledRTC::PCF8563;
+        if (!rtc8563.lostPower()) {
+            rtc8563.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        }
+        rtc8563.start();
+        return true;
+    } else {
+        return false;
+    }
+}
 void 
 setupRTC() noexcept {
     // use short circuiting or to choose the first available rtc
-    if (trySetupDS1307()) {
+    if (trySetupDS1307() || trySetupDS3231() || trySetupPCF8523() || trySetupPCF8563()) {
         Serial.print(F("Found RTC: "));
         switch (activeRTC) {
             case InstalledRTC::DS1307:

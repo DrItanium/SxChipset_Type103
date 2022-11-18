@@ -48,7 +48,9 @@ namespace {
         SPI.transfer(baseAddress.bytes[2]);
         SPI.transfer(baseAddress.bytes[1]);
         SPI.transfer(baseAddress.bytes[0]);
-        SPI.transfer(bytes, count);
+        for (size_t i = 0; i < count; ++i) {
+            SPI.transfer(bytes[i]);
+        }
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }
@@ -59,7 +61,9 @@ namespace {
         SPI.transfer(baseAddress.bytes[2]);
         SPI.transfer(baseAddress.bytes[1]);
         SPI.transfer(baseAddress.bytes[0]);
-        SPI.transfer(bytes, count);
+        for (size_t i = 0; i < count; ++i) {
+            bytes[i] = SPI.transfer(0);
+        }
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }
@@ -82,17 +86,17 @@ getCache() noexcept {
 }
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    //return psramMemoryWrite(baseAddress, bytes, count);
-    return swapMemoryWrite(baseAddress, bytes, count);
+    return psramMemoryWrite(baseAddress, bytes, count);
+    //return swapMemoryWrite(baseAddress, bytes, count);
 }
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    //return psramMemoryRead(baseAddress, bytes, count);
-    return swapMemoryRead(baseAddress, bytes, count);
+    return psramMemoryRead(baseAddress, bytes, count);
+    //return swapMemoryRead(baseAddress, bytes, count);
 }
 void 
 setupCache() noexcept {
-    setupRAMFile();
+    //setupRAMFile();
     cache.begin();
     cache.clear();
 }

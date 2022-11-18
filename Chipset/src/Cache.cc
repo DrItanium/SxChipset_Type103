@@ -24,11 +24,56 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <Arduino.h>
+#include "SPI.h"
 #include "Types.h"
+#include "Pinout.h"
 
 namespace {
     DataCache cache;
     File ramFile;
+    size_t
+    swapMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        ramFile.seekSet(baseAddress.full);
+        return ramFile.write(bytes, count);
+    }
+    size_t
+    swapMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        ramFile.seekSet(baseAddress.full);
+        return ramFile.read(bytes, count);
+    }
+    size_t
+    psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        digitalWrite<Pin::PSRAM0, LOW>();
+        SPI.transfer(0x02); // write
+        SPI.transfer(baseAddress.bytes[2]);
+        SPI.transfer(baseAddress.bytes[1]);
+        SPI.transfer(baseAddress.bytes[0]);
+        SPI.transfer(bytes, count);
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        return count;
+    }
+    size_t
+    psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        digitalWrite<Pin::PSRAM0, LOW>();
+        SPI.transfer(0x03); //read 
+        SPI.transfer(baseAddress.bytes[2]);
+        SPI.transfer(baseAddress.bytes[1]);
+        SPI.transfer(baseAddress.bytes[0]);
+        SPI.transfer(bytes, count);
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        return count;
+    }
+
+    void
+    setupRAMFile() noexcept {
+        if (!ramFile.open("ram.bin", FILE_WRITE)) {
+            Serial.println(F("Could not open ram.bin!"));
+            while (true) {
+                delay(1000);
+            }
+        }
+    }
+
 }
 
 DataCache& 
@@ -37,22 +82,17 @@ getCache() noexcept {
 }
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    ramFile.seekSet(baseAddress.full);
-    return ramFile.write(bytes, count);
+    //return psramMemoryWrite(baseAddress, bytes, count);
+    return swapMemoryWrite(baseAddress, bytes, count);
 }
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    ramFile.seekSet(baseAddress.full);
-    return ramFile.read(bytes, count);
+    //return psramMemoryRead(baseAddress, bytes, count);
+    return swapMemoryRead(baseAddress, bytes, count);
 }
 void 
 setupCache() noexcept {
-    if (!ramFile.open("ram.bin", FILE_WRITE)) {
-        Serial.println(F("Could not open ram.bin!"));
-        while (true) {
-            delay(1000);
-        }
-    }
+    setupRAMFile();
     cache.begin();
     cache.clear();
 }

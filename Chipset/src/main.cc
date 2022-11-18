@@ -72,6 +72,62 @@ void setupIOExpanders() noexcept;
 void installMemoryImage() noexcept;
 uint16_t dataLinesDirection = MCP23S17::AllInput16;
 uint16_t currentDataLinesValue = 0;
+template<bool performFullMemoryTest>
+void
+setupPSRAM() noexcept {
+    Serial.println(F("RUNNING PSRAM MEMORY TEST!"));
+    // according to the manuals we need at least 200 microseconds after bootup
+    // to allow the psram to do it's thing
+    delayMicroseconds(200);
+    // 0x66 tells the PSRAM to initialize properly
+    digitalWrite<Pin::PSRAM0, LOW>();
+    SPI.transfer(0x66);
+    digitalWrite<Pin::PSRAM0, HIGH>();
+    // test the first 64k instead of the full 8 megabytes
+    constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
+    for (uint32_t i = 0; i < endAddress; i += 4) {
+        union {
+            uint32_t whole;
+            uint8_t bytes[4];
+        } container, result;
+        container.whole = i;
+        digitalWrite<Pin::PSRAM0, LOW>();
+        SPI.transfer(0x02); // write
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[0]);
+        SPI.transfer(container.bytes[0]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[3]);
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        asm volatile ("nop");
+        asm volatile ("nop");
+        asm volatile ("nop");
+        asm volatile ("nop");
+        digitalWrite<Pin::PSRAM0, LOW>();
+        SPI.transfer(0x03); // read 
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[0]);
+        result.bytes[0] = SPI.transfer(0);
+        result.bytes[1] = SPI.transfer(0);
+        result.bytes[2] = SPI.transfer(0);
+        result.bytes[3] = SPI.transfer(0);
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        if (container.whole != result.whole) {
+            Serial.print(F("MEMROY TEST FAILURE: W: 0x"));
+            Serial.print(container.whole, HEX);
+            Serial.print(F(" G: 0x"));
+            Serial.println(result.whole, HEX);
+            while (true) {
+                // halt here
+                delay(1000);
+            }
+        }
+    }
+    Serial.println(F("MEMORY TEST COMPLETE!"));
+}
 void 
 setup() {
     Serial.begin(115200);
@@ -151,51 +207,8 @@ setup() {
         delay(1000);
     }
     Serial.println(F("SD CARD FOUND!"));
+    setupPSRAM<false>();
     setupCache();
-    Serial.println(F("RUNNING PSRAM MEMORY TEST!"));
-    delayMicroseconds(200);
-    digitalWrite<Pin::PSRAM0, LOW>();
-    SPI.transfer(0x66);
-    digitalWrite<Pin::PSRAM0, HIGH>();
-    for (uint32_t i = 0; i < 0x800000; i += 4) {
-        union {
-            uint32_t whole;
-            uint8_t bytes[4];
-        } container, result;
-        container.whole = i;
-        digitalWrite<Pin::PSRAM0, LOW>();
-        SPI.transfer(0x02); // write
-        SPI.transfer(container.bytes[2]);
-        SPI.transfer(container.bytes[1]);
-        SPI.transfer(container.bytes[0]);
-        SPI.transfer(container.bytes[0]);
-        SPI.transfer(container.bytes[1]);
-        SPI.transfer(container.bytes[2]);
-        SPI.transfer(container.bytes[3]);
-        digitalWrite<Pin::PSRAM0, HIGH>();
-        asm volatile ("nop");
-        asm volatile ("nop");
-        asm volatile ("nop");
-        asm volatile ("nop");
-        digitalWrite<Pin::PSRAM0, LOW>();
-        SPI.transfer(0x03); // read 
-        SPI.transfer(container.bytes[2]);
-        SPI.transfer(container.bytes[1]);
-        SPI.transfer(container.bytes[0]);
-        result.bytes[0] = SPI.transfer(0);
-        result.bytes[1] = SPI.transfer(0);
-        result.bytes[2] = SPI.transfer(0);
-        result.bytes[3] = SPI.transfer(0);
-        digitalWrite<Pin::PSRAM0, HIGH>();
-        if (container.whole != result.whole) {
-            Serial.print(F("MISMATCH: W: 0x"));
-            Serial.print(container.whole, HEX);
-            Serial.print(F(" G: 0x"));
-            Serial.println(result.whole, HEX);
-            delay(100);
-        }
-    }
-    Serial.println(F("MEMORY TEST COMPLETE!"));
     installMemoryImage();
     pullCPUOutOfReset();
     while (digitalRead<Pin::FAIL>() == LOW) {
@@ -297,8 +310,7 @@ doReset(decltype(LOW) value) noexcept {
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
 }
 
-[[gnu::always_inline]]
-inline void 
+void 
 digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
     if (isPhysicalPin(pin)) {
         if (auto &thePort = getOutputRegister(pin); value == LOW) {
@@ -327,8 +339,7 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
         }
     }
 }
-[[gnu::always_inline]] 
-inline void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
+void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
     if (isPhysicalPin(pin)) {
         pinMode(static_cast<int>(pin), direction);
     } else if (pin == Pin::Reset960) {

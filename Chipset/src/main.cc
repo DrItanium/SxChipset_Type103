@@ -152,6 +152,49 @@ setup() {
     }
     Serial.println(F("SD CARD FOUND!"));
     setupCache();
+    delayMicroseconds(200);
+    digitalWrite<Pin::PSRAM0, LOW>();
+    SPI.transfer(0x66);
+    digitalWrite<Pin::PSRAM0, HIGH>();
+    for (uint32_t i = 0; i < 0x1000000; i += 4) {
+        union {
+            uint32_t whole;
+            uint8_t bytes[4];
+        } container, result;
+        container.whole = i;
+        digitalWrite<Pin::PSRAM0, LOW>();
+        SPI.transfer(0x02); // write
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[0]);
+        SPI.transfer(container.bytes[0]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[3]);
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        asm volatile ("nop");
+        asm volatile ("nop");
+        asm volatile ("nop");
+        asm volatile ("nop");
+        digitalWrite<Pin::PSRAM0, LOW>();
+        SPI.transfer(0x03); // read 
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[0]);
+        result.bytes[0] = SPI.transfer(0);
+        result.bytes[1] = SPI.transfer(0);
+        result.bytes[2] = SPI.transfer(0);
+        result.bytes[3] = SPI.transfer(0);
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        if (container.whole != result.whole) {
+            Serial.print(F("MISMATCH: W: 0x"));
+            Serial.print(container.whole, HEX);
+            Serial.print(F(" G: 0x"));
+            Serial.println(result.whole, HEX);
+            delay(100);
+        }
+    }
+    Serial.println(F("MEMORY TEST COMPLETE!"));
     installMemoryImage();
     pullCPUOutOfReset();
     while (digitalRead<Pin::FAIL>() == LOW) {

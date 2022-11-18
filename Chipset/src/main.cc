@@ -152,11 +152,12 @@ setup() {
     }
     Serial.println(F("SD CARD FOUND!"));
     setupCache();
+    Serial.println(F("RUNNING PSRAM MEMORY TEST!"));
     delayMicroseconds(200);
     digitalWrite<Pin::PSRAM0, LOW>();
     SPI.transfer(0x66);
     digitalWrite<Pin::PSRAM0, HIGH>();
-    for (uint32_t i = 0; i < 0x1000000; i += 4) {
+    for (uint32_t i = 0; i < 0x800000; i += 4) {
         union {
             uint32_t whole;
             uint8_t bytes[4];

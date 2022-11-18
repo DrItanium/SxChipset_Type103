@@ -45,6 +45,7 @@ RTC_DS1307 rtc1307;
 RTC_DS3231 rtc3231;
 RTC_PCF8523 rtc8523;
 RTC_PCF8563 rtc8563;
+RTC_Micros rtcMicros;
 volatile InstalledRTC activeRTC = InstalledRTC::None;
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
@@ -235,6 +236,8 @@ trySetupPCF8563() noexcept {
         return false;
     }
 }
+using DateTimeGetter = DateTime(*)();
+DateTimeGetter getDateTime = nullptr;
 void 
 setupRTC() noexcept {
     // use short circuiting or to choose the first available rtc
@@ -243,26 +246,37 @@ setupRTC() noexcept {
         switch (activeRTC) {
             case InstalledRTC::DS1307:
                 Serial.println(F("DS1307"));
+                getDateTime = []() { return rtc1307.now(); };
                 break;
             case InstalledRTC::DS3231:
                 Serial.println(F("DS3231"));
+                getDateTime = []() { return rtc3231.now(); };
                 break;
             case InstalledRTC::PCF8523:
                 Serial.println(F("PCF8523"));
+                getDateTime = []() { return rtc8523.now(); };
                 break;
             case InstalledRTC::PCF8563:
                 Serial.println(F("PCF8563"));
+                getDateTime = []() { return rtc8563.now(); };
                 break;
             case InstalledRTC::Micros:
                 Serial.println(F("Internal micros counter"));
+                getDateTime = []() { return rtcMicros.now(); };
                 break;
             default:
                 Serial.println(F("Unknown"));
+                getDateTime = []() { return DateTime(F(__DATE__), F(__TIME__)); };
                 break;
         }
     } else {
         Serial.println(F("No active RTC found!"));
+        getDateTime = []() { return DateTime(F(__DATE__), F(__TIME__)); };
     }
+}
+DateTime
+now() noexcept {
+    return getDateTime();
 }
 void 
 setup() {

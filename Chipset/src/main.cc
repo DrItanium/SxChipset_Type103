@@ -45,13 +45,15 @@ inline void
 signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
-void configureReset() noexcept {
+void 
+configureReset() noexcept {
     // reset is always an output 
     auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
     theDirection &= ~0b1;
     MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
 }
-void setSPI1Channel(byte index) noexcept {
+void
+setSPI1Channel(byte index) noexcept {
     digitalWrite<Pin::SPI2_OFFSET0>(index & 0b001 ? HIGH : LOW);
     digitalWrite<Pin::SPI2_OFFSET1>(index & 0b010 ? HIGH : LOW);
     digitalWrite<Pin::SPI2_OFFSET2>(index & 0b100 ? HIGH : LOW);
@@ -259,6 +261,7 @@ setup() {
 void 
 loop() {
     setInputChannel(0);
+    asm volatile ("nop");
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction();
 }

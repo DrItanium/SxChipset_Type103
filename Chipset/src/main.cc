@@ -236,6 +236,14 @@ trySetupPCF8563() noexcept {
         return false;
     }
 }
+template<bool enable = false>
+bool
+trySetupRTCMicros() noexcept {
+    if constexpr (enable) {
+        rtcMicros.begin(DateTime(F(__DATE__), F(__TIME__)));
+    }
+    return enable;
+}
 using DateTimeGetter = DateTime(*)();
 DateTimeGetter getDateTime = nullptr;
 void 

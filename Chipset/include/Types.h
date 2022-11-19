@@ -158,8 +158,8 @@ union Word8 {
         uint8_t unused : 1;
     } channel1;
     struct {
-            uint8_t valid_ : 1;
-            uint8_t dirty_ : 1;
+        uint8_t valid_ : 1;
+        uint8_t dirty_ : 1;
     } lineFlags;
     [[nodiscard]] constexpr bool isReadOperation() const noexcept { return channel0.w_r_ == 0; }
     [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return channel0.w_r_ != 0; }

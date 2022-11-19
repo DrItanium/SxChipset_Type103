@@ -444,8 +444,13 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             break;
     }
 }
+//uint16_t previousValue = 0;
 uint16_t getDataLines(const Channel1Value& c1) noexcept {
-    return MCP23S17::readGPIO16<DataLines>();
+    static uint16_t previousValue = 0;
+    if (c1.channel1.dataInt != 0b11) {
+        previousValue = MCP23S17::readGPIO16<DataLines>();
+    }
+    return previousValue;
 }
 template<bool isReadOperation>
 void
@@ -594,22 +599,47 @@ namespace {
     size_t
     psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         digitalWrite<Pin::PSRAM0, LOW>();
-        SPI.transfer(0x02); // write
-        SPI.transfer(baseAddress.bytes[2]);
-        SPI.transfer(baseAddress.bytes[1]);
-        SPI.transfer(baseAddress.bytes[0]);
-        SPI.transfer(bytes, count);
+        SPDR = 0x02;
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[2];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[1];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[0];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        for (size_t i = 0; i < count; ++i) {
+            SPDR = bytes[i]; 
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+        }
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }
     size_t
     psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         digitalWrite<Pin::PSRAM0, LOW>();
-        SPI.transfer(0x03); //read 
-        SPI.transfer(baseAddress.bytes[2]);
-        SPI.transfer(baseAddress.bytes[1]);
-        SPI.transfer(baseAddress.bytes[0]);
-        SPI.transfer(bytes, count);
+        SPDR = 0x03;
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[2];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[1];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[0];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        for (size_t i = 0; i < count; ++i) {
+            SPDR = 0; 
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            bytes[i] = SPDR;
+        }
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }

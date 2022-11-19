@@ -147,7 +147,8 @@ union Word8 {
         uint8_t w_r_ : 1;
         uint8_t fail : 1;
         uint8_t unused : 1;
-        uint8_t addrInt : 4;
+        uint8_t lowerAddr : 2;
+        uint8_t upperAddr : 2;
     } channel0;
     struct {
         uint8_t be : 2;

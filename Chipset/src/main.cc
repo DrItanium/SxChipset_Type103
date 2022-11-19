@@ -517,52 +517,70 @@ inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr)
 void 
 handleTransaction() noexcept {
 
+    static SplitWord32 addr{0};
+    uint16_t direction = 0;
+    uint8_t value = 0;
+    bool updateDataLines = false;
+    TransactionKind target = TransactionKind::CacheRead;
     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
-    SplitWord32 addr{0};
-
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    SPDR = MCP23S17::ReadOpcode_v<AddressUpper>;
-    asm volatile("nop");
     Channel0Value m0(PINA);
-    waitForByteTransfer();
-    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
-    asm volatile("nop");
-    setInputChannel(1);
-    waitForByteTransfer();
-    SPDR = 0;
-    asm volatile("nop");
-    auto direction = m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    waitForByteTransfer();
-    auto value = SPDR;
-    SPDR = 0;
-    asm volatile("nop");
-    addr.bytes[3] = value;
-    waitForByteTransfer();
-    value = SPDR;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
+    if (m0.channel0.upperAddr != 0b11) {
+        digitalWrite<Pin::GPIOSelect, LOW>();
+        SPDR = MCP23S17::ReadOpcode_v<AddressUpper>;
+        asm volatile("nop");
+        waitForByteTransfer();
+        SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
+        asm volatile("nop");
+        setInputChannel(1);
+        waitForByteTransfer();
+        SPDR = 0;
+        asm volatile("nop");
+        direction = m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+        waitForByteTransfer();
+        value = SPDR;
+        SPDR = 0;
+        asm volatile("nop");
+        addr.bytes[3] = value;
+        waitForByteTransfer();
+        value = SPDR;
+        digitalWrite<Pin::GPIOSelect, HIGH>();
+    } else {
+        setInputChannel(1);
+        direction = m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+    }
 
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    SPDR = MCP23S17::ReadOpcode_v<AddressLower>;
-    asm volatile("nop");
-    addr.bytes[2] = value;
-    waitForByteTransfer();
-    SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
-    asm volatile("nop");
-    auto updateDataLines = direction != dataLinesDirection;
-    waitForByteTransfer();
-    SPDR = 0;
-    asm volatile("nop");
-    auto target = getTransaction(m0, addr);
-    waitForByteTransfer();
-    value = SPDR;
-    SPDR = 0;
-    asm volatile("nop");
-    addr.bytes[0] = value;
-    waitForByteTransfer();
-    addr.bytes[1] = SPDR;
-    digitalWrite<Pin::GPIOSelect, HIGH>();
+    if (m0.channel0.lowerAddr != 0b11) {
+        digitalWrite<Pin::GPIOSelect, LOW>();
+        SPDR = MCP23S17::ReadOpcode_v<AddressLower>;
+        asm volatile("nop");
+        if (m0.channel0.upperAddr != 0b11) {
+            addr.bytes[2] = value;
+        }
+        waitForByteTransfer();
+        SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
+        asm volatile("nop");
+        updateDataLines = direction != dataLinesDirection;
+        waitForByteTransfer();
+        SPDR = 0;
+        asm volatile("nop");
+        target = getTransaction(m0, addr);
+        waitForByteTransfer();
+        value = SPDR;
+        SPDR = 0;
+        asm volatile("nop");
+        addr.bytes[0] = value;
+        waitForByteTransfer();
+        addr.bytes[1] = SPDR;
+        digitalWrite<Pin::GPIOSelect, HIGH>();
+    } else {
+        if (m0.channel0.upperAddr != 0b11) {
+            addr.bytes[2] = value;
+        }
+        updateDataLines = direction != dataLinesDirection;
+        target = getTransaction(m0, addr);
+    }
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));
         Serial.println(addr.getWholeValue(), HEX);

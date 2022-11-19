@@ -460,7 +460,6 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
     auto& line = getCache().find(addr);
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        Channel1Value c1(PINA);
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out 
             auto value = line.getWord(offset);
@@ -470,6 +469,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
             }
             setDataLinesOutput(value);
         } else {
+            Channel1Value c1(PINA);
             auto value = getDataLines(c1);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));

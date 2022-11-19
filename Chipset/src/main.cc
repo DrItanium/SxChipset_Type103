@@ -351,12 +351,43 @@ installMemoryImage() noexcept {
 }
 
 
+template<bool busHeldOpen>
 inline void 
 setDataLinesOutput(uint16_t value) noexcept {
     if (currentDataLinesValue != value) {
         currentDataLinesValue = value;
-        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
+        if constexpr (busHeldOpen) {
+            SplitWord16 theValue(currentDataLinesValue);
+            SPDR = theValue.bytes[0];
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = theValue.bytes[1];
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+        } else {
+            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
+        }
     }
+}
+template<bool busHeldOpen>
+uint16_t getDataLines(const Channel1Value& c1) noexcept {
+    static SplitWord16 previousValue{0};
+    if (c1.channel1.dataInt != 0b11) {
+        if constexpr (busHeldOpen) {
+            SPDR = 0;
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            auto value = SPDR;
+            SPDR = 0;
+            asm volatile ("nop");
+            previousValue.bytes[0] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            previousValue.bytes[1] = SPDR;
+        } else {
+            previousValue.full = MCP23S17::readGPIO16<DataLines>();
+        }
+    }
+    return previousValue.full;
 }
 using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte);
 using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t);
@@ -367,7 +398,7 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         Channel1Value c1(PINA);
         if constexpr (isReadOperation) {
-            setDataLinesOutput(onRead(addr, m0, c1, offset));
+            setDataLinesOutput<false>(onRead(addr, m0, c1, offset));
         } else {
             onWrite(addr, m0, c1, offset, MCP23S17::readGPIO16<DataLines>());
         }
@@ -444,26 +475,6 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             break;
     }
 }
-template<bool busHeldOpen>
-uint16_t getDataLines(const Channel1Value& c1) noexcept {
-    static SplitWord16 previousValue{0};
-    if (c1.channel1.dataInt != 0b11) {
-        if constexpr (busHeldOpen) {
-            SPDR = 0;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            auto value = SPDR;
-            SPDR = 0;
-            asm volatile ("nop");
-            previousValue.bytes[0] = value;
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            previousValue.bytes[1] = SPDR;
-        } else {
-            previousValue.full = MCP23S17::readGPIO16<DataLines>();
-        }
-    }
-    return previousValue.full;
-}
 template<bool isReadOperation>
 void
 handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
@@ -479,7 +490,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            setDataLinesOutput(value);
+            setDataLinesOutput<false>(value);
         } else {
             Channel1Value c1(PINA);
             auto value = getDataLines<false>(c1);
@@ -495,10 +506,6 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
             break;
         }
     }
-}
-[[gnu::always_inline]]
-inline void waitForByteTransfer() noexcept {
-    while (!(SPSR & _BV(SPIF))) ; // wait
 }
 enum class TransactionKind {
     // 0b00 -> cache + read
@@ -542,20 +549,20 @@ handleTransaction() noexcept {
         digitalWrite<Pin::GPIOSelect, LOW>();
         SPDR = MCP23S17::ReadOpcode_v<AddressUpper>;
         asm volatile("nop");
-        waitForByteTransfer();
+        while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
         asm volatile("nop");
         setInputChannel(1);
-        waitForByteTransfer();
+        while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = 0;
         asm volatile("nop");
         direction = m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-        waitForByteTransfer();
+        while (!(SPSR & _BV(SPIF))) ; // wait
         value = SPDR;
         SPDR = 0;
         asm volatile("nop");
         addr.bytes[3] = value;
-        waitForByteTransfer();
+        while (!(SPSR & _BV(SPIF))) ; // wait
         value = SPDR;
         digitalWrite<Pin::GPIOSelect, HIGH>();
     } else {
@@ -570,20 +577,20 @@ handleTransaction() noexcept {
         if (m0.channel0.upperAddr != 0b11) {
             addr.bytes[2] = value;
         }
-        waitForByteTransfer();
+        while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
         asm volatile("nop");
         updateDataLines = direction != dataLinesDirection;
-        waitForByteTransfer();
+        while (!(SPSR & _BV(SPIF))) ; // wait
         SPDR = 0;
         asm volatile("nop");
         target = getTransaction(m0, addr);
-        waitForByteTransfer();
+        while (!(SPSR & _BV(SPIF))) ; // wait
         value = SPDR;
         SPDR = 0;
         asm volatile("nop");
         addr.bytes[0] = value;
-        waitForByteTransfer();
+        while (!(SPSR & _BV(SPIF))) ; // wait
         addr.bytes[1] = SPDR;
         digitalWrite<Pin::GPIOSelect, HIGH>();
     } else {

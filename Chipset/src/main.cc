@@ -444,13 +444,25 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             break;
     }
 }
-//uint16_t previousValue = 0;
+template<bool busHeldOpen>
 uint16_t getDataLines(const Channel1Value& c1) noexcept {
-    static uint16_t previousValue = 0;
+    static SplitWord16 previousValue{0};
     if (c1.channel1.dataInt != 0b11) {
-        previousValue = MCP23S17::readGPIO16<DataLines>();
+        if constexpr (busHeldOpen) {
+            SPDR = 0;
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            auto value = SPDR;
+            SPDR = 0;
+            asm volatile ("nop");
+            previousValue.bytes[0] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            previousValue.bytes[1] = SPDR;
+        } else {
+            previousValue.full = MCP23S17::readGPIO16<DataLines>();
+        }
     }
-    return previousValue;
+    return previousValue.full;
 }
 template<bool isReadOperation>
 void
@@ -470,7 +482,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
             setDataLinesOutput(value);
         } else {
             Channel1Value c1(PINA);
-            auto value = getDataLines(c1);
+            auto value = getDataLines<false>(c1);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);

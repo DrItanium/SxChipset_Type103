@@ -628,12 +628,13 @@ handleTransaction() noexcept {
         dataLinesDirection = direction;
         MCP23S17::writeDirection<DataLines>(dataLinesDirection);
     }
+    static constexpr bool EnableInlineSPIOperation = false;
     switch (target) {
         case TransactionKind::CacheRead:
-            handleCacheOperation<true>(addr, m0);
+            handleCacheOperation<true, EnableInlineSPIOperation>(addr, m0);
             break;
         case TransactionKind::CacheWrite:
-            handleCacheOperation<false>(addr, m0);
+            handleCacheOperation<false, EnableInlineSPIOperation>(addr, m0);
             break;
         case TransactionKind::IORead:
             handleIOOperation<true>(addr, m0);

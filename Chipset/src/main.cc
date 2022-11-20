@@ -475,12 +475,23 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             break;
     }
 }
-template<bool isReadOperation>
+template<bool isReadOperation, bool inlineSPIOperation = false>
 void
 handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     // okay now we can service the transaction request since it will be going
     // to ram.
     auto& line = getCache().find(addr);
+    if constexpr (inlineSPIOperation) {
+        digitalWrite<Pin::GPIOSelect, LOW>();
+        static constexpr auto TargetAction = isReadOperation ? WriteOpcode_v<DataLines> : ReadOpcode_v<DataLines>;
+        static constexpr auto TargetRegister = isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO;
+        SPDR = TargetAction;
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))); 
+        SPDR = TargetRegister
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))); 
+    }
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         if constexpr (isReadOperation) {
@@ -490,10 +501,10 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            setDataLinesOutput<false>(value);
+            setDataLinesOutput<inlineSPIOperation>(value);
         } else {
             Channel1Value c1(PINA);
-            auto value = getDataLines<false>(c1);
+            auto value = getDataLines<inlineSPIOperation>(c1);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
@@ -505,6 +516,9 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
         if (isBurstLast) {
             break;
         }
+    }
+    if constexpr (inlineSPIOperation) {
+        digitalWrite<Pin::GPIOSelect, HIGH>();
     }
 }
 enum class TransactionKind {

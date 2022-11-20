@@ -483,12 +483,12 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
     auto& line = getCache().find(addr);
     if constexpr (inlineSPIOperation) {
         digitalWrite<Pin::GPIOSelect, LOW>();
-        static constexpr auto TargetAction = isReadOperation ? WriteOpcode_v<DataLines> : ReadOpcode_v<DataLines>;
+        static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
         static constexpr auto TargetRegister = isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO;
         SPDR = TargetAction;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))); 
-        SPDR = TargetRegister
+        SPDR = TargetRegister;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))); 
     }

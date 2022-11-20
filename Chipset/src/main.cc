@@ -402,7 +402,7 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         if constexpr (isReadOperation) {
             setDataLinesOutput<false>(onRead(addr, m0, c1, offset));
         } else {
-            onWrite(addr, m0, c1, offset, MCP23S17::readGPIO16<DataLines>());
+            onWrite(addr, m0, c1, offset, getDataLines<false>(c1));
         }
         signalReady();
         if (isBurstLast) {

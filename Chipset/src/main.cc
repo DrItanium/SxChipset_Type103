@@ -72,6 +72,8 @@ void setInputChannel(byte value) noexcept {
     asm volatile ("nop");
 }
 constexpr bool EnableDebugMode = false;
+constexpr bool EnableInlineSPIOperation = false;
+template<bool>
 void handleTransaction() noexcept;
 
 [[gnu::always_inline]] inline void 
@@ -274,10 +276,10 @@ setup() {
     // okay so we got past this, just start performing actions
     setInputChannel(0);
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction();
+    handleTransaction<false>();
     setInputChannel(0);
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction();
+    handleTransaction<false>();
     setInputChannel(0);
     if (digitalRead<Pin::FAIL>() == HIGH) {
         Serial.println(F("CHECKSUM FAILURE!"));
@@ -293,7 +295,7 @@ loop() {
     setInputChannel(0);
     asm volatile ("nop");
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction();
+    handleTransaction<EnableInlineSPIOperation>();
 }
 
 /**
@@ -547,6 +549,7 @@ inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr)
         }
     }
 }
+template<bool EnableInlineSPIOperation>
 void 
 handleTransaction() noexcept {
 
@@ -628,7 +631,6 @@ handleTransaction() noexcept {
         dataLinesDirection = direction;
         MCP23S17::writeDirection<DataLines>(dataLinesDirection);
     }
-    static constexpr bool EnableInlineSPIOperation = false;
     switch (target) {
         case TransactionKind::CacheRead:
             handleCacheOperation<true, EnableInlineSPIOperation>(addr, m0);

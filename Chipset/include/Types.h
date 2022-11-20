@@ -272,7 +272,7 @@ struct DataCache {
             set.clear();
         }
     }
-    inline auto& find(SplitWord32 address) noexcept {
+    [[gnu::always_inline]] inline auto& find(SplitWord32 address) noexcept {
         return cache[address.cacheAddress.tag].find(address);
     }
     inline void begin() noexcept {

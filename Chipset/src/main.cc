@@ -74,7 +74,7 @@ void setInputChannel(byte value) noexcept {
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
 template<bool>
-void handleTransaction() noexcept;
+inline void handleTransaction() noexcept;
 
 [[gnu::always_inline]] inline void 
 doReset(decltype(LOW) value) noexcept {
@@ -361,11 +361,11 @@ setDataLinesOutput(uint16_t value) noexcept {
     if (currentDataLinesValue != value) {
         currentDataLinesValue = value;
         if constexpr (busHeldOpen) {
-            SplitWord16 theValue(currentDataLinesValue);
-            SPDR = theValue.bytes[0];
+            SPDR = static_cast<byte>(value);
             asm volatile ("nop");
+            auto next = static_cast<byte>(value >> 8);
             while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = theValue.bytes[1];
+            SPDR = next;
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait
         } else {
@@ -553,9 +553,8 @@ inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr)
     }
 }
 template<bool EnableInlineSPIOperation>
-void 
+inline void 
 handleTransaction() noexcept {
-
     static SplitWord32 addr{0};
     uint16_t direction = 0;
     uint8_t value = 0;

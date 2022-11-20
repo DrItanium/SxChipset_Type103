@@ -477,7 +477,7 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             break;
     }
 }
-template<bool isReadOperation, bool inlineSPIOperation = false>
+template<bool isReadOperation, bool inlineSPIOperation>
 void
 handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     // okay now we can service the transaction request since it will be going

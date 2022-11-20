@@ -186,11 +186,16 @@ setupPSRAM2() noexcept {
     // to allow the psram to do it's thing
     delayMicroseconds(200);
     // 0x66 tells the PSRAM to initialize properly
-    for (int i = 0; i < 4; ++i ) {
-        setSPI1Channel(i);
+    for (int j = 0; j < 4; ++j ) {
+        setSPI1Channel(j);
         digitalWrite<Pin::CS2, LOW>();
-        SPI.transfer(0x66);
+        UDR1 = 0x66;
+        asm volatile ("nop");
+        while (!(UCSR1A & (1 << RXC1)));
         digitalWrite<Pin::CS2, HIGH>();
+    }
+    for (int j = 0; j < 4; ++j ) {
+        setSPI1Channel(j);
         // test the first 64k instead of the full 8 megabytes
         constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
         for (uint32_t i = 0; i < endAddress; i += 4) {
@@ -202,28 +207,37 @@ setupPSRAM2() noexcept {
             digitalWrite<Pin::CS2, LOW>();
             UDR1 = 0x02;
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[2];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[1];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[0];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[0];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[1];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[2];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[3];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
+            result.bytes[0] = UDR1;
             digitalWrite<Pin::CS2, HIGH>();
             asm volatile ("nop");
             asm volatile ("nop");
@@ -232,32 +246,37 @@ setupPSRAM2() noexcept {
             digitalWrite<Pin::CS2, LOW>();
             UDR1 = 0x03;
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[2];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[1];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = container.bytes[0];
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
             UDR1 = 0;
             asm volatile ("nop");
+            result.bytes[0] = UDR1;
             while (!(UCSR1A & (1 << RXC1)));
-            container.bytes[0] = UDR1;
+            result.bytes[0] = UDR1;
             UDR1 = 0;
             asm volatile ("nop");
             while (!(UCSR1A & (1 << RXC1)));
-            container.bytes[1] = UDR1;
+            result.bytes[1] = UDR1;
             UDR1 = 0;
             asm volatile ("nop");
             while (!(UCSR1A & (1 << RXC1)));
-            container.bytes[2] = UDR1;
+            result.bytes[2] = UDR1;
             UDR1 = 0;
             asm volatile ("nop");
             while (!(UCSR1A & (1 << RXC1)));
-            container.bytes[3] = UDR1;
+            result.bytes[3] = UDR1;
             digitalWrite<Pin::CS2, HIGH>();
             if (container.whole != result.whole) {
                 Serial.print(F("PSRAM MEMORY 2 TEST FAILURE: W: 0x"));
@@ -367,7 +386,7 @@ setup() {
     }
     Serial.println(F("SD CARD FOUND!"));
     setupPSRAM<false>();
-    setupPSRAM2();
+    setupPSRAM2<true>();
     setupCache();
     installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card
@@ -568,11 +587,11 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
             break;
     }
 }
-template<MCP23S17::HardwareDeviceAddress addr, MCP23S17::Register reg>
+template<MCP23S17::HardwareDeviceAddress addr, MCP23S17::Registers reg>
 void
 performGPIOPortWrite(const SplitWord32& offset, const Channel0Value&, const Channel1Value&, byte, uint16_t) noexcept {
 }
-template<MCP23S17::HardwareDeviceAddress addr, MCP23S17::Register reg>
+template<MCP23S17::HardwareDeviceAddress addr, MCP23S17::Registers reg>
 uint16_t
 performGPIOPortRead(const SplitWord32& offset, const Channel0Value&, const Channel1Value&, byte) noexcept {
     return 0;
@@ -877,12 +896,16 @@ namespace {
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }
+#if 0
+    /// @todo implement psram2 support
     size_t
     psram2MemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         setSPI1Channel(baseAddress.psram2Address.key);
         digitalWrite<Pin::CS2, LOW>();
         digitalWrite<Pin::CS2, HIGH>();
+        return count;
     }
+#endif
 }
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {

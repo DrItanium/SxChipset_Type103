@@ -72,7 +72,7 @@ void setInputChannel(byte value) noexcept {
     asm volatile ("nop");
 }
 constexpr bool EnableDebugMode = false;
-constexpr bool EnableInlineSPIOperation = false;
+constexpr bool EnableInlineSPIOperation = true;
 template<bool>
 void handleTransaction() noexcept;
 
@@ -486,7 +486,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
     if constexpr (inlineSPIOperation) {
         digitalWrite<Pin::GPIOSelect, LOW>();
         static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
-        static constexpr auto TargetRegister = isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO;
+        static constexpr auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
         SPDR = TargetAction;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))); 

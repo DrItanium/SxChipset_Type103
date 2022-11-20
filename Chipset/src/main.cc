@@ -177,6 +177,48 @@ setupRTC() noexcept {
         now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
     }
 }
+inline SplitWord32
+mspimTransfer4(SplitWord32 value) noexcept {
+    SplitWord32 result{0};
+    UDR1 = value.bytes[0];
+    UDR1 = value.bytes[1];
+    asm volatile ("nop");
+    while (!(UCSR1A & (1 << RXC1)));
+    result.bytes[0] = UDR1;
+    UDR1 = value.bytes[2];
+    asm volatile ("nop");
+    while (!(UCSR1A & (1 << RXC1)));
+    result.bytes[1] = UDR1;
+    UDR1 = value.bytes[3];
+    asm volatile ("nop");
+    while (!(UCSR1A & (1 << RXC1)));
+    result.bytes[2] = UDR1;
+    asm volatile ("nop");
+    while (!(UCSR1A & (1 << RXC1)));
+    result.bytes[3] = UDR1;
+    return result;
+}
+inline SplitWord32
+mspimTransfer4(byte a, byte b, byte c, byte d) noexcept {
+    SplitWord32 result{0};
+    UDR1 = a;
+    UDR1 = b;
+    asm volatile ("nop");
+    while (!(UCSR1A & (1 << RXC1)));
+    result.bytes[0] = UDR1;
+    UDR1 = c;
+    asm volatile ("nop");
+    while (!(UCSR1A & (1 << RXC1)));
+    result.bytes[1] = UDR1;
+    UDR1 = d;
+    asm volatile ("nop");
+    while (!(UCSR1A & (1 << RXC1)));
+    result.bytes[2] = UDR1;
+    asm volatile ("nop");
+    while (!(UCSR1A & (1 << RXC1)));
+    result.bytes[3] = UDR1;
+    return result;
+}
 template<bool performFullMemoryTest>
 void
 setupPSRAM2() noexcept {
@@ -199,90 +241,33 @@ setupPSRAM2() noexcept {
         // test the first 64k instead of the full 8 megabytes
         constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
         for (uint32_t i = 0; i < endAddress; i += 4) {
-            union {
-                uint32_t whole;
-                uint8_t bytes[4];
-            } container, result;
-            container.whole = i;
+            SplitWord32 container{i};
             digitalWrite<Pin::CS2, LOW>();
-            UDR1 = 0x02;
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[2];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[1];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[0];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[0];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[1];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[2];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[3];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            result.bytes[0] = UDR1;
+            (void)mspimTransfer4(0x02, 
+                    container.bytes[2], 
+                    container.bytes[1], 
+                    container.bytes[0]);
+            (void)mspimTransfer4(container.bytes[0], 
+                    container.bytes[1], 
+                    container.bytes[2],
+                    container.bytes[3]);
             digitalWrite<Pin::CS2, HIGH>();
             asm volatile ("nop");
             asm volatile ("nop");
             asm volatile ("nop");
             asm volatile ("nop");
             digitalWrite<Pin::CS2, LOW>();
-            UDR1 = 0x03;
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[2];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[1];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = container.bytes[0];
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            UDR1 = 0;
-            asm volatile ("nop");
-            result.bytes[0] = UDR1;
-            while (!(UCSR1A & (1 << RXC1)));
-            result.bytes[0] = UDR1;
-            UDR1 = 0;
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            result.bytes[1] = UDR1;
-            UDR1 = 0;
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            result.bytes[2] = UDR1;
-            UDR1 = 0;
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            result.bytes[3] = UDR1;
+            (void)mspimTransfer4(0x03, 
+                    container.bytes[2], 
+                    container.bytes[1], 
+                    container.bytes[0]);
+            auto result = mspimTransfer4(0, 0, 0, 0);
             digitalWrite<Pin::CS2, HIGH>();
-            if (container.whole != result.whole) {
+            if (container.full != result.full) {
                 Serial.print(F("PSRAM MEMORY 2 TEST FAILURE: W: 0x"));
-                Serial.print(container.whole, HEX);
+                Serial.print(container.full, HEX);
                 Serial.print(F(" G: 0x"));
-                Serial.println(result.whole, HEX);
+                Serial.println(result.full, HEX);
                 while (true) {
                     // halt here
                     delay(1000);

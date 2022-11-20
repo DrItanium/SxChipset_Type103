@@ -177,12 +177,120 @@ setupRTC() noexcept {
         now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
     }
 }
+template<bool performFullMemoryTest>
+void
+setupPSRAM2() noexcept {
+    while (!(UCSR1A & (1 << UDRE1)));
+    Serial.println(F("RUNNING PSRAM 2 MEMORY TEST!"));
+    // according to the manuals we need at least 200 microseconds after bootup
+    // to allow the psram to do it's thing
+    delayMicroseconds(200);
+    // 0x66 tells the PSRAM to initialize properly
+    for (int i = 0; i < 4; ++i ) {
+        setSPI1Channel(i);
+        digitalWrite<Pin::CS2, LOW>();
+        SPI.transfer(0x66);
+        digitalWrite<Pin::CS2, HIGH>();
+        // test the first 64k instead of the full 8 megabytes
+        constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
+        for (uint32_t i = 0; i < endAddress; i += 4) {
+            union {
+                uint32_t whole;
+                uint8_t bytes[4];
+            } container, result;
+            container.whole = i;
+            digitalWrite<Pin::CS2, LOW>();
+            UDR1 = 0x02;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[2];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[1];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[0];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[0];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[1];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[2];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[3];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            digitalWrite<Pin::CS2, HIGH>();
+            asm volatile ("nop");
+            asm volatile ("nop");
+            asm volatile ("nop");
+            asm volatile ("nop");
+            digitalWrite<Pin::CS2, LOW>();
+            UDR1 = 0x03;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[2];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[1];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = container.bytes[0];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            UDR1 = 0;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            container.bytes[0] = UDR1;
+            UDR1 = 0;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            container.bytes[1] = UDR1;
+            UDR1 = 0;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            container.bytes[2] = UDR1;
+            UDR1 = 0;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            container.bytes[3] = UDR1;
+            digitalWrite<Pin::CS2, HIGH>();
+            if (container.whole != result.whole) {
+                Serial.print(F("PSRAM MEMORY 2 TEST FAILURE: W: 0x"));
+                Serial.print(container.whole, HEX);
+                Serial.print(F(" G: 0x"));
+                Serial.println(result.whole, HEX);
+                while (true) {
+                    // halt here
+                    delay(1000);
+                }
+            }
+        }
+    }
+    Serial.println(F("PSRAM 2 MEMORY TEST COMPLETE!"));
+}
+void
+setupMSPIM() noexcept {
+    pinMode(Pin::CS2, OUTPUT);
+    digitalWrite<Pin::CS2, HIGH>();
+    UBRR1 = 0x0000; // clear the baud first
+    bitSet(DDRD, PD4);
+    UCSR1C = 0b11000000; // enable MPSIM and set MSBFIRST and MODE0
+    UCSR1B = 0b00011000; // enable transmitter and receiver
+    UBRR1 = 0x0001; // set to 5 mhz for testing
+}
 void 
 setup() {
     Serial.begin(115200);
     setupRTC();
     Serial.println(now().unixtime());
     SPI.begin();
+    // setup the second spi bus
+    setupMSPIM();
     // setup the IO Expanders
     MCP23S17::IOCON reg;
     reg.makeInterruptPinsIndependent();
@@ -259,6 +367,7 @@ setup() {
     }
     Serial.println(F("SD CARD FOUND!"));
     setupPSRAM<false>();
+    setupPSRAM2();
     setupCache();
     installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card
@@ -459,6 +568,69 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
             break;
     }
 }
+template<MCP23S17::HardwareDeviceAddress addr, MCP23S17::Register reg>
+void
+performGPIOPortWrite(const SplitWord32& offset, const Channel0Value&, const Channel1Value&, byte, uint16_t) noexcept {
+}
+template<MCP23S17::HardwareDeviceAddress addr, MCP23S17::Register reg>
+uint16_t
+performGPIOPortRead(const SplitWord32& offset, const Channel0Value&, const Channel1Value&, byte) noexcept {
+    return 0;
+}
+
+template<bool isReadOperation>
+inline void
+handleGPIOAOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    /*
+    IODIR,
+    IPOL,
+    GPINTEN,
+    DEFVAL,
+    INTCON,
+    IOCON,
+    GPPU,
+    INTF,
+    INTCAP,
+    GPIO,
+    OLAT,
+    */
+    switch (addr.getIOFunction<GPIOFunction>()) {
+        case GPIOFunction::IODIR:
+        case GPIOFunction::IPOL:
+        case GPIOFunction::GPINTEN:
+        case GPIOFunction::DEFVAL:
+        case GPIOFunction::INTCON:
+        case GPIOFunction::IOCON:
+        case GPIOFunction::GPPU:
+        case GPIOFunction::INTF:
+        case GPIOFunction::INTCAP:
+        case GPIOFunction::GPIO:
+        case GPIOFunction::OLAT:
+        default:
+            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
+            break;
+    }
+}
+template<bool isReadOperation>
+inline void
+handleGPIOBOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    switch (addr.getIOFunction<GPIOFunction>()) {
+        case GPIOFunction::IODIR:
+        case GPIOFunction::IPOL:
+        case GPIOFunction::GPINTEN:
+        case GPIOFunction::DEFVAL:
+        case GPIOFunction::INTCON:
+        case GPIOFunction::IOCON:
+        case GPIOFunction::GPPU:
+        case GPIOFunction::INTF:
+        case GPIOFunction::INTCAP:
+        case GPIOFunction::GPIO:
+        case GPIOFunction::OLAT:
+        default:
+            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
+            break;
+    }
+}
 
 template<bool isReadOperation>
 inline void 
@@ -474,6 +646,12 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIOGroup()) {
         case IOGroup::Serial:
             handleSerialOperation<isReadOperation>(addr, m0);
+            break;
+        case IOGroup::GPIOA:
+            handleGPIOAOperation<isReadOperation>(addr, m0);
+            break;
+        case IOGroup::GPIOB:
+            handleGPIOBOperation<isReadOperation>(addr, m0);
             break;
         default:
             genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
@@ -698,6 +876,12 @@ namespace {
         }
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
+    }
+    size_t
+    psram2MemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        setSPI1Channel(baseAddress.psram2Address.key);
+        digitalWrite<Pin::CS2, LOW>();
+        digitalWrite<Pin::CS2, HIGH>();
     }
 }
 size_t

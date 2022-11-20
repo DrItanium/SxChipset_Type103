@@ -51,10 +51,7 @@ enum class IOGroup : byte{
      * @brief Second 32-bit port accessor
      */
     GPIOB,
-    /**
-     * @brief Operations relating to the second SPI bus that we have exposed
-     */
-    SPI2,
+    Drive,
     Undefined,
 };
 static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");
@@ -63,7 +60,7 @@ constexpr IOGroup getGroup(uint8_t value) noexcept {
         case IOGroup::Serial:
         case IOGroup::GPIOA:
         case IOGroup::GPIOB:
-        case IOGroup::SPI2:
+        case IOGroup::Drive:
             return static_cast<IOGroup>(value);
         default:
             return IOGroup::Undefined;
@@ -121,6 +118,11 @@ union SplitWord32 {
         uint32_t group : 4;
         uint32_t req : 4;
     } ioRequestAddress;
+    struct {
+        uint32_t offset : 23; // 8 megabyte offset
+        uint32_t key : 2; // we have four devices available
+        uint32_t unused : 7; // unused portion above
+    } psram2Address;
     [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
     [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
     [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }

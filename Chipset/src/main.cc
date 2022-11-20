@@ -261,6 +261,8 @@ setup() {
     setupPSRAM<false>();
     setupCache();
     installMemoryImage();
+    // okay so we got the image installed, now we just terminate the SD card
+    SD.end();
     pullCPUOutOfReset();
     while (digitalRead<Pin::FAIL>() == LOW) {
         if (digitalRead<Pin::DEN>() == LOW) {
@@ -371,9 +373,10 @@ setDataLinesOutput(uint16_t value) noexcept {
         }
     }
 }
+SplitWord16 previousValue{0};
 template<bool busHeldOpen>
-uint16_t getDataLines(const Channel1Value& c1) noexcept {
-    static SplitWord16 previousValue{0};
+inline uint16_t 
+getDataLines(const Channel1Value& c1) noexcept {
     if (c1.channel1.dataInt != 0b11) {
         if constexpr (busHeldOpen) {
             SPDR = 0;

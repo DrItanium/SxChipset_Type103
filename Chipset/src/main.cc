@@ -219,6 +219,10 @@ mspimTransfer4(byte a, byte b, byte c, byte d) noexcept {
     result.bytes[3] = UDR1;
     return result;
 }
+namespace {
+    size_t psram2MemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+    size_t psram2MemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+}
 template<bool performFullMemoryTest>
 void
 setupPSRAM2() noexcept {
@@ -242,6 +246,7 @@ setupPSRAM2() noexcept {
         constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
         for (uint32_t i = 0; i < endAddress; i += 4) {
             SplitWord32 container{i};
+#if 0
             digitalWrite<Pin::CS2, LOW>();
             (void)mspimTransfer4(0x02, 
                     container.bytes[2], 
@@ -252,6 +257,10 @@ setupPSRAM2() noexcept {
                     container.bytes[2],
                     container.bytes[3]);
             digitalWrite<Pin::CS2, HIGH>();
+#else
+        (void)psram2MemoryWrite(container, container.bytes, sizeof(uint32_t));
+#endif
+
             asm volatile ("nop");
             asm volatile ("nop");
             asm volatile ("nop");
@@ -881,16 +890,42 @@ namespace {
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }
-#if 0
     /// @todo implement psram2 support
     size_t
     psram2MemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        volatile byte sink = 0;
         setSPI1Channel(baseAddress.psram2Address.key);
         digitalWrite<Pin::CS2, LOW>();
+        UDR1 = 0x02;
+        UDR1 = baseAddress.psram2Address.higher;
+        asm volatile ("nop");
+        while (!(UCSR1A & (1 << RXC1))); // 0x02 transferred
+        sink = UDR1;
+        UDR1 = baseAddress.psram2Address.middle;
+        asm volatile ("nop");
+        while (!(UCSR1A & (1 << RXC1))); // highest 7 bits transferred
+        sink = UDR1;
+        UDR1 = baseAddress.psram2Address.lowest;
+        asm volatile ("nop");
+        while (!(UCSR1A & (1 << RXC1))); // middle 8 bits transferred
+        // so at this point we have some choices, first is to 
+        sink = UDR1;
+        UDR1 = bytes[0];
+        asm volatile ("nop");
+        while (!(UCSR1A & (1 << RXC1))); // lowest 8 bits transferred
+        for (size_t i = 1; i < count; ++i) {
+            sink = UDR1;
+            UDR1 = bytes[i];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1))); // first byte/next byte 
+        }
+        sink = UDR1;
+        asm volatile ("nop");
+        while (!(UCSR1A & (1 << RXC1)));
+        sink = UDR1;
         digitalWrite<Pin::CS2, HIGH>();
         return count;
     }
-#endif
 }
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {

@@ -119,9 +119,11 @@ union SplitWord32 {
         uint32_t req : 4;
     } ioRequestAddress;
     struct {
-        uint32_t offset : 23; // 8 megabyte offset
-        uint32_t key : 2; // we have four devices available
-        uint32_t unused : 7; // unused portion above
+        uint8_t lowest;
+        uint8_t middle;
+        uint8_t higher : 7;
+        uint8_t key : 2;
+        uint8_t unused : 7;
     } psram2Address;
     [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
     [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }

@@ -289,15 +289,56 @@ setupPSRAM2() noexcept {
             (void)UDR1;
             asm volatile ("nop");
             while (!(UCSR1A & (1 << RXC1)));
-            (void)UDR1;
 #endif
             digitalWrite<Pin::CS2, HIGH>();
             digitalWrite<Pin::CS2, LOW>();
+#if 0
             (void)mspimTransfer4(0x03, 
                     container.bytes[2], 
                     container.bytes[1], 
                     container.bytes[0]);
             auto result = mspimTransfer4(0, 0, 0, 0);
+#else
+            UDR1 = 0x03;
+            (void)UDR1;
+            UDR1 = container.bytes[2];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1))); // 0x03
+
+            (void)UDR1;
+            UDR1 = container.bytes[1];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1))); // container.bytes[2]
+
+            (void)UDR1;
+            UDR1 = container.bytes[0];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1))); // container.bytes[1]
+
+            (void)UDR1;
+            UDR1 = 0;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1))); //container.bytes[0]
+
+            (void)UDR1;
+            UDR1 = 0;
+            asm volatile ("nop");
+            SplitWord32 result{0};
+            while (!(UCSR1A & (1 << RXC1))); // 0
+            result.bytes[0] = UDR1;
+            UDR1 = 0;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+
+            result.bytes[1] = UDR1;
+            UDR1 = container.bytes[3];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            result.bytes[2] = UDR1;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            result.bytes[3] = UDR1;
+#endif
             digitalWrite<Pin::CS2, HIGH>();
 
             if (container.full != result.full) {

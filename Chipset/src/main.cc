@@ -363,7 +363,7 @@ setupMSPIM() noexcept {
     bitSet(DDRD, PD4);
     UCSR1C = 0b11000000; // enable MPSIM and set MSBFIRST and MODE0
     UCSR1B = 0b00011000; // enable transmitter and receiver
-    UBRR1 = 0x0001; // set to 5 mhz for testing
+    UBRR1 = 0x0000; // set to 5 mhz for testing
 }
 void 
 setup() {

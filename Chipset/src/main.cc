@@ -219,6 +219,7 @@ mspimTransfer4(byte a, byte b, byte c, byte d) noexcept {
     result.bytes[3] = UDR1;
     return result;
 }
+
 template<bool performFullMemoryTest>
 void
 setupPSRAM2() noexcept {
@@ -449,7 +450,7 @@ setup() {
     }
     Serial.println(F("SD CARD FOUND!"));
     setupPSRAM<false>();
-    setupPSRAM2<true>();
+    setupPSRAM2<false>();
     setupCache();
     installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card

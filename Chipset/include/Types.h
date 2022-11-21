@@ -43,14 +43,6 @@ enum class IOGroup : byte{
      * @brief Serial console related operations
      */
     Serial,
-    /**
-     * @brief First 32-bit port accessor
-     */
-    GPIOA,
-    /**
-     * @brief Second 32-bit port accessor
-     */
-    GPIOB,
     Drive,
     Undefined,
 };
@@ -58,8 +50,6 @@ static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups d
 constexpr IOGroup getGroup(uint8_t value) noexcept {
     switch (static_cast<IOGroup>(value & 0b1111)) {
         case IOGroup::Serial:
-        case IOGroup::GPIOA:
-        case IOGroup::GPIOB:
         case IOGroup::Drive:
             return static_cast<IOGroup>(value);
         default:
@@ -71,19 +61,6 @@ enum class SerialGroupFunction : byte {
     RWCompact,
     RWDMAStyle,
     Flush,
-};
-enum class GPIOFunction : byte {
-    IODIR,
-    IPOL,
-    GPINTEN,
-    DEFVAL,
-    INTCON,
-    IOCON,
-    GPPU,
-    INTF,
-    INTCAP,
-    GPIO,
-    OLAT,
 };
 enum class EnableStyle : byte {
     Full16 = 0b00,

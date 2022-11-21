@@ -39,8 +39,6 @@ constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
 constexpr auto AddressLower = MCP23S17::HardwareDeviceAddress::Device2;
 constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
-constexpr auto GPIOA_Lower = MCP23S17::HardwareDeviceAddress::Device4;
-constexpr auto GPIOA_Upper = MCP23S17::HardwareDeviceAddress::Device5;
 
 [[gnu::always_inline]] 
 inline void 
@@ -201,14 +199,6 @@ setup() {
     MCP23S17::writeIOCON<XIO>(reg);
     MCP23S17::writeDirection<XIO>(MCP23S17::AllInput16);
     reg.interruptIsActiveHigh();
-    MCP23S17::writeIOCON<GPIOA_Lower>(reg);
-    MCP23S17::writeDirection<GPIOA_Lower>(MCP23S17::AllInput16);
-    MCP23S17::writeIOCON<GPIOA_Upper>(reg);
-    MCP23S17::writeDirection<GPIOA_Upper>(MCP23S17::AllInput16);
-    MCP23S17::writeIOCON<GPIOB_Lower>(reg);
-    MCP23S17::writeDirection<GPIOB_Lower>(MCP23S17::AllInput16);
-    MCP23S17::writeIOCON<GPIOB_Upper>(reg);
-    MCP23S17::writeDirection<GPIOB_Upper>(MCP23S17::AllInput16);
     dataLinesDirection = MCP23S17::AllInput16;
     currentDataLinesValue = 0;
     MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
@@ -451,49 +441,6 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
             break;
     }
 }
-template<MCP23S17::HardwareDeviceAddress addr, MCP23S17::Registers reg>
-void
-performGPIOPortWrite(const SplitWord32& offset, const Channel0Value&, const Channel1Value&, byte, uint16_t) noexcept {
-}
-template<MCP23S17::HardwareDeviceAddress addr, MCP23S17::Registers reg>
-uint16_t
-performGPIOPortRead(const SplitWord32& offset, const Channel0Value&, const Channel1Value&, byte) noexcept {
-    return 0;
-}
-
-template<bool isReadOperation>
-inline void
-handleGPIOAOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    /*
-    IODIR,
-    IPOL,
-    GPINTEN,
-    DEFVAL,
-    INTCON,
-    IOCON,
-    GPPU,
-    INTF,
-    INTCAP,
-    GPIO,
-    OLAT,
-    */
-    switch (addr.getIOFunction<GPIOFunction>()) {
-        case GPIOFunction::IODIR:
-        case GPIOFunction::IPOL:
-        case GPIOFunction::GPINTEN:
-        case GPIOFunction::DEFVAL:
-        case GPIOFunction::INTCON:
-        case GPIOFunction::IOCON:
-        case GPIOFunction::GPPU:
-        case GPIOFunction::INTF:
-        case GPIOFunction::INTCAP:
-        case GPIOFunction::GPIO:
-        case GPIOFunction::OLAT:
-        default:
-            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
-            break;
-    }
-}
 
 template<bool isReadOperation>
 inline void 
@@ -509,9 +456,6 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIOGroup()) {
         case IOGroup::Serial:
             handleSerialOperation<isReadOperation>(addr, m0);
-            break;
-        case IOGroup::GPIOA:
-            handleGPIOAOperation<isReadOperation>(addr, m0);
             break;
         default:
             genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);

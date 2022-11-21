@@ -960,80 +960,12 @@ namespace {
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }
-    size_t
-    psram2MemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        if (baseAddress.psram2Address.section == 0) {
-            setSPI1Channel(baseAddress.psram2Address.key);
-            digitalWrite<Pin::CS2, LOW>();
-            UDR1 = 0x02;
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            (void)UDR1;
-            UDR1 = baseAddress.bytes[2];
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            (void)UDR1;
-            UDR1 = baseAddress.bytes[1];
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            (void)UDR1;
-            UDR1 = baseAddress.bytes[0];
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            for (size_t i = 0; i < count; ++i) {
-                (void)UDR1;
-                UDR1 = bytes[i]; 
-                asm volatile ("nop");
-                while (!(UCSR1A & (1 << RXC1)));
-            }
-            digitalWrite<Pin::CS2, HIGH>();
-        }
-        return count;
-    }
-    size_t
-    psram2MemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        if (baseAddress.psram2Address.section == 0) {
-            setSPI1Channel(baseAddress.psram2Address.key);
-            digitalWrite<Pin::CS2, LOW>();
-            UDR1 = 0x03;
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            (void)UDR1;
-            UDR1 = baseAddress.bytes[2];
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            (void)UDR1;
-            UDR1 = baseAddress.bytes[1];
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            (void)UDR1;
-            UDR1 = baseAddress.bytes[0];
-            asm volatile ("nop");
-            while (!(UCSR1A & (1 << RXC1)));
-            for (size_t i = 0; i < count; ++i) {
-                (void)UDR1;
-                UDR1 = bytes[i]; 
-                asm volatile ("nop");
-                while (!(UCSR1A & (1 << RXC1)));
-            }
-            (void)UDR1;
-            digitalWrite<Pin::CS2, HIGH>();
-        }  else {
-            for (size_t i = 0; i < count; ++i) {
-                bytes[i] = 0;
-            }
-        }
-        return count;
-        
-    }
 }
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    //return psramMemoryWrite(baseAddress, bytes, count);
-    return psram2MemoryWrite(baseAddress, bytes, count);
+    return psramMemoryWrite(baseAddress, bytes, count);
 }
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    //return psramMemoryRead(baseAddress, bytes, count);
-    return psram2MemoryRead(baseAddress, bytes, count);
+    return psramMemoryRead(baseAddress, bytes, count);
 }

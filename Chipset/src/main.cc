@@ -244,19 +244,54 @@ setupPSRAM2() noexcept {
         for (uint32_t i = 0; i < endAddress; i += 4) {
             SplitWord32 container{i};
             digitalWrite<Pin::CS2, LOW>();
+#if 0
             (void)mspimTransfer4(0x02, 
                     container.bytes[2], 
                     container.bytes[1], 
                     container.bytes[0]);
-            (void)mspimTransfer4(container.bytes[0], 
-                    container.bytes[1], 
-                    container.bytes[2],
-                    container.bytes[3]);
+            (void)mspimTransfer4(container);
+#else
+            UDR1 = 0x02;
+            UDR1 = container.bytes[2];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+
+            (void)UDR1;
+            UDR1 = container.bytes[1];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+
+            (void)UDR1;
+            UDR1 = container.bytes[0];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+
+            (void)UDR1;
+            UDR1 = container.bytes[0];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+
+            (void)UDR1;
+            UDR1 = container.bytes[1];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+
+            (void)UDR1;
+            UDR1 = container.bytes[2];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+
+            (void)UDR1;
+            UDR1 = container.bytes[3];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+
+            (void)UDR1;
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            (void)UDR1;
+#endif
             digitalWrite<Pin::CS2, HIGH>();
-            asm volatile ("nop");
-            asm volatile ("nop");
-            asm volatile ("nop");
-            asm volatile ("nop");
             digitalWrite<Pin::CS2, LOW>();
             (void)mspimTransfer4(0x03, 
                     container.bytes[2], 

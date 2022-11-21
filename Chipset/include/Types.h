@@ -123,7 +123,7 @@ union SplitWord32 {
         uint8_t middle;
         uint8_t higher : 7;
         uint8_t key : 2;
-        uint8_t unused : 7;
+        uint8_t section : 7;
     } psram2Address;
     [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
     [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }

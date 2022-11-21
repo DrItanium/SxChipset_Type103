@@ -990,32 +990,39 @@ namespace {
     }
     size_t
     psram2MemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        setSPI1Channel(baseAddress.psram2Address.key);
-        digitalWrite<Pin::CS2, LOW>();
-        UDR1 = 0x03;
-        asm volatile ("nop");
-        while (!(UCSR1A & (1 << RXC1)));
-        (void)UDR1;
-        UDR1 = baseAddress.bytes[2];
-        asm volatile ("nop");
-        while (!(UCSR1A & (1 << RXC1)));
-        (void)UDR1;
-        UDR1 = baseAddress.bytes[1];
-        asm volatile ("nop");
-        while (!(UCSR1A & (1 << RXC1)));
-        (void)UDR1;
-        UDR1 = baseAddress.bytes[0];
-        asm volatile ("nop");
-        while (!(UCSR1A & (1 << RXC1)));
-        for (size_t i = 0; i < count; ++i) {
-            (void)UDR1;
-            UDR1 = bytes[i]; 
+        if (baseAddress.psram2Address.section == 0) {
+            setSPI1Channel(baseAddress.psram2Address.key);
+            digitalWrite<Pin::CS2, LOW>();
+            UDR1 = 0x03;
             asm volatile ("nop");
             while (!(UCSR1A & (1 << RXC1)));
+            (void)UDR1;
+            UDR1 = baseAddress.bytes[2];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            (void)UDR1;
+            UDR1 = baseAddress.bytes[1];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            (void)UDR1;
+            UDR1 = baseAddress.bytes[0];
+            asm volatile ("nop");
+            while (!(UCSR1A & (1 << RXC1)));
+            for (size_t i = 0; i < count; ++i) {
+                (void)UDR1;
+                UDR1 = bytes[i]; 
+                asm volatile ("nop");
+                while (!(UCSR1A & (1 << RXC1)));
+            }
+            (void)UDR1;
+            digitalWrite<Pin::CS2, HIGH>();
+        }  else {
+            for (size_t i = 0; i < count; ++i) {
+                bytes[i] = 0;
+            }
         }
-        (void)UDR1;
-        digitalWrite<Pin::CS2, HIGH>();
         return count;
+        
     }
 }
 size_t

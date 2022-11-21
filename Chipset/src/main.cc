@@ -234,6 +234,7 @@ setupPSRAM2() noexcept {
         UDR1 = 0x66;
         asm volatile ("nop");
         while (!(UCSR1A & (1 << RXC1)));
+        (void)UDR1;
         digitalWrite<Pin::CS2, HIGH>();
     }
     for (int j = 0; j < 4; ++j ) {

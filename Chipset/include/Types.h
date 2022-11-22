@@ -43,19 +43,23 @@ enum class IOGroup : byte{
      * @brief Serial console related operations
      */
     Serial,
-    Drive,
+    Info,
     Undefined,
 };
 static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");
 constexpr IOGroup getGroup(uint8_t value) noexcept {
     switch (static_cast<IOGroup>(value & 0b1111)) {
         case IOGroup::Serial:
-        case IOGroup::Drive:
+        case IOGroup::Info:
             return static_cast<IOGroup>(value);
         default:
             return IOGroup::Undefined;
     }
 }
+enum class InfoGroupFunction : byte {
+    GetChipsetClock,
+    GetCPUClock,
+};
 enum class SerialGroupFunction : byte {
     RWFast,
     RWCompact,

@@ -44,6 +44,7 @@ DefPort(A),
 Count,
 #undef DefPin
 #undef DefPort
+SEL1, /// @todo reimplement later on with something else
 // concepts
     HOLD = PortB0,
     CLKO = PortB1,

@@ -52,11 +52,33 @@ configureReset() noexcept {
     theDirection &= ~0b1;
     MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
 }
-void setInputChannel(byte value) noexcept {
-    if (value & 0b1) {
-        digitalWrite<Pin::SEL, HIGH>();
+void 
+setInputChannel(byte value) noexcept {
+    if constexpr (isPhysicalPin_v<Pin::SEL1>) {
+        switch(value & 0b11) {
+            case 0b00:
+                digitalWrite<Pin::SEL, LOW>();
+                digitalWrite<Pin::SEL1, LOW>();
+                break;
+            case 0b01:
+                digitalWrite<Pin::SEL, HIGH>();
+                digitalWrite<Pin::SEL1, LOW>();
+                break;
+            case 0b10:
+                digitalWrite<Pin::SEL, LOW>();
+                digitalWrite<Pin::SEL1, HIGH>();
+                break;
+            case 0b11:
+                digitalWrite<Pin::SEL, HIGH>();
+                digitalWrite<Pin::SEL1, HIGH>();
+                break;
+        }
     } else {
-        digitalWrite<Pin::SEL, LOW>();
+        if (value & 0b1) {
+            digitalWrite<Pin::SEL, HIGH>();
+        } else {
+            digitalWrite<Pin::SEL, LOW>();
+        }
     }
     asm volatile ("nop");
     asm volatile ("nop");
@@ -395,6 +417,36 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         }
     }
 }
+constexpr auto SystemClockRate = F_CPU;
+constexpr auto CPUClockRate = SystemClockRate / 2;
+template<uint32_t value>
+uint16_t
+expose32BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
+    switch (offset) {
+        case 0:
+            return static_cast<uint16_t>(value);
+        case 1:
+            return static_cast<uint16_t>(value >> 16);
+        default:
+            return 0;
+    }
+}
+template<uint64_t value>
+uint16_t
+expose64BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
+    switch (offset) {
+        case 0:
+            return static_cast<uint16_t>(value);
+        case 1:
+            return static_cast<uint16_t>(value >> 16);
+        case 2:
+            return static_cast<uint16_t>(value >> 32);
+        case 3:
+            return static_cast<uint16_t>(value >> 48);
+        default:
+            return 0;
+    }
+}
 uint16_t
 performSerialRead_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
     return Serial.read();
@@ -443,6 +495,22 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
 }
 
 template<bool isReadOperation>
+inline void
+handleInfoOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    switch (addr.getIOFunction<InfoGroupFunction>()) {
+        case InfoGroupFunction::GetChipsetClock:
+            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<SystemClockRate>, performNullWrite);
+            break;
+        case InfoGroupFunction::GetCPUClock:
+            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<CPUClockRate>, performNullWrite);
+            break;
+        default:
+            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
+            break;
+    }
+}
+
+template<bool isReadOperation>
 inline void 
 handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     // When we are in io space, we are treating the address as an opcode which
@@ -456,6 +524,9 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIOGroup()) {
         case IOGroup::Serial:
             handleSerialOperation<isReadOperation>(addr, m0);
+            break;
+        case IOGroup::Info:
+            handleInfoOperation<isReadOperation>(addr, m0);
             break;
         default:
             genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);

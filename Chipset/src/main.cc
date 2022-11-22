@@ -491,6 +491,39 @@ uint16_t
 performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
     return 0;
 }
+/**
+ * @brief Fallback implementation when the io request doesn't map to any one
+ * function
+ */
+template<bool isReadOperation>
+void
+genericIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        if constexpr (isReadOperation) {
+            setDataLinesOutput<false>(0);
+        } 
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+
+template<bool isReadOperation>
+void
+genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        if constexpr (isReadOperation) {
+            setDataLinesOutput<false>(onRead(addr, m0, readInputChannelAs<Channel1Value>(), offset));
+        } 
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
 template<bool isReadOperation>
 inline void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
@@ -503,10 +536,10 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
             break;
         case SerialGroupFunction::Flush:
             Serial.flush();
-            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
+            genericIOHandler<isReadOperation>(addr, m0);
             break;
         default:
-            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
+            genericIOHandler<isReadOperation>(addr, m0);
             break;
     }
 }
@@ -516,13 +549,13 @@ inline void
 handleInfoOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIOFunction<InfoGroupFunction>()) {
         case InfoGroupFunction::GetChipsetClock:
-            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<SystemClockRate>, performNullWrite);
+            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<SystemClockRate>);
             break;
         case InfoGroupFunction::GetCPUClock:
-            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<CPUClockRate>, performNullWrite);
+            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<CPUClockRate>);
             break;
         default:
-            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
+            genericIOHandler<isReadOperation>(addr, m0);
             break;
     }
 }
@@ -546,7 +579,7 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             handleInfoOperation<isReadOperation>(addr, m0);
             break;
         default:
-            genericIOHandler<isReadOperation>(addr, m0, performNullRead, performNullWrite);
+            genericIOHandler<isReadOperation>(addr, m0);
             break;
     }
 }

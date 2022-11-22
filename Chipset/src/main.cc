@@ -54,7 +54,7 @@ configureReset() noexcept {
 }
 void 
 setInputChannel(byte value) noexcept {
-    if constexpr (isPhysicalPin_v<Pin::SEL1>) {
+    if constexpr (IsPhysicalPin_v<Pin::SEL1>) {
         switch(value & 0b11) {
             case 0b00:
                 digitalWrite<Pin::SEL, LOW>();

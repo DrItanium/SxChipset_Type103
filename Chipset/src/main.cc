@@ -41,6 +41,11 @@ constexpr auto AddressLower = MCP23S17::HardwareDeviceAddress::Device2;
 constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
 
 [[gnu::always_inline]] 
+inline void
+interruptI960() noexcept {
+    pulse<Pin::INT0_, LOW, HIGH>();
+}
+[[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
@@ -349,8 +354,8 @@ installMemoryImage() noexcept {
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
-        constexpr auto BufferSize = 1024;
-        uint8_t buffer[BufferSize];
+        auto BufferSize = getCache().sizeOfBuffer();
+        auto* buffer = getCache().asBuffer();
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
@@ -366,6 +371,7 @@ installMemoryImage() noexcept {
         memoryImage.close();
         Serial.println();
         Serial.println(F("transfer complete!"));
+        getCache().clear();
     }
 }
 

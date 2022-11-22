@@ -44,6 +44,7 @@ enum class IOGroup : byte{
      */
     Serial,
     Info,
+    Timer,
     Undefined,
 };
 static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");
@@ -258,6 +259,12 @@ struct DataCache {
         for (auto& set : cache) {
             set.begin();
         }
+    }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return reinterpret_cast<byte*>(cache);
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return sizeof(cache);
     }
     private:
         DataCacheSet cache[NumberOfSets];

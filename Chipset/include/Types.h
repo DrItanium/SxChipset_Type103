@@ -219,7 +219,7 @@ struct DataCacheLine {
 
 };
 struct DataCacheSet {
-    static constexpr auto NumberOfLines = 5;
+    static constexpr auto NumberOfLines = 4;
     inline void begin() noexcept {
         replacementIndex_ = 0;
         for (auto& line : lines) {

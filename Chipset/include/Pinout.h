@@ -80,7 +80,23 @@ SEL1, /// @todo reimplement later on with something else
     ADDR_INT2 = Capture6, RAM_IO = Capture6, 
     ADDR_INT3 = Capture7, Channel1_7 = Capture7,
 #elif defined(TYPE_103A)
-    SEL = PORT_B0,
+    // fake entries
+    Channel1_7,
+    ADDR_INT1,
+    ADDR_INT2,
+    ADDR_INT3,
+    RAM_IO,
+    XIO_INT,
+    Channel0_3,
+    SPI2_OFFSET0,
+    SPI2_OFFSET1,
+    SPI2_OFFSET2,
+    CS2,
+    HOLD,
+    HLDA,
+    INT3_,
+    // aliases
+    SEL = PortB0,
     CLKO = PortB1,
     Ready = PortB2,
     SEL1 = PortB3,
@@ -332,7 +348,19 @@ digitalRead() noexcept {
 }
 [[gnu::always_inline]] inline 
 void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
-    pinMode(static_cast<int>(pin), direction);
+    if (isPhysicalPin(pin)) {
+        pinMode(static_cast<int>(pin), direction);
+    } 
+    // if the pin is not a physical one then don't expand it
+}
+
+template<Pin pin>
+[[gnu::always_inline]] inline 
+void pinMode(decltype(INPUT) direction) noexcept {
+    if constexpr (isPhysicalPin(pin)) {
+        pinMode(static_cast<int>(pin), direction);
+    } 
+    // if the pin is not a physical one then don't expand it
 }
 
 template<Pin pin>

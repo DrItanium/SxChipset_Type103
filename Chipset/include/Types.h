@@ -99,13 +99,6 @@ union SplitWord32 {
         uint32_t group : 4;
         uint32_t req : 4;
     } ioRequestAddress;
-    struct {
-        uint8_t lowest;
-        uint8_t middle;
-        uint8_t higher : 7;
-        uint8_t key : 2;
-        uint8_t section : 7;
-    } psram2Address;
     [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
     [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
     [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
@@ -212,7 +205,7 @@ struct DataCacheLine {
         clear();
     }
     private:
-        uint32_t key_ :KeySize;
+        uint32_t key_ : KeySize;
         Word8 flags_;
         SplitWord16 words[NumberOfWords];
 

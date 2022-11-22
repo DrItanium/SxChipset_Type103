@@ -83,6 +83,16 @@ setInputChannel(byte value) noexcept {
     asm volatile ("nop");
     asm volatile ("nop");
 }
+template<typename T, bool introduceCpuCycleDelay = false>
+inline T
+readInputChannelAs() noexcept {
+    // make sure there is a builtin delay
+    if constexpr (introduceCpuCycleDelay) {
+        asm volatile ("nop");
+        asm volatile ("nop");
+    }
+    return T{PINA};
+}
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
 template<bool>
@@ -405,7 +415,7 @@ void
 genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead, WriteOperation onWrite) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        Channel1Value c1(PINA);
+        auto c1 = readInputChannelAs<Channel1Value>();
         if constexpr (isReadOperation) {
             setDataLinesOutput<false>(onRead(addr, m0, c1, offset));
         } else {
@@ -561,7 +571,7 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
             }
             setDataLinesOutput<inlineSPIOperation>(value);
         } else {
-            Channel1Value c1(PINA);
+            auto c1 = readInputChannelAs<Channel1Value>();
             auto value = getDataLines<inlineSPIOperation>(c1);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
@@ -605,6 +615,7 @@ inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr)
         }
     }
 }
+
 template<bool EnableInlineSPIOperation>
 inline void 
 handleTransaction() noexcept {
@@ -616,7 +627,7 @@ handleTransaction() noexcept {
     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
-    Channel0Value m0(PINA);
+    auto m0 = readInputChannelAs<Channel0Value>();
     if (m0.channel0.upperAddr != 0b11) {
         digitalWrite<Pin::GPIOSelect, LOW>();
         SPDR = MCP23S17::ReadOpcode_v<AddressUpper>;

@@ -256,6 +256,7 @@ setup() {
     pinMode<Pin::Capture5>(INPUT);
     pinMode<Pin::Capture6>(INPUT);
     pinMode<Pin::Capture7>(INPUT);
+    pinMode<Pin::SEL1>(OUTPUT);
     configureReset();
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::HOLD, LOW>();

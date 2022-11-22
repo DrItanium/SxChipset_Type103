@@ -44,6 +44,7 @@ DefPort(A),
 Count,
 #undef DefPin
 #undef DefPort
+#ifdef TYPE_103
 SEL1, /// @todo reimplement later on with something else
 // concepts
     HOLD = PortB0,
@@ -78,6 +79,66 @@ SEL1, /// @todo reimplement later on with something else
     ADDR_INT1 = Capture5, DATA_INT1 = Capture5,
     ADDR_INT2 = Capture6, RAM_IO = Capture6, 
     ADDR_INT3 = Capture7, Channel1_7 = Capture7,
+#elif defined(TYPE_103A)
+    SEL = PORT_B0,
+    CLKO = PortB1,
+    Ready = PortB2,
+    SEL1 = PortB3,
+    GPIOSelect = PortB4,
+
+    PSRAM0 = PortD2,
+    INT0_ = PortD7,
+    SD_EN = PortC5,
+    Capture0 = PortA0,
+    Capture1 = PortA1,
+    Capture2 = PortA2,
+    Capture3 = PortA3,
+    Capture4 = PortA4,
+    Capture5 = PortA5,
+    Capture6 = PortA6,
+    Capture7 = PortA7,
+    // channel 0
+    DEN = Capture0, 
+    FAIL = Capture1, 
+    ADDR_INT0 = Capture2,
+    BE0 = Capture3,
+    BE1 = Capture4,
+    BLAST_ = Capture5,
+    DATA_INT0 = Capture6,
+    DATA_INT1 = Capture7,
+#define X(x, y) ADR ## x = Capture ## y
+    // channel 1
+    X(16, 0),
+    X(17, 1),
+    X(18, 2),
+    X(19, 3),
+    X(20, 4),
+    X(21, 5),
+    X(22, 6),
+    X(23, 7),
+    // channel 2
+    W_R_ = Capture0,
+    X(1, 1),
+    X(2, 2),
+    X(3, 3),
+    X(4, 4),
+    X(5, 5),
+    X(6, 6),
+    X(7, 7),
+    // channel 3
+    X(8, 0),
+    X(9, 1),
+    X(10, 2),
+    X(11, 3),
+    X(12, 4),
+    X(13, 5),
+    X(14, 6),
+    X(15, 7),
+#undef X
+
+#else
+#error "Unknown board type defined!"
+#endif
 };
 enum class Port : byte {
     A,

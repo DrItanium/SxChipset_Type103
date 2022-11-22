@@ -363,7 +363,7 @@ installMemoryImage() noexcept {
             if (numRead < 0) {
                 SD.errorHalt();
             }
-            memoryWrite(currentAddressLine, buffer, BufferSize);
+            memoryWrite(currentAddressLine, buffer, numRead);
             if ((j % 16) == 0) {
                 Serial.print(F("."));
             }

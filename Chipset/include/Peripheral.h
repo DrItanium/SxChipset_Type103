@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Types.h"
 #include "MCP23S17.h"
+#include "Pinout.h"
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
@@ -56,6 +57,26 @@ enum class EEPROMFunctions {
     RW,
     Count,
 };
+template<typename T, bool introduceCpuCycleDelay = false>
+inline T
+readInputChannelAs() noexcept {
+    // make sure there is a builtin delay
+    if constexpr (introduceCpuCycleDelay) {
+        asm volatile ("nop");
+        asm volatile ("nop");
+    }
+    return T{PINA};
+}
+[[gnu::always_inline]] 
+inline void 
+signalReady() noexcept {
+    pulse<Pin::Ready, LOW, HIGH>();
+}
+[[gnu::always_inline]] 
+inline void
+interruptI960() noexcept {
+    pulse<Pin::INT0_, LOW, HIGH>();
+}
 using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte);
 using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t);
 extern SplitWord16 previousValue;
@@ -97,6 +118,56 @@ getDataLines(const Channel1Value& c1) noexcept {
         }
     }
     return previousValue.full;
+}
+template<bool isReadOperation>
+void
+genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead, WriteOperation onWrite) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        auto c1 = readInputChannelAs<Channel1Value>();
+        if constexpr (isReadOperation) {
+            setDataLinesOutput<false>(onRead(addr, m0, c1, offset));
+        } else {
+            onWrite(addr, m0, c1, offset, getDataLines<false>(c1));
+        }
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+/**
+ * @brief Fallback implementation when the io request doesn't map to any one
+ * function
+ */
+template<bool isReadOperation>
+void
+genericIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        if constexpr (isReadOperation) {
+            setDataLinesOutput<false>(0);
+        } 
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+
+template<bool isReadOperation>
+void
+genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        if constexpr (isReadOperation) {
+            setDataLinesOutput<false>(onRead(addr, m0, readInputChannelAs<Channel1Value>(), offset));
+        } 
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
 }
 class Peripheral {
     public:

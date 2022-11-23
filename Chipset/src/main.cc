@@ -38,16 +38,6 @@ SdFat SD;
 RTC_DS1307 rtc;
 
 
-[[gnu::always_inline]] 
-inline void
-interruptI960() noexcept {
-    pulse<Pin::INT0_, LOW, HIGH>();
-}
-[[gnu::always_inline]] 
-inline void 
-signalReady() noexcept {
-    pulse<Pin::Ready, LOW, HIGH>();
-}
 void 
 configureReset() noexcept {
     // reset is always an output 
@@ -85,16 +75,6 @@ setInputChannel(byte value) noexcept {
     }
     asm volatile ("nop");
     asm volatile ("nop");
-}
-template<typename T, bool introduceCpuCycleDelay = false>
-inline T
-readInputChannelAs() noexcept {
-    // make sure there is a builtin delay
-    if constexpr (introduceCpuCycleDelay) {
-        asm volatile ("nop");
-        asm volatile ("nop");
-    }
-    return T{PINA};
 }
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
@@ -396,23 +376,6 @@ installMemoryImage() noexcept {
 
 SplitWord16 previousValue{0};
 
-template<bool isReadOperation>
-void
-genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead, WriteOperation onWrite) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        auto c1 = readInputChannelAs<Channel1Value>();
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, m0, c1, offset));
-        } else {
-            onWrite(addr, m0, c1, offset, getDataLines<false>(c1));
-        }
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
 constexpr auto SystemClockRate = F_CPU;
 constexpr auto CPUClockRate = SystemClockRate / 2;
 template<uint32_t value>
@@ -459,39 +422,6 @@ performNullWrite(const SplitWord32&, const Channel0Value&, const Channel1Value&,
 uint16_t
 performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
     return 0;
-}
-/**
- * @brief Fallback implementation when the io request doesn't map to any one
- * function
- */
-template<bool isReadOperation>
-void
-genericIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(0);
-        } 
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-
-template<bool isReadOperation>
-void
-genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, m0, readInputChannelAs<Channel1Value>(), offset));
-        } 
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
 }
 template<bool isReadOperation>
 inline void

@@ -33,10 +33,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RTClib.h"
 #include "Adafruit_RGBLCDShield.h"
 #include "Peripheral.h"
+
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
-RTC_DS1307 rtc;
+//RTC_DS1307 rtc;
 
+SerialDevice theSerial;
+InfoDevice infoDevice;
 
 void 
 configureReset() noexcept {
@@ -158,30 +161,30 @@ setupPSRAM() noexcept {
     }
     Serial.println(F("MEMORY TEST COMPLETE!"));
 }
-bool
-trySetupDS1307() noexcept {
-    if (rtc.begin()) {
-        if (!rtc.isrunning()) {
-            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        }
-        return true;
-    } else {
-        return false;
-    }
-}
-using DateTimeGetter = DateTime(*)();
-DateTimeGetter now = nullptr;
-void 
-setupRTC() noexcept {
-    // use short circuiting or to choose the first available rtc
-    if (trySetupDS1307()) {
-        Serial.println(F("Found RTC DS1307"));
-        now = []() { return rtc.now(); };
-    } else {
-        Serial.println(F("No active RTC found!"));
-        now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
-    }
-}
+//bool
+//trySetupDS1307() noexcept {
+//    if (rtc.begin()) {
+//        if (!rtc.isrunning()) {
+//            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+//        }
+//        return true;
+//    } else {
+//        return false;
+//    }
+//}
+//using DateTimeGetter = DateTime(*)();
+//DateTimeGetter now = nullptr;
+//void 
+//setupRTC() noexcept {
+//    // use short circuiting or to choose the first available rtc
+//    if (trySetupDS1307()) {
+//        Serial.println(F("Found RTC DS1307"));
+//        now = []() { return rtc.now(); };
+//    } else {
+//        Serial.println(F("No active RTC found!"));
+//        now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
+//    }
+//}
 Adafruit_RGBLCDShield lcd;
 enum class RGBLCDColors : byte {
     Red = 0x1,
@@ -204,11 +207,12 @@ setupRGBLCDShield() noexcept {
 
 void 
 setup() {
-    Serial.begin(115200);
+    theSerial.begin();
+    infoDevice.begin();
     Wire.begin();
     setupRGBLCDShield();
-    setupRTC();
-    Serial.println(now().unixtime());
+    //setupRTC();
+    //Serial.println(now().unixtime());
     SPI.begin();
     // setup the IO Expanders
     MCP23S17::IOCON reg;
@@ -396,8 +400,6 @@ performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, 
     return 0;
 }
 
-SerialDevice theSerial;
-InfoDevice infoDevice;
 template<bool isReadOperation>
 inline void 
 handlePeripheralOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
@@ -675,6 +677,9 @@ SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, const Channel
             Serial.flush();
             genericIOHandler<true>(addr, m0);
             break;
+        case SerialDeviceOperations::Baud:
+            genericIOHandler<true>(addr, m0, expose32BitConstant<115200>);
+            break;
         default:
             genericIOHandler<true>(addr, m0);
             break;
@@ -689,6 +694,9 @@ SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channe
         case SerialDeviceOperations::Flush:
             Serial.flush();
             genericIOHandler<false>(addr, m0);
+            break;
+        case SerialDeviceOperations::Baud:
+            genericIOHandler<false>(addr, m0, expose32BitConstant<115200>);
             break;
         default:
             genericIOHandler<false>(addr, m0);
@@ -723,5 +731,10 @@ InfoDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channel0
             genericIOHandler<false>(addr, m0);
             break;
     }
+}
+bool
+SerialDevice::begin() noexcept {
+    Serial.begin(115200);
+    return true;
 }
 

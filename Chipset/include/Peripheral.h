@@ -48,6 +48,7 @@ enum class SerialDeviceOperations {
     Size,
     RW,
     Flush,
+    Baud,
     Count,
 };
 
@@ -55,6 +56,7 @@ enum class EEPROMFunctions {
     Available,
     Size,
     RW,
+    Capacity,
     Count,
 };
 template<typename E>
@@ -220,6 +222,7 @@ class Peripheral {
         }
         virtual void readOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept = 0;
         virtual void writeOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept = 0;
+        virtual bool begin() noexcept { return true; }
 };
 template<typename E>
 class OperatorPeripheral : public Peripheral {
@@ -269,6 +272,7 @@ protected:
 class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
     public:
         ~SerialDevice() override = default;
+        bool begin() noexcept override;
     protected:
         void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
         void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;

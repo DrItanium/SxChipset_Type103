@@ -549,14 +549,14 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
 template<bool isReadOperation>
 inline void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    switch (addr.getIOFunction<SerialGroupFunction>()) {
-        case SerialGroupFunction::RWFast:
+    switch (addr.getIOFunction<SerialDeviceOperations>()) {
+        case SerialDeviceOperations::RWFast:
             genericIOHandler<isReadOperation>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
             break;
-        case SerialGroupFunction::RWCompact:
+        case SerialDeviceOperations::RWCompact:
             genericIOHandler<isReadOperation>(addr, m0, performSerialRead_Compact, performSerialWrite_Compact);
             break;
-        case SerialGroupFunction::Flush:
+        case SerialDeviceOperations::Flush:
             Serial.flush();
             genericIOHandler<isReadOperation>(addr, m0);
             break;
@@ -569,11 +569,11 @@ handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept
 template<bool isReadOperation>
 inline void
 handleInfoOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    switch (addr.getIOFunction<InfoGroupFunction>()) {
-        case InfoGroupFunction::GetChipsetClock:
+    switch (addr.getIOFunction<InfoDeviceOperations>()) {
+        case InfoDeviceOperations::GetChipsetClock:
             genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<SystemClockRate>);
             break;
-        case InfoGroupFunction::GetCPUClock:
+        case InfoDeviceOperations::GetCPUClock:
             genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<CPUClockRate>);
             break;
         default:

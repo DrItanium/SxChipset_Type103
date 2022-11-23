@@ -68,7 +68,7 @@ enum class InfoDeviceOperations {
     Count,
 };
 static_assert(static_cast<byte>(InfoDeviceOperations::Count) <= 256, "Too many Peripheral devices!");
-enum class SerialGroupFunction : byte {
+enum class SerialDeviceOperations : byte {
     RWFast,
     RWCompact,
     RWDMAStyle,

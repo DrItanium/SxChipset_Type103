@@ -39,28 +39,35 @@ constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
                                    // (4-way)
 constexpr auto KeySize = 32 - (OffsetSize + TagSize);
 enum class IOGroup : byte{
-    /**
-     * @brief Serial console related operations
-     */
-    Serial,
-    Info,
-    Timer,
+    Peripherals,
     Undefined,
 };
 static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");
 constexpr IOGroup getGroup(uint8_t value) noexcept {
     switch (static_cast<IOGroup>(value & 0b1111)) {
-        case IOGroup::Serial:
-        case IOGroup::Info:
+        case IOGroup::Peripherals:
             return static_cast<IOGroup>(value);
         default:
             return IOGroup::Undefined;
     }
 }
-enum class InfoGroupFunction : byte {
+enum class TargetPeripheral {
+    Info, 
+    Serial,
+    TWI,
+    RTC,
+    SDCard,
+    GPIO,
+    EEPROM,
+    Count,
+};
+static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");
+enum class InfoDeviceOperations {
     GetChipsetClock,
     GetCPUClock,
+    Count,
 };
+static_assert(static_cast<byte>(InfoDeviceOperations::Count) <= 256, "Too many Peripheral devices!");
 enum class SerialGroupFunction : byte {
     RWFast,
     RWCompact,
@@ -92,8 +99,9 @@ union SplitWord32 {
         uint32_t key : KeySize;
     } cacheAddress;
     struct {
-        uint16_t subfunction;
+        uint8_t subfunction;
         uint8_t function;
+        uint8_t device;
         uint8_t group : 4;
         uint8_t req : 4;
     } ioRequestAddress;
@@ -102,7 +110,10 @@ union SplitWord32 {
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
     [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
+    [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return ioRequestAddress.device; }
     [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
+    template<typename E>
+    [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
     template<typename E>
     [[nodiscard]] constexpr E getIOFunction() const noexcept { return static_cast<E>(getIOFunctionCode()); }
 };

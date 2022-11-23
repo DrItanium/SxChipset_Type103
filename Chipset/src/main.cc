@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MCP23S17.h"
 #include "Wire.h"
 #include "RTClib.h"
+#include "Adafruit_RGBLCDShield.h"
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 RTC_DS1307 rtc;
@@ -204,10 +205,31 @@ setupRTC() noexcept {
         now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
     }
 }
+Adafruit_RGBLCDShield lcd;
+enum class RGBLCDColors : byte {
+    Red = 0x1,
+    Green,
+    Yellow,
+    Blue,
+    Violet,
+    Teal,
+    White,
+};
+void
+setupRGBLCDShield() noexcept {
+    Serial.print(F("Bringing up lcd shield..."));
+    lcd.begin(16, 2);
+    lcd.setBacklight(static_cast<byte>(RGBLCDColors::White));
+    lcd.setCursor(0, 0);
+    lcd.clear();
+    Serial.println(F("DONE!"));
+}
 
 void 
 setup() {
     Serial.begin(115200);
+    Wire.begin();
+    setupRGBLCDShield();
     setupRTC();
     Serial.println(now().unixtime());
     SPI.begin();
@@ -559,6 +581,21 @@ handleInfoOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             break;
     }
 }
+template<bool isReadOperation>
+inline void 
+handlePeripheralOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+    switch (addr.getIODevice<TargetPeripheral>()) {
+        case TargetPeripheral::Info:
+            handleInfoOperation<isReadOperation>(addr, m0);
+            break;
+        case TargetPeripheral::Serial:
+            handleSerialOperation<isReadOperation>(addr, m0);
+            break;
+        default:
+            genericIOHandler<isReadOperation>(addr, m0);
+            break;
+    }
+}
 
 template<bool isReadOperation>
 inline void 
@@ -572,11 +609,8 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     // This system does not care about the size but it does care about where
     // one starts when performing a write operation
     switch (addr.getIOGroup()) {
-        case IOGroup::Serial:
-            handleSerialOperation<isReadOperation>(addr, m0);
-            break;
-        case IOGroup::Info:
-            handleInfoOperation<isReadOperation>(addr, m0);
+        case IOGroup::Peripherals:
+            handlePeripheralOperation<isReadOperation>(addr, m0);
             break;
         default:
             genericIOHandler<isReadOperation>(addr, m0);

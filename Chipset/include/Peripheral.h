@@ -57,6 +57,10 @@ enum class EEPROMFunctions {
     RW,
     Count,
 };
+template<typename E>
+constexpr bool validOperation(E value) noexcept {
+    return static_cast<int>(value) >= 0 && (static_cast<int>(value) < static_cast<int>(E::Count));
+}
 template<typename T, bool introduceCpuCycleDelay = false>
 inline T
 readInputChannelAs() noexcept {
@@ -169,6 +173,7 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         }
     }
 }
+
 template<uint32_t value>
 uint16_t
 expose32BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
@@ -222,18 +227,6 @@ public:
 
     using OperationList = E;
     ~OperatorPeripheral() override = default;
-    template<bool isReadOperation>
-    void handleExecution(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-        switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
-            default:
-                if constexpr (isReadOperation) {
-                    handleExtendedReadOperation(addr, m0, opcode);
-                } else {
-                    handleExtendedWriteOperation(addr, m0, opcode);
-                }
-                break;
-        }
-    }
     void readOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available:
@@ -243,7 +236,11 @@ public:
                 genericIOHandler<true>(addr, m0, expose32BitConstant<static_cast<uint32_t>(E::Count)>);
                 break;
             default:
-                handleExtendedReadOperation(addr, m0, opcode);
+                if (validOperation(opcode)) {
+                    handleExtendedReadOperation(addr, m0, opcode);
+                } else {
+                    genericIOHandler<true>(addr, m0);
+                }
                 break;
         }
 
@@ -255,7 +252,11 @@ public:
                 genericIOHandler<false>(addr, m0);
                 break;
             default:
-                handleExtendedWriteOperation(addr, m0, opcode);
+                if (validOperation(opcode)) {
+                    handleExtendedWriteOperation(addr, m0, opcode);
+                } else {
+                    genericIOHandler<false>(addr, m0);
+                }
                 break;
         }
 
@@ -263,5 +264,13 @@ public:
 protected:
     virtual void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, OperationList value) noexcept = 0;
     virtual void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, OperationList value) noexcept = 0;
+};
+
+class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
+    public:
+        ~SerialDevice() override = default;
+    protected:
+        void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
 };
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

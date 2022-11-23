@@ -439,6 +439,7 @@ handleInfoOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
             break;
     }
 }
+SerialDevice theSerial;
 template<bool isReadOperation>
 inline void 
 handlePeripheralOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
@@ -447,7 +448,7 @@ handlePeripheralOperation(const SplitWord32& addr, const Channel0Value& m0) noex
             handleInfoOperation<isReadOperation>(addr, m0);
             break;
         case TargetPeripheral::Serial:
-            handleSerialOperation<isReadOperation>(addr, m0);
+            theSerial.handleExecution<isReadOperation>(addr, m0);
             break;
         default:
             genericIOHandler<isReadOperation>(addr, m0);
@@ -703,4 +704,37 @@ memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
     return psramMemoryRead(baseAddress, bytes, count);
+}
+
+
+void 
+SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept {
+    switch (value) {
+        case SerialDeviceOperations::RW:
+            genericIOHandler<true>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
+            break;
+        case SerialDeviceOperations::Flush:
+            Serial.flush();
+            genericIOHandler<true>(addr, m0);
+            break;
+        default:
+            genericIOHandler<true>(addr, m0);
+            break;
+    }
+}
+void 
+SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept {
+    switch (value) {
+        case SerialDeviceOperations::RW:
+            genericIOHandler<false>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
+            break;
+        case SerialDeviceOperations::Flush:
+            Serial.flush();
+            genericIOHandler<false>(addr, m0);
+            break;
+        default:
+            genericIOHandler<false>(addr, m0);
+            break;
+    }
+
 }

@@ -98,11 +98,26 @@ getDataLines(const Channel1Value& c1) noexcept {
     }
     return previousValue.full;
 }
-template<typename E>
 class Peripheral {
+    public:
+        virtual ~Peripheral() = default;
+        template<bool isReadOperation>
+        void handleExecution(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+            if constexpr (isReadOperation) {
+                readOperation(addr, m0);
+            } else {
+                writeOperation(addr, m0);
+            }
+        }
+        virtual void readOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept = 0;
+        virtual void writeOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept = 0;
+};
+template<typename E>
+class OperatorPeripheral : public Peripheral {
 public:
+
     using OperationList = E;
-    virtual ~Peripheral() = default;
+    ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return false; }
     virtual uint32_t size() const noexcept { return 0; }
     template<bool isReadOperation>
@@ -116,6 +131,22 @@ public:
                 }
                 break;
         }
+    }
+    void readOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept override {
+        switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
+            default:
+                handleExtendedReadOperation(addr, m0, opcode);
+                break;
+        }
+
+    }
+    void writeOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept override {
+        switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
+            default:
+                handleExtendedWriteOperation(addr, m0, opcode);
+                break;
+        }
+
     }
 protected:
     virtual void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, OperationList value) noexcept = 0;

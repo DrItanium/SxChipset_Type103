@@ -169,6 +169,39 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         }
     }
 }
+template<uint32_t value>
+uint16_t
+expose32BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
+    switch (offset) {
+        case 0:
+            return static_cast<uint16_t>(value);
+        case 1:
+            return static_cast<uint16_t>(value >> 16);
+        default:
+            return 0;
+    }
+}
+template<uint64_t value>
+uint16_t
+expose64BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
+    switch (offset) {
+        case 0:
+            return static_cast<uint16_t>(value);
+        case 1:
+            return static_cast<uint16_t>(value >> 16);
+        case 2:
+            return static_cast<uint16_t>(value >> 32);
+        case 3:
+            return static_cast<uint16_t>(value >> 48);
+        default:
+            return 0;
+    }
+}
+template<bool value> 
+uint16_t
+exposeBooleanValue(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+    return value ? 0xFFFF : 0;
+}
 class Peripheral {
     public:
         virtual ~Peripheral() = default;
@@ -189,8 +222,6 @@ public:
 
     using OperationList = E;
     ~OperatorPeripheral() override = default;
-    virtual bool available() const noexcept { return false; }
-    virtual uint32_t size() const noexcept { return 0; }
     template<bool isReadOperation>
     void handleExecution(const SplitWord32& addr, const Channel0Value& m0) noexcept {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
@@ -205,6 +236,12 @@ public:
     }
     void readOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
+            case E::Available:
+                genericIOHandler<true>(addr, m0, exposeBooleanValue<true>);
+                break;
+            case E::Size:
+                genericIOHandler<true>(addr, m0, expose32BitConstant<static_cast<uint32_t>(E::Count)>);
+                break;
             default:
                 handleExtendedReadOperation(addr, m0, opcode);
                 break;
@@ -213,6 +250,10 @@ public:
     }
     void writeOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
+            case E::Available:
+            case E::Size:
+                genericIOHandler<false>(addr, m0);
+                break;
             default:
                 handleExtendedWriteOperation(addr, m0, opcode);
                 break;

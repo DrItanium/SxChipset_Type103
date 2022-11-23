@@ -378,34 +378,6 @@ SplitWord16 previousValue{0};
 
 constexpr auto SystemClockRate = F_CPU;
 constexpr auto CPUClockRate = SystemClockRate / 2;
-template<uint32_t value>
-uint16_t
-expose32BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
-    switch (offset) {
-        case 0:
-            return static_cast<uint16_t>(value);
-        case 1:
-            return static_cast<uint16_t>(value >> 16);
-        default:
-            return 0;
-    }
-}
-template<uint64_t value>
-uint16_t
-expose64BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
-    switch (offset) {
-        case 0:
-            return static_cast<uint16_t>(value);
-        case 1:
-            return static_cast<uint16_t>(value >> 16);
-        case 2:
-            return static_cast<uint16_t>(value >> 32);
-        case 3:
-            return static_cast<uint16_t>(value >> 48);
-        default:
-            return 0;
-    }
-}
 uint16_t
 performSerialRead_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
     return Serial.read();

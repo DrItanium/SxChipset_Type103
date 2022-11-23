@@ -51,13 +51,6 @@ constexpr IOGroup getGroup(uint8_t value) noexcept {
             return IOGroup::Undefined;
     }
 }
-enum class TargetPeripheral {
-    Info, 
-    Serial,
-    EEPROM,
-    Count,
-};
-static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");
 
 
 

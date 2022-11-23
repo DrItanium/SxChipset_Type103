@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "MCP23S17.h"
 #include "Wire.h"
-#include "RTClib.h"
+//#include "RTClib.h"
 #include "Adafruit_RGBLCDShield.h"
 #include "Peripheral.h"
 
@@ -38,7 +38,7 @@ SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 //RTC_DS1307 rtc;
 
-SerialDevice theSerial;
+SerialDevice theSerial(115200);
 InfoDevice infoDevice;
 
 void 
@@ -695,9 +695,6 @@ SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channe
             Serial.flush();
             genericIOHandler<false>(addr, m0);
             break;
-        case SerialDeviceOperations::Baud:
-            genericIOHandler<false>(addr, m0, expose32BitConstant<115200>);
-            break;
         default:
             genericIOHandler<false>(addr, m0);
             break;
@@ -734,7 +731,6 @@ InfoDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channel0
 }
 bool
 SerialDevice::begin() noexcept {
-    Serial.begin(115200);
+    Serial.begin(baud_);
     return true;
 }
-

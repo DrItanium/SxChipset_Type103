@@ -35,6 +35,12 @@ constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
 constexpr auto AddressLower = MCP23S17::HardwareDeviceAddress::Device2;
 constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
 
+enum class TargetPeripheral {
+    Info, 
+    Serial,
+    Count,
+};
+static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");
 enum class InfoDeviceOperations {
     Available,
     Size,
@@ -52,13 +58,6 @@ enum class SerialDeviceOperations {
     Count,
 };
 
-enum class EEPROMFunctions {
-    Available,
-    Size,
-    RW,
-    Capacity,
-    Count,
-};
 template<typename E>
 constexpr bool validOperation(E value) noexcept {
     return static_cast<int>(value) >= 0 && (static_cast<int>(value) < static_cast<int>(E::Count));
@@ -175,6 +174,67 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
         }
     }
 }
+inline void
+readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint16_t value) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        setDataLinesOutput<false>(value);
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+inline void
+readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint32_t value) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        if (offset & 0b1) {
+            setDataLinesOutput<false>(static_cast<uint16_t>(value >> 16));
+        } else {
+            setDataLinesOutput<false>(static_cast<uint16_t>(value));
+        }
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+
+inline void
+readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint64_t value) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        switch (offset & 0b11) {
+            case 0b00:
+                setDataLinesOutput<false>(value);
+                break;
+            case 0b01:
+                setDataLinesOutput<false>(value >> 16);
+                break;
+            case 0b10:
+                setDataLinesOutput<false>(value >> 32);
+                break;
+            case 0b11:
+                setDataLinesOutput<false>(value >> 48);
+                break;
+            default:
+                setDataLinesOutput<false>(0);
+                break;
+
+        }
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+inline void
+readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, bool value) noexcept {
+    readOnlyDynamicValue(addr, m0, value ? 0xFFFF : 0x0);
+}
+
+
 
 template<uint32_t value>
 uint16_t
@@ -230,13 +290,15 @@ public:
 
     using OperationList = E;
     ~OperatorPeripheral() override = default;
+    virtual bool available() const noexcept { return true; }
+    virtual uint32_t size() const noexcept { return static_cast<uint32_t>(E::Count); }
     void readOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available:
-                genericIOHandler<true>(addr, m0, exposeBooleanValue<true>);
+                readOnlyDynamicValue(addr, m0, available());
                 break;
             case E::Size:
-                genericIOHandler<true>(addr, m0, expose32BitConstant<static_cast<uint32_t>(E::Count)>);
+                readOnlyDynamicValue(addr, m0, size());
                 break;
             default:
                 if (validOperation(opcode)) {
@@ -271,11 +333,22 @@ protected:
 
 class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
     public:
+        SerialDevice(uint32_t defaultBaud) : baud_(defaultBaud) { }
         ~SerialDevice() override = default;
         bool begin() noexcept override;
+        void setBaudRate(uint32_t baudRate) noexcept { 
+            if (baudRate != baud_) {
+                baud_ = baudRate; 
+                Serial.end();
+                Serial.begin(baud_);
+            }
+        }
+        [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     protected:
         void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
         void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
+    private:
+        uint32_t baud_ = 0;
 };
 class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:
@@ -284,4 +357,5 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
         void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept override;
         void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept override;
 };
+
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

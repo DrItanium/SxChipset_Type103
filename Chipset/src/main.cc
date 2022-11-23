@@ -395,57 +395,15 @@ uint16_t
 performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
     return 0;
 }
-template<bool isReadOperation>
-inline void
-handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    switch (addr.getIOFunction<SerialDeviceOperations>()) {
-        case SerialDeviceOperations::Available:
-            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<0xFFFF'FFFF>);
-            break;
-        case SerialDeviceOperations::Size:
-            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<static_cast<uint32_t>(SerialDeviceOperations::Count)>);
-            break;
-        case SerialDeviceOperations::RW:
-            genericIOHandler<isReadOperation>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            genericIOHandler<isReadOperation>(addr, m0);
-            break;
-        default:
-            genericIOHandler<isReadOperation>(addr, m0);
-            break;
-    }
-}
 
-template<bool isReadOperation>
-inline void
-handleInfoOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
-    switch (addr.getIOFunction<InfoDeviceOperations>()) {
-        case InfoDeviceOperations::Available:
-            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<0xFFFF'FFFF>);
-            break;
-        case InfoDeviceOperations::Size:
-            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<static_cast<uint32_t>(InfoDeviceOperations::Count)>);
-            break;
-        case InfoDeviceOperations::GetChipsetClock:
-            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<SystemClockRate>);
-            break;
-        case InfoDeviceOperations::GetCPUClock:
-            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<CPUClockRate>);
-            break;
-        default:
-            genericIOHandler<isReadOperation>(addr, m0);
-            break;
-    }
-}
 SerialDevice theSerial;
+InfoDevice infoDevice;
 template<bool isReadOperation>
 inline void 
 handlePeripheralOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            handleInfoOperation<isReadOperation>(addr, m0);
+            infoDevice.handleExecution<isReadOperation>(addr, m0);
             break;
         case TargetPeripheral::Serial:
             theSerial.handleExecution<isReadOperation>(addr, m0);
@@ -736,5 +694,34 @@ SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channe
             genericIOHandler<false>(addr, m0);
             break;
     }
-
 }
+
+void 
+InfoDevice::handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept {
+    switch (value) {
+        case InfoDeviceOperations::GetCPUClock:
+            genericIOHandler<true>(addr, m0, expose32BitConstant<CPUClockRate>);
+            break;
+        case InfoDeviceOperations::GetChipsetClock:
+            genericIOHandler<true>(addr, m0, expose32BitConstant<SystemClockRate>);
+            break;
+        default:
+            genericIOHandler<true>(addr, m0);
+            break;
+    }
+}
+void 
+InfoDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept {
+    switch (value) {
+        case InfoDeviceOperations::GetCPUClock:
+            genericIOHandler<false>(addr, m0, expose32BitConstant<CPUClockRate>);
+            break;
+        case InfoDeviceOperations::GetChipsetClock:
+            genericIOHandler<false>(addr, m0, expose32BitConstant<SystemClockRate>);
+            break;
+        default:
+            genericIOHandler<false>(addr, m0);
+            break;
+    }
+}
+

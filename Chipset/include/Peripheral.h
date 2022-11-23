@@ -273,4 +273,11 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
         void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
 };
+class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
+    public:
+        ~InfoDevice() override = default;
+    protected:
+        void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept override;
+};
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

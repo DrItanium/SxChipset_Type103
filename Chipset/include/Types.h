@@ -71,7 +71,6 @@ static_assert(static_cast<byte>(InfoDeviceOperations::Count) <= 256, "Too many P
 enum class SerialDeviceOperations : byte {
     RWFast,
     RWCompact,
-    RWDMAStyle,
     Flush,
 };
 enum class EnableStyle : byte {

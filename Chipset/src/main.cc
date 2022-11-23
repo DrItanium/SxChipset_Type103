@@ -38,8 +38,9 @@ SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 //RTC_DS1307 rtc;
 
-SerialDevice theSerial(115200);
+SerialDevice theSerial;
 InfoDevice infoDevice;
+Adafruit_RGBLCDShield lcd;
 
 void 
 configureReset() noexcept {
@@ -149,7 +150,7 @@ setupPSRAM() noexcept {
         result.bytes[3] = SPI.transfer(0);
         digitalWrite<Pin::PSRAM0, HIGH>();
         if (container.whole != result.whole) {
-            Serial.print(F("MEMROY TEST FAILURE: W: 0x"));
+            Serial.print(F("MEMORY TEST FAILURE: W: 0x"));
             Serial.print(container.whole, HEX);
             Serial.print(F(" G: 0x"));
             Serial.println(result.whole, HEX);
@@ -185,7 +186,6 @@ setupPSRAM() noexcept {
 //        now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
 //    }
 //}
-Adafruit_RGBLCDShield lcd;
 enum class RGBLCDColors : byte {
     Red = 0x1,
     Green,
@@ -202,6 +202,7 @@ setupRGBLCDShield() noexcept {
     lcd.setBacklight(static_cast<byte>(RGBLCDColors::White));
     lcd.setCursor(0, 0);
     lcd.clear();
+    lcd.print(F("BOOTING!"));
     Serial.println(F("DONE!"));
 }
 
@@ -211,8 +212,6 @@ setup() {
     infoDevice.begin();
     Wire.begin();
     setupRGBLCDShield();
-    //setupRTC();
-    //Serial.println(now().unixtime());
     SPI.begin();
     // setup the IO Expanders
     MCP23S17::IOCON reg;
@@ -306,10 +305,14 @@ setup() {
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<false>();
     setInputChannel(0);
+    lcd.clear();
+    lcd.setCursor(0,0);
     if (digitalRead<Pin::FAIL>() == HIGH) {
+        lcd.println(F("CHECKSUM FAILURE!"));
         Serial.println(F("CHECKSUM FAILURE!"));
         while (true);
     } else {
+        lcd.print(F("BOOT SUCCESSFUL!"));
         Serial.println(F("BOOT SUCCESSFUL!"));
     }
 }

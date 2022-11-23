@@ -333,7 +333,6 @@ protected:
 
 class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
     public:
-        SerialDevice(uint32_t defaultBaud) : baud_(defaultBaud) { }
         ~SerialDevice() override = default;
         bool begin() noexcept override;
         void setBaudRate(uint32_t baudRate) noexcept { 
@@ -348,7 +347,7 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
         void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
     private:
-        uint32_t baud_ = 0;
+        uint32_t baud_ = 115200;
 };
 class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:

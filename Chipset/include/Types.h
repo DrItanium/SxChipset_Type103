@@ -54,31 +54,12 @@ constexpr IOGroup getGroup(uint8_t value) noexcept {
 enum class TargetPeripheral {
     Info, 
     Serial,
-    TWI,
-    RTC,
-    SDCard,
-    GPIO,
     EEPROM,
     Count,
 };
 static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");
-enum class InfoDeviceOperations {
-    GetChipsetClock,
-    GetCPUClock,
-    Count,
-};
-static_assert(static_cast<byte>(InfoDeviceOperations::Count) <= 256, "Too many Peripheral devices!");
-enum class SerialDeviceOperations : byte {
-    RWFast,
-    RWCompact,
-    Flush,
-};
-enum class EnableStyle : byte {
-    Full16 = 0b00,
-    Upper8 = 0b01,
-    Lower8 = 0b10,
-    Undefined = 0b11,
-};
+
+
 
 union SplitWord32 {
     uint32_t full;
@@ -119,6 +100,12 @@ union SplitWord32 {
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 
 
+enum class EnableStyle : byte {
+    Full16 = 0b00,
+    Upper8 = 0b01,
+    Lower8 = 0b10,
+    Undefined = 0b11,
+};
 union SplitWord16 {
     uint16_t full;
     ElementContainer<uint16_t, uint8_t> bytes;

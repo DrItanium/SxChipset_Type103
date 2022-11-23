@@ -32,14 +32,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Wire.h"
 #include "RTClib.h"
 #include "Adafruit_RGBLCDShield.h"
+#include "Peripheral.h"
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 RTC_DS1307 rtc;
 
-constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
-constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
-constexpr auto AddressLower = MCP23S17::HardwareDeviceAddress::Device2;
-constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
 
 [[gnu::always_inline]] 
 inline void
@@ -397,48 +394,8 @@ installMemoryImage() noexcept {
     }
 }
 
-
-template<bool busHeldOpen>
-inline void 
-setDataLinesOutput(uint16_t value) noexcept {
-    if (currentDataLinesValue != value) {
-        currentDataLinesValue = value;
-        if constexpr (busHeldOpen) {
-            SPDR = static_cast<byte>(value);
-            asm volatile ("nop");
-            auto next = static_cast<byte>(value >> 8);
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = next;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-        } else {
-            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
-        }
-    }
-}
 SplitWord16 previousValue{0};
-template<bool busHeldOpen>
-inline uint16_t 
-getDataLines(const Channel1Value& c1) noexcept {
-    if (c1.channel1.dataInt != 0b11) {
-        if constexpr (busHeldOpen) {
-            SPDR = 0;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            auto value = SPDR;
-            SPDR = 0;
-            asm volatile ("nop");
-            previousValue.bytes[0] = value;
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            previousValue.bytes[1] = SPDR;
-        } else {
-            previousValue.full = MCP23S17::readGPIO16<DataLines>();
-        }
-    }
-    return previousValue.full;
-}
-using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte);
-using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t);
+
 template<bool isReadOperation>
 void
 genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead, WriteOperation onWrite) noexcept {
@@ -491,21 +448,11 @@ performSerialRead_Fast(const SplitWord32&, const Channel0Value&, const Channel1V
     return Serial.read();
 }
 
-uint16_t
-performSerialRead_Compact(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
-    uint16_t output = 0xFFFF;
-    (void)Serial.readBytes(reinterpret_cast<byte*>(&output), sizeof(output));
-    return output;
-}
 void
 performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t value) noexcept {
     Serial.write(static_cast<uint8_t>(value));
 }
 
-void
-performSerialWrite_Compact(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t value) noexcept {
-    Serial.write(reinterpret_cast<byte*>(&value), sizeof(value));
-}
 void
 performNullWrite(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t) noexcept {
 }
@@ -550,11 +497,14 @@ template<bool isReadOperation>
 inline void
 handleSerialOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIOFunction<SerialDeviceOperations>()) {
-        case SerialDeviceOperations::RWFast:
-            genericIOHandler<isReadOperation>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
+        case SerialDeviceOperations::Available:
+            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<0xFFFF'FFFF>);
             break;
-        case SerialDeviceOperations::RWCompact:
-            genericIOHandler<isReadOperation>(addr, m0, performSerialRead_Compact, performSerialWrite_Compact);
+        case SerialDeviceOperations::Size:
+            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<static_cast<uint32_t>(SerialDeviceOperations::Count)>);
+            break;
+        case SerialDeviceOperations::RW:
+            genericIOHandler<isReadOperation>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
             break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
@@ -570,6 +520,12 @@ template<bool isReadOperation>
 inline void
 handleInfoOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     switch (addr.getIOFunction<InfoDeviceOperations>()) {
+        case InfoDeviceOperations::Available:
+            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<0xFFFF'FFFF>);
+            break;
+        case InfoDeviceOperations::Size:
+            genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<static_cast<uint32_t>(InfoDeviceOperations::Count)>);
+            break;
         case InfoDeviceOperations::GetChipsetClock:
             genericIOHandler<isReadOperation>(addr, m0, expose32BitConstant<SystemClockRate>);
             break;

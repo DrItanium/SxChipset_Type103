@@ -331,6 +331,15 @@ protected:
     virtual void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, OperationList value) noexcept = 0;
 };
 
+
+inline void
+performNullWrite(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t) noexcept {
+}
+inline uint16_t
+performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+    return 0;
+}
+
 class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
     public:
         ~SerialDevice() override = default;

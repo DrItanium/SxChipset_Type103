@@ -395,25 +395,6 @@ installMemoryImage() noexcept {
 
 SplitWord16 previousValue{0};
 
-constexpr auto SystemClockRate = F_CPU;
-constexpr auto CPUClockRate = SystemClockRate / 2;
-uint16_t
-performSerialRead_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
-    return Serial.read();
-}
-
-void
-performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t value) noexcept {
-    Serial.write(static_cast<uint8_t>(value));
-}
-
-void
-performNullWrite(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t) noexcept {
-}
-uint16_t
-performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
-    return 0;
-}
 
 template<bool isReadOperation>
 inline void 
@@ -682,70 +663,4 @@ memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
 }
 
 
-void 
-SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept {
-    switch (value) {
-        case SerialDeviceOperations::RW:
-            genericIOHandler<true>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            genericIOHandler<true>(addr, m0);
-            break;
-        case SerialDeviceOperations::Baud:
-            genericIOHandler<true>(addr, m0, expose32BitConstant<115200>);
-            break;
-        default:
-            genericIOHandler<true>(addr, m0);
-            break;
-    }
-}
-void 
-SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept {
-    switch (value) {
-        case SerialDeviceOperations::RW:
-            genericIOHandler<false>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            genericIOHandler<false>(addr, m0);
-            break;
-        default:
-            genericIOHandler<false>(addr, m0);
-            break;
-    }
-}
 
-void 
-InfoDevice::handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept {
-    switch (value) {
-        case InfoDeviceOperations::GetCPUClock:
-            genericIOHandler<true>(addr, m0, expose32BitConstant<CPUClockRate>);
-            break;
-        case InfoDeviceOperations::GetChipsetClock:
-            genericIOHandler<true>(addr, m0, expose32BitConstant<SystemClockRate>);
-            break;
-        default:
-            genericIOHandler<true>(addr, m0);
-            break;
-    }
-}
-void 
-InfoDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept {
-    switch (value) {
-        case InfoDeviceOperations::GetCPUClock:
-            genericIOHandler<false>(addr, m0, expose32BitConstant<CPUClockRate>);
-            break;
-        case InfoDeviceOperations::GetChipsetClock:
-            genericIOHandler<false>(addr, m0, expose32BitConstant<SystemClockRate>);
-            break;
-        default:
-            genericIOHandler<false>(addr, m0);
-            break;
-    }
-}
-bool
-SerialDevice::begin() noexcept {
-    Serial.begin(baud_);
-    return true;
-}

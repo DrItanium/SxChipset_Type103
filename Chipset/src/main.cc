@@ -205,15 +205,8 @@ setupRGBLCDShield() noexcept {
     lcd.print(F("BOOTING!"));
     Serial.println(F("DONE!"));
 }
-
-void 
-setup() {
-    theSerial.begin();
-    infoDevice.begin();
-    Wire.begin();
-    setupRGBLCDShield();
-    SPI.begin();
-    // setup the IO Expanders
+void
+setupIOExpanders() noexcept {
     MCP23S17::IOCON reg;
     reg.makeInterruptPinsIndependent();
     reg.treatDeviceAsOne16BitPort();
@@ -241,6 +234,10 @@ setup() {
     dataLinesDirection = MCP23S17::AllInput16;
     currentDataLinesValue = 0;
     MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
+    //put the cpu into reset now too
+}
+void
+configurePins() noexcept {
     // configure pins
     pinMode<Pin::HOLD>(OUTPUT);
     pinMode<Pin::HLDA>(INPUT);
@@ -264,7 +261,6 @@ setup() {
     pinMode<Pin::Capture6>(INPUT);
     pinMode<Pin::Capture7>(INPUT);
     pinMode<Pin::SEL1>(OUTPUT);
-    configureReset();
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::HOLD, LOW>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
@@ -274,17 +270,9 @@ setup() {
     digitalWrite<Pin::PSRAM0, HIGH>();
     digitalWrite<Pin::SD_EN, HIGH>();
     setInputChannel(0);
-    putCPUInReset();
-    while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
-        Serial.println(F("NO SD CARD FOUND...WAITING!"));
-        delay(1000);
-    }
-    Serial.println(F("SD CARD FOUND!"));
-    setupPSRAM<false>();
-    setupCache();
-    installMemoryImage();
-    // okay so we got the image installed, now we just terminate the SD card
-    SD.end();
+}
+void
+bootCPU() noexcept {
     pullCPUOutOfReset();
     while (digitalRead<Pin::FAIL>() == LOW) {
         if (digitalRead<Pin::DEN>() == LOW) {
@@ -315,6 +303,30 @@ setup() {
         lcd.print(F("BOOT SUCCESSFUL!"));
         Serial.println(F("BOOT SUCCESSFUL!"));
     }
+}
+void 
+setup() {
+    theSerial.begin();
+    infoDevice.begin();
+    Wire.begin();
+    setupRGBLCDShield();
+    SPI.begin();
+    // setup the IO Expanders
+    setupIOExpanders();
+    configurePins();
+    configureReset();
+    putCPUInReset();
+    while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
+        Serial.println(F("NO SD CARD FOUND...WAITING!"));
+        delay(1000);
+    }
+    Serial.println(F("SD CARD FOUND!"));
+    setupPSRAM<false>();
+    setupCache();
+    installMemoryImage();
+    // okay so we got the image installed, now we just terminate the SD card
+    SD.end();
+    bootCPU();
 }
 
 

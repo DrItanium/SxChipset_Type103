@@ -26,6 +26,8 @@
  */
 
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <cstdint>
 
 struct TreatAsLowerDecode { };
@@ -137,8 +139,27 @@ union DecodeRoms {
         return result.whole;
     }
 };
-
+template<typename T>
+bool generateROM(std::string path) noexcept {
+    std::fstream rom(path, rom.binary | rom.trunc | rom.in | rom.out);
+    if (!rom.is_open()) {
+        std::cout << "Failed to open " << path << std::endl;
+        return false;
+    }
+    for (uint32_t i = 0; i < 0b0111'1111'1111'1111'1111; ++i) {
+        DecodeRoms curr;
+        curr.whole = i;
+        rom << curr.generate(T{});
+    }
+    rom.close();
+    return true;
+}
 int main() {
-
+    if (!generateROM<TreatAsLowerDecode>("u3.bin")) {
+        return 1;
+    }
+    if (!generateROM<TreatAsCtlPlusAddrUpper>("u10.bin")) {
+        return 1;
+    }
     return 0;
 }

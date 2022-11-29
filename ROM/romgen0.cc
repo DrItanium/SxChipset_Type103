@@ -146,7 +146,7 @@ bool generateROM(std::string path) noexcept {
         std::cout << "Failed to open " << path << std::endl;
         return false;
     }
-    for (uint32_t i = 0; i < 0b0111'1111'1111'1111'1111; ++i) {
+    for (uint32_t i = 0; i < 0b1000'0000'0000'0000'0000; ++i) {
         DecodeRoms curr;
         curr.whole = i;
         rom << curr.generate(T{});

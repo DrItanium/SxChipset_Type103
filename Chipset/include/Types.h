@@ -113,36 +113,52 @@ union Word8 {
 
     uint8_t value_;
     struct {
-        uint8_t den : 1;
-        uint8_t w_r_ : 1;
-        uint8_t fail : 1;
-        uint8_t unused : 1;
-        uint8_t lowerAddr : 2;
-        uint8_t upperAddr : 2;
-    } channel0;
-    struct {
         uint8_t be : 2;
         uint8_t blast : 1;
-        uint8_t xioint : 1;
+        uint8_t den : 1;
+        uint8_t fail : 1;
         uint8_t dataInt : 2;
-        uint8_t ramIO : 1;
-        uint8_t unused : 1;
-    } channel1;
+        uint8_t addrHi : 1;
+    } channel0;
+    /**
+     * @brief Address bits [A1, A7] + W/~{R} in place of A0
+     */
+    struct {
+        uint8_t wr : 1;
+        uint8_t addr : 7;
+    } lowestAddr;
+    /**
+     * @brief Address bits [A8, A15]
+     */
+    uint8_t lowerAddr;
+    /**
+     * @brief Address bits [A16, A23]
+     */
+    uint8_t upperAddr;
     struct {
         uint8_t valid_ : 1;
         uint8_t dirty_ : 1;
     } lineFlags;
-    [[nodiscard]] constexpr bool isReadOperation() const noexcept { return channel0.w_r_ == 0; }
-    [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return channel0.w_r_ != 0; }
-    [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel1.be); }
+    [[nodiscard]] constexpr bool isReadOperation() const noexcept { return lowestAddr.wr == 0; }
+    [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return lowestAddr.wr != 0; }
+    [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
+    [[nodiscard]] constexpr bool needHighestAddressLines() const noexcept { return channel0.addrHi == 0; }
+    [[nodiscard]] constexpr byte getDataLineReadStyle() const noexcept { return channel0.dataInt; }
+    [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { return lowestAddr.addr; }
+    [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { return getAddressBits1_7() << 1; }
+    [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }
+    [[nodiscard]] constexpr auto getAddressBits16_23() const noexcept { return upperAddr; }
+
     [[nodiscard]] constexpr auto lineIsValid() const noexcept { return lineFlags.valid_; }
     [[nodiscard]] constexpr auto lineIsDirty() const noexcept { return lineFlags.dirty_; }
     void clear() noexcept {
         value_ = 0;
     }
 };
-using Channel1Value = Word8;
 using Channel0Value = Word8;
+using Channel1Value = Word8;
+using Channel2Value = Word8;
+using Channel3Value = Word8;
 
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;

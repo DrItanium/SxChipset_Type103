@@ -515,7 +515,7 @@ handleTransaction() noexcept {
     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
-    auto m0 = readInputChannelAs<Channel0Value>();
+#if 0
     if (m0.channel0.upperAddr != 0b11) {
         digitalWrite<Pin::GPIOSelect, LOW>();
         SPDR = MCP23S17::ReadOpcode_v<AddressUpper>;
@@ -571,6 +571,45 @@ handleTransaction() noexcept {
         updateDataLines = direction != dataLinesDirection;
         target = getTransaction(m0, addr);
     }
+#else
+    digitalWrite<Pin::GPIOSelect, LOW>();
+    SPDR = MCP23S17::ReadOpcode_v<XIO>;
+    asm volatile("nop");
+    setInputChannel(1);
+    addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    SPDR = static_cast<byte>(MCP23S17::Registers::GPIOB) ;
+    asm volatile("nop");
+    setInputChannel(2);
+    auto m2 = readInputChannelAs<Channel2Value>();
+    direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+    addr.bytes[0] = m2.getAddressBits0_7();
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    SPDR = 0;
+    asm volatile("nop");
+    setInputChannel(3);
+    addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
+    setInputChannel(0);
+    updateDataLines = direction != dataLinesDirection;
+    auto m0 = readInputChannelAs<Channel0Value>();
+    while (!(SPSR & _BV(SPIF))) ; // wait
+    addr.bytes[3] = SPDR;
+    if (addr.isIOInstruction()) {
+        if (m2.isReadOperation()) {
+            return TransactionKind::IORead;
+        } else {
+            return TransactionKind::IOWrite;
+        }
+    } else {
+        if (m2.isReadOperation()) {
+            return TransactionKind::CacheRead;
+        } else {
+            return TransactionKind::CacheWrite;
+        }
+    }
+    digitalWrite<Pin::GPIOSelect, HIGH>();
+
+#endif
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));
         Serial.println(addr.getWholeValue(), HEX);

@@ -254,14 +254,17 @@ configurePins() noexcept {
     pinMode<Pin::INT0_>(OUTPUT);
     pinMode<Pin::SEL>(OUTPUT);
     pinMode<Pin::SEL1>(OUTPUT);
-    pinMode<Pin::Capture0>(INPUT_PULLUP);
-    pinMode<Pin::Capture1>(INPUT_PULLUP);
-    pinMode<Pin::Capture2>(INPUT_PULLUP);
-    pinMode<Pin::Capture3>(INPUT_PULLUP);
-    pinMode<Pin::Capture4>(INPUT_PULLUP);
-    pinMode<Pin::Capture5>(INPUT_PULLUP);
-    pinMode<Pin::Capture6>(INPUT_PULLUP);
-    pinMode<Pin::Capture7>(INPUT_PULLUP);
+    pinMode<Pin::DEN>(INPUT);
+    pinMode<Pin::BLAST_>(INPUT);
+    pinMode<Pin::FAIL>(INPUT);
+    pinMode<Pin::Capture0>(INPUT);
+    pinMode<Pin::Capture1>(INPUT);
+    pinMode<Pin::Capture2>(INPUT);
+    pinMode<Pin::Capture3>(INPUT);
+    pinMode<Pin::Capture4>(INPUT);
+    pinMode<Pin::Capture5>(INPUT);
+    pinMode<Pin::Capture6>(INPUT);
+    pinMode<Pin::Capture7>(INPUT);
     digitalWrite<Pin::SEL, LOW>();
     digitalWrite<Pin::SEL1, LOW>();
     digitalWrite<Pin::Ready, HIGH>();
@@ -458,7 +461,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
             }
             setDataLinesOutput<inlineSPIOperation>(value);
         } else {
-            //auto c0 = readInputChannelAs<Channel0Value>();
+            auto c0 = readInputChannelAs<Channel0Value>();
             auto value = getDataLines<inlineSPIOperation>(c0);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
@@ -467,7 +470,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
             // so we are writing to the cache
             line.setWord(offset, value, c0.getByteEnable());
         }
-        auto isBurstLast = c0.isBurstLast();
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
             break;
@@ -495,6 +498,7 @@ handleTransaction() noexcept {
     uint16_t direction = 0;
     bool updateDataLines = false;
     TransactionKind target = TransactionKind::CacheRead;
+    delay(100);
     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now

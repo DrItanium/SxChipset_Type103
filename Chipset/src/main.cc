@@ -42,20 +42,7 @@ SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 void
-holdBus() noexcept {
-    auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
-    theDirection |= 0b0000'0010;
-    MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
-}
-void
-unholdBus() noexcept {
-    auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
-    theDirection &= ~0b0000'0010;
-    MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
-}
-void
 configureXIO() noexcept {
-
     // reset and hold are always outputs
     auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
     theDirection &= ~0b11;
@@ -99,11 +86,28 @@ doReset(decltype(LOW) value) noexcept {
     }
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
 }
+[[gnu::always_inline]] inline void 
+doHold(decltype(LOW) value) noexcept {
+    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
+    if (value == LOW) {
+        theGPIO &= ~0b10;
+    } else {
+        theGPIO |= 0b10;
+    }
+    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
+}
 void putCPUInReset() noexcept {
     doReset(LOW);
 }
 void pullCPUOutOfReset() noexcept {
     doReset(HIGH);
+}
+void holdBus() noexcept {
+    doHold(HIGH);
+} 
+
+void releaseBus() noexcept {
+    doHold(LOW);
 }
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;
@@ -238,19 +242,13 @@ setupIOExpanders() noexcept {
 void
 configurePins() noexcept {
     // configure pins
-    pinMode<Pin::HOLD>(OUTPUT);
-    pinMode<Pin::HLDA>(INPUT);
     pinMode<Pin::GPIOSelect>(OUTPUT);
-    pinMode<Pin::CS2>(OUTPUT);
     pinMode<Pin::SD_EN>(OUTPUT);
     pinMode<Pin::PSRAM0>(OUTPUT);
     pinMode<Pin::Ready>(OUTPUT);
-    pinMode<Pin::SPI2_OFFSET0>(OUTPUT);
-    pinMode<Pin::SPI2_OFFSET1>(OUTPUT);
-    pinMode<Pin::SPI2_OFFSET2>(OUTPUT);
     pinMode<Pin::INT0_>(OUTPUT);
     pinMode<Pin::SEL>(OUTPUT);
-    pinMode<Pin::INT3_>(OUTPUT);
+    pinMode<Pin::SEL1>(OUTPUT);
     pinMode<Pin::Capture0>(INPUT);
     pinMode<Pin::Capture1>(INPUT);
     pinMode<Pin::Capture2>(INPUT);
@@ -259,13 +257,9 @@ configurePins() noexcept {
     pinMode<Pin::Capture5>(INPUT);
     pinMode<Pin::Capture6>(INPUT);
     pinMode<Pin::Capture7>(INPUT);
-    pinMode<Pin::SEL1>(OUTPUT);
     digitalWrite<Pin::Ready, HIGH>();
-    digitalWrite<Pin::HOLD, LOW>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
-    digitalWrite<Pin::CS2, HIGH>();
     digitalWrite<Pin::INT0_, HIGH>();
-    digitalWrite<Pin::INT3_, HIGH>();
     digitalWrite<Pin::PSRAM0, HIGH>();
     digitalWrite<Pin::SD_EN, HIGH>();
     setInputChannel(0);

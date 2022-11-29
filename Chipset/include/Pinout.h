@@ -184,11 +184,6 @@ SEL1, /// @todo reimplement later on with something else
 #error "Unknown board type defined!"
 #endif
 };
-template<byte index>
-constexpr auto ShieldPin_v = Pin::Count;
-#ifdef TYPE_103A
-template<> constexpr auto ShieldPin_v<0> = Pin::ShieldD0;
-#endif
 enum class Port : byte {
     A,
     B,

@@ -63,7 +63,7 @@ setInputChannel(byte value) noexcept {
     asm volatile ("nop");
     asm volatile ("nop");
 }
-constexpr bool EnableDebugMode = false;
+constexpr bool EnableDebugMode = true;
 constexpr bool EnableInlineSPIOperation = true;
 template<bool>
 inline void handleTransaction() noexcept;
@@ -426,8 +426,16 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))); 
     }
+    setInputChannel(0);
     for (byte offset = addr.address.offset; ; ++offset) {
+        asm volatile ("nop");
+        asm volatile ("nop");
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        auto c0 = readInputChannelAs<Channel0Value>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out 
             auto value = line.getWord(offset);

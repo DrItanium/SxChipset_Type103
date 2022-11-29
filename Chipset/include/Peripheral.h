@@ -126,6 +126,8 @@ template<bool isReadOperation>
 void
 genericIOHandler(const SplitWord32& addr, ReadOperation onRead, WriteOperation onWrite) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
+        asm volatile ("nop");
+        asm volatile ("nop");
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         auto m0 = readInputChannelAs<Channel0Value>();
         if constexpr (isReadOperation) {
@@ -147,6 +149,8 @@ template<bool isReadOperation>
 void
 genericIOHandler(const SplitWord32& addr) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
+        asm volatile ("nop");
+        asm volatile ("nop");
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         if constexpr (isReadOperation) {
             setDataLinesOutput<false>(0);
@@ -162,6 +166,8 @@ template<bool isReadOperation>
 void
 genericIOHandler(const SplitWord32& addr, ReadOperation onRead) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
+        asm volatile ("nop");
+        asm volatile ("nop");
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         if constexpr (isReadOperation) {
             setDataLinesOutput<false>(onRead(addr, readInputChannelAs<Channel0Value>(), offset));
@@ -175,6 +181,8 @@ genericIOHandler(const SplitWord32& addr, ReadOperation onRead) noexcept {
 inline void
 readOnlyDynamicValue(const SplitWord32& addr, uint16_t value) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
+        asm volatile ("nop");
+        asm volatile ("nop");
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         setDataLinesOutput<false>(value);
         signalReady();
@@ -186,6 +194,8 @@ readOnlyDynamicValue(const SplitWord32& addr, uint16_t value) noexcept {
 inline void
 readOnlyDynamicValue(const SplitWord32& addr, uint32_t value) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
+        asm volatile ("nop");
+        asm volatile ("nop");
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         if (offset & 0b1) {
             setDataLinesOutput<false>(static_cast<uint16_t>(value >> 16));
@@ -202,6 +212,8 @@ readOnlyDynamicValue(const SplitWord32& addr, uint32_t value) noexcept {
 inline void
 readOnlyDynamicValue(const SplitWord32& addr, uint64_t value) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
+        asm volatile ("nop");
+        asm volatile ("nop");
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         switch (offset & 0b11) {
             case 0b00:

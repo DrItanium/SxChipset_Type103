@@ -488,90 +488,16 @@ enum class TransactionKind {
     IOWrite,
 };
 
-inline TransactionKind getTransaction(Channel0Value m0, const SplitWord32& addr) noexcept {
-    if (addr.isIOInstruction()) {
-        if (m0.isReadOperation()) {
-            return TransactionKind::IORead;
-        } else {
-            return TransactionKind::IOWrite;
-        }
-    } else {
-        if (m0.isReadOperation()) {
-            return TransactionKind::CacheRead;
-        } else {
-            return TransactionKind::CacheWrite;
-        }
-    }
-}
-
 template<bool EnableInlineSPIOperation>
 inline void 
 handleTransaction() noexcept {
     static SplitWord32 addr{0};
     uint16_t direction = 0;
-    uint8_t value = 0;
     bool updateDataLines = false;
     TransactionKind target = TransactionKind::CacheRead;
     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
-#if 0
-    if (m0.channel0.upperAddr != 0b11) {
-        digitalWrite<Pin::GPIOSelect, LOW>();
-        SPDR = MCP23S17::ReadOpcode_v<AddressUpper>;
-        asm volatile("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
-        asm volatile("nop");
-        setInputChannel(1);
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = 0;
-        asm volatile("nop");
-        direction = m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        value = SPDR;
-        SPDR = 0;
-        asm volatile("nop");
-        addr.bytes[3] = value;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        value = SPDR;
-        digitalWrite<Pin::GPIOSelect, HIGH>();
-    } else {
-        setInputChannel(1);
-        direction = m0.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    }
-
-    if (m0.channel0.lowerAddr != 0b11) {
-        digitalWrite<Pin::GPIOSelect, LOW>();
-        SPDR = MCP23S17::ReadOpcode_v<AddressLower>;
-        asm volatile("nop");
-        if (m0.channel0.upperAddr != 0b11) {
-            addr.bytes[2] = value;
-        }
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = static_cast<byte>(MCP23S17::Registers::GPIO) ;
-        asm volatile("nop");
-        updateDataLines = direction != dataLinesDirection;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = 0;
-        asm volatile("nop");
-        target = getTransaction(m0, addr);
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        value = SPDR;
-        SPDR = 0;
-        asm volatile("nop");
-        addr.bytes[0] = value;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        addr.bytes[1] = SPDR;
-        digitalWrite<Pin::GPIOSelect, HIGH>();
-    } else {
-        if (m0.channel0.upperAddr != 0b11) {
-            addr.bytes[2] = value;
-        }
-        updateDataLines = direction != dataLinesDirection;
-        target = getTransaction(m0, addr);
-    }
-#else
     digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::ReadOpcode_v<XIO>;
     asm volatile("nop");
@@ -591,25 +517,22 @@ handleTransaction() noexcept {
     addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
     setInputChannel(0);
     updateDataLines = direction != dataLinesDirection;
-    auto m0 = readInputChannelAs<Channel0Value>();
     while (!(SPSR & _BV(SPIF))) ; // wait
     addr.bytes[3] = SPDR;
     if (addr.isIOInstruction()) {
         if (m2.isReadOperation()) {
-            return TransactionKind::IORead;
+            target = TransactionKind::IORead;
         } else {
-            return TransactionKind::IOWrite;
+            target = TransactionKind::IOWrite;
         }
     } else {
         if (m2.isReadOperation()) {
-            return TransactionKind::CacheRead;
+            target = TransactionKind::CacheRead;
         } else {
-            return TransactionKind::CacheWrite;
+            target = TransactionKind::CacheWrite;
         }
     }
     digitalWrite<Pin::GPIOSelect, HIGH>();
-
-#endif
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));
         Serial.println(addr.getWholeValue(), HEX);

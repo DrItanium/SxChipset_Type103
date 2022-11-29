@@ -44,42 +44,6 @@ DefPort(A),
 Count,
 #undef DefPin
 #undef DefPort
-#ifdef TYPE_103
-SEL1, /// @todo reimplement later on with something else
-// concepts
-    HOLD = PortB0,
-    CLKO = PortB1,
-    HLDA = PortB2,
-    CS2 = PortB3,
-    GPIOSelect = PortB4,
-
-    INT0_ = PortD5,
-    SEL = PortD6,
-    INT3_ = PortD7,
-
-    SD_EN = PortC2,
-    PSRAM0 = PortC3,
-    Ready = PortC4,
-    SPI2_OFFSET0 = PortC5,
-    SPI2_OFFSET1 = PortC6,
-    SPI2_OFFSET2 = PortC7,
-    Capture0 = PortA0,
-    Capture1 = PortA1,
-    Capture2 = PortA2,
-    Capture3 = PortA3,
-    Capture4 = PortA4,
-    Capture5 = PortA5,
-    Capture6 = PortA6,
-    Capture7 = PortA7,
-    DEN = Capture0, BE0 = Capture0,
-    W_R_ = Capture1, BE1 = Capture1,
-    FAIL = Capture2, BLAST_ = Capture2,
-    Channel0_3 = Capture3, XIO_INT = Capture3,
-    ADDR_INT0 = Capture4, DATA_INT0 = Capture4,
-    ADDR_INT1 = Capture5, DATA_INT1 = Capture5,
-    ADDR_INT2 = Capture6, RAM_IO = Capture6, 
-    ADDR_INT3 = Capture7, Channel1_7 = Capture7,
-#elif defined(TYPE_103A)
     // fake entries
     Channel1_7,
     ADDR_INT1,
@@ -180,9 +144,6 @@ SEL1, /// @todo reimplement later on with something else
     ShieldA3 = PortB4,
     ShieldA4 = PortC1,
     ShieldA5 = PortC0,
-#else
-#error "Unknown board type defined!"
-#endif
 };
 enum class Port : byte {
     A,

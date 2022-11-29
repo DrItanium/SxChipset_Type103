@@ -63,31 +63,23 @@ configureXIO() noexcept {
 }
 void 
 setInputChannel(byte value) noexcept {
-    if constexpr (IsPhysicalPin_v<Pin::SEL1>) {
-        switch(value & 0b11) {
-            case 0b00:
-                digitalWrite<Pin::SEL, LOW>();
-                digitalWrite<Pin::SEL1, LOW>();
-                break;
-            case 0b01:
-                digitalWrite<Pin::SEL, HIGH>();
-                digitalWrite<Pin::SEL1, LOW>();
-                break;
-            case 0b10:
-                digitalWrite<Pin::SEL, LOW>();
-                digitalWrite<Pin::SEL1, HIGH>();
-                break;
-            case 0b11:
-                digitalWrite<Pin::SEL, HIGH>();
-                digitalWrite<Pin::SEL1, HIGH>();
-                break;
-        }
-    } else {
-        if (value & 0b1) {
-            digitalWrite<Pin::SEL, HIGH>();
-        } else {
+    switch(value & 0b11) {
+        case 0b00:
             digitalWrite<Pin::SEL, LOW>();
-        }
+            digitalWrite<Pin::SEL1, LOW>();
+            break;
+        case 0b01:
+            digitalWrite<Pin::SEL, HIGH>();
+            digitalWrite<Pin::SEL1, LOW>();
+            break;
+        case 0b10:
+            digitalWrite<Pin::SEL, LOW>();
+            digitalWrite<Pin::SEL1, HIGH>();
+            break;
+        case 0b11:
+            digitalWrite<Pin::SEL, HIGH>();
+            digitalWrite<Pin::SEL1, HIGH>();
+            break;
     }
     asm volatile ("nop");
     asm volatile ("nop");
@@ -233,16 +225,11 @@ setupIOExpanders() noexcept {
     MCP23S17::writeIOCON<DataLines>(reg);
     MCP23S17::writeDirection<DataLines>(MCP23S17::AllInput16);
     MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN>(0xFFFF);
-    MCP23S17::writeIOCON<AddressLower>(reg);
-    MCP23S17::writeDirection<AddressLower>(MCP23S17::AllInput16);
-    MCP23S17::write16<AddressLower, MCP23S17::Registers::GPINTEN>(0xFFFF);
-    MCP23S17::writeIOCON<AddressUpper>(reg);
-    MCP23S17::writeDirection<AddressUpper>(MCP23S17::AllInput16);
-    MCP23S17::write16<AddressUpper, MCP23S17::Registers::GPINTEN>(0xFFFF);
     reg.mirrorInterruptPins();
+    reg.interruptIsActiveHigh();
     MCP23S17::writeIOCON<XIO>(reg);
     MCP23S17::writeDirection<XIO>(MCP23S17::AllInput16);
-    reg.interruptIsActiveHigh();
+    MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN>(0xFF00);
     dataLinesDirection = MCP23S17::AllInput16;
     currentDataLinesValue = 0;
     MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);

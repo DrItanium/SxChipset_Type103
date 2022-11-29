@@ -30,15 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MCP23S17.h"
 #include "Pinout.h"
 
-#ifdef TYPE_103
-constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
-constexpr auto AddressUpper = MCP23S17::HardwareDeviceAddress::Device1;
-constexpr auto AddressLower = MCP23S17::HardwareDeviceAddress::Device2;
-constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device3;
-#else
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device1;
-#endif
 
 enum class TargetPeripheral {
     Info, 

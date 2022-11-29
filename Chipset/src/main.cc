@@ -397,23 +397,23 @@ SplitWord16 previousValue{0};
 
 template<bool isReadOperation>
 inline void 
-handlePeripheralOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+handlePeripheralOperation(const SplitWord32& addr) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            infoDevice.handleExecution<isReadOperation>(addr, m0);
+            infoDevice.handleExecution<isReadOperation>(addr);
             break;
         case TargetPeripheral::Serial:
-            theSerial.handleExecution<isReadOperation>(addr, m0);
+            theSerial.handleExecution<isReadOperation>(addr);
             break;
         default:
-            genericIOHandler<isReadOperation>(addr, m0);
+            genericIOHandler<isReadOperation>(addr);
             break;
     }
 }
 
 template<bool isReadOperation>
 inline void 
-handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+handleIOOperation(const SplitWord32& addr) noexcept {
     // When we are in io space, we are treating the address as an opcode which
     // we can decompose while getting the pieces from the io expanders. Thus we
     // can overlay the act of decoding while getting the next part
@@ -424,16 +424,16 @@ handleIOOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
     // one starts when performing a write operation
     switch (addr.getIOGroup()) {
         case IOGroup::Peripherals:
-            handlePeripheralOperation<isReadOperation>(addr, m0);
+            handlePeripheralOperation<isReadOperation>(addr);
             break;
         default:
-            genericIOHandler<isReadOperation>(addr, m0);
+            genericIOHandler<isReadOperation>(addr);
             break;
     }
 }
 template<bool isReadOperation, bool inlineSPIOperation>
 void
-handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+handleCacheOperation(const SplitWord32& addr) noexcept {
     // okay now we can service the transaction request since it will be going
     // to ram.
     auto& line = getCache().find(addr);
@@ -459,14 +459,14 @@ handleCacheOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept 
             }
             setDataLinesOutput<inlineSPIOperation>(value);
         } else {
-            auto c1 = readInputChannelAs<Channel1Value>();
-            auto value = getDataLines<inlineSPIOperation>(c1);
+            auto c0 = readInputChannelAs<Channel0Value>();
+            auto value = getDataLines<inlineSPIOperation>(c0);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
             }
             // so we are writing to the cache
-            line.setWord(offset, value, c1.getByteEnable());
+            line.setWord(offset, value, c0.getByteEnable());
         }
         signalReady();
         if (isBurstLast) {
@@ -614,7 +614,7 @@ handleTransaction() noexcept {
         Serial.print(F("Target address: 0x"));
         Serial.println(addr.getWholeValue(), HEX);
         Serial.print(F("Operation: "));
-        if (m0.isReadOperation()) {
+        if (m2.isReadOperation()) {
             Serial.println(F("Read!"));
         } else {
             Serial.println(F("Write!"));
@@ -626,16 +626,16 @@ handleTransaction() noexcept {
     }
     switch (target) {
         case TransactionKind::CacheRead:
-            handleCacheOperation<true, EnableInlineSPIOperation>(addr, m0);
+            handleCacheOperation<true, EnableInlineSPIOperation>(addr);
             break;
         case TransactionKind::CacheWrite:
-            handleCacheOperation<false, EnableInlineSPIOperation>(addr, m0);
+            handleCacheOperation<false, EnableInlineSPIOperation>(addr);
             break;
         case TransactionKind::IORead:
-            handleIOOperation<true>(addr, m0);
+            handleIOOperation<true>(addr);
             break;
         case TransactionKind::IOWrite:
-            handleIOOperation<false>(addr, m0);
+            handleIOOperation<false>(addr);
             break;
     }
     SPI.endTransaction();

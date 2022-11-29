@@ -27,12 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 
 uint16_t
-performSerialRead_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+performSerialRead_Fast(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return Serial.read();
 }
 
 void
-performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t value) noexcept {
+performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, byte, uint16_t value) noexcept {
     Serial.write(static_cast<uint8_t>(value));
 }
 
@@ -46,35 +46,35 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
 }
 
 void 
-SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept {
+SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept {
     switch (value) {
         case SerialDeviceOperations::RW:
-            genericIOHandler<true>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
+            genericIOHandler<true>(addr, performSerialRead_Fast, performSerialWrite_Fast);
             break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
-            genericIOHandler<true>(addr, m0);
+            genericIOHandler<true>(addr);
             break;
         case SerialDeviceOperations::Baud:
-            genericIOHandler<true>(addr, m0, expose32BitConstant<115200>);
+            genericIOHandler<true>(addr, expose32BitConstant<115200>);
             break;
         default:
-            genericIOHandler<true>(addr, m0);
+            genericIOHandler<true>(addr);
             break;
     }
 }
 void 
-SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept {
+SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept {
     switch (value) {
         case SerialDeviceOperations::RW:
-            genericIOHandler<false>(addr, m0, performSerialRead_Fast, performSerialWrite_Fast);
+            genericIOHandler<false>(addr, performSerialRead_Fast, performSerialWrite_Fast);
             break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
-            genericIOHandler<false>(addr, m0);
+            genericIOHandler<false>(addr);
             break;
         default:
-            genericIOHandler<false>(addr, m0);
+            genericIOHandler<false>(addr);
             break;
     }
 }

@@ -131,7 +131,7 @@ genericIOHandler(const SplitWord32& addr, ReadOperation onRead, WriteOperation o
         if constexpr (isReadOperation) {
             setDataLinesOutput<false>(onRead(addr, m0, offset));
         } else {
-            onWrite(addr, m0, offset, getDataLines<false>(c1));
+            onWrite(addr, m0, offset, getDataLines<false>(m0));
         }
         signalReady();
         if (isBurstLast) {
@@ -271,15 +271,15 @@ class Peripheral {
     public:
         virtual ~Peripheral() = default;
         template<bool isReadOperation>
-        void handleExecution(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+        void handleExecution(const SplitWord32& addr) noexcept {
             if constexpr (isReadOperation) {
-                readOperation(addr, m0);
+                readOperation(addr);
             } else {
-                writeOperation(addr, m0);
+                writeOperation(addr);
             }
         }
-        virtual void readOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept = 0;
-        virtual void writeOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept = 0;
+        virtual void readOperation(const SplitWord32& addr) noexcept = 0;
+        virtual void writeOperation(const SplitWord32& addr) noexcept = 0;
         virtual bool begin() noexcept { return true; }
 };
 template<typename E>
@@ -290,51 +290,51 @@ public:
     ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return true; }
     virtual uint32_t size() const noexcept { return static_cast<uint32_t>(E::Count); }
-    void readOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept override {
+    void readOperation(const SplitWord32& addr) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available:
-                readOnlyDynamicValue(addr, m0, available());
+                readOnlyDynamicValue(addr, available());
                 break;
             case E::Size:
-                readOnlyDynamicValue(addr, m0, size());
+                readOnlyDynamicValue(addr, size());
                 break;
             default:
                 if (validOperation(opcode)) {
-                    handleExtendedReadOperation(addr, m0, opcode);
+                    handleExtendedReadOperation(addr, opcode);
                 } else {
-                    genericIOHandler<true>(addr, m0);
+                    genericIOHandler<true>(addr);
                 }
                 break;
         }
 
     }
-    void writeOperation(const SplitWord32& addr, const Channel0Value& m0) noexcept override {
+    void writeOperation(const SplitWord32& addr) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available:
             case E::Size:
-                genericIOHandler<false>(addr, m0);
+                genericIOHandler<false>(addr);
                 break;
             default:
                 if (validOperation(opcode)) {
-                    handleExtendedWriteOperation(addr, m0, opcode);
+                    handleExtendedWriteOperation(addr, opcode);
                 } else {
-                    genericIOHandler<false>(addr, m0);
+                    genericIOHandler<false>(addr);
                 }
                 break;
         }
 
     }
 protected:
-    virtual void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, OperationList value) noexcept = 0;
-    virtual void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, OperationList value) noexcept = 0;
+    virtual void handleExtendedReadOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
+    virtual void handleExtendedWriteOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
 };
 
 
 inline void
-performNullWrite(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t) noexcept {
+performNullWrite(const SplitWord32&, const Channel0Value&, byte, uint16_t) noexcept {
 }
 inline uint16_t
-performNullRead(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+performNullRead(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return 0;
 }
 
@@ -345,8 +345,8 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         void setBaudRate(uint32_t baudRate) noexcept;
         [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, SerialDeviceOperations value) noexcept override;
+        void handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
     private:
         uint32_t baud_ = 115200;
 };
@@ -354,8 +354,8 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:
         ~InfoDevice() override = default;
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, const Channel0Value& m0, InfoDeviceOperations value) noexcept override;
+        void handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
 };
 
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

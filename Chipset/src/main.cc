@@ -40,6 +40,7 @@ RTC_DS1307 rtc;
 SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
+
 void 
 setInputChannel(byte value) noexcept {
     switch(value & 0b11) {
@@ -278,12 +279,12 @@ bootCPU() noexcept {
     Serial.println(F("STARTUP COMPLETE! BOOTING..."));
     // okay so we got past this, just start performing actions
     setInputChannel(0);
+    asm volatile ("nop");
+    asm volatile ("nop");
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<false>();
-    setInputChannel(0);
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<false>();
-    setInputChannel(0);
     lcd.clear();
     lcd.setCursor(0,0);
     if (digitalRead<Pin::FAIL>() == HIGH) {
@@ -322,10 +323,11 @@ setup() {
 
 void 
 loop() {
-    setInputChannel(0);
-    asm volatile ("nop");
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<EnableInlineSPIOperation>();
+    // always make sure we wait enough time
+    asm volatile ("nop");
+    asm volatile ("nop");
 }
 
 void sdCsInit(SdCsPin_t pin) {
@@ -548,6 +550,11 @@ handleTransaction() noexcept {
             break;
     }
     SPI.endTransaction();
+    // allow for extra recovery time, introduce a single 10mhz cycle delay
+    // shift back to input channel 0
+    setInputChannel(0);
+    asm volatile ("nop");
+    asm volatile ("nop");
 }
 
 

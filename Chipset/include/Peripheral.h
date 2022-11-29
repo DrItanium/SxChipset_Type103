@@ -80,8 +80,8 @@ inline void
 interruptI960() noexcept {
     pulse<Pin::INT0_, LOW, HIGH>();
 }
-using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte);
-using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte, uint16_t);
+using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, byte);
+using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, byte, uint16_t);
 extern SplitWord16 previousValue;
 extern uint16_t currentDataLinesValue;
 template<bool busHeldOpen>
@@ -104,8 +104,8 @@ setDataLinesOutput(uint16_t value) noexcept {
 }
 template<bool busHeldOpen>
 inline uint16_t 
-getDataLines(const Channel1Value& c1) noexcept {
-    if (c1.channel1.dataInt != 0b11) {
+getDataLines(const Channel0Value& c1) noexcept {
+    if (c1.getDataInterrupts() != 0b11) {
         if constexpr (busHeldOpen) {
             SPDR = 0;
             asm volatile ("nop");
@@ -124,14 +124,14 @@ getDataLines(const Channel1Value& c1) noexcept {
 }
 template<bool isReadOperation>
 void
-genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead, WriteOperation onWrite) noexcept {
+genericIOHandler(const SplitWord32& addr, ReadOperation onRead, WriteOperation onWrite) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        auto c1 = readInputChannelAs<Channel1Value>();
+        auto m0 = readInputChannelAs<Channel0Value>();
         if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, m0, c1, offset));
+            setDataLinesOutput<false>(onRead(addr, m0, offset));
         } else {
-            onWrite(addr, m0, c1, offset, getDataLines<false>(c1));
+            onWrite(addr, m0, offset, getDataLines<false>(c1));
         }
         signalReady();
         if (isBurstLast) {
@@ -145,7 +145,7 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
  */
 template<bool isReadOperation>
 void
-genericIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
+genericIOHandler(const SplitWord32& addr) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         if constexpr (isReadOperation) {
@@ -160,11 +160,11 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0) noexcept {
 
 template<bool isReadOperation>
 void
-genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation onRead) noexcept {
+genericIOHandler(const SplitWord32& addr, ReadOperation onRead) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, m0, readInputChannelAs<Channel1Value>(), offset));
+            setDataLinesOutput<false>(onRead(addr, readInputChannelAs<Channel0Value>(), offset));
         } 
         signalReady();
         if (isBurstLast) {
@@ -173,7 +173,7 @@ genericIOHandler(const SplitWord32& addr, const Channel0Value& m0, ReadOperation
     }
 }
 inline void
-readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint16_t value) noexcept {
+readOnlyDynamicValue(const SplitWord32& addr, uint16_t value) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         setDataLinesOutput<false>(value);
@@ -184,7 +184,7 @@ readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint16_t 
     }
 }
 inline void
-readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint32_t value) noexcept {
+readOnlyDynamicValue(const SplitWord32& addr, uint32_t value) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         if (offset & 0b1) {
@@ -200,7 +200,7 @@ readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint32_t 
 }
 
 inline void
-readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint64_t value) noexcept {
+readOnlyDynamicValue(const SplitWord32& addr, uint64_t value) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         switch (offset & 0b11) {
@@ -228,15 +228,15 @@ readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, uint64_t 
     }
 }
 inline void
-readOnlyDynamicValue(const SplitWord32& addr, const Channel0Value& m0, bool value) noexcept {
-    readOnlyDynamicValue(addr, m0, value ? 0xFFFF : 0x0);
+readOnlyDynamicValue(const SplitWord32& addr, bool value) noexcept {
+    readOnlyDynamicValue(addr, value ? 0xFFFF : 0x0);
 }
 
 
 
 template<uint32_t value>
 uint16_t
-expose32BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
+expose32BitConstant(const SplitWord32&, const Channel0Value&, byte offset) noexcept {
     switch (offset) {
         case 0:
             return static_cast<uint16_t>(value);
@@ -248,7 +248,7 @@ expose32BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Valu
 }
 template<uint64_t value>
 uint16_t
-expose64BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte offset) noexcept {
+expose64BitConstant(const SplitWord32&, const Channel0Value&, byte offset) noexcept {
     switch (offset) {
         case 0:
             return static_cast<uint16_t>(value);
@@ -264,7 +264,7 @@ expose64BitConstant(const SplitWord32&, const Channel0Value&, const Channel1Valu
 }
 template<bool value> 
 uint16_t
-exposeBooleanValue(const SplitWord32&, const Channel0Value&, const Channel1Value&, byte) noexcept {
+exposeBooleanValue(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return value ? 0xFFFF : 0;
 }
 class Peripheral {

@@ -143,7 +143,7 @@ union Word8 {
     [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return lowestAddr.wr != 0; }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
     [[nodiscard]] constexpr bool needHighestAddressLines() const noexcept { return channel0.addrHi == 0; }
-    [[nodiscard]] constexpr byte getDataLineReadStyle() const noexcept { return channel0.dataInt; }
+    [[nodiscard]] constexpr byte getDataInterrupts() const noexcept { return channel0.dataInt; }
     [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { return lowestAddr.addr; }
     [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { return getAddressBits1_7() << 1; }
     [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }

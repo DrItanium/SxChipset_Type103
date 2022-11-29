@@ -88,17 +88,21 @@ doHold(decltype(LOW) value) noexcept {
     }
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
 }
-void putCPUInReset() noexcept {
+void 
+putCPUInReset() noexcept {
     doReset(LOW);
 }
-void pullCPUOutOfReset() noexcept {
+void 
+pullCPUOutOfReset() noexcept {
     doReset(HIGH);
 }
-void holdBus() noexcept {
+void 
+holdBus() noexcept {
     doHold(HIGH);
 } 
 
-void releaseBus() noexcept {
+void 
+releaseBus() noexcept {
     doHold(LOW);
 }
 void configurePins() noexcept;

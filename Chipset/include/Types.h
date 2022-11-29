@@ -78,9 +78,9 @@ union SplitWord32 {
         uint8_t group : 4;
         uint8_t req : 4;
     } ioRequestAddress;
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
-    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
     [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
     [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return ioRequestAddress.device; }
@@ -106,6 +106,7 @@ union SplitWord16 {
     constexpr SplitWord16() : full(0) { }
     constexpr explicit SplitWord16(uint16_t value) : full(value) { }
     constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
 };
 
 union Word8 {
@@ -139,6 +140,11 @@ union Word8 {
         uint8_t valid_ : 1;
         uint8_t dirty_ : 1;
     } lineFlags;
+    struct {
+        uint8_t rst : 1;
+        uint8_t hold : 1;
+        uint8_t rest : 6;
+    } xioPortADir;
     [[nodiscard]] constexpr bool isReadOperation() const noexcept { return lowestAddr.wr == 0; }
     [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return lowestAddr.wr != 0; }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
@@ -154,6 +160,9 @@ union Word8 {
     void clear() noexcept {
         value_ = 0;
     }
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return value_; }
+    [[nodiscard]] constexpr Word8() : value_(0) { }
+    [[nodiscard]] constexpr explicit Word8(uint8_t value) : value_(value) { }
 };
 using Channel0Value = Word8;
 using Channel1Value = Word8;

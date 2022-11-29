@@ -292,6 +292,11 @@ namespace MCP23S17 {
     inline void writeGPIO16(uint16_t value) noexcept {
         write16<addr, Registers::GPIO, pin>(value);
     }
+
+    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
+    inline void writeGPIO8_PORTA(uint8_t value) noexcept {
+        write8<addr, Registers::GPIOA, pin>(value);
+    }
     /**
      * @brief Describe the directions of all 16 pins on a given io expander.
      * @tparam addr The io expander to update
@@ -301,6 +306,10 @@ namespace MCP23S17 {
     template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
     inline void writeDirection(uint16_t value) noexcept {
         write16<addr, Registers::IODIR, pin>(value) ;
+    }
+    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
+    inline void writeDirection(SplitWord16 value) noexcept {
+        writeDirection<addr, IODIR, pin>(value.getWholeValue()) ;
     }
     template<HardwareDeviceAddress addr>
     inline auto readDirection() noexcept {

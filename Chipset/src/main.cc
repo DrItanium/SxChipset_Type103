@@ -41,13 +41,6 @@ SdFat SD;
 SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
-void
-configureXIO() noexcept {
-    // reset and hold are always outputs
-    auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
-    theDirection &= ~0b11;
-    MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
-}
 void 
 setInputChannel(byte value) noexcept {
     switch(value & 0b11) {
@@ -232,12 +225,14 @@ setupIOExpanders() noexcept {
     reg.mirrorInterruptPins();
     reg.interruptIsActiveHigh();
     MCP23S17::writeIOCON<XIO>(reg);
-    MCP23S17::writeDirection<XIO>(MCP23S17::AllInput16);
+    MCP23S17::writeDirection<XIO>({0, 0xFF});
+    MCP23S17::writeGPIO8_PORTA<XIO>(0); // don't hold the bus but put the CPU
+                                        // into reset
     MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN>(0xFF00);
+
     dataLinesDirection = MCP23S17::AllInput16;
     currentDataLinesValue = 0;
     MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
-    //put the cpu into reset now too
 }
 void
 configurePins() noexcept {
@@ -307,8 +302,6 @@ setup() {
     // setup the IO Expanders
     setupIOExpanders();
     configurePins();
-    configureXIO();
-    putCPUInReset();
     while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);

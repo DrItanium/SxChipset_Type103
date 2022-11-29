@@ -324,25 +324,12 @@ loop() {
     handleTransaction<EnableInlineSPIOperation>();
 }
 
-/**
- * @brief Hacked sdCsInit that assumes the only pin we care about is SD_EN, otherwise failure
- * @param pin
- */
 void sdCsInit(SdCsPin_t pin) {
-    if (static_cast<Pin>(pin) != Pin::SD_EN) {
-        Serial.println(F("ERROR! sdCsInit provided sd pin which is not SD_EN"));
-        Serial.print(F("Pin is "));
-        Serial.println(static_cast<byte>(pin));
-        while (true) {
-            delay(100);
-        }
-    } else {
-        pinMode(pin, OUTPUT);
-    }
+    pinMode(pin, OUTPUT);
 }
 
-void sdCsWrite(SdCsPin_t, bool level) {
-    digitalWrite<Pin::SD_EN>(level);
+void sdCsWrite(SdCsPin_t pin, bool level) {
+    digitalWrite(pin, level);
 }
 
 

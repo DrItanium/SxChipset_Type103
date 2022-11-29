@@ -95,6 +95,12 @@ SEL1, /// @todo reimplement later on with something else
     HOLD,
     HLDA,
     INT3_,
+    XIO2,
+    XIO3,
+    XIO4,
+    XIO5,
+    XIO6,
+    XIO7,
     // aliases
     SEL = PortB0,
     CLKO = PortB1,
@@ -151,11 +157,38 @@ SEL1, /// @todo reimplement later on with something else
     X(14, 6),
     X(15, 7),
 #undef X
-
+    ShieldD0 = PortD0,
+    ShieldD1 = PortD1,
+    ShieldD2 = PortD2,
+    ShieldD3 = PortD3,
+    ShieldD4 = PortD4,
+    ShieldD5 = PortD5,
+    ShieldD6 = PortD6,
+    ShieldD7 = PortC2,
+    ShieldD8 = PortC3,
+    ShieldD9 = PortC4,
+    ShieldD10 = PortC5,
+    ShieldD11 = PortB5,
+    ShieldD12 = PortB6,
+    ShieldD13 = PortB7,
+    ShieldMOSI = ShieldD11,
+    ShieldMISO = ShieldD12,
+    ShieldSCK = ShieldD13,
+    ShieldA0 = PortC6,
+    ShieldA1 = PortC7,
+    ShieldA2 = XIO7,
+    ShieldA3 = PortB4,
+    ShieldA4 = PortC1,
+    ShieldA5 = PortC0,
 #else
 #error "Unknown board type defined!"
 #endif
 };
+template<byte index>
+constexpr auto ShieldPin_v = Pin::Count;
+#ifdef TYPE_103A
+template<> constexpr auto ShieldPin_v<0> = Pin::ShieldD0;
+#endif
 enum class Port : byte {
     A,
     B,

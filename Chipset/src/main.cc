@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "MCP23S17.h"
 #include "Wire.h"
-//#include "RTClib.h"
+#include "RTClib.h"
 #include "Adafruit_RGBLCDShield.h"
 #include "Peripheral.h"
 
@@ -41,12 +41,24 @@ SdFat SD;
 SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
-
-void 
-configureReset() noexcept {
-    // reset is always an output 
+void
+holdBus() noexcept {
     auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
-    theDirection &= ~0b1;
+    theDirection |= 0b0000'0010;
+    MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
+}
+void
+unholdBus() noexcept {
+    auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
+    theDirection &= ~0b0000'0010;
+    MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
+}
+void
+configureXIO() noexcept {
+
+    // reset and hold are always outputs
+    auto theDirection = MCP23S17::read8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>();
+    theDirection &= ~0b11;
     MCP23S17::write8<XIO, MCP23S17::Registers::IODIRA, Pin::GPIOSelect>(theDirection);
 }
 void 
@@ -314,7 +326,7 @@ setup() {
     // setup the IO Expanders
     setupIOExpanders();
     configurePins();
-    configureReset();
+    configureXIO();
     putCPUInReset();
     while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));

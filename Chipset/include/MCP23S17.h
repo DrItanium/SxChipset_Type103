@@ -308,8 +308,9 @@ namespace MCP23S17 {
         write16<addr, Registers::IODIR, pin>(value) ;
     }
     template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
-    inline void writeDirection(SplitWord16 value) noexcept {
-        writeDirection<addr, IODIR, pin>(value.getWholeValue()) ;
+    inline void writeDirection(uint8_t porta, uint8_t portb) noexcept {
+        SplitWord16 value(porta, portb);
+        writeDirection<addr, pin>(value.getWholeValue()) ;
     }
     template<HardwareDeviceAddress addr>
     inline auto readDirection() noexcept {

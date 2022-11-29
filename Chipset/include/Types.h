@@ -161,8 +161,6 @@ union Word8 {
         value_ = 0;
     }
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return value_; }
-    [[nodiscard]] constexpr Word8() : value_(0) { }
-    [[nodiscard]] constexpr explicit Word8(uint8_t value) : value_(value) { }
 };
 using Channel0Value = Word8;
 using Channel1Value = Word8;

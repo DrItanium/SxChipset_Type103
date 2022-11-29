@@ -63,6 +63,12 @@ setInputChannel(byte value) noexcept {
     }
     asm volatile ("nop");
     asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
 }
 constexpr bool EnableDebugMode = true;
 constexpr bool EnableInlineSPIOperation = true;
@@ -248,35 +254,42 @@ configurePins() noexcept {
     pinMode<Pin::INT0_>(OUTPUT);
     pinMode<Pin::SEL>(OUTPUT);
     pinMode<Pin::SEL1>(OUTPUT);
-    pinMode<Pin::Capture0>(INPUT);
-    pinMode<Pin::Capture1>(INPUT);
-    pinMode<Pin::Capture2>(INPUT);
-    pinMode<Pin::Capture3>(INPUT);
-    pinMode<Pin::Capture4>(INPUT);
-    pinMode<Pin::Capture5>(INPUT);
-    pinMode<Pin::Capture6>(INPUT);
-    pinMode<Pin::Capture7>(INPUT);
+    pinMode<Pin::Capture0>(INPUT_PULLUP);
+    pinMode<Pin::Capture1>(INPUT_PULLUP);
+    pinMode<Pin::Capture2>(INPUT_PULLUP);
+    pinMode<Pin::Capture3>(INPUT_PULLUP);
+    pinMode<Pin::Capture4>(INPUT_PULLUP);
+    pinMode<Pin::Capture5>(INPUT_PULLUP);
+    pinMode<Pin::Capture6>(INPUT_PULLUP);
+    pinMode<Pin::Capture7>(INPUT_PULLUP);
+    digitalWrite<Pin::SEL, LOW>();
+    digitalWrite<Pin::SEL1, LOW>();
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::INT0_, HIGH>();
     digitalWrite<Pin::PSRAM0, HIGH>();
     digitalWrite<Pin::SD_EN, HIGH>();
-    setInputChannel(0);
 }
 void
 bootCPU() noexcept {
     pullCPUOutOfReset();
+    bool skippedAhead = false;
     while (digitalRead<Pin::FAIL>() == LOW) {
         if (digitalRead<Pin::DEN>() == LOW) {
+            skippedAhead = true;
             break;
         }
     }
     while (digitalRead<Pin::FAIL>() == HIGH) {
         if (digitalRead<Pin::DEN>() == LOW) {
+            skippedAhead = true;
             break;
         }
     }
     Serial.println(F("STARTUP COMPLETE! BOOTING..."));
+    if (skippedAhead) {
+        Serial.println(F("\t Skipped ahead!"));
+    }
     // okay so we got past this, just start performing actions
     setInputChannel(0);
     asm volatile ("nop");
@@ -428,13 +441,11 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))); 
     }
-    setInputChannel(0);
-    for (byte offset = addr.address.offset; ; ++offset) {
-        asm volatile ("nop");
-        asm volatile ("nop");
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        auto c0 = readInputChannelAs<Channel0Value>();
+    for (byte offset = addr.getAddressOffset(); ; ++offset) {
+        auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
+            Serial.print(F("\tOffset: 0x"));
+            Serial.println(offset, HEX);
             Serial.print(F("\tChannel0: 0b"));
             Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
         }
@@ -447,7 +458,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
             }
             setDataLinesOutput<inlineSPIOperation>(value);
         } else {
-            auto c0 = readInputChannelAs<Channel0Value>();
+            //auto c0 = readInputChannelAs<Channel0Value>();
             auto value = getDataLines<inlineSPIOperation>(c0);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
@@ -456,6 +467,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
             // so we are writing to the cache
             line.setWord(offset, value, c0.getByteEnable());
         }
+        auto isBurstLast = c0.isBurstLast();
         signalReady();
         if (isBurstLast) {
             break;
@@ -497,7 +509,8 @@ handleTransaction() noexcept {
     setInputChannel(2);
     auto m2 = readInputChannelAs<Channel2Value>();
     direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    addr.bytes[0] = m2.getAddressBits0_7();
+    addr.bytes[0] = m2.getWholeValue();
+    addr.address.a0 = 0;
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = 0;
     asm volatile("nop");
@@ -552,6 +565,7 @@ handleTransaction() noexcept {
     SPI.endTransaction();
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0
+    //while (digitalRead<Pin::DEN>() == LOW);
     setInputChannel(0);
     asm volatile ("nop");
     asm volatile ("nop");

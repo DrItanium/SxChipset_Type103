@@ -89,6 +89,7 @@ union SplitWord32 {
     [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
     template<typename E>
     [[nodiscard]] constexpr E getIOFunction() const noexcept { return static_cast<E>(getIOFunctionCode()); }
+    [[nodiscard]] constexpr auto getAddressOffset() const noexcept { return address.offset; }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 
@@ -154,6 +155,7 @@ union Word8 {
     [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { return getAddressBits1_7() << 1; }
     [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }
     [[nodiscard]] constexpr auto getAddressBits16_23() const noexcept { return upperAddr; }
+    [[nodiscard]] constexpr auto isBurstLast() const noexcept { return channel0.blast == 0; }
 
     [[nodiscard]] constexpr auto lineIsValid() const noexcept { return lineFlags.valid_; }
     [[nodiscard]] constexpr auto lineIsDirty() const noexcept { return lineFlags.dirty_; }

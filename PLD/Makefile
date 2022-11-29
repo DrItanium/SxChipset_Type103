@@ -19,5 +19,11 @@ help:
 	@echo "- all : compile the gal code"
 	@echo "- install_Type103 : Program a GAL16V8 with Type103 GAL implementation"
 	@echo "- install_Type103a : Program a GAL16V8 with Type103a GAL implementation"
+	@echo "- clean : remove all extra files except .pld files"
 
-.PHONY: help
+clean:
+	@echo -n "Cleaning..."
+	@rm -rf *.chp *.fus *.jed *.pin
+	@echo "done"
+
+.PHONY: help clean

@@ -36,8 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
-//RTC_DS1307 rtc;
-
+RTC_DS1307 rtc;
 SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
@@ -163,30 +162,30 @@ setupPSRAM() noexcept {
     }
     Serial.println(F("MEMORY TEST COMPLETE!"));
 }
-//bool
-//trySetupDS1307() noexcept {
-//    if (rtc.begin()) {
-//        if (!rtc.isrunning()) {
-//            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-//        }
-//        return true;
-//    } else {
-//        return false;
-//    }
-//}
-//using DateTimeGetter = DateTime(*)();
-//DateTimeGetter now = nullptr;
-//void 
-//setupRTC() noexcept {
-//    // use short circuiting or to choose the first available rtc
-//    if (trySetupDS1307()) {
-//        Serial.println(F("Found RTC DS1307"));
-//        now = []() { return rtc.now(); };
-//    } else {
-//        Serial.println(F("No active RTC found!"));
-//        now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
-//    }
-//}
+bool
+trySetupDS1307() noexcept {
+    if (rtc.begin()) {
+        if (!rtc.isrunning()) {
+            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+using DateTimeGetter = DateTime(*)();
+DateTimeGetter now = nullptr;
+void 
+setupRTC() noexcept {
+    // use short circuiting or to choose the first available rtc
+    if (trySetupDS1307()) {
+        Serial.println(F("Found RTC DS1307"));
+        now = []() { return rtc.now(); };
+    } else {
+        Serial.println(F("No active RTC found!"));
+        now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
+    }
+}
 enum class RGBLCDColors : byte {
     Red = 0x1,
     Green,
@@ -298,6 +297,7 @@ setup() {
     infoDevice.begin();
     Wire.begin();
     setupRGBLCDShield();
+    setupRTC();
     SPI.begin();
     // setup the IO Expanders
     setupIOExpanders();

@@ -89,11 +89,17 @@ union DecodeRoms {
         uint32_t a22 : 1;
         uint32_t a21 : 1;
     } ctlPlusAddrUpper;
+    [[nodiscard]] auto getSEL(TreatAsLowerDecode) const noexcept {
+        return addrLower.sel;
+    }
+    [[nodiscard]] auto getSEL(TreatAsCtlPlusAddrUpper) const noexcept {
+        return ctlPlusAddrUpper.sel;
+    }
 
-    [[nodiscard]] uint8_t generate(TreatAsLowerDecode) const noexcept {
+    [[nodiscard]] uint8_t generate(TreatAsLowerDecode thing) const noexcept {
         Word8 result;
         result.whole = 0;
-        if (addrLower.sel == 0) {
+        if (getSEL(thing) == 0) {
             result.bits.b0 = addrLower.wr;
             result.bits.b1 = addrLower.a1;
             result.bits.b2 = addrLower.a2;
@@ -114,10 +120,10 @@ union DecodeRoms {
         }
         return result.whole;
     }
-    [[nodiscard]] uint8_t generate(TreatAsCtlPlusAddrUpper) const noexcept {
+    [[nodiscard]] uint8_t generate(TreatAsCtlPlusAddrUpper thing) const noexcept {
         Word8 result;
         result.whole = 0;
-        if (addrLower.sel == 0) {
+        if (getSEL(thing) == 0) {
             result.bits.b0 = ctlPlusAddrUpper.be0;
             result.bits.b1 = ctlPlusAddrUpper.be1;
             result.bits.b2 = ctlPlusAddrUpper.blast;

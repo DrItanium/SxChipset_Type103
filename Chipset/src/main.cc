@@ -230,7 +230,7 @@ setupIOExpanders() noexcept {
     MCP23S17::writeDirection<DataLines>(MCP23S17::AllInput16);
     MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN>(0xFFFF);
     reg.mirrorInterruptPins();
-    reg.interruptIsActiveHigh();
+    reg.interruptIsActiveLow();
     MCP23S17::writeIOCON<XIO>(reg);
     MCP23S17::writeDirection<XIO>(0, 0xFF);
     MCP23S17::writeGPIO8_PORTA<XIO>(0); // don't hold the bus but put the CPU

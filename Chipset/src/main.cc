@@ -41,7 +41,6 @@ SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 
-template<bool introduceDelays = false>
 void 
 setInputChannel(byte value) noexcept {
     switch(value & 0b11) {
@@ -61,10 +60,6 @@ setInputChannel(byte value) noexcept {
             digitalWrite<Pin::SEL, HIGH>();
             digitalWrite<Pin::SEL1, HIGH>();
             break;
-    }
-    if constexpr (introduceDelays) {
-        asm volatile ("nop");
-        asm volatile ("nop");
     }
 }
 constexpr bool EnableDebugMode = false;

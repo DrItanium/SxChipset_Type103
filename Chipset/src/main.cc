@@ -292,8 +292,6 @@ bootCPU() noexcept {
     }
     // okay so we got past this, just start performing actions
     setInputChannel(0);
-    asm volatile ("nop");
-    asm volatile ("nop");
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<false>();
     while (digitalRead<Pin::DEN>() == HIGH);

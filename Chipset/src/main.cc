@@ -70,7 +70,7 @@ setInputChannel(byte value) noexcept {
     asm volatile ("nop");
     asm volatile ("nop");
 }
-constexpr bool EnableDebugMode = true;
+constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
 template<bool>
 inline void handleTransaction() noexcept;

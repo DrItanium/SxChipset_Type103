@@ -72,12 +72,11 @@ void
 setInputChannel() noexcept {
     static_assert(value < 4, "Invalid channel selected!");
     if constexpr (value == 0b00) {
-
+        digitalWrite<Pin::SEL1, LOW>();
         digitalWrite<Pin::SEL, LOW>();
-        digitalWrite<Pin::SEL1, LOW>();
     } else if constexpr (value == 0b01) {
-        digitalWrite<Pin::SEL, HIGH>();
         digitalWrite<Pin::SEL1, LOW>();
+        digitalWrite<Pin::SEL, HIGH>();
     } else if constexpr (value == 0b10) {
         digitalWrite<Pin::SEL1, HIGH>();
         digitalWrite<Pin::SEL, LOW>();
@@ -86,6 +85,8 @@ setInputChannel() noexcept {
         digitalWrite<Pin::SEL, HIGH>();
     }
     if constexpr (introduceDelay) {
+        asm volatile ("nop");
+        asm volatile ("nop");
         asm volatile ("nop");
         asm volatile ("nop");
     }

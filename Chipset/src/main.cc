@@ -515,7 +515,9 @@ handleTransaction() noexcept {
     uint16_t direction = 0;
     bool updateDataLines = false;
     TransactionKind target = TransactionKind::CacheRead;
+    Channel2Value m2;
     //delay(100);
+    if (digitalRead<Pin::ADDR_INT0>() == LOW) {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
@@ -528,7 +530,7 @@ handleTransaction() noexcept {
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIOB) ;
     asm volatile("nop");
     setInputChannel<2>();
-    auto m2 = readInputChannelAs<Channel2Value>();
+    m2 = readInputChannelAs<Channel2Value>();
     direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     addr.bytes[0] = m2.getWholeValue();
     addr.address.a0 = 0;
@@ -555,6 +557,32 @@ handleTransaction() noexcept {
     }
     setInputChannel<0>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
+    } else {
+        setInputChannel<1>();
+        addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
+        setInputChannel<2>();
+        m2 = readInputChannelAs<Channel2Value>();
+        direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+        addr.bytes[0] = m2.getWholeValue();
+        addr.address.a0 = 0;
+        updateDataLines = direction != dataLinesDirection;
+        setInputChannel<3>();
+        addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
+        if (addr.isIOInstruction()) {
+            if (m2.isReadOperation()) {
+                target = TransactionKind::IORead;
+            } else {
+                target = TransactionKind::IOWrite;
+            }
+        } else {
+            if (m2.isReadOperation()) {
+                target = TransactionKind::CacheRead;
+            } else {
+                target = TransactionKind::CacheWrite;
+            }
+        }
+        setInputChannel<0>();
+    }
 
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));

@@ -493,7 +493,7 @@ handleTransaction() noexcept {
     bool updateDataLines = false;
     TransactionKind target = TransactionKind::CacheRead;
     //delay(100);
-    SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     digitalWrite<Pin::GPIOSelect, LOW>();

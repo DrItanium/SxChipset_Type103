@@ -60,7 +60,7 @@ template<typename E>
 constexpr bool validOperation(E value) noexcept {
     return static_cast<int>(value) >= 0 && (static_cast<int>(value) < static_cast<int>(E::Count));
 }
-template<typename T, bool introduceCpuCycleDelay = true>
+template<typename T, bool introduceCpuCycleDelay = false>
 inline T
 readInputChannelAs() noexcept {
     // make sure there is a builtin delay

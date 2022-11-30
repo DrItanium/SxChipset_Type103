@@ -41,6 +41,7 @@ SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 
+template<bool introduceDelays = false>
 void 
 setInputChannel(byte value) noexcept {
     switch(value & 0b11) {
@@ -61,14 +62,10 @@ setInputChannel(byte value) noexcept {
             digitalWrite<Pin::SEL1, HIGH>();
             break;
     }
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
+    if constexpr (introduceDelays) {
+        asm volatile ("nop");
+        asm volatile ("nop");
+    }
 }
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
@@ -339,11 +336,10 @@ setup() {
 
 void 
 loop() {
+    setInputChannel(0);
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<EnableInlineSPIOperation>();
     // always make sure we wait enough time
-    asm volatile ("nop");
-    asm volatile ("nop");
 }
 
 void sdCsInit(SdCsPin_t pin) {
@@ -570,10 +566,6 @@ handleTransaction() noexcept {
     SPI.endTransaction();
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0
-    //while (digitalRead<Pin::DEN>() == LOW);
-    setInputChannel(0);
-    asm volatile ("nop");
-    asm volatile ("nop");
 }
 
 

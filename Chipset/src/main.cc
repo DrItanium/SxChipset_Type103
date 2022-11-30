@@ -507,13 +507,14 @@ enum class TransactionKind {
     IORead,
     IOWrite,
 };
-SplitWord32 addr{0};
-TransactionKind target = TransactionKind::CacheRead;
+
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
+    static SplitWord32 addr{0};
     uint16_t direction = 0;
     bool updateDataLines = false;
+    TransactionKind target = TransactionKind::CacheRead;
     Channel2Value m2;
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     if ((DisableInterruptChecks) || digitalRead<Pin::ADDR_INT0>() == LOW) {

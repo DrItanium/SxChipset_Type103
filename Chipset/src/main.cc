@@ -507,55 +507,54 @@ enum class TransactionKind {
     IORead,
     IOWrite,
 };
-
+SplitWord32 addr{0};
+TransactionKind target = TransactionKind::CacheRead;
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
-    static SplitWord32 addr{0};
     uint16_t direction = 0;
     bool updateDataLines = false;
-    TransactionKind target = TransactionKind::CacheRead;
     Channel2Value m2;
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     if ((DisableInterruptChecks) || digitalRead<Pin::ADDR_INT0>() == LOW) {
-    // grab the entire state of port A
-    // update the address as a full 32-bit update for now
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    SPDR = MCP23S17::ReadOpcode_v<XIO>;
-    asm volatile("nop");
-    setInputChannel<1>();
-    addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
-    while (!(SPSR & _BV(SPIF))) ; // wait
-    SPDR = static_cast<byte>(MCP23S17::Registers::GPIOB) ;
-    asm volatile("nop");
-    setInputChannel<2>();
-    m2 = readInputChannelAs<Channel2Value>();
-    direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    addr.bytes[0] = m2.getWholeValue();
-    addr.address.a0 = 0;
-    updateDataLines = direction != dataLinesDirection;
-    while (!(SPSR & _BV(SPIF))) ; // wait
-    SPDR = 0;
-    asm volatile("nop");
-    setInputChannel<3>();
-    addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
-    while (!(SPSR & _BV(SPIF))) ; // wait
-    addr.bytes[3] = SPDR;
-    if (addr.isIOInstruction()) {
-        if (m2.isReadOperation()) {
-            target = TransactionKind::IORead;
+        // grab the entire state of port A
+        // update the address as a full 32-bit update for now
+        digitalWrite<Pin::GPIOSelect, LOW>();
+        SPDR = MCP23S17::ReadOpcode_v<XIO>;
+        asm volatile("nop");
+        setInputChannel<1>();
+        addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = static_cast<byte>(MCP23S17::Registers::GPIOB) ;
+        asm volatile("nop");
+        setInputChannel<2>();
+        m2 = readInputChannelAs<Channel2Value>();
+        direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+        addr.bytes[0] = m2.getWholeValue();
+        addr.address.a0 = 0;
+        updateDataLines = direction != dataLinesDirection;
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = 0;
+        asm volatile("nop");
+        setInputChannel<3>();
+        addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        addr.bytes[3] = SPDR;
+        if (addr.isIOInstruction()) {
+            if (m2.isReadOperation()) {
+                target = TransactionKind::IORead;
+            } else {
+                target = TransactionKind::IOWrite;
+            }
         } else {
-            target = TransactionKind::IOWrite;
+            if (m2.isReadOperation()) {
+                target = TransactionKind::CacheRead;
+            } else {
+                target = TransactionKind::CacheWrite;
+            }
         }
-    } else {
-        if (m2.isReadOperation()) {
-            target = TransactionKind::CacheRead;
-        } else {
-            target = TransactionKind::CacheWrite;
-        }
-    }
-    setInputChannel<0>();
-    digitalWrite<Pin::GPIOSelect, HIGH>();
+        setInputChannel<0>();
+        digitalWrite<Pin::GPIOSelect, HIGH>();
     } else {
         setInputChannel<1>();
         addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();

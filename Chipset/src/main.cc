@@ -31,15 +31,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MCP23S17.h"
 #include "Wire.h"
 #include "RTClib.h"
-#include "Adafruit_RGBLCDShield.h"
 #include "Peripheral.h"
+#ifdef SUPPORT_ADAFRUIT_RGBLCDSHIELD
+#include "Adafruit_RGBLCDShield.h"
+#endif
 
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 RTC_DS1307 rtc;
 SerialDevice theSerial;
 InfoDevice infoDevice;
+#ifdef SUPPORT_ADAFRUIT_RGBLCDSHIELD
 Adafruit_RGBLCDShield lcd;
+#endif
 
 template<bool introduceDelay = false>
 void 
@@ -218,6 +222,7 @@ setupRTC() noexcept {
         now = []() { return DateTime(F(__DATE__), F(__TIME__)); };
     }
 }
+#ifdef SUPPORT_ADAFRUIT_RGBLCDSHIELD
 enum class RGBLCDColors : byte {
     Red = 0x1,
     Green,
@@ -237,6 +242,7 @@ setupRGBLCDShield() noexcept {
     lcd.print(F("BOOTING!"));
     Serial.println(F("DONE!"));
 }
+#endif
 void
 setupIOExpanders() noexcept {
     MCP23S17::IOCON reg;
@@ -319,14 +325,22 @@ bootCPU() noexcept {
     handleTransaction<false, true>();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<false, true>();
+#ifdef SUPPORT_ADAFRUIT_RGBLCDSHIELD
     lcd.clear();
     lcd.setCursor(0,0);
+#endif
     if (digitalRead<Pin::FAIL>() == HIGH) {
+#ifdef SUPPORT_ADAFRUIT_RGBLCDSHIELD
         lcd.println(F("CHECKSUM FAILURE!"));
+#endif
         Serial.println(F("CHECKSUM FAILURE!"));
-        while (true);
+        while (true) {
+            delay(1000);
+        }
     } else {
+#ifdef SUPPORT_ADAFRUIT_RGBLCDSHIELD
         lcd.print(F("BOOT SUCCESSFUL!"));
+#endif
         Serial.println(F("BOOT SUCCESSFUL!"));
     }
 }
@@ -335,7 +349,9 @@ setup() {
     theSerial.begin();
     infoDevice.begin();
     Wire.begin();
+#ifdef SUPPORT_ADAFRUIT_RGBLCDSHIELD
     setupRGBLCDShield();
+#endif
     setupRTC();
     SPI.begin();
     // setup the IO Expanders

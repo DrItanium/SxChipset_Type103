@@ -41,6 +41,13 @@ SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 
+template<byte value>
+void
+setInputChannel() noexcept {
+    static_assert(value < 4, "Invalid channel selected!");
+    digitalWrite<Pin::SEL, (value & 0b1) ? HIGH : LOW>();
+    digitalWrite<Pin::SEL1, (value & 0b10) ? HIGH : LOW>();
+}
 void 
 setInputChannel(byte value) noexcept {
     switch(value & 0b11) {
@@ -285,7 +292,7 @@ bootCPU() noexcept {
         Serial.println(F("\t Skipped ahead!"));
     }
     // okay so we got past this, just start performing actions
-    setInputChannel(0);
+    setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<false>();
     while (digitalRead<Pin::DEN>() == HIGH);
@@ -328,7 +335,7 @@ setup() {
 
 void 
 loop() {
-    setInputChannel(0);
+    setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<EnableInlineSPIOperation>();
     // always make sure we wait enough time
@@ -493,12 +500,12 @@ handleTransaction() noexcept {
     digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::ReadOpcode_v<XIO>;
     asm volatile("nop");
-    setInputChannel(1);
+    setInputChannel<1>();
     addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIOB) ;
     asm volatile("nop");
-    setInputChannel(2);
+    setInputChannel<2>();
     auto m2 = readInputChannelAs<Channel2Value>();
     direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     addr.bytes[0] = m2.getWholeValue();
@@ -507,7 +514,7 @@ handleTransaction() noexcept {
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = 0;
     asm volatile("nop");
-    setInputChannel(3);
+    setInputChannel<3>();
     addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
     while (!(SPSR & _BV(SPIF))) ; // wait
     addr.bytes[3] = SPDR;
@@ -524,7 +531,7 @@ handleTransaction() noexcept {
             target = TransactionKind::CacheWrite;
         }
     }
-    setInputChannel(0);
+    setInputChannel<0>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
 
     if constexpr (EnableDebugMode) {

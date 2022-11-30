@@ -499,6 +499,8 @@ handleTransaction() noexcept {
     digitalWrite<Pin::GPIOSelect, LOW>();
     SPDR = MCP23S17::ReadOpcode_v<XIO>;
     asm volatile("nop");
+    setInputChannel(1);
+    addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
     while (!(SPSR & _BV(SPIF))) ; // wait
     SPDR = static_cast<byte>(MCP23S17::Registers::GPIOB) ;
     asm volatile("nop");
@@ -509,8 +511,6 @@ handleTransaction() noexcept {
     addr.bytes[3] = SPDR;
     digitalWrite<Pin::GPIOSelect, HIGH>();
 
-    setInputChannel(1);
-    addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
     setInputChannel(2);
     auto m2 = readInputChannelAs<Channel2Value>();
     direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;

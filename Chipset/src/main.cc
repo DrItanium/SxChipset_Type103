@@ -560,6 +560,20 @@ handleTransaction() noexcept {
             dataLinesDirection = direction;
             MCP23S17::writeDirection<DataLines>(dataLinesDirection);
         }
+        switch (target) {
+            case TransactionKind::CacheRead:
+                handleCacheOperation<true, EnableInlineSPIOperation>(addr);
+                break;
+            case TransactionKind::CacheWrite:
+                handleCacheOperation<false, EnableInlineSPIOperation>(addr);
+                break;
+            case TransactionKind::IORead:
+                handleIOOperation<true>(addr);
+                break;
+            case TransactionKind::IOWrite:
+                handleIOOperation<false>(addr);
+                break;
+        }
     } else {
         setInputChannel<1>();
         addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
@@ -576,15 +590,15 @@ handleTransaction() noexcept {
         addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
         if (addr.isIOInstruction()) {
             if (m2.isReadOperation()) {
-                target = TransactionKind::IORead;
+                handleIOOperation<true>(addr);
             } else {
-                target = TransactionKind::IOWrite;
+                handleIOOperation<false>(addr);
             }
         } else {
             if (m2.isReadOperation()) {
-                target = TransactionKind::CacheRead;
+                handleCacheOperation<true, EnableInlineSPIOperation>(addr);
             } else {
-                target = TransactionKind::CacheWrite;
+                handleCacheOperation<false, EnableInlineSPIOperation>(addr);
             }
         }
         setInputChannel<0>();
@@ -599,20 +613,6 @@ handleTransaction() noexcept {
         } else {
             Serial.println(F("Write!"));
         }
-    }
-    switch (target) {
-        case TransactionKind::CacheRead:
-            handleCacheOperation<true, EnableInlineSPIOperation>(addr);
-            break;
-        case TransactionKind::CacheWrite:
-            handleCacheOperation<false, EnableInlineSPIOperation>(addr);
-            break;
-        case TransactionKind::IORead:
-            handleIOOperation<true>(addr);
-            break;
-        case TransactionKind::IOWrite:
-            handleIOOperation<false>(addr);
-            break;
     }
     SPI.endTransaction();
     // allow for extra recovery time, introduce a single 10mhz cycle delay

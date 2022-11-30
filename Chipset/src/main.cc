@@ -316,9 +316,9 @@ bootCPU() noexcept {
     // okay so we got past this, just start performing actions
     setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<false, false>();
+    handleTransaction<false, true>();
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<false, false>();
+    handleTransaction<false, true>();
     lcd.clear();
     lcd.setCursor(0,0);
     if (digitalRead<Pin::FAIL>() == HIGH) {
@@ -359,7 +359,7 @@ void
 loop() {
     setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<EnableInlineSPIOperation, true>();
+    handleTransaction<EnableInlineSPIOperation, false>();
     // always make sure we wait enough time
 }
 
@@ -556,6 +556,10 @@ handleTransaction() noexcept {
         }
         setInputChannel<0>();
         digitalWrite<Pin::GPIOSelect, HIGH>();
+        if (updateDataLines) {
+            dataLinesDirection = direction;
+            MCP23S17::writeDirection<DataLines>(dataLinesDirection);
+        }
     } else {
         setInputChannel<1>();
         addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
@@ -564,7 +568,10 @@ handleTransaction() noexcept {
         direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
         addr.bytes[0] = m2.getWholeValue();
         addr.address.a0 = 0;
-        updateDataLines = direction != dataLinesDirection;
+        if (direction != dataLinesDirection) {
+            dataLinesDirection = direction;
+            MCP23S17::writeDirection<DataLines>(dataLinesDirection);
+        }
         setInputChannel<3>();
         addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
         if (addr.isIOInstruction()) {
@@ -592,10 +599,6 @@ handleTransaction() noexcept {
         } else {
             Serial.println(F("Write!"));
         }
-    }
-    if (updateDataLines) {
-        dataLinesDirection = direction;
-        MCP23S17::writeDirection<DataLines>(dataLinesDirection);
     }
     switch (target) {
         case TransactionKind::CacheRead:

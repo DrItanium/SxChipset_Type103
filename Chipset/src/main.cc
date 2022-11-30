@@ -41,13 +41,7 @@ SerialDevice theSerial;
 InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 
-template<byte value>
-void
-setInputChannel() noexcept {
-    static_assert(value < 4, "Invalid channel selected!");
-    digitalWrite<Pin::SEL, (value & 0b1) ? HIGH : LOW>();
-    digitalWrite<Pin::SEL1, (value & 0b10) ? HIGH : LOW>();
-}
+template<bool introduceDelay = false>
 void 
 setInputChannel(byte value) noexcept {
     switch(value & 0b11) {
@@ -67,6 +61,33 @@ setInputChannel(byte value) noexcept {
             digitalWrite<Pin::SEL, HIGH>();
             digitalWrite<Pin::SEL1, HIGH>();
             break;
+    }
+    if constexpr (introduceDelay) {
+        asm volatile ("nop");
+        asm volatile ("nop");
+    }
+}
+template<byte value, bool introduceDelay = true>
+void
+setInputChannel() noexcept {
+    static_assert(value < 4, "Invalid channel selected!");
+    if constexpr (value == 0b00) {
+
+        digitalWrite<Pin::SEL, LOW>();
+        digitalWrite<Pin::SEL1, LOW>();
+    } else if constexpr (value == 0b01) {
+        digitalWrite<Pin::SEL, HIGH>();
+        digitalWrite<Pin::SEL1, LOW>();
+    } else if constexpr (value == 0b10) {
+        digitalWrite<Pin::SEL1, HIGH>();
+        digitalWrite<Pin::SEL, LOW>();
+    } else {
+        digitalWrite<Pin::SEL1, HIGH>();
+        digitalWrite<Pin::SEL, HIGH>();
+    }
+    if constexpr (introduceDelay) {
+        asm volatile ("nop");
+        asm volatile ("nop");
     }
 }
 constexpr bool EnableDebugMode = false;

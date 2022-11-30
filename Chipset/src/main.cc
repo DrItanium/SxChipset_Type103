@@ -93,7 +93,7 @@ setInputChannel() noexcept {
 }
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
-template<bool>
+template<bool, bool DisableInterruptChecks = true>
 inline void handleTransaction() noexcept;
 
 [[gnu::always_inline]] inline void 
@@ -316,9 +316,9 @@ bootCPU() noexcept {
     // okay so we got past this, just start performing actions
     setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<false>();
+    handleTransaction<false, false>();
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<false>();
+    handleTransaction<false, false>();
     lcd.clear();
     lcd.setCursor(0,0);
     if (digitalRead<Pin::FAIL>() == HIGH) {
@@ -359,7 +359,7 @@ void
 loop() {
     setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<EnableInlineSPIOperation>();
+    handleTransaction<EnableInlineSPIOperation, true>();
     // always make sure we wait enough time
 }
 
@@ -508,7 +508,7 @@ enum class TransactionKind {
     IOWrite,
 };
 
-template<bool EnableInlineSPIOperation>
+template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
     static SplitWord32 addr{0};
@@ -516,9 +516,8 @@ handleTransaction() noexcept {
     bool updateDataLines = false;
     TransactionKind target = TransactionKind::CacheRead;
     Channel2Value m2;
-    //delay(100);
-    if (digitalRead<Pin::ADDR_INT0>() == LOW) {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+    if ((DisableInterruptChecks) || digitalRead<Pin::ADDR_INT0>() == LOW) {
     // grab the entire state of port A
     // update the address as a full 32-bit update for now
     digitalWrite<Pin::GPIOSelect, LOW>();

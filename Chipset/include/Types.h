@@ -237,8 +237,14 @@ struct DataCacheSet {
         }
     }
     inline auto& find(SplitWord32 address) noexcept {
-        for (auto& line : lines) {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            auto& line = lines[i];
             if (line.matches(address)) {
+                // shift ahead by one to make sure we don't swap the current
+                // line out on next miss. It is a form of most recently used
+                if (i == replacementIndex_) {
+                    ++replacementIndex_;
+                }
                 return line;
             }
         }

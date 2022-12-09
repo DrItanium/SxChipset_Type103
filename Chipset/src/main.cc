@@ -650,6 +650,7 @@ namespace {
     size_t
     psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         digitalWrite<Pin::PSRAM0, LOW>();
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
         SPDR = 0x02;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -667,12 +668,20 @@ namespace {
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait
         }
+#else
+        SPI.transfer(0x02);
+        SPI.transfer(baseAddress.bytes[2]);
+        SPI.transfer(baseAddress.bytes[1]);
+        SPI.transfer(baseAddress.bytes[0]);
+        SPI.transfer(bytes, count);
+#endif
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }
     size_t
     psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         digitalWrite<Pin::PSRAM0, LOW>();
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
         SPDR = 0x03;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -691,6 +700,13 @@ namespace {
             while (!(SPSR & _BV(SPIF))) ; // wait
             bytes[i] = SPDR;
         }
+#else
+        SPI.transfer(0x03);
+        SPI.transfer(baseAddress.bytes[2]);
+        SPI.transfer(baseAddress.bytes[1]);
+        SPI.transfer(baseAddress.bytes[0]);
+        SPI.transfer(bytes, count);
+#endif
         digitalWrite<Pin::PSRAM0, HIGH>();
         return count;
     }

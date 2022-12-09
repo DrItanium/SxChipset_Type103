@@ -91,6 +91,7 @@ setDataLinesOutput(uint16_t value) noexcept {
     if (currentDataLinesValue != value) {
         currentDataLinesValue = value;
         if constexpr (busHeldOpen) {
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
             SPDR = static_cast<byte>(value);
             asm volatile ("nop");
             auto next = static_cast<byte>(value >> 8);
@@ -98,6 +99,10 @@ setDataLinesOutput(uint16_t value) noexcept {
             SPDR = next;
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait
+#else
+            SPI.transfer(static_cast<byte>(value));
+            SPI.transfer(static_cast<byte>(value >> 8));
+#endif
         } else {
             MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
         }
@@ -109,6 +114,7 @@ inline uint16_t
 getDataLines(const Channel0Value& c1) noexcept {
     if (c1.getDataInterrupts() != 0b11) {
         if constexpr (busHeldOpen) {
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
             SPDR = 0;
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait
@@ -118,6 +124,10 @@ getDataLines(const Channel0Value& c1) noexcept {
             previousValue.bytes[0] = value;
             while (!(SPSR & _BV(SPIF))) ; // wait
             previousValue.bytes[1] = SPDR;
+#else
+            previousValue.bytes[0] = SPI.transfer(0);
+            previousValue.bytes[1] = SPI.transfer(0);
+#endif
         } else {
             previousValue.full = MCP23S17::readGPIO16<DataLines>();
         }

@@ -26,6 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_PINOUT_H
 #define SXCHIPSET_TYPE103_PINOUT_H
 #include <Arduino.h>
+/**
+ * @brief Wrapper around the AVR Pins to make templating easier and cleaner
+ */
 enum class Pin : byte {
 #define X(port, index) Port ## port ## index = PIN_P ## port ## index,
 #include "AVRPins.def"
@@ -134,6 +137,8 @@ enum class Port : byte {
 using PortOutputRegister = volatile byte&;
 using PortInputRegister = volatile byte&;
 using PortDirectionRegister = volatile byte&;
+using PinState = decltype(LOW);
+using PinDirection = decltype(OUTPUT);
 #ifndef GPIOR0
 extern byte GPIOR0;
 #endif
@@ -266,7 +271,7 @@ getDirectionRegister() noexcept {
 }
 [[gnu::always_inline]] inline 
 void 
-digitalWrite(Pin pin, decltype(LOW) value) noexcept { 
+digitalWrite(Pin pin, PinState value) noexcept { 
     if (isPhysicalPin(pin)) {
         if (auto &thePort = getOutputRegister(pin); value == LOW) {
             thePort = thePort & ~getPinMask(pin);
@@ -279,22 +284,22 @@ digitalWrite(Pin pin, decltype(LOW) value) noexcept {
 }
 
 [[gnu::always_inline]] 
-inline decltype(LOW)
+inline PinState 
 digitalRead(Pin pin) noexcept { 
     if (isPhysicalPin(pin)) {
         return (getInputRegister(pin) & getPinMask(pin)) ? HIGH : LOW;
     } else {
-        return digitalRead(static_cast<byte>(pin));
+        return ::digitalRead(static_cast<byte>(pin));
     }
 }
 template<Pin pin>
 [[gnu::always_inline]] 
-inline decltype(LOW)
+inline PinState
 digitalRead() noexcept { 
     return digitalRead(pin);
 }
 [[gnu::always_inline]] inline 
-void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
+void pinMode(Pin pin, PinDirection direction) noexcept {
     if (isPhysicalPin(pin)) {
         pinMode(static_cast<int>(pin), direction);
     } 
@@ -303,7 +308,7 @@ void pinMode(Pin pin, decltype(INPUT) direction) noexcept {
 
 template<Pin pin>
 [[gnu::always_inline]] inline 
-void pinMode(decltype(INPUT) direction) noexcept {
+void pinMode(PinDirection direction) noexcept {
     if constexpr (isPhysicalPin(pin)) {
         pinMode(static_cast<int>(pin), direction);
     } 
@@ -313,21 +318,22 @@ void pinMode(decltype(INPUT) direction) noexcept {
 template<Pin pin>
 [[gnu::always_inline]] 
 inline void 
-digitalWrite(decltype(LOW) value) noexcept { 
+digitalWrite(PinState value) noexcept { 
     digitalWrite(pin, value);
 }
-template<Pin pin, decltype(LOW) value>
+template<Pin pin, PinState value>
 [[gnu::always_inline]] 
 inline void 
 digitalWrite() noexcept { 
     digitalWrite<pin>(value);
 }
-template<Pin pin, decltype(LOW) to, decltype(HIGH) from>
+template<Pin pin, PinState to, PinState from>
 [[gnu::always_inline]]
 inline void
 pulse() noexcept {
     digitalWrite<pin, to>();
     digitalWrite<pin, from>();
 }
+
 
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

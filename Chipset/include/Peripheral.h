@@ -91,7 +91,7 @@ setDataLinesOutput(uint16_t value) noexcept {
     if (currentDataLinesValue != value) {
         currentDataLinesValue = value;
         if constexpr (busHeldOpen) {
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
             SPDR = static_cast<byte>(value);
             asm volatile ("nop");
             auto next = static_cast<byte>(value >> 8);
@@ -114,7 +114,7 @@ inline uint16_t
 getDataLines(const Channel0Value& c1) noexcept {
     if (c1.getDataInterrupts() != 0b11) {
         if constexpr (busHeldOpen) {
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
             SPDR = 0;
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait

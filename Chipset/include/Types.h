@@ -28,6 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SdFat.h>
 
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#define AVR_SPI_AVAILABLE
+#endif
+
+
 template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>

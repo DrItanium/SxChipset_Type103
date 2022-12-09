@@ -336,4 +336,10 @@ pulse() noexcept {
 }
 
 
+constexpr bool hasPWM(Pin pin) noexcept {
+    return digitalPinHasPWM(static_cast<byte>(pin));
+}
+
+template<Pin p>
+constexpr auto HasPWM_v = hasPWM(p);
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

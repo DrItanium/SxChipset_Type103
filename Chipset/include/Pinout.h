@@ -125,45 +125,24 @@ Count = NUM_DIGITAL_PINS,
     SD_EN = ShieldD10,
 };
 enum class Port : byte {
-#if defined(PORTA)
-    A,
-#endif
-#if defined(PORTB)
-    B,
-#endif
-#if defined(PORTC)
-    C,
-#endif
-#if defined(PORTD)
-    D,
-#endif
-#if defined(PORTE)
-    E,
-#endif
-#if defined(PORTF)
-    F,
-#endif
-#if defined(PORTG)
-    G,
-#endif
-#if defined(PORTH)
-    H,
-#endif
-#if defined(PORTJ)
-    J,
-#endif
-#if defined(PORTK)
-    K,
-#endif
-#if defined(PORTL)
-    L,
-#endif
     // stop at mega2560 tier
+#define X(name) name ,
+#include "AVRPorts.def"
+#undef X
     None,
 };
 using PortOutputRegister = volatile byte&;
 using PortInputRegister = volatile byte&;
 using PortDirectionRegister = volatile byte&;
+#ifndef GPIOR0
+extern byte GPIOR0;
+#endif
+#ifndef GPIOR1
+extern byte GPIOR1;
+#endif
+#ifndef GPIOR2
+extern byte GPIOR2;
+#endif
 constexpr Port getPort(Pin pin) noexcept {
     switch (pin) {
 #define X(port, ind) case Pin :: Port ## port ## ind : return Port:: port ;
@@ -174,39 +153,9 @@ constexpr Port getPort(Pin pin) noexcept {
 }
 constexpr bool validPort(Port port) noexcept {
     switch (port) {
-#if defined(PORTA)
-        case Port::A:
-#endif
-#if defined(PORTB)
-        case Port::B:
-#endif
-#if defined(PORTC)
-        case Port::C:
-#endif
-#if defined(PORTD)
-        case Port::D:
-#endif
-#if defined(PORTE)
-        case Port::E:
-#endif
-#if defined(PORTF)
-        case Port::F:
-#endif
-#if defined(PORTG)
-        case Port::G:
-#endif
-#if defined(PORTH)
-        case Port::H:
-#endif
-#if defined(PORTJ)
-        case Port::J:
-#endif
-#if defined(PORTK)
-        case Port::K:
-#endif
-#if defined(PORTL)
-        case Port::L:
-#endif
+#define X(name) case Port :: name :
+#include "AVRPorts.def"
+#undef X
             return true;
         default:
             return false;
@@ -238,10 +187,9 @@ constexpr auto IsPhysicalPin_v = isPhysicalPin(pin);
 inline PortOutputRegister 
 getOutputRegister(Port port) noexcept {
     switch (port) {
-        case Port::A: return PORTA;
-        case Port::B: return PORTB;
-        case Port::C: return PORTC;
-        case Port::D: return PORTD;
+#define X(name) case Port :: name : return PORT ## name ;
+#include "AVRPorts.def"
+#undef X
         default: return GPIOR0;
     }
 }
@@ -272,10 +220,9 @@ getOutputRegister(Pin pin) noexcept {
 inline PortInputRegister 
 getInputRegister(Port port) noexcept {
     switch (port) {
-        case Port::A: return PINA;
-        case Port::B: return PINB;
-        case Port::C: return PINC;
-        case Port::D: return PIND;
+#define X(name) case Port :: name : return PIN ## name ;
+#include "AVRPorts.def"
+#undef X
         default: return GPIOR1;
     }
 }
@@ -304,10 +251,9 @@ getInputRegister(Pin pin) noexcept {
 inline PortDirectionRegister 
 getDirectionRegister(Port port) noexcept {
     switch (port) {
-        case Port::A: return DDRA;
-        case Port::B: return DDRB;
-        case Port::C: return DDRC;
-        case Port::D: return DDRD;
+#define X(name) case Port:: name : return DDR ## name ;
+#include "AVRPorts.def"
+#undef X
         default: return GPIOR2;
     }
 }

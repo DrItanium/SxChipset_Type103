@@ -695,4 +695,14 @@ memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
 }
 
 
-
+// if the AVR processor doesn't have access to the GPIOR registers then emulate
+// them
+#ifndef GPIOR0
+byte GPIOR0;
+#endif
+#ifndef GPIOR1
+byte GPIOR1;
+#endif
+#ifndef GPIOR2
+byte GPIOR2;
+#endif

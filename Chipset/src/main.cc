@@ -512,11 +512,11 @@ enum class TransactionKind {
     IORead,
     IOWrite,
 };
-
+SplitWord32 addr { 0 };
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
-    static SplitWord32 addr{0};
+    //static SplitWord32 addr{0};
     uint16_t direction = 0;
     bool updateDataLines = false;
     TransactionKind target = TransactionKind::CacheRead;

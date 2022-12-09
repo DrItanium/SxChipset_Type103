@@ -91,8 +91,6 @@ setInputChannel() noexcept {
     if constexpr (introduceDelay) {
         asm volatile ("nop");
         asm volatile ("nop");
-        asm volatile ("nop");
-        asm volatile ("nop");
     }
 }
 constexpr bool EnableDebugMode = false;
@@ -127,15 +125,6 @@ putCPUInReset() noexcept {
 void 
 pullCPUOutOfReset() noexcept {
     doReset(HIGH);
-}
-void 
-holdBus() noexcept {
-    doHold(HIGH);
-} 
-
-void 
-releaseBus() noexcept {
-    doHold(LOW);
 }
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;

@@ -236,16 +236,25 @@ struct DataCacheSet {
             line.begin();
         }
     }
+    template<bool useMostRecentlyUsedCheck = false>
     inline auto& find(SplitWord32 address) noexcept {
-        for (int i = 0; i < NumberOfLines; ++i) {
-            auto& line = lines[i];
-            if (line.matches(address)) {
-                // shift ahead by one to make sure we don't swap the current
-                // line out on next miss. It is a form of most recently used
-                if (i == replacementIndex_) {
-                    updateFlags();
+        if constexpr (useMostRecentlyUsedCheck) {
+            for (int i = 0; i < NumberOfLines; ++i) {
+                auto& line = lines[i];
+                if (line.matches(address)) {
+                    // shift ahead by one to make sure we don't swap the current
+                    // line out on next miss. It is a form of most recently used
+                    if (i == replacementIndex_) {
+                        updateFlags();
+                    }
+                    return line;
                 }
-                return line;
+            }
+        } else {
+            for (auto& line : lines) {
+                if (line.matches(address)) {
+                    return line;
+                }
             }
         }
         auto& target = lines[replacementIndex_];
@@ -253,7 +262,7 @@ struct DataCacheSet {
         target.reset(address);
         return target;
     }
-    void updateFlags() noexcept {
+    inline void updateFlags() noexcept {
         ++replacementIndex_;
         if (replacementIndex_ == NumberOfLines) {
             replacementIndex_ = 0;

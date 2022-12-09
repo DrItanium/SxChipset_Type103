@@ -85,6 +85,7 @@ using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, byte, u
 extern SplitWord16 previousValue;
 extern uint16_t currentDataLinesValue;
 template<bool busHeldOpen>
+[[gnu::always_inline]] 
 inline void 
 setDataLinesOutput(uint16_t value) noexcept {
     if (currentDataLinesValue != value) {
@@ -103,6 +104,7 @@ setDataLinesOutput(uint16_t value) noexcept {
     }
 }
 template<bool busHeldOpen>
+[[gnu::always_inline]] 
 inline uint16_t 
 getDataLines(const Channel0Value& c1) noexcept {
     if (c1.getDataInterrupts() != 0b11) {
@@ -123,7 +125,7 @@ getDataLines(const Channel0Value& c1) noexcept {
     return previousValue.full;
 }
 template<bool isReadOperation>
-void
+inline void
 genericIOHandler(const SplitWord32& addr, ReadOperation onRead, WriteOperation onWrite) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
@@ -144,7 +146,7 @@ genericIOHandler(const SplitWord32& addr, ReadOperation onRead, WriteOperation o
  * function
  */
 template<bool isReadOperation>
-void
+inline void
 genericIOHandler(const SplitWord32& addr) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
@@ -159,7 +161,7 @@ genericIOHandler(const SplitWord32& addr) noexcept {
 }
 
 template<bool isReadOperation>
-void
+inline void
 genericIOHandler(const SplitWord32& addr, ReadOperation onRead) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;

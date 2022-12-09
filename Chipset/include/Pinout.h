@@ -466,8 +466,11 @@ constexpr Port getPort(Pin pin) noexcept {
 #ifdef PORTJ
         Y(J);
 #endif
-#ifdef PORTJ
+#ifdef PORTK
         Y(K);
+#endif
+#ifdef PORTL
+        Y(L);
 #endif
 #undef Y
 #undef X
@@ -476,10 +479,39 @@ constexpr Port getPort(Pin pin) noexcept {
 }
 constexpr bool validPort(Port port) noexcept {
     switch (port) {
+#if defined(PORTA)
         case Port::A:
+#endif
+#if defined(PORTB)
         case Port::B:
+#endif
+#if defined(PORTC)
         case Port::C:
+#endif
+#if defined(PORTD)
         case Port::D:
+#endif
+#if defined(PORTE)
+        case Port::E:
+#endif
+#if defined(PORTF)
+        case Port::F:
+#endif
+#if defined(PORTG)
+        case Port::G:
+#endif
+#if defined(PORTH)
+        case Port::H:
+#endif
+#if defined(PORTJ)
+        case Port::J:
+#endif
+#if defined(PORTK)
+        case Port::K:
+#endif
+#if defined(PORTL)
+        case Port::L:
+#endif
             return true;
         default:
             return false;
@@ -488,6 +520,7 @@ constexpr bool validPort(Port port) noexcept {
 [[gnu::always_inline]]
 [[nodiscard]] constexpr decltype(auto) getPinMask(Pin pin) noexcept {
     switch (pin) {
+#if 0
 #define PIN(port, offset) case Pin:: Port ## port ## offset : return _BV ( P ## port ## offset )
 #define PORT(port) \
         PIN(port, 0); \
@@ -504,6 +537,273 @@ constexpr bool validPort(Port port) noexcept {
         PORT(D);
 #undef PIN
 #undef PORT
+#endif
+#define DefPin(port, offset) case Pin :: Port ## port ## offset : return _BV ( P ## port ## offset)
+#ifdef PIN_PB0
+DefPin(B, 0);
+#endif
+#ifdef PIN_PB1
+DefPin(B, 1);
+#endif
+#ifdef PIN_PB2
+DefPin(B, 2);
+#endif
+#ifdef PIN_PB3
+DefPin(B, 3);
+#endif
+#ifdef PIN_PB4
+DefPin(B, 4);
+#endif
+#ifdef PIN_PB5
+DefPin(B, 5);
+#endif
+#ifdef PIN_PB6
+DefPin(B, 6);
+#endif
+#ifdef PIN_PB7
+DefPin(B, 7);
+#endif
+#ifdef PIN_PC0
+DefPin(C, 0);
+#endif
+#ifdef PIN_PC1
+DefPin(C, 1);
+#endif
+#ifdef PIN_PC2
+DefPin(C, 2);
+#endif
+#ifdef PIN_PC3
+DefPin(C, 3);
+#endif
+#ifdef PIN_PC4
+DefPin(C, 4);
+#endif
+#ifdef PIN_PC5
+DefPin(C, 5);
+#endif
+#ifdef PIN_PC6
+DefPin(C, 6);
+#endif
+#ifdef PIN_PC7
+DefPin(C, 7);
+#endif
+#ifdef PIN_PA0
+DefPin(A, 0);
+#endif
+#ifdef PIN_PA1
+DefPin(A, 1);
+#endif
+#ifdef PIN_PA2
+DefPin(A, 2);
+#endif
+#ifdef PIN_PA3
+DefPin(A, 3);
+#endif
+#ifdef PIN_PA4
+DefPin(A, 4);
+#endif
+#ifdef PIN_PA5
+DefPin(A, 5);
+#endif
+#ifdef PIN_PA6
+DefPin(A, 6);
+#endif
+#ifdef PIN_PA7
+DefPin(A, 7);
+#endif
+#ifdef PIN_PD0
+DefPin(D, 0);
+#endif
+#ifdef PIN_PD1
+DefPin(D, 1);
+#endif
+#ifdef PIN_PD2
+DefPin(D, 2);
+#endif
+#ifdef PIN_PD3
+DefPin(D, 3);
+#endif
+#ifdef PIN_PD4
+DefPin(D, 4);
+#endif
+#ifdef PIN_PD5
+DefPin(D, 5);
+#endif
+#ifdef PIN_PD6
+DefPin(D, 6);
+#endif
+#ifdef PIN_PD7
+DefPin(D, 7);
+#endif
+#ifdef PIN_PE0
+DefPin(E, 0);
+#endif
+#ifdef PIN_PE1
+DefPin(E, 1);
+#endif
+#ifdef PIN_PE2
+DefPin(E, 2);
+#endif
+#ifdef PIN_PE3
+DefPin(E, 3);
+#endif
+#ifdef PIN_PE4
+DefPin(E, 4);
+#endif
+#ifdef PIN_PE5
+DefPin(E, 5);
+#endif
+#ifdef PIN_PE6
+DefPin(E, 6);
+#endif
+#ifdef PIN_PE7
+DefPin(E, 7);
+#endif
+#ifdef PIN_PF0
+DefPin(F, 0);
+#endif
+#ifdef PIN_PF1
+DefPin(F, 1);
+#endif
+#ifdef PIN_PF2
+DefPin(F, 2);
+#endif
+#ifdef PIN_PF3
+DefPin(F, 3);
+#endif
+#ifdef PIN_PF4
+DefPin(F, 4);
+#endif
+#ifdef PIN_PF5
+DefPin(F, 5);
+#endif
+#ifdef PIN_PF6
+DefPin(F, 6);
+#endif
+#ifdef PIN_PF7
+DefPin(F, 7);
+#endif
+#ifdef PIN_PG0
+DefPin(G, 0);
+#endif
+#ifdef PIN_PG1
+DefPin(G, 1);
+#endif
+#ifdef PIN_PG2
+DefPin(G, 2);
+#endif
+#ifdef PIN_PG3
+DefPin(G, 3);
+#endif
+#ifdef PIN_PG4
+DefPin(G, 4);
+#endif
+#ifdef PIN_PG5
+DefPin(G, 5);
+#endif
+#ifdef PIN_PG6
+DefPin(G, 6);
+#endif
+#ifdef PIN_PG7
+DefPin(G, 7);
+#endif
+#ifdef PIN_PH0
+DefPin(H, 0);
+#endif
+#ifdef PIN_PH1
+DefPin(H, 1);
+#endif
+#ifdef PIN_PH2
+DefPin(H, 2);
+#endif
+#ifdef PIN_PH3
+DefPin(H, 3);
+#endif
+#ifdef PIN_PH4
+DefPin(H, 4);
+#endif
+#ifdef PIN_PH5
+DefPin(H, 5);
+#endif
+#ifdef PIN_PH6
+DefPin(H, 6);
+#endif
+#ifdef PIN_PH7
+DefPin(H, 7);
+#endif
+#ifdef PIN_PJ0
+DefPin(J, 0);
+#endif
+#ifdef PIN_PJ1
+DefPin(J, 1);
+#endif
+#ifdef PIN_PJ2
+DefPin(J, 2);
+#endif
+#ifdef PIN_PJ3
+DefPin(J, 3);
+#endif
+#ifdef PIN_PJ4
+DefPin(J, 4);
+#endif
+#ifdef PIN_PJ5
+DefPin(J, 5);
+#endif
+#ifdef PIN_PJ6
+DefPin(J, 6);
+#endif
+#ifdef PIN_PJ7
+DefPin(J, 7);
+#endif
+#ifdef PIN_PK0
+DefPin(K, 0);
+#endif
+#ifdef PIN_PK1
+DefPin(K, 1);
+#endif
+#ifdef PIN_PK2
+DefPin(K, 2);
+#endif
+#ifdef PIN_PK3
+DefPin(K, 3);
+#endif
+#ifdef PIN_PK4
+DefPin(K, 4);
+#endif
+#ifdef PIN_PK5
+DefPin(K, 5);
+#endif
+#ifdef PIN_PK6
+DefPin(K, 6);
+#endif
+#ifdef PIN_PK7
+DefPin(K, 7);
+#endif
+#ifdef PIN_PL0
+DefPin(L, 0);
+#endif
+#ifdef PIN_PL1
+DefPin(L, 1);
+#endif
+#ifdef PIN_PL2
+DefPin(L, 2);
+#endif
+#ifdef PIN_PL3
+DefPin(L, 3);
+#endif
+#ifdef PIN_PL4
+DefPin(L, 4);
+#endif
+#ifdef PIN_PL5
+DefPin(L, 5);
+#endif
+#ifdef PIN_PL6
+DefPin(L, 6);
+#endif
+#ifdef PIN_PL7
+DefPin(L, 7);
+#endif
+#undef DefPin
         default:
             return 0xFF;
     }

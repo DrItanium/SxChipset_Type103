@@ -243,18 +243,21 @@ struct DataCacheSet {
                 // shift ahead by one to make sure we don't swap the current
                 // line out on next miss. It is a form of most recently used
                 if (i == replacementIndex_) {
-                    ++replacementIndex_;
+                    updateFlags();
                 }
                 return line;
             }
         }
         auto& target = lines[replacementIndex_];
+        updateFlags();
+        target.reset(address);
+        return target;
+    }
+    void updateFlags() noexcept {
         ++replacementIndex_;
         if (replacementIndex_ == NumberOfLines) {
             replacementIndex_ = 0;
         }
-        target.reset(address);
-        return target;
     }
     inline void clear() noexcept {
         replacementIndex_ = 0;

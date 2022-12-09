@@ -197,7 +197,7 @@ namespace MCP23S17 {
     [[gnu::always_inline]]
     inline uint8_t read8() noexcept {
         digitalWrite<pin, LOW>();
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
         SPDR = ReadOpcode_v<address>;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -221,7 +221,7 @@ namespace MCP23S17 {
     inline uint16_t read16() noexcept {
         uint16_t output = 0;
         digitalWrite<pin, LOW>();
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
         SPDR = ReadOpcode_v<address>;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -253,7 +253,7 @@ namespace MCP23S17 {
     [[gnu::always_inline]]
     inline void write8(byte value) noexcept {
         digitalWrite<pin, LOW>();
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
         SPDR = WriteOpcode_v<addr>;
         /*
          * The following NOP introduces a small delay that can prevent the wait
@@ -280,7 +280,7 @@ namespace MCP23S17 {
     [[gnu::always_inline]]
     inline void write16(uint16_t v) noexcept {
         digitalWrite<pin, LOW>();
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
         SPDR = WriteOpcode_v<addr>;
         asm volatile("nop");
         uint8_t lower = v;

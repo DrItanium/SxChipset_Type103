@@ -342,4 +342,5 @@ constexpr bool hasPWM(Pin pin) noexcept {
 
 template<Pin p>
 constexpr auto HasPWM_v = hasPWM(p);
+
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

@@ -459,7 +459,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
         digitalWrite<Pin::GPIOSelect, LOW>();
         static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
         static constexpr auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
         SPDR = TargetAction;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))); 
@@ -531,7 +531,7 @@ handleTransaction() noexcept {
         // grab the entire state of port A
         // update the address as a full 32-bit update for now
         digitalWrite<Pin::GPIOSelect, LOW>();
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
         SPDR = MCP23S17::ReadOpcode_v<XIO>;
         asm volatile("nop");
         setInputChannel<1>();
@@ -650,7 +650,7 @@ namespace {
     size_t
     psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         digitalWrite<Pin::PSRAM0, LOW>();
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
         SPDR = 0x02;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -681,7 +681,7 @@ namespace {
     size_t
     psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         digitalWrite<Pin::PSRAM0, LOW>();
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
+#ifdef AVR_SPI_AVAILABLE
         SPDR = 0x03;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait

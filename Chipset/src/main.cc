@@ -459,12 +459,17 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
         digitalWrite<Pin::GPIOSelect, LOW>();
         static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
         static constexpr auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
         SPDR = TargetAction;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))); 
         SPDR = TargetRegister;
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))); 
+#else
+        SPI.transfer(TargetAction);
+        SPI.transfer(TargetRegister);
+#endif
     }
     for (byte offset = addr.getAddressOffset(); ; ++offset) {
         auto c0 = readInputChannelAs<Channel0Value, true>();
@@ -526,6 +531,7 @@ handleTransaction() noexcept {
         // grab the entire state of port A
         // update the address as a full 32-bit update for now
         digitalWrite<Pin::GPIOSelect, LOW>();
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
         SPDR = MCP23S17::ReadOpcode_v<XIO>;
         asm volatile("nop");
         setInputChannel<1>();
@@ -546,6 +552,22 @@ handleTransaction() noexcept {
         addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
         while (!(SPSR & _BV(SPIF))) ; // wait
         addr.bytes[3] = SPDR;
+#else
+        SPI.transfer(MCP23S17::ReadOpcode_v<XIO>);
+        setInputChannel<1>();
+        addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
+        SPI.transfer(static_cast<byte>(MCP23S17::Registers::GPIOB);
+        setInputChannel<2>();
+        m2 = readInputChannelAs<Channel2Value>();
+        direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+        addr.bytes[0] = m2.getWholeValue();
+        addr.address.a0 = 0;
+        updateDataLines = direction != dataLinesDirection;
+        addr.bytes[3] = SPI.transfer(0);
+        setInputChannel<3>();
+        addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
+#endif
+        digitalWrite<Pin::GPIOSelect, HIGH>();
         if (addr.isIOInstruction()) {
             if (m2.isReadOperation()) {
                 target = TransactionKind::IORead;
@@ -560,7 +582,6 @@ handleTransaction() noexcept {
             }
         }
         setInputChannel<0>();
-        digitalWrite<Pin::GPIOSelect, HIGH>();
         if (updateDataLines) {
             dataLinesDirection = direction;
             MCP23S17::writeDirection<DataLines>(dataLinesDirection);

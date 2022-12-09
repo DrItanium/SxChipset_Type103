@@ -197,6 +197,7 @@ namespace MCP23S17 {
     [[gnu::always_inline]]
     inline uint8_t read8() noexcept {
         digitalWrite<pin, LOW>();
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
         SPDR = ReadOpcode_v<address>;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -207,6 +208,11 @@ namespace MCP23S17 {
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
         auto result = SPDR;
+#else
+        (void)SPI.transfer(ReadOpcode_v<address>);
+        (void)SPI.transfer(static_cast<byte>(opcode));
+        auto result = SPI.transfer(0);
+#endif
         digitalWrite<pin, HIGH>();
         return result;
     }
@@ -215,6 +221,7 @@ namespace MCP23S17 {
     inline uint16_t read16() noexcept {
         uint16_t output = 0;
         digitalWrite<pin, LOW>();
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
         SPDR = ReadOpcode_v<address>;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
@@ -232,14 +239,21 @@ namespace MCP23S17 {
         }
         while (!(SPSR & _BV(SPIF))) ; // wait
         auto value = SPDR;
-        output |= (static_cast<uint16_t>(value) << 8);
+#else
+        SPI.transfer(ReadOpcode_v<address>);
+        SPI.transfer(static_cast<byte>(opcode));
+        output = SPI.transfer(0);
+        auto value = SPI.transfer(0);
+#endif
         digitalWrite<pin, HIGH>();
+        output |= (static_cast<uint16_t>(value) << 8);
         return output;
     }
     template<HardwareDeviceAddress addr, Registers opcode, Pin pin = Pin::GPIOSelect>
     [[gnu::always_inline]]
     inline void write8(byte value) noexcept {
         digitalWrite<pin, LOW>();
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
         SPDR = WriteOpcode_v<addr>;
         /*
          * The following NOP introduces a small delay that can prevent the wait
@@ -255,12 +269,18 @@ namespace MCP23S17 {
         SPDR = value;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
+#else
+        SPI.transfer(WriteOpcode_v<addr>);
+        SPI.transfer(static_cast<byte>(opcode));
+        SPI.transfer(value);
+#endif
         digitalWrite<pin, HIGH>();
     }
     template<HardwareDeviceAddress addr, Registers opcode, Pin pin = Pin::GPIOSelect>
     [[gnu::always_inline]]
     inline void write16(uint16_t v) noexcept {
         digitalWrite<pin, LOW>();
+#if defined(SPDR) && defined(SPIF) && defined(SPSR)
         SPDR = WriteOpcode_v<addr>;
         asm volatile("nop");
         uint8_t lower = v;
@@ -275,6 +295,12 @@ namespace MCP23S17 {
         SPDR = upper;
         asm volatile("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
+#else
+        SPI.transfer(WriteOpcode_v<addr>);
+        SPI.transfer(static_cast<byte>(opcode));
+        SPI.transfer(v);
+        SPI.transfer(v>>8);
+#endif
         digitalWrite<pin, HIGH>();
     }
     /**

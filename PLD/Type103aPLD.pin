@@ -18,7 +18,7 @@
   14   | SEL      | Output
   15   | IO2      | NC
   16   | IO1      | NC
-  17   | IO0      | NC
+  17   | IO0      | Output
   18   | INT1     | Output
   19   | INT2     | Output
   20   | VCC      | VCC

@@ -25,20 +25,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef SXCHIPSET_TYPE103_DETECT_H__
 #define SXCHIPSET_TYPE103_DETECT_H__
-#ifdef __AVR__
+#include <stdint.h>
 #if defined(SPDR) && defined(SPIF) && defined(SPSR)
 #define AVR_SPI_AVAILABLE
 #endif
-#endif
 
 #ifndef GPIOR0
-extern byte GPIOR0;
+extern uint8_t GPIOR0;
 #endif
 #ifndef GPIOR1
-extern byte GPIOR1;
+extern uint8_t GPIOR1;
 #endif
 #ifndef GPIOR2
-extern byte GPIOR2;
+extern uint8_t GPIOR2;
 #endif
 
+constexpr uint32_t getCPUFrequency() noexcept {
+#ifdef F_CPU
+    return F_CPU;
+#else
+    return 0;
+#endif
+}
 #endif // end SXCHIPSET_TYPE103_DETECT_H__

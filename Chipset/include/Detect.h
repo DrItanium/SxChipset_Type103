@@ -26,6 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_DETECT_H__
 #define SXCHIPSET_TYPE103_DETECT_H__
 #include <stdint.h>
+#ifdef __AVR__
+#include <avr/io.h>
+#endif
 #if defined(SPDR) && defined(SPIF) && defined(SPSR)
 #define AVR_SPI_AVAILABLE
 #endif

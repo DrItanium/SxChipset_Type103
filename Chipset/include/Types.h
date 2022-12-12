@@ -23,14 +23,12 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef SXCHIPSET_TYPE103_TYPES_H
-#define SXCHIPSET_TYPE103_TYPES_H
+#ifndef SXCHIPSET_TYPE103_TYPES_H__
+#define SXCHIPSET_TYPE103_TYPES_H__
 #include <Arduino.h>
 #include <SdFat.h>
+#include "Detect.h"
 
-#if defined(SPDR) && defined(SPIF) && defined(SPSR)
-#define AVR_SPI_AVAILABLE
-#endif
 
 
 template<typename W, typename E>
@@ -313,4 +311,4 @@ struct DataCache {
 DataCache& getCache() noexcept;
 void setupCache() noexcept;
 
-#endif //SXCHIPSET_TYPE103_TYPES_H
+#endif //SXCHIPSET_TYPE103_TYPES_H__

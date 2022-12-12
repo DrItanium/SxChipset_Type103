@@ -139,15 +139,6 @@ using PortInputRegister = volatile byte&;
 using PortDirectionRegister = volatile byte&;
 using PinState = decltype(LOW);
 using PinDirection = decltype(OUTPUT);
-#ifndef GPIOR0
-extern byte GPIOR0;
-#endif
-#ifndef GPIOR1
-extern byte GPIOR1;
-#endif
-#ifndef GPIOR2
-extern byte GPIOR2;
-#endif
 constexpr Port getPort(Pin pin) noexcept {
     switch (pin) {
 #define X(port, ind) case Pin :: Port ## port ## ind : return Port:: port ;

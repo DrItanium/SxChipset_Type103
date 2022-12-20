@@ -45,7 +45,7 @@ InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 #endif
 
-constexpr bool EnableDebugMode = true;
+constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
 template<bool, bool DisableInterruptChecks = true>
 inline void handleTransaction() noexcept;
@@ -473,13 +473,18 @@ enum class TransactionKind {
     IORead,
     IOWrite,
 };
+[[gnu::always_inline]] inline 
+void 
+singleCycleDelay() noexcept {
+    asm volatile ("nop");
+    asm volatile ("nop");
+}
 
 [[gnu::always_inline]] inline 
 void 
 triggerClock() noexcept {
     pulse<Pin::CLKSignal, LOW, HIGH>();
-    asm volatile ("nop");
-    asm volatile ("nop");
+    singleCycleDelay();
 }
 SplitWord32 addr { 0 };
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
@@ -488,6 +493,7 @@ handleTransaction() noexcept {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     triggerClock();
     digitalWrite<Pin::Enable, LOW>();
+    singleCycleDelay();
     auto m2 = readInputChannelAs<Channel2Value>();
     addr.bytes[0] = m2.getWholeValue();
     addr.address.a0 = 0;
@@ -497,9 +503,9 @@ handleTransaction() noexcept {
     addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
     triggerClock();
     addr.bytes[3] = readInputChannelAs<Word8>().getWholeValue();
-    triggerClock();
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
+    singleCycleDelay();
     auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     auto updateDataLines = direction != dataLinesDirection;
     TransactionKind target;

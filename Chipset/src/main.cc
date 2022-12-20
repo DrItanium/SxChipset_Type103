@@ -202,7 +202,7 @@ setupRGBLCDShield() noexcept {
 void
 setupIOExpanders() noexcept {
     MCP23S17::IOCON reg;
-    reg.makeInterruptPinsIndependent();
+    reg.mirrorInterruptPins();
     reg.treatDeviceAsOne16BitPort();
     reg.enableHardwareAddressing();
     reg.interruptIsActiveLow();

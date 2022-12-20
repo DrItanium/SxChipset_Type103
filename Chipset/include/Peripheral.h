@@ -111,7 +111,7 @@ setDataLinesOutput(uint16_t value) noexcept {
         }
     }
 }
-template<bool busHeldOpen, bool ignoreInterrupts = true>
+template<bool busHeldOpen, bool ignoreInterrupts = false>
 [[gnu::always_inline]] 
 inline uint16_t 
 getDataLines(const Channel0Value& c1) noexcept {

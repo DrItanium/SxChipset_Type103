@@ -114,7 +114,7 @@ namespace MCP23S17 {
 
         constexpr auto treatingDeviceAsTwo8BitPorts() const noexcept { return bits.bank != 0; }
         constexpr auto treatingDeviceAsOne16bitPort() const noexcept { return bits.bank == 0; }
-        constexpr auto interruptPinsAreMirroed() const noexcept { return bits.mirror != 0; }
+        constexpr auto interruptPinsAreMirrored() const noexcept { return bits.mirror != 0; }
         constexpr auto interruptPinsAreIndependent() const noexcept { return bits.mirror == 0;}
         constexpr auto sequentialOperationModeDisabled() const noexcept { return bits.seqop != 0; }
         constexpr auto sequentialOperationModeEnabled() const noexcept { return bits.seqop == 0; }

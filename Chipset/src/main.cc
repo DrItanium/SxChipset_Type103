@@ -227,14 +227,14 @@ configurePins() noexcept {
     pinMode<Pin::DEN>(INPUT);
     pinMode<Pin::BLAST_>(INPUT);
     pinMode<Pin::FAIL>(INPUT);
-    pinMode<Pin::Capture0>(INPUT);
-    pinMode<Pin::Capture1>(INPUT);
-    pinMode<Pin::Capture2>(INPUT);
-    pinMode<Pin::Capture3>(INPUT);
-    pinMode<Pin::Capture4>(INPUT);
-    pinMode<Pin::Capture5>(INPUT);
-    pinMode<Pin::Capture6>(INPUT);
-    pinMode<Pin::Capture7>(INPUT);
+    pinMode<Pin::Capture0>(INPUT_PULLUP);
+    pinMode<Pin::Capture1>(INPUT_PULLUP);
+    pinMode<Pin::Capture2>(INPUT_PULLUP);
+    pinMode<Pin::Capture3>(INPUT_PULLUP);
+    pinMode<Pin::Capture4>(INPUT_PULLUP);
+    pinMode<Pin::Capture5>(INPUT_PULLUP);
+    pinMode<Pin::Capture6>(INPUT_PULLUP);
+    pinMode<Pin::Capture7>(INPUT_PULLUP);
     digitalWrite<Pin::CLKSignal, LOW>();
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
@@ -473,27 +473,33 @@ enum class TransactionKind {
     IORead,
     IOWrite,
 };
+
+[[gnu::always_inline]] inline 
+void 
+triggerClock() noexcept {
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    asm volatile ("nop");
+    asm volatile ("nop");
+}
 SplitWord32 addr { 0 };
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    pulse<Pin::CLKSignal, LOW, HIGH>();
+    triggerClock();
     digitalWrite<Pin::Enable, LOW>();
-    asm volatile ("nop");
-    asm volatile ("nop");
     auto m2 = readInputChannelAs<Channel2Value>();
     addr.bytes[0] = m2.getWholeValue();
     addr.address.a0 = 0;
-    pulse<Pin::CLKSignal, LOW, HIGH>();
+    triggerClock();
     addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
-    pulse<Pin::CLKSignal, LOW, HIGH>();
+    triggerClock();
     addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
-    pulse<Pin::CLKSignal, LOW, HIGH>();
+    triggerClock();
     addr.bytes[3] = readInputChannelAs<Word8>().getWholeValue();
-    pulse<Pin::CLKSignal, LOW, HIGH>();
+    triggerClock();
     digitalWrite<Pin::Enable, HIGH>();
-    pulse<Pin::CLKSignal, LOW, HIGH>();
+    triggerClock();
     auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     auto updateDataLines = direction != dataLinesDirection;
     TransactionKind target;

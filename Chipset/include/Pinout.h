@@ -46,10 +46,10 @@ Count = NUM_DIGITAL_PINS,
     XIO6,
     XIO7,
     // aliases
-    SEL = PortB0,
+    Ready = PortB0,
     CLKO = PortB1,
-    Ready = PortB2,
-    SEL1 = PortB3,
+    Enable = PortB2,
+    CLKSignal = PortB3,
     GPIOSelect = PortB4,
     INT0_ = PortD7,
 
@@ -68,8 +68,6 @@ Count = NUM_DIGITAL_PINS,
     DEN = Capture3, 
     FAIL = Capture4, 
     DATA_INT0 = Capture5,
-    DATA_INT1 = Capture6,
-    ADDR_INT0 = Capture7,
 #define X(x, y) ADR ## x = Capture ## y
     // channel 1
     X(16, 0),

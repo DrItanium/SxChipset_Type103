@@ -521,12 +521,12 @@ SplitWord32 addr { 0 };
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
-    //static SplitWord32 addr{0};
+    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+#ifdef OLD_SPI_IMPLEMENTATION
     uint16_t direction = 0;
     bool updateDataLines = false;
     TransactionKind target = TransactionKind::CacheRead;
     Channel2Value m2;
-    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     if ((DisableInterruptChecks) || digitalRead<Pin::ADDR_INT0>() == LOW) {
         // grab the entire state of port A
         // update the address as a full 32-bit update for now
@@ -615,6 +615,36 @@ handleTransaction() noexcept {
         }
         setInputChannel<0>();
     }
+#else
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    digitalWrite<Pin::Enable, LOW>();
+    auto m2 = readInputChannelAs<Channel2Value>();
+    auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+    addr.bytes[0] = m2.getWholeValue();
+    addr.address.a0 = 0;
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
+    TransactionKind target;
+    if (addr.isIOInstruction()) {
+        if (m2.isReadOperation()) {
+            target = TransactionKind::IORead;
+        } else {
+            target = TransactionKind::IOWrite;
+        }
+    } else {
+        if (m2.isReadOperation()) {
+            target = TransactionKind::CacheRead;
+        } else {
+            target = TransactionKind::CacheWrite;
+        }
+    }
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    addr.bytes[3] = readInputChannelAs<Word8>().getWholeValue();
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    digitalWrite<Pin::Enable, HIGH>();
+#endif
 
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));

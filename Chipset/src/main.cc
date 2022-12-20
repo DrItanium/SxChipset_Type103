@@ -86,6 +86,7 @@ uint16_t currentDataLinesValue = 0;
 template<bool performFullMemoryTest>
 void
 setupPSRAM() noexcept {
+    SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
     Serial.println(F("RUNNING PSRAM MEMORY TEST!"));
     // according to the manuals we need at least 200 microseconds after bootup
     // to allow the psram to do it's thing
@@ -138,6 +139,7 @@ setupPSRAM() noexcept {
         }
     }
     Serial.println(F("MEMORY TEST COMPLETE!"));
+    SPI.endTransaction();
 }
 bool
 trySetupDS1307() noexcept {
@@ -202,10 +204,11 @@ setupIOExpanders() noexcept {
     MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN>(0xFFFF);
     reg.mirrorInterruptPins();
     MCP23S17::writeIOCON<XIO>(reg);
-    MCP23S17::writeDirection<XIO>(0, 0xFF);
+    MCP23S17::writeDirection<XIO>(0b1111'1100, 0b1111'1111);
     MCP23S17::writeGPIO8_PORTA<XIO>(0); // don't hold the bus but put the CPU
                                         // into reset
-    MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN>(0xFF00);
+    MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN>(0x0000); // no
+                                                                  // interrupts
 
     dataLinesDirection = MCP23S17::AllInput16;
     currentDataLinesValue = 0;
@@ -316,7 +319,6 @@ setup() {
 
 void 
 loop() {
-    //setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<EnableInlineSPIOperation, false>();
     // always make sure we wait enough time

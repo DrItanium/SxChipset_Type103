@@ -31,7 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
-constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device1;
+/**
+ * @brief Onboard device to control reset and other various features
+ */
+constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device7;
 
 enum class TargetPeripheral {
     Info, 

@@ -1,5 +1,5 @@
 #if defined(PORTA)
-X(A)
+	X(A)
 #endif
 #if defined(PORTB)
     X(B)

@@ -489,8 +489,8 @@ enum class TransactionKind {
     IOWrite,
 };
 
-[[gnu::always_inline]] inline 
-void 
+[[gnu::always_inline]] 
+inline void 
 triggerClock() noexcept {
     pulse<Pin::CLKSignal, LOW, HIGH>();
     singleCycleDelay();

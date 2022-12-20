@@ -111,11 +111,11 @@ setDataLinesOutput(uint16_t value) noexcept {
         }
     }
 }
-template<bool busHeldOpen>
+template<bool busHeldOpen, bool ignoreInterrupts = true>
 [[gnu::always_inline]] 
 inline uint16_t 
 getDataLines(const Channel0Value& c1) noexcept {
-    if (c1.dataInterruptTriggered()) {
+    if (ignoreInterrupts || c1.dataInterruptTriggered()) {
         if constexpr (busHeldOpen) {
 #ifdef AVR_SPI_AVAILABLE
             SPDR = 0;

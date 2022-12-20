@@ -45,54 +45,6 @@ InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 #endif
 
-template<bool introduceDelay = false>
-void 
-setInputChannel(byte value) noexcept {
-    switch(value & 0b11) {
-        case 0b00:
-            digitalWrite<Pin::SEL, LOW>();
-            digitalWrite<Pin::SEL1, LOW>();
-            break;
-        case 0b01:
-            digitalWrite<Pin::SEL, HIGH>();
-            digitalWrite<Pin::SEL1, LOW>();
-            break;
-        case 0b10:
-            digitalWrite<Pin::SEL, LOW>();
-            digitalWrite<Pin::SEL1, HIGH>();
-            break;
-        case 0b11:
-            digitalWrite<Pin::SEL, HIGH>();
-            digitalWrite<Pin::SEL1, HIGH>();
-            break;
-    }
-    if constexpr (introduceDelay) {
-        asm volatile ("nop");
-        asm volatile ("nop");
-    }
-}
-template<byte value, bool introduceDelay = true>
-void
-setInputChannel() noexcept {
-    static_assert(value < 4, "Invalid channel selected!");
-    if constexpr (value == 0b00) {
-        digitalWrite<Pin::SEL1, LOW>();
-        digitalWrite<Pin::SEL, LOW>();
-    } else if constexpr (value == 0b01) {
-        digitalWrite<Pin::SEL1, LOW>();
-        digitalWrite<Pin::SEL, HIGH>();
-    } else if constexpr (value == 0b10) {
-        digitalWrite<Pin::SEL1, HIGH>();
-        digitalWrite<Pin::SEL, LOW>();
-    } else {
-        digitalWrite<Pin::SEL1, HIGH>();
-        digitalWrite<Pin::SEL, HIGH>();
-    }
-    if constexpr (introduceDelay) {
-        asm volatile ("nop");
-        asm volatile ("nop");
-    }
-}
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
 template<bool, bool DisableInterruptChecks = true>
@@ -267,8 +219,8 @@ configurePins() noexcept {
     pinMode<Pin::PSRAM0>(OUTPUT);
     pinMode<Pin::Ready>(OUTPUT);
     pinMode<Pin::INT0_>(OUTPUT);
-    pinMode<Pin::SEL>(OUTPUT);
-    pinMode<Pin::SEL1>(OUTPUT);
+    pinMode<Pin::Enable>(OUTPUT);
+    pinMode<Pin::CLKSignal>(OUTPUT);
     pinMode<Pin::DEN>(INPUT);
     pinMode<Pin::BLAST_>(INPUT);
     pinMode<Pin::FAIL>(INPUT);
@@ -280,13 +232,15 @@ configurePins() noexcept {
     pinMode<Pin::Capture5>(INPUT);
     pinMode<Pin::Capture6>(INPUT);
     pinMode<Pin::Capture7>(INPUT);
-    digitalWrite<Pin::SEL, LOW>();
-    digitalWrite<Pin::SEL1, LOW>();
+    digitalWrite<Pin::CLKSignal, LOW>();
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::INT0_, HIGH>();
     digitalWrite<Pin::PSRAM0, HIGH>();
     digitalWrite<Pin::SD_EN, HIGH>();
+    digitalWrite<Pin::Enable, HIGH>();
+    // do an initial clear of the clock signal
+    pulse<Pin::CLKSignal, LOW, HIGH>();
 }
 void
 bootCPU() noexcept {
@@ -309,7 +263,7 @@ bootCPU() noexcept {
         Serial.println(F("\t Skipped ahead!"));
     }
     // okay so we got past this, just start performing actions
-    setInputChannel<0>();
+    //setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<false, true>();
     while (digitalRead<Pin::DEN>() == HIGH);
@@ -362,7 +316,7 @@ setup() {
 
 void 
 loop() {
-    setInputChannel<0>();
+    //setInputChannel<0>();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<EnableInlineSPIOperation, false>();
     // always make sure we wait enough time
@@ -522,108 +476,21 @@ template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-#ifdef OLD_SPI_IMPLEMENTATION
-    uint16_t direction = 0;
-    bool updateDataLines = false;
-    TransactionKind target = TransactionKind::CacheRead;
-    Channel2Value m2;
-    if ((DisableInterruptChecks) || digitalRead<Pin::ADDR_INT0>() == LOW) {
-        // grab the entire state of port A
-        // update the address as a full 32-bit update for now
-        digitalWrite<Pin::GPIOSelect, LOW>();
-#ifdef AVR_SPI_AVAILABLE
-        SPDR = MCP23S17::ReadOpcode_v<XIO>;
-        asm volatile("nop");
-        setInputChannel<1>();
-        addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = static_cast<byte>(MCP23S17::Registers::GPIOB) ;
-        asm volatile("nop");
-        setInputChannel<2>();
-        m2 = readInputChannelAs<Channel2Value>();
-        direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-        addr.bytes[0] = m2.getWholeValue();
-        addr.address.a0 = 0;
-        updateDataLines = direction != dataLinesDirection;
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = 0;
-        asm volatile("nop");
-        setInputChannel<3>();
-        addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        addr.bytes[3] = SPDR;
-#else
-        SPI.transfer(MCP23S17::ReadOpcode_v<XIO>);
-        setInputChannel<1>();
-        addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
-        SPI.transfer(static_cast<byte>(MCP23S17::Registers::GPIOB);
-        setInputChannel<2>();
-        m2 = readInputChannelAs<Channel2Value>();
-        direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-        addr.bytes[0] = m2.getWholeValue();
-        addr.address.a0 = 0;
-        updateDataLines = direction != dataLinesDirection;
-        addr.bytes[3] = SPI.transfer(0);
-        setInputChannel<3>();
-        addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
-#endif
-        digitalWrite<Pin::GPIOSelect, HIGH>();
-        if (addr.isIOInstruction()) {
-            if (m2.isReadOperation()) {
-                target = TransactionKind::IORead;
-            } else {
-                target = TransactionKind::IOWrite;
-            }
-        } else {
-            if (m2.isReadOperation()) {
-                target = TransactionKind::CacheRead;
-            } else {
-                target = TransactionKind::CacheWrite;
-            }
-        }
-        setInputChannel<0>();
-        if (updateDataLines) {
-            dataLinesDirection = direction;
-            MCP23S17::writeDirection<DataLines>(dataLinesDirection);
-        }
-    } else {
-        setInputChannel<1>();
-        addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
-        setInputChannel<2>();
-        m2 = readInputChannelAs<Channel2Value>();
-        direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-        addr.bytes[0] = m2.getWholeValue();
-        addr.address.a0 = 0;
-        if (direction != dataLinesDirection) {
-            dataLinesDirection = direction;
-            MCP23S17::writeDirection<DataLines>(dataLinesDirection);
-        }
-        setInputChannel<3>();
-        addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
-        if (addr.isIOInstruction()) {
-            if (m2.isReadOperation()) {
-                target = TransactionKind::IORead;
-            } else {
-                target = TransactionKind::IOWrite;
-            }
-        } else {
-            if (m2.isReadOperation()) {
-                target = TransactionKind::CacheRead;
-            } else {
-                target = TransactionKind::CacheWrite;
-            }
-        }
-        setInputChannel<0>();
-    }
-#else
     pulse<Pin::CLKSignal, LOW, HIGH>();
     digitalWrite<Pin::Enable, LOW>();
     auto m2 = readInputChannelAs<Channel2Value>();
-    auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     addr.bytes[0] = m2.getWholeValue();
     addr.address.a0 = 0;
     pulse<Pin::CLKSignal, LOW, HIGH>();
     addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    addr.bytes[3] = readInputChannelAs<Word8>().getWholeValue();
+    pulse<Pin::CLKSignal, LOW, HIGH>();
+    digitalWrite<Pin::Enable, HIGH>();
+    auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+    auto updateDataLines = direction != dataLinesDirection;
     TransactionKind target;
     if (addr.isIOInstruction()) {
         if (m2.isReadOperation()) {
@@ -638,13 +505,10 @@ handleTransaction() noexcept {
             target = TransactionKind::CacheWrite;
         }
     }
-    pulse<Pin::CLKSignal, LOW, HIGH>();
-    addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
-    pulse<Pin::CLKSignal, LOW, HIGH>();
-    addr.bytes[3] = readInputChannelAs<Word8>().getWholeValue();
-    pulse<Pin::CLKSignal, LOW, HIGH>();
-    digitalWrite<Pin::Enable, HIGH>();
-#endif
+    if (updateDataLines) {
+        dataLinesDirection = direction;
+        MCP23S17::writeDirection<DataLines>(dataLinesDirection);
+    }
 
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));

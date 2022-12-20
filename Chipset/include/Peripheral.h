@@ -115,7 +115,7 @@ template<bool busHeldOpen>
 [[gnu::always_inline]] 
 inline uint16_t 
 getDataLines(const Channel0Value& c1) noexcept {
-    if (c1.getDataInterrupts() != 0b11) {
+    if (c1.dataInterruptTriggered()) {
         if constexpr (busHeldOpen) {
 #ifdef AVR_SPI_AVAILABLE
             SPDR = 0;

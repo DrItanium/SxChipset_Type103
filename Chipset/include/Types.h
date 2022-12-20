@@ -122,8 +122,7 @@ union Word8 {
         uint8_t blast : 1;
         uint8_t den : 1;
         uint8_t fail : 1;
-        uint8_t dataInt : 2;
-        uint8_t addrHi : 1;
+        uint8_t dataInt : 1;
     } channel0;
     /**
      * @brief Address bits [A1, A7] + W/~{R} in place of A0
@@ -152,8 +151,7 @@ union Word8 {
     [[nodiscard]] constexpr bool isReadOperation() const noexcept { return lowestAddr.wr == 0; }
     [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return lowestAddr.wr != 0; }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
-    [[nodiscard]] constexpr bool needHighestAddressLines() const noexcept { return channel0.addrHi == 0; }
-    [[nodiscard]] constexpr byte getDataInterrupts() const noexcept { return channel0.dataInt; }
+    [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { return channel0.dataInt == 0; }
     [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { return lowestAddr.addr; }
     [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { return getAddressBits1_7() << 1; }
     [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }

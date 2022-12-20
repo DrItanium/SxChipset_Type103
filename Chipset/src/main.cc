@@ -332,6 +332,8 @@ setup() {
 
 void 
 loop() {
+    singleCycleDelay();
+    singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<EnableInlineSPIOperation, false>();
     // always make sure we wait enough time
@@ -441,7 +443,6 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
 #endif
     }
     for (byte offset = addr.getAddressOffset(); ; ++offset) {
-        singleCycleDelay();
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tOffset: 0x"));
@@ -471,16 +472,11 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
         signalReady();
         if (isBurstLast) {
             break;
-        } else {
-            // make sure that we perform at a single cycle delay to give the
-            // processor time to come back around
-            singleCycleDelay();
-        }
+        } 
     }
     if constexpr (inlineSPIOperation) {
         digitalWrite<Pin::GPIOSelect, HIGH>();
     }
-    singleCycleDelay();
 }
 enum class TransactionKind {
     // 0b00 -> cache + read
@@ -497,6 +493,7 @@ enum class TransactionKind {
 void 
 triggerClock() noexcept {
     pulse<Pin::CLKSignal, LOW, HIGH>();
+    singleCycleDelay();
     singleCycleDelay();
 }
 SplitWord32 addr { 0 };
@@ -518,7 +515,6 @@ handleTransaction() noexcept {
     addr.bytes[3] = readInputChannelAs<Word8>().getWholeValue();
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
-    singleCycleDelay();
     auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     auto updateDataLines = direction != dataLinesDirection;
     TransactionKind target;
@@ -570,6 +566,7 @@ handleTransaction() noexcept {
     SPI.endTransaction();
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0
+    singleCycleDelay();
 }
 
 

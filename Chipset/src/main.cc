@@ -45,7 +45,7 @@ InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 #endif
 constexpr bool EnableDebugMode = false;
-constexpr bool EnableTimingDebug = true;
+constexpr bool EnableTimingDebug = false;
 constexpr bool EnableInlineSPIOperation = true;
 
 template<bool doDebugCheck = EnableTimingDebug>

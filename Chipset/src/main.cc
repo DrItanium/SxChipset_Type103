@@ -420,7 +420,7 @@ handleIOOperation(const SplitWord32& addr) noexcept {
             break;
     }
 }
-template<bool isReadOperation, bool inlineSPIOperation>
+template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
 void
 handleCacheOperation(const SplitWord32& addr) noexcept {
     // okay now we can service the transaction request since it will be going
@@ -460,7 +460,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
             setDataLinesOutput<inlineSPIOperation>(value);
         } else {
             auto c0 = readInputChannelAs<Channel0Value>();
-            auto value = getDataLines<inlineSPIOperation>(c0);
+            auto value = getDataLines<inlineSPIOperation, disableWriteInterrupt>(c0);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
@@ -496,10 +496,10 @@ triggerClock() noexcept {
     singleCycleDelay();
     singleCycleDelay();
 }
-SplitWord32 addr { 0 };
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
+    SplitWord32 addr { 0 };
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     triggerClock();
     digitalWrite<Pin::Enable, LOW>();
@@ -551,10 +551,10 @@ handleTransaction() noexcept {
     }
     switch (target) {
         case TransactionKind::CacheRead:
-            handleCacheOperation<true, EnableInlineSPIOperation>(addr);
+            handleCacheOperation<true, EnableInlineSPIOperation, DisableInterruptChecks>(addr);
             break;
         case TransactionKind::CacheWrite:
-            handleCacheOperation<false, EnableInlineSPIOperation>(addr);
+            handleCacheOperation<false, EnableInlineSPIOperation, DisableInterruptChecks>(addr);
             break;
         case TransactionKind::IORead:
             handleIOOperation<true>(addr);

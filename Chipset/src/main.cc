@@ -45,6 +45,13 @@ InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 #endif
 
+[[gnu::always_inline]] inline 
+void 
+singleCycleDelay() noexcept {
+    asm volatile ("nop");
+    asm volatile ("nop");
+}
+
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableInlineSPIOperation = true;
 template<bool, bool DisableInterruptChecks = true>
@@ -457,11 +464,16 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
         signalReady();
         if (isBurstLast) {
             break;
+        } else {
+            // make sure that we perform at a single cycle delay to give the
+            // processor time to come back around
+            singleCycleDelay();
         }
     }
     if constexpr (inlineSPIOperation) {
         digitalWrite<Pin::GPIOSelect, HIGH>();
     }
+    singleCycleDelay();
 }
 enum class TransactionKind {
     // 0b00 -> cache + read
@@ -473,12 +485,6 @@ enum class TransactionKind {
     IORead,
     IOWrite,
 };
-[[gnu::always_inline]] inline 
-void 
-singleCycleDelay() noexcept {
-    asm volatile ("nop");
-    asm volatile ("nop");
-}
 
 [[gnu::always_inline]] inline 
 void 

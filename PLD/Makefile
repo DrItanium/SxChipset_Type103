@@ -3,7 +3,7 @@
 	@galette $< 
 	@echo done.
 
-all: Type103PLD.jed Type103aPLD.jed Type103aCounter.pld
+all: Type103PLD.jed Type103aPLD.jed Type103aCounter.jed
 
 
 
@@ -14,7 +14,7 @@ install_Type103a: Type103aPLD.jed
 	minipro -p ATF16V8C --write Type103aPLD.jed 
 
 install_Type103aCounter: Type103aCounter.jed
-	minipro -p ATF22LV10CQZ --write Type103aCounter.jed 
+	minipro -p "ATF22V10CQZ(UES)" --write Type103aCounter.jed 
 
 
 

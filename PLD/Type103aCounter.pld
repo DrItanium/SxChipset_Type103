@@ -22,6 +22,9 @@ PA2.E = PB2
 PA1.E = PB2
 PA0.E = PB2
 
+Q0.R = /DEN * /PB2 * /Q0
+Q1.R = /DEN * /PB2 * /Q1 * Q0 + /DEN * /PB2 * Q1 * /Q0
+
 
 DESCRIPTION
 

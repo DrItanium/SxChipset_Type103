@@ -22,8 +22,8 @@
   18   | PA1      | Output
   19   | PA0      | Output
   20   | RDY      | Output
-  21   | Q1       | NC
-  22   | Q0       | NC
+  21   | Q1       | Output
+  22   | Q0       | Output
   23   | EN       | Output
   24   | VCC      | VCC
 

@@ -44,16 +44,22 @@ InfoDevice infoDevice;
 #ifdef SUPPORT_ADAFRUIT_RGBLCDSHIELD
 Adafruit_RGBLCDShield lcd;
 #endif
+constexpr bool EnableDebugMode = false;
+constexpr bool EnableTimingDebug = true;
+constexpr bool EnableInlineSPIOperation = true;
 
+template<bool doDebugCheck = EnableTimingDebug>
 [[gnu::always_inline]] inline 
 void 
 singleCycleDelay() noexcept {
-    asm volatile ("nop");
-    asm volatile ("nop");
+    if constexpr (doDebugCheck) {
+        delay(1);
+    } else {
+        asm volatile ("nop");
+        asm volatile ("nop");
+    }
 }
 
-constexpr bool EnableDebugMode = false;
-constexpr bool EnableInlineSPIOperation = true;
 template<bool, bool DisableInterruptChecks = true>
 inline void handleTransaction() noexcept;
 
@@ -234,14 +240,14 @@ configurePins() noexcept {
     pinMode<Pin::DEN>(INPUT);
     pinMode<Pin::BLAST_>(INPUT);
     pinMode<Pin::FAIL>(INPUT);
-    pinMode<Pin::Capture0>(INPUT_PULLUP);
-    pinMode<Pin::Capture1>(INPUT_PULLUP);
-    pinMode<Pin::Capture2>(INPUT_PULLUP);
-    pinMode<Pin::Capture3>(INPUT_PULLUP);
-    pinMode<Pin::Capture4>(INPUT_PULLUP);
-    pinMode<Pin::Capture5>(INPUT_PULLUP);
-    pinMode<Pin::Capture6>(INPUT_PULLUP);
-    pinMode<Pin::Capture7>(INPUT_PULLUP);
+    pinMode<Pin::Capture0>(INPUT);
+    pinMode<Pin::Capture1>(INPUT);
+    pinMode<Pin::Capture2>(INPUT);
+    pinMode<Pin::Capture3>(INPUT);
+    pinMode<Pin::Capture4>(INPUT);
+    pinMode<Pin::Capture5>(INPUT);
+    pinMode<Pin::Capture6>(INPUT);
+    pinMode<Pin::Capture7>(INPUT);
     digitalWrite<Pin::CLKSignal, LOW>();
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
@@ -435,6 +441,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
 #endif
     }
     for (byte offset = addr.getAddressOffset(); ; ++offset) {
+        singleCycleDelay();
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tOffset: 0x"));

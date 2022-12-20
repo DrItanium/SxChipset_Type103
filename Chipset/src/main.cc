@@ -45,7 +45,7 @@ InfoDevice infoDevice;
 Adafruit_RGBLCDShield lcd;
 #endif
 
-constexpr bool EnableDebugMode = false;
+constexpr bool EnableDebugMode = true;
 constexpr bool EnableInlineSPIOperation = true;
 template<bool, bool DisableInterruptChecks = true>
 inline void handleTransaction() noexcept;
@@ -480,6 +480,8 @@ handleTransaction() noexcept {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     pulse<Pin::CLKSignal, LOW, HIGH>();
     digitalWrite<Pin::Enable, LOW>();
+    asm volatile ("nop");
+    asm volatile ("nop");
     auto m2 = readInputChannelAs<Channel2Value>();
     addr.bytes[0] = m2.getWholeValue();
     addr.address.a0 = 0;
@@ -491,6 +493,7 @@ handleTransaction() noexcept {
     addr.bytes[3] = readInputChannelAs<Word8>().getWholeValue();
     pulse<Pin::CLKSignal, LOW, HIGH>();
     digitalWrite<Pin::Enable, HIGH>();
+    pulse<Pin::CLKSignal, LOW, HIGH>();
     auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     auto updateDataLines = direction != dataLinesDirection;
     TransactionKind target;
@@ -514,7 +517,10 @@ handleTransaction() noexcept {
 
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));
-        Serial.println(addr.getWholeValue(), HEX);
+        Serial.print(addr.getWholeValue(), HEX);
+        Serial.print(F("(0b"));
+        Serial.print(addr.getWholeValue(), BIN);
+        Serial.println(F(")"));
         Serial.print(F("Operation: "));
         if (m2.isReadOperation()) {
             Serial.println(F("Read!"));

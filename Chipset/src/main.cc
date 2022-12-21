@@ -301,7 +301,11 @@ setup() {
 
 void 
 loop() {
-    handleTransactionCycle<EnableInlineSPIOperation, false>();
+    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+    for (;;) {
+        handleTransactionCycle<EnableInlineSPIOperation, false>();
+    }
+    SPI.endTransaction();
 }
 
 void sdCsInit(SdCsPin_t pin) {
@@ -464,7 +468,6 @@ template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
     SplitWord32 addr { 0 };
-    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     triggerClock();
     digitalWrite<Pin::Enable, LOW>();
     singleCycleDelay();
@@ -527,7 +530,6 @@ handleTransaction() noexcept {
             handleIOOperation<false>(addr);
             break;
     }
-    SPI.endTransaction();
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0
     singleCycleDelay();

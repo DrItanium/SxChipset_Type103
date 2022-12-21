@@ -154,12 +154,7 @@ queryPSRAM() noexcept {
         memoryAmount += (8ul * 1024ul * 1024ul);
     };
     Serial.println(F("RUNNING PSRAM MEMORY TEST!"));
-    if (!setupPSRAM<Pin::PSRAM0, performFullMemoryTest>()) {
-        Serial.println(F("NO PRIMARY PSRAM FOUND!"));
-        while (true) {
-            delay(1000);
-        }
-    } else {
+    if (setupPSRAM<Pin::PSRAM0, performFullMemoryTest>()) {
         addPSRAMAmount();
     }
     if (setupPSRAM<Pin::PSRAM1, performFullMemoryTest>()) {
@@ -175,9 +170,16 @@ queryPSRAM() noexcept {
         addPSRAMAmount();
     }
     Serial.println(F("MEMORY TEST COMPLETE!"));
-    Serial.print(F("Detected "));
-    Serial.print(memoryAmount);
-    Serial.println(F(" bytes of memory!"));
+    if (memoryAmount == 0) {
+        Serial.println(F("NO MEMORY INSTALLED!"));
+        while (true) {
+            delay(1000);
+        }
+    } else {
+        Serial.print(F("Detected "));
+        Serial.print(memoryAmount);
+        Serial.println(F(" bytes of memory!"));
+    }
 }
 bool
 trySetupDS1307() noexcept {

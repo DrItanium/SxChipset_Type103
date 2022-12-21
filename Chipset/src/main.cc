@@ -96,18 +96,17 @@ void setupIOExpanders() noexcept;
 void installMemoryImage() noexcept;
 uint16_t dataLinesDirection = MCP23S17::AllInput16;
 uint16_t currentDataLinesValue = 0;
-template<bool performFullMemoryTest>
-void
+template<Pin targetPin, bool performFullMemoryTest>
+bool
 setupPSRAM() noexcept {
     SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
-    Serial.println(F("RUNNING PSRAM MEMORY TEST!"));
     // according to the manuals we need at least 200 microseconds after bootup
     // to allow the psram to do it's thing
     delayMicroseconds(200);
     // 0x66 tells the PSRAM to initialize properly
-    digitalWrite<Pin::PSRAM0, LOW>();
+    digitalWrite<targetPin, LOW>();
     SPI.transfer(0x66);
-    digitalWrite<Pin::PSRAM0, HIGH>();
+    digitalWrite<targetPin, HIGH>();
     // test the first 64k instead of the full 8 megabytes
     constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
     for (uint32_t i = 0; i < endAddress; i += 4) {
@@ -116,7 +115,7 @@ setupPSRAM() noexcept {
             uint8_t bytes[4];
         } container, result;
         container.whole = i;
-        digitalWrite<Pin::PSRAM0, LOW>();
+        digitalWrite<targetPin, LOW>();
         SPI.transfer(0x02); // write
         SPI.transfer(container.bytes[2]);
         SPI.transfer(container.bytes[1]);
@@ -125,12 +124,12 @@ setupPSRAM() noexcept {
         SPI.transfer(container.bytes[1]);
         SPI.transfer(container.bytes[2]);
         SPI.transfer(container.bytes[3]);
-        digitalWrite<Pin::PSRAM0, HIGH>();
+        digitalWrite<targetPin, HIGH>();
         asm volatile ("nop");
         asm volatile ("nop");
         asm volatile ("nop");
         asm volatile ("nop");
-        digitalWrite<Pin::PSRAM0, LOW>();
+        digitalWrite<targetPin, LOW>();
         SPI.transfer(0x03); // read 
         SPI.transfer(container.bytes[2]);
         SPI.transfer(container.bytes[1]);
@@ -139,20 +138,50 @@ setupPSRAM() noexcept {
         result.bytes[1] = SPI.transfer(0);
         result.bytes[2] = SPI.transfer(0);
         result.bytes[3] = SPI.transfer(0);
-        digitalWrite<Pin::PSRAM0, HIGH>();
+        digitalWrite<targetPin, HIGH>();
         if (container.whole != result.whole) {
             Serial.print(F("MEMORY TEST FAILURE: W: 0x"));
             Serial.print(container.whole, HEX);
             Serial.print(F(" G: 0x"));
             Serial.println(result.whole, HEX);
-            while (true) {
-                // halt here
-                delay(1000);
-            }
+            return false;
         }
     }
-    Serial.println(F("MEMORY TEST COMPLETE!"));
     SPI.endTransaction();
+    return true;
+}
+template<bool performFullMemoryTest>
+void
+queryPSRAM() noexcept {
+    uint32_t memoryAmount = 0;
+    auto addPSRAMAmount = [&memoryAmount]() {
+        memoryAmount += (8ul * 1024ul * 1024ul);
+    };
+    Serial.println(F("RUNNING PSRAM MEMORY TEST!"));
+    if (!setupPSRAM<Pin::PSRAM0, performFullMemoryTest>()) {
+        Serial.println(F("NO PRIMARY PSRAM FOUND!"));
+        while (true) {
+            delay(1000);
+        }
+    } else {
+        addPSRAMAmount();
+    }
+    if (setupPSRAM<Pin::PSRAM1, performFullMemoryTest>()) {
+        addPSRAMAmount();
+    }
+    if (setupPSRAM<Pin::PSRAM2, performFullMemoryTest>()) {
+        addPSRAMAmount();
+    }
+    if (setupPSRAM<Pin::PSRAM3, performFullMemoryTest>()) {
+        addPSRAMAmount();
+    }
+    if (setupPSRAM<Pin::PSRAM4, performFullMemoryTest>()) {
+        addPSRAMAmount();
+    }
+    Serial.println(F("MEMORY TEST COMPLETE!"));
+    Serial.print(F("Detected "));
+    Serial.print(memoryAmount);
+    Serial.println(F(" bytes of memory!"));
 }
 bool
 trySetupDS1307() noexcept {
@@ -233,6 +262,10 @@ configurePins() noexcept {
     pinMode<Pin::GPIOSelect>(OUTPUT);
     pinMode<Pin::SD_EN>(OUTPUT);
     pinMode<Pin::PSRAM0>(OUTPUT);
+    pinMode<Pin::PSRAM1>(OUTPUT);
+    pinMode<Pin::PSRAM2>(OUTPUT);
+    pinMode<Pin::PSRAM3>(OUTPUT);
+    pinMode<Pin::PSRAM4>(OUTPUT);
     pinMode<Pin::Ready>(OUTPUT);
     pinMode<Pin::INT0_>(OUTPUT);
     pinMode<Pin::Enable>(OUTPUT);
@@ -253,6 +286,10 @@ configurePins() noexcept {
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::INT0_, HIGH>();
     digitalWrite<Pin::PSRAM0, HIGH>();
+    digitalWrite<Pin::PSRAM1, HIGH>();
+    digitalWrite<Pin::PSRAM2, HIGH>();
+    digitalWrite<Pin::PSRAM3, HIGH>();
+    digitalWrite<Pin::PSRAM4, HIGH>();
     digitalWrite<Pin::SD_EN, HIGH>();
     digitalWrite<Pin::Enable, HIGH>();
     // do an initial clear of the clock signal
@@ -321,7 +358,7 @@ setup() {
         delay(1000);
     }
     Serial.println(F("SD CARD FOUND!"));
-    setupPSRAM<false>();
+    queryPSRAM<false>();
     setupCache();
     installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card

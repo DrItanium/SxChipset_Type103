@@ -244,37 +244,37 @@ configurePins() noexcept {
     // do an initial clear of the clock signal
     pulse<Pin::CLKSignal, LOW, HIGH>();
 }
+[[gnu::always_inline]]
+inline void 
+waitForDataState() noexcept {
+    singleCycleDelay();
+    while (digitalRead<Pin::DEN>() == HIGH);
+}
+template<bool enableInlineSPI, bool disableInterruptChecks>
+[[gnu::always_inline]] inline void 
+handleTransactionCycle() noexcept {
+    waitForDataState();
+    handleTransaction<enableInlineSPI, disableInterruptChecks>();
+}
 void
 bootCPU() noexcept {
     pullCPUOutOfReset();
-    bool skippedAhead = false;
     while (digitalRead<Pin::FAIL>() == LOW) {
         if (digitalRead<Pin::DEN>() == LOW) {
-            skippedAhead = true;
             break;
         }
     }
     while (digitalRead<Pin::FAIL>() == HIGH) {
         if (digitalRead<Pin::DEN>() == LOW) {
-            skippedAhead = true;
             break;
         }
     }
     Serial.println(F("STARTUP COMPLETE! BOOTING..."));
-    if (skippedAhead) {
-        Serial.println(F("\t Skipped ahead!"));
-    }
     // okay so we got past this, just start performing actions
-    //setInputChannel<0>();
-    while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<false, true>();
-    while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<false, true>();
+    handleTransactionCycle<false, true>();
+    handleTransactionCycle<false, true>();
     if (digitalRead<Pin::FAIL>() == HIGH) {
         Serial.println(F("CHECKSUM FAILURE!"));
-        while (true) {
-            delay(1000);
-        }
     } else {
         Serial.println(F("BOOT SUCCESSFUL!"));
     }
@@ -305,10 +305,7 @@ setup() {
 
 void 
 loop() {
-    singleCycleDelay();
-    while (digitalRead<Pin::DEN>() == HIGH);
-    handleTransaction<EnableInlineSPIOperation, false>();
-    // always make sure we wait enough time
+    handleTransactionCycle<EnableInlineSPIOperation, false>();
 }
 
 void sdCsInit(SdCsPin_t pin) {

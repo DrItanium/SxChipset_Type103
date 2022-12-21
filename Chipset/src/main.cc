@@ -140,10 +140,6 @@ setupPSRAM() noexcept {
         result.bytes[3] = SPI.transfer(0);
         digitalWrite<targetPin, HIGH>();
         if (container.whole != result.whole) {
-            Serial.print(F("MEMORY TEST FAILURE: W: 0x"));
-            Serial.print(container.whole, HEX);
-            Serial.print(F(" G: 0x"));
-            Serial.println(result.whole, HEX);
             return false;
         }
     }

@@ -122,6 +122,12 @@ union SplitWord16 {
     constexpr explicit SplitWord16(uint16_t value) : full(value) { }
     constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
+    [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
+    [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
+    [[nodiscard]] constexpr bool operator<(const SplitWord16& other) const noexcept { return full < other.full; }
+    [[nodiscard]] constexpr bool operator<=(const SplitWord16& other) const noexcept { return full <= other.full; }
+    [[nodiscard]] constexpr bool operator>(const SplitWord16& other) const noexcept { return full > other.full; }
+    [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
 };
 
 union Word8 {
@@ -175,6 +181,12 @@ union Word8 {
         value_ = 0;
     }
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return value_; }
+    [[nodiscard]] constexpr bool operator==(const Word8& other) const noexcept { return value_ == other.value_; }
+    [[nodiscard]] constexpr bool operator!=(const Word8& other) const noexcept { return value_ != other.value_; }
+    [[nodiscard]] constexpr bool operator<(const Word8& other) const noexcept { return value_ < other.value_; }
+    [[nodiscard]] constexpr bool operator<=(const Word8& other) const noexcept { return value_ <= other.value_; }
+    [[nodiscard]] constexpr bool operator>(const Word8& other) const noexcept { return value_ > other.value_; }
+    [[nodiscard]] constexpr bool operator>=(const Word8& other) const noexcept { return value_ >= other.value_; }
 };
 using Channel0Value = Word8;
 using Channel1Value = Word8;

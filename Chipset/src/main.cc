@@ -129,7 +129,7 @@ setupPSRAM() noexcept {
         result.bytes[2] = SPI.transfer(0);
         result.bytes[3] = SPI.transfer(0);
         digitalWrite<targetPin, HIGH>();
-        if (container != result ) {
+        if (container != result) {
             return false;
         }
     }

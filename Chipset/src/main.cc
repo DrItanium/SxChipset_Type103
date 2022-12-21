@@ -412,6 +412,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
 #endif
     }
     for (byte offset = addr.getAddressOffset(); ; ++offset) {
+        // read it twice
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tOffset: 0x"));
@@ -465,13 +466,25 @@ triggerClock() noexcept {
     pulse<Pin::CLKSignal, LOW, HIGH>();
     singleCycleDelay();
 }
+inline void 
+enterAddressCapture() noexcept {
+    // clear the address counter to be on the safe side
+    triggerClock();
+    digitalWrite<Pin::Enable, LOW>();
+    singleCycleDelay(); // introduce this extra cycle of delay to make sure
+                        // that inputs are updated correctly since they are
+                        // tristated
+}
+inline void
+leaveAddressCapture() noexcept {
+    digitalWrite<Pin::Enable, HIGH>();
+    triggerClock();
+}
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
     SplitWord32 addr { 0 };
-    triggerClock();
-    digitalWrite<Pin::Enable, LOW>();
-    singleCycleDelay();
+    enterAddressCapture();
     auto m2 = readInputChannelAs<Channel2Value>();
     addr.bytes[0] = m2.getWholeValue();
     addr.address.a0 = 0;
@@ -481,8 +494,7 @@ handleTransaction() noexcept {
     addr.bytes[2] = readInputChannelAs<uint8_t>();
     triggerClock();
     addr.bytes[3] = readInputChannelAs<uint8_t>();
-    digitalWrite<Pin::Enable, HIGH>();
-    triggerClock();
+    leaveAddressCapture();
     auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     if (direction != dataLinesDirection) {
         dataLinesDirection = direction;

@@ -246,7 +246,7 @@ setupIOExpanders() noexcept {
     MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN>(0xFFFF);
     reg.mirrorInterruptPins();
     MCP23S17::writeIOCON<XIO>(reg);
-    MCP23S17::writeDirection<XIO>(0b1100'0100, 0b1111'1111);
+    MCP23S17::writeDirection<XIO>(0b1000'0100, 0b1111'1111);
     // setup the extra interrupts as well (hooked in through xio)
     MCP23S17::writeGPIO8_PORTA<XIO>(0b0010'0000); 
     MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN>(0x0000); // no

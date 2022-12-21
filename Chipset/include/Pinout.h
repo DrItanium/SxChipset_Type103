@@ -39,9 +39,6 @@ Count = NUM_DIGITAL_PINS,
 #endif
 #undef X
     // fake entries
-    XIO2,
-    XIO3,
-    XIO4,
     XIO5,
     XIO6,
     XIO7,

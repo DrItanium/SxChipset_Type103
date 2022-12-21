@@ -447,6 +447,7 @@ handleCacheOperation(const SplitWord32& addr) noexcept {
         digitalWrite<Pin::GPIOSelect, HIGH>();
     }
 }
+using ExecutionBody = void(*)(const SplitWord32&) noexcept;
 enum class TransactionKind {
     // 0b00 -> cache + read
     // 0b01 -> cache + write
@@ -483,26 +484,10 @@ handleTransaction() noexcept {
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
     auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    auto updateDataLines = direction != dataLinesDirection;
-    TransactionKind target;
-    if (addr.isIOInstruction()) {
-        if (m2.isReadOperation()) {
-            target = TransactionKind::IORead;
-        } else {
-            target = TransactionKind::IOWrite;
-        }
-    } else {
-        if (m2.isReadOperation()) {
-            target = TransactionKind::CacheRead;
-        } else {
-            target = TransactionKind::CacheWrite;
-        }
-    }
-    if (updateDataLines) {
+    if (direction != dataLinesDirection) {
         dataLinesDirection = direction;
         MCP23S17::writeDirection<DataLines>(dataLinesDirection);
     }
-
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));
         Serial.print(addr.getWholeValue(), HEX);
@@ -516,19 +501,18 @@ handleTransaction() noexcept {
             Serial.println(F("Write!"));
         }
     }
-    switch (target) {
-        case TransactionKind::CacheRead:
-            handleCacheOperation<true, EnableInlineSPIOperation, DisableInterruptChecks>(addr);
-            break;
-        case TransactionKind::CacheWrite:
-            handleCacheOperation<false, EnableInlineSPIOperation, DisableInterruptChecks>(addr);
-            break;
-        case TransactionKind::IORead:
+    if (addr.isIOInstruction()) {
+        if (m2.isReadOperation()) {
             handleIOOperation<true>(addr);
-            break;
-        case TransactionKind::IOWrite:
+        } else {
             handleIOOperation<false>(addr);
-            break;
+        }
+    } else {
+        if (m2.isReadOperation()) {
+            handleCacheOperation<true, EnableInlineSPIOperation, DisableInterruptChecks>(addr);
+        } else {
+            handleCacheOperation<false, EnableInlineSPIOperation, DisableInterruptChecks>(addr);
+        }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0

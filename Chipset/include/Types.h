@@ -81,6 +81,11 @@ union SplitWord32 {
         uint8_t group : 4;
         uint8_t req : 4;
     } ioRequestAddress;
+    struct {
+        uint32_t offset : 23;
+        uint32_t targetDevice : 3;
+        uint32_t rest : 6;
+    } psramAddress;
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }

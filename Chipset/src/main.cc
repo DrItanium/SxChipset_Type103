@@ -153,23 +153,9 @@ queryPSRAM() noexcept {
     auto addPSRAMAmount = [&memoryAmount]() {
         memoryAmount += (8ul * 1024ul * 1024ul);
     };
-    Serial.println(F("RUNNING PSRAM MEMORY TEST!"));
     if (setupPSRAM<Pin::PSRAM0, performFullMemoryTest>()) {
         addPSRAMAmount();
     }
-    if (setupPSRAM<Pin::PSRAM1, performFullMemoryTest>()) {
-        addPSRAMAmount();
-    }
-    if (setupPSRAM<Pin::PSRAM2, performFullMemoryTest>()) {
-        addPSRAMAmount();
-    }
-    if (setupPSRAM<Pin::PSRAM3, performFullMemoryTest>()) {
-        addPSRAMAmount();
-    }
-    if (setupPSRAM<Pin::PSRAM4, performFullMemoryTest>()) {
-        addPSRAMAmount();
-    }
-    Serial.println(F("MEMORY TEST COMPLETE!"));
     if (memoryAmount == 0) {
         Serial.println(F("NO MEMORY INSTALLED!"));
         while (true) {
@@ -260,10 +246,6 @@ configurePins() noexcept {
     pinMode<Pin::GPIOSelect>(OUTPUT);
     pinMode<Pin::SD_EN>(OUTPUT);
     pinMode<Pin::PSRAM0>(OUTPUT);
-    pinMode<Pin::PSRAM1>(OUTPUT);
-    pinMode<Pin::PSRAM2>(OUTPUT);
-    pinMode<Pin::PSRAM3>(OUTPUT);
-    pinMode<Pin::PSRAM4>(OUTPUT);
     pinMode<Pin::Ready>(OUTPUT);
     pinMode<Pin::INT0_>(OUTPUT);
     pinMode<Pin::Enable>(OUTPUT);
@@ -284,10 +266,6 @@ configurePins() noexcept {
     digitalWrite<Pin::GPIOSelect, HIGH>();
     digitalWrite<Pin::INT0_, HIGH>();
     digitalWrite<Pin::PSRAM0, HIGH>();
-    digitalWrite<Pin::PSRAM1, HIGH>();
-    digitalWrite<Pin::PSRAM2, HIGH>();
-    digitalWrite<Pin::PSRAM3, HIGH>();
-    digitalWrite<Pin::PSRAM4, HIGH>();
     digitalWrite<Pin::SD_EN, HIGH>();
     digitalWrite<Pin::Enable, HIGH>();
     // do an initial clear of the clock signal
@@ -604,9 +582,10 @@ handleTransaction() noexcept {
 
 
 namespace {
+    template<Pin targetPin>
     size_t
     psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        digitalWrite<Pin::PSRAM0, LOW>();
+        digitalWrite<targetPin, LOW>();
 #ifdef AVR_SPI_AVAILABLE
         SPDR = 0x02;
         asm volatile ("nop");
@@ -632,12 +611,14 @@ namespace {
         SPI.transfer(baseAddress.bytes[0]);
         SPI.transfer(bytes, count);
 #endif
-        digitalWrite<Pin::PSRAM0, HIGH>();
+        digitalWrite<targetPin, HIGH>();
         return count;
     }
+
+    template<Pin targetPin>
     size_t
     psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        digitalWrite<Pin::PSRAM0, LOW>();
+        digitalWrite<targetPin, LOW>();
 #ifdef AVR_SPI_AVAILABLE
         SPDR = 0x03;
         asm volatile ("nop");
@@ -664,17 +645,17 @@ namespace {
         SPI.transfer(baseAddress.bytes[0]);
         SPI.transfer(bytes, count);
 #endif
-        digitalWrite<Pin::PSRAM0, HIGH>();
+        digitalWrite<targetPin, HIGH>();
         return count;
     }
 }
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryWrite(baseAddress, bytes, count);
+    return psramMemoryWrite<Pin::PSRAM0>(baseAddress, bytes, count);
 }
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryRead(baseAddress, bytes, count);
+    return psramMemoryRead<Pin::PSRAM0>(baseAddress, bytes, count);
 }
 
 

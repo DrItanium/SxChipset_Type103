@@ -368,7 +368,6 @@ setup() {
 void 
 loop() {
     singleCycleDelay();
-    singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction<EnableInlineSPIOperation, false>();
     // always make sure we wait enough time
@@ -528,7 +527,6 @@ enum class TransactionKind {
 inline void 
 triggerClock() noexcept {
     pulse<Pin::CLKSignal, LOW, HIGH>();
-    singleCycleDelay();
     singleCycleDelay();
 }
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
@@ -691,3 +689,4 @@ byte GPIOR1;
 #ifndef GPIOR2
 byte GPIOR2;
 #endif
+

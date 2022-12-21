@@ -476,11 +476,11 @@ handleTransaction() noexcept {
     addr.bytes[0] = m2.getWholeValue();
     addr.address.a0 = 0;
     triggerClock();
-    addr.bytes[1] = readInputChannelAs<Channel3Value>().getAddressBits8_15();
+    addr.bytes[1] = readInputChannelAs<uint8_t>();
     triggerClock();
-    addr.bytes[2] = readInputChannelAs<Channel1Value>().getAddressBits16_23();
+    addr.bytes[2] = readInputChannelAs<uint8_t>();
     triggerClock();
-    addr.bytes[3] = readInputChannelAs<Word8>().getWholeValue();
+    addr.bytes[3] = readInputChannelAs<uint8_t>();
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
     auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;

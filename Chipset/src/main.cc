@@ -104,11 +104,7 @@ setupPSRAM() noexcept {
     // test the first 64k instead of the full 8 megabytes
     constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
     for (uint32_t i = 0; i < endAddress; i += 4) {
-        union {
-            uint32_t whole;
-            uint8_t bytes[4];
-        } container, result;
-        container.whole = i;
+        SplitWord32 container {i}, result {0};
         digitalWrite<targetPin, LOW>();
         SPI.transfer(0x02); // write
         SPI.transfer(container.bytes[2]);
@@ -133,7 +129,7 @@ setupPSRAM() noexcept {
         result.bytes[2] = SPI.transfer(0);
         result.bytes[3] = SPI.transfer(0);
         digitalWrite<targetPin, HIGH>();
-        if (container.whole != result.whole) {
+        if (container != result ) {
             return false;
         }
     }

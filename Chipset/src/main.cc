@@ -352,6 +352,9 @@ handlePeripheralOperation(const SplitWord32& addr) noexcept {
         case TargetPeripheral::Serial:
             theSerial.handleExecution<isReadOperation>(addr);
             break;
+        case TargetPeripheral::RTC:
+            theRTC.handleExecution<isReadOperation>(addr);
+            break;
         default:
             genericIOHandler<isReadOperation>(addr);
             break;

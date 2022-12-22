@@ -400,13 +400,12 @@ class RTCDevice : public OperatorPeripheral<RTCDeviceOperations> {
     public:
         ~RTCDevice() override = default;
         bool begin() noexcept override;
+        bool available() const noexcept override { return available_; }
     protected:
         void handleExtendedReadOperation(const SplitWord32& addr, RTCDeviceOperations value) noexcept override;
         void handleExtendedWriteOperation(const SplitWord32& addr, RTCDeviceOperations value) noexcept override;
     private:
-        void stashUnixTime();
-    private:
         RTC_DS1307 rtc;
-        uint32_t currentUnixTime_;
+        bool available_ = false;
 };
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

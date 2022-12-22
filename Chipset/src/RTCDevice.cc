@@ -27,16 +27,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "RTClib.h"
 
-void
-RTCDevice::stashUnixTime() noexcept {
-    currentUnixTime_ = rtc.now().unixtime();
-}
 void 
 RTCDevice::handleExtendedReadOperation(const SplitWord32& addr, RTCDeviceOperations value) noexcept {
     switch (value) {
         case RTCDeviceOperations::UnixTime:
-            stashUnixTime();
-            readOnlyDynamicValue(addr, currentUnixTime_);
+            readOnlyDynamicValue(addr, rtc.now().unixtime());
             break;
         default:
             genericIOHandler<true>(addr);
@@ -54,8 +49,10 @@ RTCDevice::begin() noexcept {
         if (!rtc.isrunning()) {
             rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         }
+        available_ = true;
         return true;
     } else {
+        available_ = false;
         return false;
     }
 }

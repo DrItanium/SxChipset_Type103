@@ -56,7 +56,7 @@ SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceO
             genericIOHandler<true>(addr);
             break;
         case SerialDeviceOperations::Baud:
-            genericIOHandler<true>(addr, expose32BitConstant<115200>);
+            readOnlyDynamicValue(addr, getBaudRate());
             break;
         default:
             genericIOHandler<true>(addr);

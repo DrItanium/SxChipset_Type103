@@ -36,17 +36,7 @@ RTCDevice::handleExtendedReadOperation(const SplitWord32& addr, RTCDeviceOperati
     switch (value) {
         case RTCDeviceOperations::UnixTime:
             stashUnixTime();
-            genericIOHandler<true>(addr, 
-                [this](const SplitWord32&, const Channel0Value&, byte offset) noexcept -> uint16_t {
-                    switch (offset) {
-                        case 0:
-                            return static_cast<uint16_t>(currentUnixTime_);
-                        case 1:
-                            return static_cast<uint16_t>(currentUnixTime_ >> 16);
-                        default:
-                            return 0;
-                    }
-                });
+            readOnlyDynamicValue(addr, currentUnixTime_);
             break;
         default:
             genericIOHandler<true>(addr);

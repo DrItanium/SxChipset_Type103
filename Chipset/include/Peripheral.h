@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "MCP23S17.h"
 #include "Pinout.h"
+#include "RTClib.h"
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 /**
@@ -39,6 +40,7 @@ constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device7;
 enum class TargetPeripheral {
     Info, 
     Serial,
+    RTC,
     Count,
 };
 static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");
@@ -176,6 +178,21 @@ genericIOHandler(const SplitWord32& addr) noexcept {
 template<bool isReadOperation>
 inline void
 genericIOHandler(const SplitWord32& addr, ReadOperation onRead) noexcept {
+    for (byte offset = addr.address.offset; ; ++offset) {
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        if constexpr (isReadOperation) {
+            setDataLinesOutput<false>(onRead(addr, readInputChannelAs<Channel0Value>(), offset));
+        } 
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+}
+
+template<bool isReadOperation, typename T>
+inline void
+genericIOHandler(const SplitWord32& addr, T onRead) noexcept {
     for (byte offset = addr.address.offset; ; ++offset) {
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         if constexpr (isReadOperation) {
@@ -372,5 +389,24 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
         void handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
         void handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
 };
+enum class RTCDeviceOperations {
+    Available,
+    Size,
+    UnixTime,
+    Count,
+};
 
+class RTCDevice : public OperatorPeripheral<RTCDeviceOperations> {
+    public:
+        ~RTCDevice() override = default;
+        bool begin() noexcept override;
+    protected:
+        void handleExtendedReadOperation(const SplitWord32& addr, RTCDeviceOperations value) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, RTCDeviceOperations value) noexcept override;
+    private:
+        void stashUnixTime();
+    private:
+        RTC_DS1307 rtc;
+        uint32_t currentUnixTime_;
+};
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

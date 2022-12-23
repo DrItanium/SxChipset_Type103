@@ -292,7 +292,7 @@ void
 loop() {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     for (;;) {
-        handleTransactionCycle<EnableInlineSPIOperation, false>();
+        handleTransactionCycle<EnableInlineSPIOperation, true>();
     }
     SPI.endTransaction();
 }

@@ -94,7 +94,6 @@ TimerDevice::begin() noexcept {
     }
     // make sure that INT0 is enabled as an output. Make it high
     pinMode<Pin::INT0_>(OUTPUT);
-    digitalWrite<Pin::INT0_, HIGH>();
     // enable toggle mode
     bitSet(TCCR2A, COM2A0);
     bitClear(TCCR2A, COM2A1);
@@ -103,6 +102,10 @@ TimerDevice::begin() noexcept {
     bitSet(TCCR2A, WGM21);
     bitClear(TCCR2B, WGM22);
     // clear the timer counter
+    bitClear(TCCR2B, CS20);
+    bitClear(TCCR2B, CS21);
+    bitClear(TCCR2B, CS22);
     TCNT2 = 0;
+    digitalWrite<Pin::INT0_, HIGH>();
     return available_;
 }

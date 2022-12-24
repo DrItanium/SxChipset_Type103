@@ -389,21 +389,23 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
         void handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
         void handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
 };
-enum class RTCDeviceOperations {
+enum class TimerDeviceOperations {
     Available,
     Size,
     UnixTime,
+    SystemTimerComparisonValue,
+    SystemTimerPrescalar,
     Count,
 };
 
-class RTCDevice : public OperatorPeripheral<RTCDeviceOperations> {
+class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
     public:
-        ~RTCDevice() override = default;
+        ~TimerDevice() override = default;
         bool begin() noexcept override;
         bool available() const noexcept override { return available_; }
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, RTCDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, RTCDeviceOperations value) noexcept override;
+        void handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
     private:
         RTC_DS1307 rtc;
         bool available_ = false;

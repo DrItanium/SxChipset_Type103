@@ -37,7 +37,7 @@ SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;
 InfoDevice infoDevice;
-RTCDevice theRTC;
+TimerDevice timerInterface;
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableTimingDebug = false;
 constexpr bool EnableInlineSPIOperation = true;
@@ -159,7 +159,7 @@ queryPSRAM() noexcept {
 }
 bool
 trySetupDS1307() noexcept {
-    return theRTC.begin();
+    return timerInterface.begin();
 }
 void 
 setupRTC() noexcept {
@@ -353,7 +353,7 @@ handlePeripheralOperation(const SplitWord32& addr) noexcept {
             theSerial.handleExecution<isReadOperation>(addr);
             break;
         case TargetPeripheral::RTC:
-            theRTC.handleExecution<isReadOperation>(addr);
+            timerInterface.handleExecution<isReadOperation>(addr);
             break;
         default:
             genericIOHandler<isReadOperation>(addr);

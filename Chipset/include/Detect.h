@@ -66,7 +66,7 @@ constexpr auto getRAMEnd() noexcept {
 }
 constexpr auto getXMEMSize() noexcept {
 #ifdef XRAMSIZE
-    return XRAMSIZE
+    return XRAMSIZE;
 #else
     return 0;
 #endif

@@ -129,6 +129,14 @@ enum class Port : byte {
 #undef X
     None,
 };
+constexpr auto numberOfAvailablePins() noexcept {
+    return 0 
+#define X(a, b) + 1
+#include "AVRPins.def"
+#undef X
+        ;
+}
+
 using PortOutputRegister = volatile byte&;
 using PortInputRegister = volatile byte&;
 using PortDirectionRegister = volatile byte&;

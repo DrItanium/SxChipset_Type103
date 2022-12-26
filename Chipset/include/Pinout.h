@@ -136,6 +136,17 @@ constexpr auto numberOfAvailablePins() noexcept {
 #undef X
         ;
 }
+static_assert(numberOfAvailablePins() == NUM_DIGITAL_PINS);
+
+constexpr auto numberOfAvailablePorts() noexcept {
+    return 0
+#define X(a) + 1
+#include "AVRPorts.def"
+#undef X
+        ;
+}
+
+static_assert(numberOfAvailablePorts() > 0);
 
 using PortOutputRegister = volatile byte&;
 using PortInputRegister = volatile byte&;

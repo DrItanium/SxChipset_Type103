@@ -50,4 +50,33 @@ constexpr uint32_t getCPUFrequency() noexcept {
     return 0;
 #endif
 }
+constexpr auto getRAMStart() noexcept {
+#ifdef RAMSTART
+    return RAMSTART;
+#else
+    return 0;
+#endif
+}
+constexpr auto getRAMEnd() noexcept {
+#ifdef RAMEND
+    return RAMEND;
+#else
+    return 0;
+#endif
+}
+constexpr auto getXMEMSize() noexcept {
+#ifdef XRAMSIZE
+    return XRAMSIZE
+#else
+    return 0;
+#endif
+}
+constexpr auto getXMEMEnd() noexcept {
+#ifdef XRAMEND
+    return XRAMEND;
+#else
+        return 0;
+#endif
+}
+
 #endif // end SXCHIPSET_TYPE103_DETECT_H__

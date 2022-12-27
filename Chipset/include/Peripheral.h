@@ -342,49 +342,20 @@ uint16_t
 exposeBooleanValue(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return value ? 0xFFFF : 0;
 }
-template<typename T>
-class ContainerPointer final {
-    public:
-        ContainerPointer(T* ptr) : ptr_(ptr) { }
-        ~ContainerPointer() noexcept {
-            if (ptr_) {
-                delete ptr_;
-            }
-        }
-        bool valid() const noexcept { ptr_ != nullptr; }
-        T& get() noexcept { return ptr_; }
-    private: 
-        T* ptr_ = nullptr;
-};
-
-template<typename T>
-class ContainerPointer<T[]> final {
-    public:
-        ContainerPointer(T* ptr) : ptr_(ptr) { }
-        ~ContainerPointer() noexcept {
-            if (ptr_) {
-                delete [] ptr_;
-            }
-        }
-        bool valid() const noexcept { ptr_ != nullptr; }
-        T& get() noexcept { return ptr_; }
-    private: 
-        T* ptr_ = nullptr;
-};
 using HandlerContainer = ContainerPointer<OperationHandler>;
 class Peripheral {
     public:
         virtual ~Peripheral() = default;
         template<bool isReadOperation>
-        HandlerContainer handleExecution(const SplitWord32& addr) noexcept {
+        void handleExecution(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
             if constexpr (isReadOperation) {
-                return readOperation(addr);
+                return readOperation(addr, fn);
             } else {
-                return writeOperation(addr);
+                return writeOperation(addr, fn);
             }
         }
-        virtual HandlerContainer readOperation(const SplitWord32& addr) noexcept = 0;
-        virtual HandlerContainer writeOperation(const SplitWord32& addr) noexcept = 0;
+        virtual void readOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept = 0;
+        virtual void writeOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept = 0;
         virtual bool begin() noexcept { return true; }
 };
 template<typename E>
@@ -395,40 +366,40 @@ public:
     ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return true; }
     virtual uint32_t size() const noexcept { return static_cast<uint32_t>(E::Count); }
-    HandlerContainer readOperation(const SplitWord32& addr) noexcept override {
+    void readOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available:
-                return new ExpressUint16_t(addr, available() ? 0xFFFF : 0);
+                fn(ExpressUint16_t{addr, available() ? 0xFFFF : 0});
             case E::Size:
-                return new ExpressUint32_t(addr, size());
+                fn(ExpressUint32_t{addr, size()});
             default:
                 if (validOperation(opcode)) {
                     return handleExtendedReadOperation(addr, opcode);
                 } else {
-                    return nullptr;
+                    fn(getNullHandler());
                 }
                 break;
         }
 
     }
-    HandlerContainer writeOperation(const SplitWord32& addr) noexcept override {
+    void writeOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available:
             case E::Size:
-                return nullptr;
+                fn(getNullHandler());
             default:
                 if (validOperation(opcode)) {
-                    return handleExtendedWriteOperation(addr, opcode);
+                    handleExtendedWriteOperation(addr, opcode);
                 } else {
-                    return nullptr;
+                    fn(getNullHandler());
                 }
                 break;
         }
 
     }
 protected:
-    virtual HandlerContainer handleExtendedReadOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
-    virtual HandlerContainer handleExtendedWriteOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
+    virtual void handleExtendedReadOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;
+    virtual void handleExtendedWriteOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;
 };
 
 
@@ -447,8 +418,8 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         void setBaudRate(uint32_t baudRate) noexcept;
         [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     protected:
-        HandlerContainer handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
-        HandlerContainer handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
+        void handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept override;
     private:
         uint32_t baud_ = 115200;
 };
@@ -456,8 +427,8 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:
         ~InfoDevice() override = default;
     protected:
-        HandlerContainer handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
-        HandlerContainer handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
+        void handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept override;
 };
 enum class TimerDeviceOperations {
     Available,
@@ -474,8 +445,8 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
         bool begin() noexcept override;
         bool available() const noexcept override { return available_; }
     protected:
-        HandlerContainer handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
-        HandlerContainer handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
+        void handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept override;
+        void handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept override;
     private:
         RTC_DS1307 rtc;
         bool available_ = false;

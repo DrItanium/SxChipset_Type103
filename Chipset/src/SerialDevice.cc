@@ -26,14 +26,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Peripheral.h"
 
-uint16_t
-performSerialRead_Fast(const SplitWord32&, const Channel0Value&, byte) noexcept {
-    return Serial.read();
-}
-
-void
-performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, byte, uint16_t value) noexcept {
-    Serial.write(static_cast<uint8_t>(value));
+namespace {
+    class SerialIOHandler final : public OperationHandler {
+        public:
+            SerialIOHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
+            ~SerialIOHandler() override = default;
+            void startTransaction() noexcept override { }
+            uint16_t read(const Channel0Value& m0) const noexcept override { 
+                return Serial.read();
+            }
+            void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+                Serial.write(static_cast<uint8_t>(value));
+            }
+            void endTransaction() noexcept override { }
+        protected:
+            void next0() noexcept override { }
+    };
+    SerialIOHandler serialIO(0); // address does not matter in this case
 }
 
 void 
@@ -45,37 +54,31 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
     }
 }
 
-void 
+HandlerContainer
 SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept {
     switch (value) {
         case SerialDeviceOperations::RW:
-            genericIOHandler<true>(addr, performSerialRead_Fast, performSerialWrite_Fast);
-            break;
+            return makeNonOwning(&serialIO);
         case SerialDeviceOperations::Flush:
             Serial.flush();
-            genericIOHandler<true>(addr);
-            break;
+            return nullptr;
         case SerialDeviceOperations::Baud:
-            readOnlyDynamicValue(addr, getBaudRate());
-            break;
+            return new ExpressUint32_t(addr, getBaudRate());
         default:
-            genericIOHandler<true>(addr);
-            break;
+            return nullptr;
     }
 }
-void 
+
+HandlerContainer
 SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept {
     switch (value) {
         case SerialDeviceOperations::RW:
-            genericIOHandler<false>(addr, performSerialRead_Fast, performSerialWrite_Fast);
-            break;
+            return makeNonOwning(&serialIO);
         case SerialDeviceOperations::Flush:
             Serial.flush();
-            genericIOHandler<false>(addr);
-            break;
+            return nullptr;
         default:
-            genericIOHandler<false>(addr);
-            break;
+            return nullptr;
     }
 }
 

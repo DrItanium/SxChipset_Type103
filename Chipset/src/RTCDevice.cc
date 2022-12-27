@@ -65,28 +65,13 @@ namespace {
     CompareHandler compareHandler{0};
 }
 void
-TimerDevice::handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept {
+TimerDevice::handleExtendedOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case TimerDeviceOperations::UnixTime: {
                                                   ExpressUint32_t tmp{addr, rtc.now().unixtime()};
                                                   fn(tmp);
                                                   break;
                                               }
-        case TimerDeviceOperations::SystemTimerComparisonValue:
-            fn(compareHandler);
-            break;
-        case TimerDeviceOperations::SystemTimerPrescalar:
-            fn(prescalarHandler);
-            break;
-        default:
-            fn(getNullHandler());
-            break;
-    }
-}
-
-void 
-TimerDevice::handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept {
-    switch (value) {
         case TimerDeviceOperations::SystemTimerComparisonValue:
             fn(compareHandler);
             break;

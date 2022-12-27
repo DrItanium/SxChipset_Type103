@@ -350,18 +350,17 @@ installMemoryImage() noexcept {
 SplitWord16 previousValue{0};
 
 
-template<bool isReadOperation>
 inline void 
 handlePeripheralOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            infoDevice.handleExecution<isReadOperation>(addr, fn);
+            infoDevice.handleExecution(addr, fn);
             break;
         case TargetPeripheral::Serial:
-            theSerial.handleExecution<isReadOperation>(addr, fn);
+            theSerial.handleExecution(addr, fn);
             break;
         case TargetPeripheral::RTC:
-            timerInterface.handleExecution<isReadOperation>(addr, fn);
+            timerInterface.handleExecution(addr, fn);
             break;
         default:
             fn(getNullHandler());
@@ -369,7 +368,6 @@ handlePeripheralOperation(const SplitWord32& addr, OperationHandlerUser fn) noex
     }
 }
 
-template<bool isReadOperation>
 inline void 
 handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
     // When we are in io space, we are treating the address as an opcode which
@@ -382,7 +380,7 @@ handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
     // one starts when performing a write operation
     switch (addr.getIOGroup()) {
         case IOGroup::Peripherals:
-            handlePeripheralOperation<isReadOperation>(addr, fn);
+            handlePeripheralOperation(addr, fn);
             break;
         default:
             fn(getNullHandler());
@@ -537,9 +535,9 @@ handleTransaction() noexcept {
     }
     if (addr.isIOInstruction()) {
         if (m2.isReadOperation()) {
-            handleIOOperation<true>(addr, talkToi960<true, false, true>);
+            handleIOOperation(addr, talkToi960<true, false, true>);
         } else {
-            handleIOOperation<false>(addr, talkToi960<false, false, true>);
+            handleIOOperation(addr, talkToi960<false, false, true>);
         }
     } else {
         CacheOperationHandler handler(addr);

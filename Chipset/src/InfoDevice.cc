@@ -33,23 +33,9 @@ namespace {
     ExpressUint32_t cpuClockRateExpose {0, CPUClockRate};
 }
 void 
-InfoDevice::handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept {
+InfoDevice::handleExtendedOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case InfoDeviceOperations::GetCPUClock: 
-            fn(cpuClockRateExpose);
-            break;
-        case InfoDeviceOperations::GetChipsetClock:
-            fn(systemRateExpose);
-            break;
-        default:
-            fn(getNullHandler());
-            break;
-    }
-}
-void 
-InfoDevice::handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept {
-    switch (value) {
-        case InfoDeviceOperations::GetCPUClock:
             fn(cpuClockRateExpose);
             break;
         case InfoDeviceOperations::GetChipsetClock:

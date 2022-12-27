@@ -55,7 +55,7 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
 }
 
 void
-SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept {
+SerialDevice::handleExtendedOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case SerialDeviceOperations::RW:
             fn(serialIO);
@@ -69,22 +69,6 @@ SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceO
                                                fn(tmp);
                                                break;
                                            }
-        default:
-            fn(getNullHandler());
-            break;
-    }
-}
-
-void
-SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept {
-    switch (value) {
-        case SerialDeviceOperations::RW:
-            fn(serialIO);
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            fn(getNullHandler());
-            break;
         default:
             fn(getNullHandler());
             break;

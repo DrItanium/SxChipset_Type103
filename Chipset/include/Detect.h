@@ -50,6 +50,7 @@ constexpr uint32_t getCPUFrequency() noexcept {
     return 0;
 #endif
 }
+
 constexpr auto getRAMStart() noexcept {
 #ifdef RAMSTART
     return RAMSTART;
@@ -57,6 +58,7 @@ constexpr auto getRAMStart() noexcept {
     return 0;
 #endif
 }
+
 constexpr auto getRAMEnd() noexcept {
 #ifdef RAMEND
     return RAMEND;
@@ -64,6 +66,7 @@ constexpr auto getRAMEnd() noexcept {
     return 0;
 #endif
 }
+
 constexpr auto getXMEMSize() noexcept {
 #ifdef XRAMSIZE
     return XRAMSIZE;
@@ -71,6 +74,7 @@ constexpr auto getXMEMSize() noexcept {
     return 0;
 #endif
 }
+
 constexpr auto getXMEMEnd() noexcept {
 #ifdef XRAMEND
     return XRAMEND;

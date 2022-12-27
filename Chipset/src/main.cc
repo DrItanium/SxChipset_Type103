@@ -400,7 +400,7 @@ class OperationHandler {
 };
 template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
 void
-handleCacheOperation(OperationHandler& handler) noexcept {
+talkToi960(OperationHandler& handler) noexcept {
     handler.startTransaction();
     if constexpr (inlineSPIOperation) {
         digitalWrite<Pin::GPIOSelect, LOW>();

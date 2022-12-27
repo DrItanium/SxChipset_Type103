@@ -389,6 +389,75 @@ handleIOOperation(const SplitWord32& addr) noexcept {
             break;
     }
 }
+class OperationHandler {
+    public:
+        virtual ~OperationHandler() = default;
+        virtual void startTransaction() = 0;
+        virtual uint16_t read(const Channel0Value& m0) noexcept = 0;
+        virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
+        virtual void next() noexcept = 0;
+        virtual void endTransaction() = 0;
+};
+template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
+void
+handleCacheOperation(OperationHandler& handler) noexcept {
+    handler.startTransaction();
+    if constexpr (inlineSPIOperation) {
+        digitalWrite<Pin::GPIOSelect, LOW>();
+        static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
+        static constexpr auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
+#ifdef AVR_SPI_AVAILABLE
+        SPDR = TargetAction;
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))); 
+        SPDR = TargetRegister;
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))); 
+#else
+        SPI.transfer(TargetAction);
+        SPI.transfer(TargetRegister);
+#endif
+    }
+    while (true) {
+        singleCycleDelay();
+        // read it twice
+        auto c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out 
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            setDataLinesOutput<inlineSPIOperation>(value);
+        } else {
+            auto c0 = readInputChannelAs<Channel0Value>();
+            auto value = getDataLines<inlineSPIOperation, disableWriteInterrupt>(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        } else {
+            handler.next();
+        }
+    }
+    if constexpr (inlineSPIOperation) {
+        digitalWrite<Pin::GPIOSelect, HIGH>();
+    }
+
+    handler.endTransaction();
+}
 template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
 void
 handleCacheOperation(const SplitWord32& addr) noexcept {

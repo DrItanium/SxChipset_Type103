@@ -50,7 +50,7 @@ namespace {
         TCCR2B = result;
     }
 }
-void 
+HandlerContainer
 TimerDevice::handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept {
     switch (value) {
         case TimerDeviceOperations::UnixTime:
@@ -67,7 +67,7 @@ TimerDevice::handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOpe
             break;
     }
 }
-void 
+HandlerContainer
 TimerDevice::handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept {
     switch (value) {
         case TimerDeviceOperations::SystemTimerComparisonValue:

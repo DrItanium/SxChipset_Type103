@@ -371,5 +371,55 @@ class NullHandler final : public OperationHandler {
         void next0() noexcept override { }
 };
 
+template<typename ST, typename R, typename W, typename ET, typename N>
+class ConfigurableHandler final : public OperationHandler { 
+    public:
+        ConfigurableHandler(ST onStartTransaction, R onRead, W onWrite, ET onEndTransaction, N onNext) noexcept 
+            : st_(onStartTransaction), r_(onRead), w_(onWrite), et_(onEndTransaction), n_(onNext) {
+
+        }
+
+        void startTransaction() noexcept override { 
+            if (st_) {
+                st_(getAddress(), getOffset());
+            }
+        }
+        uint16_t read(const Channel0Value& m0) const noexcept override { 
+            if (r_) {
+                return r_(getAddress(), m0, getOffset());
+            } else {
+                return 0;
+            }
+        }
+        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+            if (w_) {
+                w_(m0, value, getAddress(), getOffset());
+            }
+        }
+        void endTransaction() noexcept override { 
+            if (et_) {
+                et_(getAddress(), getOffset());
+            }
+        }
+    protected:
+        void next0() noexcept override { 
+            if (n_) {
+                n_();
+            }
+        }
+
+    private:
+        ST st_;
+        R r_;
+        W w_;
+        ET et_;
+        N n_; 
+};
+
+template<typename ST, typename R, typename W, typename ET, typename N>
+decltype(auto) makeHandler(ST st, R r, W w, ET et, N n) noexcept {
+    return ConfigurableHandler<ST, R, W, ET, N>{st, r, w, et, n};
+}
+
 
 #endif //SXCHIPSET_TYPE103_TYPES_H__

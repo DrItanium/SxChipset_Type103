@@ -392,11 +392,35 @@ handleIOOperation(const SplitWord32& addr) noexcept {
 class OperationHandler {
     public:
         virtual ~OperationHandler() = default;
-        virtual void startTransaction() = 0;
-        virtual uint16_t read(const Channel0Value& m0) noexcept = 0;
+        virtual void startTransaction() noexcept = 0;
+        virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
         virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
         virtual void next() noexcept = 0;
-        virtual void endTransaction() = 0;
+        virtual void endTransaction() noexcept = 0;
+};
+class CacheOperationHandler : public OperationHandler {
+    public:
+        CacheOperationHandler(const SplitWord32& baseAddress) noexcept : baseAddress_(baseAddress), offset_(baseAddress.getAddressOffset()), line_(getCache().find(baseAddress)) { }
+        ~CacheOperationHandler() override = default;
+        void startTransaction() noexcept override { 
+        }
+        void next() noexcept override {
+            ++offset_;
+        }
+        uint16_t 
+        read(const Channel0Value&) const noexcept {
+            return line_.getWord(offset_);
+        }
+        void
+        write(const Channel0Value& m0, uint16_t value) noexcept {
+            line_.setWord(offset_, value, m0.getByteEnable());
+        }
+        void endTransaction() noexcept override { 
+        }
+    private:
+        SplitWord32 baseAddress_;
+        byte offset_;
+        DataCacheLine& line_;
 };
 template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
 void

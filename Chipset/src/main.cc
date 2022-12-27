@@ -614,10 +614,11 @@ handleTransaction() noexcept {
             handleIOOperation<false>(addr);
         }
     } else {
+        CacheOperationHandler handler(addr);
         if (m2.isReadOperation()) {
-            handleCacheOperation<true, EnableInlineSPIOperation, DisableInterruptChecks>(addr);
+            talkToi960<true, EnableInlineSPIOperation, DisableInterruptChecks>(handler);
         } else {
-            handleCacheOperation<false, EnableInlineSPIOperation, DisableInterruptChecks>(addr);
+            talkToi960<false, EnableInlineSPIOperation, DisableInterruptChecks>(handler);
         }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay

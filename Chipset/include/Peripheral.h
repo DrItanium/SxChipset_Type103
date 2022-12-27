@@ -264,6 +264,56 @@ readOnlyDynamicValue(const SplitWord32& addr, bool value) noexcept {
     readOnlyDynamicValue(addr, value ? 0xFFFF : 0x0);
 }
 
+template<typename T>
+class DynamicValue : public OperationHandler {
+    public:
+        static_assert(sizeof(T) <= 16, "Type is larger than 16-bytes! Use a different class!");
+        DynamicValue(const SplitWord32& addr, T value) noexcept : OperationHandler(addr), words_{} {
+            // have to set it up this way
+            value_ = value;
+        }
+        void startTransaction() noexcept override { }
+        void endTransaction() noexcept override { }
+        uint16_t read(const Channel0Value& m0) const noexcept override { 
+            return words_[getOffset()].getWholeValue(); 
+        }
+        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+            SplitWord16 tmp(value);
+            switch (m0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    words_[getOffset()] = tmp;
+                    break;
+                case EnableStyle::Lower8:
+                    words_[getOffset()].bytes[0] = tmp.bytes[0];
+                    break;
+                case EnableStyle::Upper8:
+                    words_[getOffset()].bytes[1] = tmp.bytes[1];
+                    break;
+                default:
+                    break;
+            }
+        }
+        [[nodiscard]] T getValue() const noexcept { return value_; }
+
+    protected:
+        void next0() noexcept override { }
+    private:
+        union {
+            T value_;
+            SplitWord16 words_[16 / sizeof(SplitWord16)]; // make sure that we
+                                                          // can never overflow
+        };
+};
+
+using ExpressUint16_t = DynamicValue<uint16_t>;
+using ExpressUint32_t = DynamicValue<uint32_t>;
+using ExpressUint64_t = DynamicValue<uint64_t>;
+
+using ExpressBoolean = ExpressUint16_t;
+
+inline ExpressBoolean exposeBooleanValue(const SplitWord32& addr, bool baseValue) noexcept {
+    return {addr, baseValue ? 0xFFFF : 0x0000 };
+}
 
 
 template<uint32_t value>

@@ -371,4 +371,5 @@ class NullHandler final : public OperationHandler {
         void next0() noexcept override { }
 };
 
+
 #endif //SXCHIPSET_TYPE103_TYPES_H__

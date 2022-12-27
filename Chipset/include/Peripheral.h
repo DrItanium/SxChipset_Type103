@@ -309,13 +309,6 @@ using ExpressUint16_t = DynamicValue<uint16_t>;
 using ExpressUint32_t = DynamicValue<uint32_t>;
 using ExpressUint64_t = DynamicValue<uint64_t>;
 
-using ExpressBoolean = ExpressUint16_t;
-
-inline ExpressBoolean exposeBooleanValue(const SplitWord32& addr, bool baseValue) noexcept {
-    return {addr, baseValue ? 0xFFFF : 0x0000 };
-}
-
-
 template<uint32_t value>
 uint16_t
 expose32BitConstant(const SplitWord32&, const Channel0Value&, byte offset) noexcept {
@@ -349,19 +342,49 @@ uint16_t
 exposeBooleanValue(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return value ? 0xFFFF : 0;
 }
+template<typename T>
+class ContainerPointer final {
+    public:
+        ContainerPointer(T* ptr) : ptr_(ptr) { }
+        ~ContainerPointer() noexcept {
+            if (ptr_) {
+                delete ptr_;
+            }
+        }
+        bool valid() const noexcept { ptr_ != nullptr; }
+        T& get() noexcept { return ptr_; }
+    private: 
+        T* ptr_ = nullptr;
+};
+
+template<typename T>
+class ContainerPointer<T[]> final {
+    public:
+        ContainerPointer(T* ptr) : ptr_(ptr) { }
+        ~ContainerPointer() noexcept {
+            if (ptr_) {
+                delete [] ptr_;
+            }
+        }
+        bool valid() const noexcept { ptr_ != nullptr; }
+        T& get() noexcept { return ptr_; }
+    private: 
+        T* ptr_ = nullptr;
+};
+using HandlerContainer = ContainerPointer<OperationHandler>;
 class Peripheral {
     public:
         virtual ~Peripheral() = default;
         template<bool isReadOperation>
-        void handleExecution(const SplitWord32& addr) noexcept {
+        HandlerContainer handleExecution(const SplitWord32& addr) noexcept {
             if constexpr (isReadOperation) {
-                readOperation(addr);
+                return readOperation(addr);
             } else {
-                writeOperation(addr);
+                return writeOperation(addr);
             }
         }
-        virtual void readOperation(const SplitWord32& addr) noexcept = 0;
-        virtual void writeOperation(const SplitWord32& addr) noexcept = 0;
+        virtual HandlerContainer readOperation(const SplitWord32& addr) noexcept = 0;
+        virtual HandlerContainer writeOperation(const SplitWord32& addr) noexcept = 0;
         virtual bool begin() noexcept { return true; }
 };
 template<typename E>
@@ -372,43 +395,40 @@ public:
     ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return true; }
     virtual uint32_t size() const noexcept { return static_cast<uint32_t>(E::Count); }
-    void readOperation(const SplitWord32& addr) noexcept override {
+    HandlerContainer readOperation(const SplitWord32& addr) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available:
-                readOnlyDynamicValue(addr, available());
-                break;
+                return new ExpressUint16_t(addr, available() ? 0xFFFF : 0);
             case E::Size:
-                readOnlyDynamicValue(addr, size());
-                break;
+                return new ExpressUint32_t(addr, size());
             default:
                 if (validOperation(opcode)) {
-                    handleExtendedReadOperation(addr, opcode);
+                    return handleExtendedReadOperation(addr, opcode);
                 } else {
-                    genericIOHandler<true>(addr);
+                    return nullptr;
                 }
                 break;
         }
 
     }
-    void writeOperation(const SplitWord32& addr) noexcept override {
+    HandlerContainer writeOperation(const SplitWord32& addr) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available:
             case E::Size:
-                genericIOHandler<false>(addr);
-                break;
+                return nullptr;
             default:
                 if (validOperation(opcode)) {
-                    handleExtendedWriteOperation(addr, opcode);
+                    return handleExtendedWriteOperation(addr, opcode);
                 } else {
-                    genericIOHandler<false>(addr);
+                    return nullptr;
                 }
                 break;
         }
 
     }
 protected:
-    virtual void handleExtendedReadOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
-    virtual void handleExtendedWriteOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
+    virtual HandlerContainer handleExtendedReadOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
+    virtual HandlerContainer handleExtendedWriteOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
 };
 
 
@@ -427,8 +447,8 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         void setBaudRate(uint32_t baudRate) noexcept;
         [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
+        HandlerContainer handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
+        HandlerContainer handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
     private:
         uint32_t baud_ = 115200;
 };
@@ -436,8 +456,8 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:
         ~InfoDevice() override = default;
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
+        HandlerContainer handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
+        HandlerContainer handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
 };
 enum class TimerDeviceOperations {
     Available,
@@ -454,8 +474,8 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
         bool begin() noexcept override;
         bool available() const noexcept override { return available_; }
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
+        HandlerContainer handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
+        HandlerContainer handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
     private:
         RTC_DS1307 rtc;
         bool available_ = false;

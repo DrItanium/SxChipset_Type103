@@ -342,7 +342,6 @@ uint16_t
 exposeBooleanValue(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return value ? 0xFFFF : 0;
 }
-using HandlerContainer = ContainerPointer<OperationHandler>;
 class Peripheral {
     public:
         virtual ~Peripheral() = default;
@@ -374,7 +373,7 @@ public:
                 fn(ExpressUint32_t{addr, size()});
             default:
                 if (validOperation(opcode)) {
-                    return handleExtendedReadOperation(addr, opcode);
+                    return handleExtendedReadOperation(addr, opcode, fn);
                 } else {
                     fn(getNullHandler());
                 }
@@ -389,7 +388,7 @@ public:
                 fn(getNullHandler());
             default:
                 if (validOperation(opcode)) {
-                    handleExtendedWriteOperation(addr, opcode);
+                    handleExtendedWriteOperation(addr, opcode, fn);
                 } else {
                     fn(getNullHandler());
                 }

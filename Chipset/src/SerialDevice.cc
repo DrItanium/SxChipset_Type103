@@ -54,31 +54,39 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
     }
 }
 
-HandlerContainer
-SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept {
+void
+SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case SerialDeviceOperations::RW:
-            return makeNonOwning(&serialIO);
+            fn(serialIO);
+            break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
-            return nullptr;
+            fn(getNullHandler());
+            break;
         case SerialDeviceOperations::Baud:
-            return new ExpressUint32_t(addr, getBaudRate());
+            fn(ExpressUint32_t(addr, getBaudRate()));
+            break;
         default:
             return nullptr;
+            fn(getNullHandler());
+            break;
     }
 }
 
-HandlerContainer
-SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept {
+void
+SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case SerialDeviceOperations::RW:
-            return makeNonOwning(&serialIO);
+            fn(serialIO);
+            break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
-            return nullptr;
+            fn(getNullHandler());
+            break;
         default:
-            return nullptr;
+            fn(getNullHandler());
+            break;
     }
 }
 

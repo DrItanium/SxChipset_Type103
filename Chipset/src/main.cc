@@ -389,37 +389,26 @@ handleIOOperation(const SplitWord32& addr) noexcept {
             break;
     }
 }
-class OperationHandler {
-    public:
-        virtual ~OperationHandler() = default;
-        virtual void startTransaction() noexcept = 0;
-        virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
-        virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
-        virtual void next() noexcept = 0;
-        virtual void endTransaction() noexcept = 0;
-};
 class CacheOperationHandler : public OperationHandler {
     public:
-        CacheOperationHandler(const SplitWord32& baseAddress) noexcept : baseAddress_(baseAddress), offset_(baseAddress.getAddressOffset()), line_(getCache().find(baseAddress)) { }
+        CacheOperationHandler(const SplitWord32& baseAddress) noexcept : OperationHandler(baseAddress), line_(getCache().find(baseAddress)) { }
         ~CacheOperationHandler() override = default;
         void startTransaction() noexcept override { 
         }
-        void next() noexcept override {
-            ++offset_;
-        }
         uint16_t 
         read(const Channel0Value&) const noexcept {
-            return line_.getWord(offset_);
+            return line_.getWord(getOffset());
         }
         void
         write(const Channel0Value& m0, uint16_t value) noexcept {
-            line_.setWord(offset_, value, m0.getByteEnable());
+            line_.setWord(getOffset(), value, m0.getByteEnable());
         }
         void endTransaction() noexcept override { 
         }
+    protected:
+        void next0() noexcept override {
+        }
     private:
-        SplitWord32 baseAddress_;
-        byte offset_;
         DataCacheLine& line_;
 };
 template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
@@ -482,67 +471,6 @@ talkToi960(OperationHandler& handler) noexcept {
 
     handler.endTransaction();
 }
-template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
-void
-handleCacheOperation(const SplitWord32& addr) noexcept {
-    // okay now we can service the transaction request since it will be going
-    // to ram.
-    auto& line = getCache().find(addr);
-    if constexpr (inlineSPIOperation) {
-        digitalWrite<Pin::GPIOSelect, LOW>();
-        static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
-        static constexpr auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
-#ifdef AVR_SPI_AVAILABLE
-        SPDR = TargetAction;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))); 
-        SPDR = TargetRegister;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))); 
-#else
-        SPI.transfer(TargetAction);
-        SPI.transfer(TargetRegister);
-#endif
-    }
-    for (byte offset = addr.getAddressOffset(); ; ++offset) {
-        singleCycleDelay();
-        // read it twice
-        auto c0 = readInputChannelAs<Channel0Value, true>();
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\tOffset: 0x"));
-            Serial.println(offset, HEX);
-            Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-        }
-        if constexpr (isReadOperation) {
-            // okay it is a read operation, so... pull a cache line out 
-            auto value = line.getWord(offset);
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tGot Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            setDataLinesOutput<inlineSPIOperation>(value);
-        } else {
-            auto c0 = readInputChannelAs<Channel0Value>();
-            auto value = getDataLines<inlineSPIOperation, disableWriteInterrupt>(c0);
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tWrite Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            // so we are writing to the cache
-            line.setWord(offset, value, c0.getByteEnable());
-        }
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        } 
-    }
-    if constexpr (inlineSPIOperation) {
-        digitalWrite<Pin::GPIOSelect, HIGH>();
-    }
-}
-using ExecutionBody = void(*)(const SplitWord32&) noexcept;
 enum class TransactionKind {
     // 0b00 -> cache + read
     // 0b01 -> cache + write

@@ -332,4 +332,28 @@ struct DataCache {
 DataCache& getCache() noexcept;
 void setupCache() noexcept;
 
+/**
+ * @brief Communication primitive for talking to the i960 or other devices,
+ */
+class OperationHandler {
+    public:
+        OperationHandler(const SplitWord32& addr) noexcept : address_(addr), offset_(addr.getAddressOffset()) { }
+        virtual ~OperationHandler() = default;
+        virtual void startTransaction() noexcept = 0;
+        virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
+        virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
+        void next() noexcept {
+            ++offset_;
+            next0();
+        }
+        virtual void endTransaction() noexcept = 0;
+        [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
+        [[nodiscard]] constexpr auto getOffset() const noexcept { return offset_; }
+    protected:
+        virtual void next0() noexcept { }
+    private:
+        SplitWord32 address_;
+        byte offset_;
+};
+
 #endif //SXCHIPSET_TYPE103_TYPES_H__

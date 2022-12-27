@@ -29,32 +29,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
     constexpr auto SystemClockRate = F_CPU;
     constexpr auto CPUClockRate = SystemClockRate / 2;
+    ExpressUint32_t systemRateExpose{0, SystemClockRate};
+    ExpressUint32_t cpuClockRateExpose {0, CPUClockRate};
 }
 void 
-InfoDevice::handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept {
+InfoDevice::handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
-        case InfoDeviceOperations::GetCPUClock:
-            genericIOHandler<true>(addr, expose32BitConstant<CPUClockRate>);
+        case InfoDeviceOperations::GetCPUClock: 
+            fn(cpuClockRateExpose);
             break;
         case InfoDeviceOperations::GetChipsetClock:
-            genericIOHandler<true>(addr, expose32BitConstant<SystemClockRate>);
+            fn(systemRateExpose);
             break;
         default:
-            genericIOHandler<true>(addr);
+            fn(getNullHandler());
             break;
     }
 }
 void 
-InfoDevice::handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept {
+InfoDevice::handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case InfoDeviceOperations::GetCPUClock:
-            genericIOHandler<false>(addr, expose32BitConstant<CPUClockRate>);
+            fn(cpuClockRateExpose);
             break;
         case InfoDeviceOperations::GetChipsetClock:
-            genericIOHandler<false>(addr, expose32BitConstant<SystemClockRate>);
+            fn(systemRateExpose);
             break;
         default:
-            genericIOHandler<false>(addr);
+            fn(getNullHandler());
             break;
     }
 }

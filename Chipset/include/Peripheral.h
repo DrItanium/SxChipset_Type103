@@ -367,10 +367,16 @@ public:
     virtual uint32_t size() const noexcept { return static_cast<uint32_t>(E::Count); }
     void readOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
-            case E::Available:
-                fn(ExpressUint16_t{addr, available() ? 0xFFFF : 0});
-            case E::Size:
-                fn(ExpressUint32_t{addr, size()});
+            case E::Available: {
+                                   ExpressUint16_t tmp{addr, available() ? 0xFFFF : 0};
+                                   fn(tmp);
+                                   break;
+                               }
+            case E::Size: {
+                              ExpressUint32_t tmp{addr, size()};
+                              fn(tmp);
+                              break;
+                          }
             default:
                 if (validOperation(opcode)) {
                     return handleExtendedReadOperation(addr, opcode, fn);
@@ -386,6 +392,7 @@ public:
             case E::Available:
             case E::Size:
                 fn(getNullHandler());
+                break;
             default:
                 if (validOperation(opcode)) {
                     handleExtendedWriteOperation(addr, opcode, fn);

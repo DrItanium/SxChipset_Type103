@@ -67,9 +67,11 @@ namespace {
 void
 TimerDevice::handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
-        case TimerDeviceOperations::UnixTime:
-            fn(ExpressUint32_t{addr, rtc.now().unixtime()});
-            break;
+        case TimerDeviceOperations::UnixTime: {
+                                                  ExpressUint32_t tmp{addr, rtc.now().unixtime()};
+                                                  fn(tmp);
+                                                  break;
+                                              }
         case TimerDeviceOperations::SystemTimerComparisonValue:
             fn(compareHandler);
             break;

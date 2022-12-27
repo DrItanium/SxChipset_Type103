@@ -64,11 +64,12 @@ SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceO
             Serial.flush();
             fn(getNullHandler());
             break;
-        case SerialDeviceOperations::Baud:
-            fn(ExpressUint32_t(addr, getBaudRate()));
-            break;
+        case SerialDeviceOperations::Baud: {
+                                               ExpressUint32_t tmp{addr, getBaudRate()};
+                                               fn(tmp);
+                                               break;
+                                           }
         default:
-            return nullptr;
             fn(getNullHandler());
             break;
     }

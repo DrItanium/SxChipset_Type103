@@ -54,31 +54,24 @@ HandlerContainer
 TimerDevice::handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept {
     switch (value) {
         case TimerDeviceOperations::UnixTime:
-            readOnlyDynamicValue(addr, rtc.now().unixtime());
-            break;
+            return ExpressUint32_t(addr, rtc.now().unixtime());
         case TimerDeviceOperations::SystemTimerComparisonValue:
-            genericIOHandler<true>(addr, SystemTimer_getCompareValue, SystemTimer_setCompareValue);
-            break;
+            return makeHandler(doNothing, SystemTimer_getCompareValue, SystemTimer_setCompareValue, doNothing, doNothing);
         case TimerDeviceOperations::SystemTimerPrescalar:
-            genericIOHandler<true>(addr, SystemTimer_getPrescalarValue, SystemTimer_setPrescalarValue);
-            break;
+            return makeHandler(doNothing, SystemTimer_getPrescalarValue, SystemTimer_setPrescalarValue, doNothing, doNothing);
         default:
-            genericIOHandler<true>(addr);
-            break;
+            return nullptr;
     }
 }
 HandlerContainer
 TimerDevice::handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept {
     switch (value) {
         case TimerDeviceOperations::SystemTimerComparisonValue:
-            genericIOHandler<false>(addr, SystemTimer_getCompareValue, SystemTimer_setCompareValue);
-            break;
+            return makeHandler(doNothing, SystemTimer_getCompareValue, SystemTimer_setCompareValue, doNothing, doNothing);
         case TimerDeviceOperations::SystemTimerPrescalar:
-            genericIOHandler<false>(addr, SystemTimer_getPrescalarValue, SystemTimer_setPrescalarValue);
-            break;
+            return makeHandler(doNothing, SystemTimer_getPrescalarValue, SystemTimer_setPrescalarValue, doNothing, doNothing);
         default:
-            genericIOHandler<false>(addr);
-            break;
+            return nullptr;
     }
 }
 

@@ -393,7 +393,7 @@ class ConfigurableHandler final : public OperationHandler {
         }
         void write(const Channel0Value& m0, uint16_t value) noexcept override { 
             if (w_) {
-                w_(m0, value, getAddress(), getOffset());
+                w_(getAddress(), m0, getOffset(), value);
             }
         }
         void endTransaction() noexcept override { 
@@ -416,6 +416,7 @@ class ConfigurableHandler final : public OperationHandler {
         N n_; 
 };
 
+inline void doNothing() noexcept { }
 template<typename ST, typename R, typename W, typename ET, typename N>
 decltype(auto) makeHandler(ST st, R r, W w, ET et, N n) noexcept {
     return ConfigurableHandler<ST, R, W, ET, N>{st, r, w, et, n};

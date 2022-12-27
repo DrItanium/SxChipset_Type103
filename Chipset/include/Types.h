@@ -356,4 +356,19 @@ class OperationHandler {
         byte offset_;
 };
 
+/**
+ * @brief Fallback/through handler implementation
+ */
+class NullHandler final : public OperationHandler {
+    public:
+        NullHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
+        ~NullHandler() override = default;
+        void startTransaction() noexcept override { }
+        uint16_t read(const Channel0Value&) const noexcept override { return 0; }
+        void write(const Channel0Value&, uint16_t ) noexcept override { }
+        void endTransaction() noexcept override { }
+    protected:
+        void next0() noexcept override { }
+};
+
 #endif //SXCHIPSET_TYPE103_TYPES_H__

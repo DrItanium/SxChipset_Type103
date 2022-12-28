@@ -497,4 +497,9 @@ constexpr bool hasPWM(Pin pin) noexcept {
 template<Pin p>
 constexpr auto HasPWM_v = hasPWM(p);
 
+[[gnu::always_inline]]
+inline uint8_t readFromCapture() noexcept {
+    return getInputRegister<Port::Capture>();
+}
+
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

@@ -43,11 +43,11 @@ TimerDevice timerInterface;
 
 void 
 putCPUInReset() noexcept {
-    doReset(LOW);
+    Platform::doReset(LOW);
 }
 void 
 pullCPUOutOfReset() noexcept {
-    doReset(HIGH);
+    Platform::doReset(HIGH);
 }
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;
@@ -199,7 +199,7 @@ inline void
 talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
     handler.startTransaction(addr);
     if constexpr (inlineSPIOperation) {
-        startInlineSPIOperation(isReadOperation);
+        Platform::startInlineSPIOperation();
     }
     while (true) {
         singleCycleDelay();
@@ -217,17 +217,17 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
                 Serial.println(value, HEX);
             }
             if constexpr (inlineSPIOperation) {
-                setDataLines(value, InlineSPI{});
+                Platform::setDataLines(value, InlineSPI{});
             } else {
-                setDataLines(value, NoInlineSPI{});
+                Platform::setDataLines(value, NoInlineSPI{});
             }
         } else {
             auto c0 = readInputChannelAs<Channel0Value>();
             uint16_t value;
             if constexpr (inlineSPIOperation) {
-                value = getDataLines(c0, InlineSPI{});
+                value = Platform::getDataLines(c0, InlineSPI{});
             } else {
-                value = getDataLines(c0, NoInlineSPI{});
+                value = Platform::getDataLines(c0, NoInlineSPI{});
             }
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
@@ -245,16 +245,17 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
         }
     }
     if constexpr (inlineSPIOperation) {
-        endInlineSPIOperation();
+        Platform::endInlineSPIOperation();
     }
     handler.endTransaction();
 }
 CacheOperationHandler cacheHandler;
 inline void 
 handleTransaction() noexcept {
-    enterTransactionSetup();
-    auto addr = configureTransaction();
-    leaveTransactionSetup();
+    Platform::startAddressTransaction();
+    Platform::collectAddress();
+    Platform::endAddressTransaction();
+    auto addr = Platform::getAddress();
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));
         Serial.print(addr.getWholeValue(), HEX);
@@ -262,20 +263,20 @@ handleTransaction() noexcept {
         Serial.print(addr.getWholeValue(), BIN);
         Serial.println(F(")"));
         Serial.print(F("Operation: "));
-        if (isReadOperation()) {
+        if (Platform::isReadOperation()) {
             Serial.println(F("Read!"));
         } else {
             Serial.println(F("Write!"));
         }
     }
     if (addr.isIOInstruction()) {
-        if (auto& device = handleIOOperation(addr); isReadOperation()) {
+        if (auto& device = handleIOOperation(addr); Platform::isReadOperation()) {
             talkToi960<true, false>(addr, device);
         } else {
             talkToi960<false, false>(addr, device);
         }
     } else {
-        if (isReadOperation()) {
+        if (Platform::isReadOperation()) {
             talkToi960<true, true>(addr, cacheHandler);
         } else {
             talkToi960<false, true>(addr, cacheHandler);
@@ -329,7 +330,7 @@ setup() {
     setupRTC();
     SPI.begin();
     // setup the IO Expanders
-    setupAddressAndDataLines();
+    Platform::begin();
     while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);

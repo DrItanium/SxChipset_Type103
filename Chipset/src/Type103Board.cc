@@ -40,7 +40,7 @@ constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device7;
 
 void 
-doReset(decltype(LOW) value) noexcept {
+Platform::doReset(decltype(LOW) value) noexcept {
     auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
     if (value == LOW) {
         theGPIO &= ~1;
@@ -50,7 +50,7 @@ doReset(decltype(LOW) value) noexcept {
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
 }
 void 
-doHold(decltype(LOW) value) noexcept {
+Platform::doHold(decltype(LOW) value) noexcept {
     auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
     if (value == LOW) {
         theGPIO &= ~0b10;
@@ -60,34 +60,6 @@ doHold(decltype(LOW) value) noexcept {
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
 }
 
-void
-setupIOExpanders() noexcept {
-    MCP23S17::IOCON reg;
-    reg.mirrorInterruptPins();
-    reg.treatDeviceAsOne16BitPort();
-    reg.enableHardwareAddressing();
-    reg.interruptIsActiveLow();
-    reg.configureInterruptsAsActiveDriver();
-    reg.disableSequentialOperation();
-    // at the start all of the io expanders will respond to the same address
-    // so first just make sure we write out the initial iocon
-    MCP23S17::writeIOCON<MCP23S17::HardwareDeviceAddress::Device0, Pin::GPIOSelect>(reg);
-    // now make sure that everything is configured correctly initially
-    MCP23S17::writeIOCON<DataLines, Pin::GPIOSelect>(reg);
-    MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(MCP23S17::AllInput16);
-    MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0xFFFF);
-    reg.mirrorInterruptPins();
-    MCP23S17::writeIOCON<XIO, Pin::GPIOSelect>(reg);
-    MCP23S17::writeDirection<XIO, Pin::GPIOSelect>(0b1000'0100, 0b1111'1111);
-    // setup the extra interrupts as well (hooked in through xio)
-    MCP23S17::writeGPIO8_PORTA<XIO, Pin::GPIOSelect>(0b0010'0000); 
-    MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0x0000); // no
-                                                                  // interrupts
-
-    dataLinesDirection = MCP23S17::AllInput16;
-    currentDataLinesValue = 0;
-    MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(currentDataLinesValue);
-}
 void
 configurePins() noexcept {
     // configure pins
@@ -120,9 +92,36 @@ configurePins() noexcept {
     pulse<Pin::CLKSignal, LOW, HIGH>();
 }
 void
-setupAddressAndDataLines() noexcept {
-    setupIOExpanders();
-    configurePins();
+Platform::begin() noexcept {
+    if (!initialized_) {
+        initialized_ = true;
+        configurePins();
+        MCP23S17::IOCON reg;
+        reg.mirrorInterruptPins();
+        reg.treatDeviceAsOne16BitPort();
+        reg.enableHardwareAddressing();
+        reg.interruptIsActiveLow();
+        reg.configureInterruptsAsActiveDriver();
+        reg.disableSequentialOperation();
+        // at the start all of the io expanders will respond to the same address
+        // so first just make sure we write out the initial iocon
+        MCP23S17::writeIOCON<MCP23S17::HardwareDeviceAddress::Device0, Pin::GPIOSelect>(reg);
+        // now make sure that everything is configured correctly initially
+        MCP23S17::writeIOCON<DataLines, Pin::GPIOSelect>(reg);
+        MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(MCP23S17::AllInput16);
+        MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0xFFFF);
+        reg.mirrorInterruptPins();
+        MCP23S17::writeIOCON<XIO, Pin::GPIOSelect>(reg);
+        MCP23S17::writeDirection<XIO, Pin::GPIOSelect>(0b1000'0100, 0b1111'1111);
+        // setup the extra interrupts as well (hooked in through xio)
+        MCP23S17::writeGPIO8_PORTA<XIO, Pin::GPIOSelect>(0b0010'0000); 
+        MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0x0000); // no
+                                                                                       // interrupts
+
+        dataLinesDirection_ = MCP23S17::AllInput16;
+        currentDataLinesValue = 0;
+        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(currentDataLinesValue);
+    }
 }
 
 [[gnu::always_inline]] 
@@ -132,7 +131,7 @@ triggerClock() noexcept {
     singleCycleDelay();
 }
 void 
-enterTransactionSetup() noexcept {
+Platform::startAddressTransaction() noexcept {
     // clear the address counter to be on the safe side
     triggerClock();
     digitalWrite<Pin::Enable, LOW>();
@@ -141,93 +140,34 @@ enterTransactionSetup() noexcept {
                         // tristated
 }
 void
-leaveTransactionSetup() noexcept {
+Platform::endAddressTransaction() noexcept {
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
 }
-SplitWord32 
-configureTransaction() noexcept {
-    SplitWord32 addr { 0 };
+void
+Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
-    addr.bytes[0] = m2.getWholeValue();
-    addr.address.a0 = 0;
+    address_.bytes[0] = m2.getWholeValue();
+    address_.address.a0 = 0;
     triggerClock();
-    addr.bytes[1] = readInputChannelAs<uint8_t>();
+    address_.bytes[1] = readInputChannelAs<uint8_t>();
     triggerClock();
-    addr.bytes[2] = readInputChannelAs<uint8_t>();
+    address_.bytes[2] = readInputChannelAs<uint8_t>();
     triggerClock();
-    addr.bytes[3] = readInputChannelAs<uint8_t>();
-    auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    if (direction != dataLinesDirection) {
-        dataLinesDirection = direction;
-        MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection);
-    }
-    return addr;
-}
-bool
-isReadOperation() noexcept {
-    return dataLinesDirection == MCP23S17::AllOutput16;
-}
-
-uint16_t dataLinesDirection = MCP23S17::AllInput16;
-
-template<bool busHeldOpen>
-[[gnu::always_inline]] 
-inline uint16_t 
-getDataLines(const Channel0Value& c1) noexcept {
-    if (c1.dataInterruptTriggered()) {
-        if constexpr (busHeldOpen) {
-#ifdef AVR_SPI_AVAILABLE
-            SPDR = 0;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            auto value = SPDR;
-            SPDR = 0;
-            asm volatile ("nop");
-            previousValue.bytes[0] = value;
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            previousValue.bytes[1] = SPDR;
-#else
-            previousValue.bytes[0] = SPI.transfer(0);
-            previousValue.bytes[1] = SPI.transfer(0);
-#endif
-        } else {
-            previousValue.full = MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
-        }
-    }
-    return previousValue.full;
-}
-
-template<bool busHeldOpen>
-[[gnu::always_inline]] 
-inline void 
-setDataLinesOutput(uint16_t value) noexcept {
-    if (currentDataLinesValue != value) {
-        currentDataLinesValue = value;
-        if constexpr (busHeldOpen) {
-#ifdef AVR_SPI_AVAILABLE
-            SPDR = static_cast<byte>(value);
-            asm volatile ("nop");
-            auto next = static_cast<byte>(value >> 8);
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = next;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-#else
-            SPI.transfer(static_cast<byte>(value));
-            SPI.transfer(static_cast<byte>(value >> 8));
-#endif
-        } else {
-            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(currentDataLinesValue);
-        }
+    address_.bytes[3] = readInputChannelAs<uint8_t>();
+    isReadOperation_ = m2.isReadOperation();
+    auto direction = isReadOperation_ ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
+    if (direction != dataLinesDirection_) {
+        dataLinesDirection_ = direction;
+        MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_);
     }
 }
 
 void
-startInlineSPIOperation(bool isReadOperation) {
+Platform::startInlineSPIOperation() noexcept {
     digitalWrite<Pin::GPIOSelect, LOW>();
-    auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
-    auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
+    auto TargetAction = isReadOperation_ ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
+    auto TargetRegister = static_cast<byte>(isReadOperation_ ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
 #ifdef AVR_SPI_AVAILABLE
     SPDR = TargetAction;
     asm volatile ("nop");
@@ -242,21 +182,61 @@ startInlineSPIOperation(bool isReadOperation) {
 }
 
 void
-endInlineSPIOperation() {
+Platform::endInlineSPIOperation() noexcept {
     digitalWrite<Pin::GPIOSelect, HIGH>();
 }
 
 
-uint16_t getDataLines(const Channel0Value& m0, InlineSPI) noexcept {
-    return getDataLines<true>(m0);
+uint16_t 
+Platform::getDataLines(const Channel0Value& c1, InlineSPI) noexcept {
+    if (c1.dataInterruptTriggered()) {
+#ifdef AVR_SPI_AVAILABLE
+            SPDR = 0;
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            auto value = SPDR;
+            SPDR = 0;
+            asm volatile ("nop");
+            previousValue.bytes[0] = value;
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            previousValue.bytes[1] = SPDR;
+#else
+            previousValue.bytes[0] = SPI.transfer(0);
+            previousValue.bytes[1] = SPI.transfer(0);
+#endif
+    }
+    return previousValue.full;
 }
-uint16_t getDataLines(const Channel0Value& m0, NoInlineSPI) noexcept {
-    return getDataLines<false>(m0);
+uint16_t 
+Platform::getDataLines(const Channel0Value& c1, NoInlineSPI) noexcept {
+    if (c1.dataInterruptTriggered()) {
+        previousValue.full = MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
+    }
+    return previousValue.full;
 }
-void setDataLines(uint16_t value, InlineSPI) noexcept {
-    setDataLinesOutput<true>(value);
+void 
+Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
+    if (previousValue_ != value) {
+        previousValue_.full = value;
+#ifdef AVR_SPI_AVAILABLE
+        SPDR = previousValue_.bytes[0];
+        asm volatile ("nop");
+        auto next = previousValue_.bytes[1];
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = next;
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+#else
+        SPI.transfer(previousValue_.bytes[0]);
+        SPI.transfer(previousValue_.bytes[1]);
+#endif
+    }
 }
-void setDataLines(uint16_t value, NoInlineSPI) noexcept {
-    setDataLinesOutput<false>(value);
+void 
+Platform::setDataLines(uint16_t value, NoInlineSPI) noexcept {
+    if (previousValue_ != value) {
+        previousValue_ = value;
+        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_);
+    }
 }
 #endif

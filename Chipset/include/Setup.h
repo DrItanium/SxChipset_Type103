@@ -45,23 +45,39 @@ singleCycleDelay() noexcept {
     }
 }
 
-void doReset(decltype(LOW) value) noexcept;
-void doHold(decltype(LOW) value) noexcept;
-void setupAddressAndDataLines() noexcept;
-SplitWord32 configureTransaction() noexcept;
-void enterTransactionSetup() noexcept;
-extern uint16_t dataLinesDirection;
-bool isReadOperation() noexcept;
-void leaveTransactionSetup() noexcept;
-extern uint16_t currentDataLinesValue;
-void startInlineSPIOperation(bool isReadOperation) noexcept;
-void endInlineSPIOperation() noexcept;
 struct InlineSPI { };
 struct NoInlineSPI { };
 
-uint16_t getDataLines(const Channel0Value&, InlineSPI) noexcept;
-uint16_t getDataLines(const Channel0Value&, NoInlineSPI) noexcept;
-void setDataLines(uint16_t, InlineSPI) noexcept;
-void setDataLines(uint16_t, NoInlineSPI) noexcept;
+
+class Platform final {
+    public:
+        Platform() = delete;
+        ~Platform() = delete;
+        Platform(const Platform&) = delete;
+        Platform(Platform&&) = delete;
+        Platform& operator=(const Platform&) = delete;
+        Platform& operator=(Platform&&) = delete;
+    public:
+        static void begin() noexcept;
+        static void startAddressTransaction() noexcept;
+        static void collectAddress() noexcept;
+        static void endAddressTransaction() noexcept;
+        static void doReset(decltype(LOW) value) noexcept;
+        static void doHold(decltype(LOW) value) noexcept;
+        static uint16_t getDataLines(const Channel0Value&, InlineSPI) noexcept;
+        static uint16_t getDataLines(const Channel0Value&, NoInlineSPI) noexcept;
+        static void setDataLines(uint16_t, InlineSPI) noexcept;
+        static void setDataLines(uint16_t, NoInlineSPI) noexcept;
+        static void startInlineSPIOperation() noexcept;
+        static void endInlineSPIOperation() noexcept;
+        static bool isReadOperation() noexcept { return isReadOperation_; }
+        static SplitWord32 getAddress() noexcept { return address_; }
+    private:
+        static inline bool isReadOperation_ = false;
+        static inline SplitWord32 address_{0};
+        static inline bool initialized_ = false;
+        static inline uint16_t dataLinesDirection_ = 0;
+        static inline SplitWord16 previousValue_{0};
+};
 
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

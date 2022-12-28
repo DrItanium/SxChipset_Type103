@@ -53,19 +53,19 @@ void
 SerialDevice::handleExtendedOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case SerialDeviceOperations::RW:
-            fn(serialIO);
+            fn(addr, serialIO);
             break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
-            fn(getNullHandler());
+            fn(addr, getNullHandler());
             break;
         case SerialDeviceOperations::Baud: {
-                                               ExpressUint32_t tmp{addr, getBaudRate()};
-                                               fn(tmp);
+                                               ExpressUint32_t tmp{getBaudRate()};
+                                               fn(addr, tmp);
                                                break;
                                            }
         default:
-            fn(getNullHandler());
+            fn(addr, getNullHandler());
             break;
     }
 }

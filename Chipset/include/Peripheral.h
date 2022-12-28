@@ -144,7 +144,7 @@ template<typename T>
 class DynamicValue : public OperationHandler {
     public:
         static_assert(sizeof(T) <= 16, "Type is larger than 16-bytes! Use a different class!");
-        DynamicValue(const SplitWord32& addr, T value) noexcept : OperationHandler(addr), words_{} {
+        DynamicValue(T value) noexcept : words_{} {
             // have to set it up this way
             value_ = value;
         }
@@ -179,7 +179,7 @@ class DynamicValue : public OperationHandler {
 template<>
 class DynamicValue<uint32_t> : public OperationHandler {
     public:
-        DynamicValue(const SplitWord32& addr, uint32_t value) noexcept : OperationHandler(addr), value_{value} { }
+        DynamicValue(uint32_t value) noexcept : value_{value} { }
         uint16_t read(const Channel0Value& m0) const noexcept override { 
             return value_.halves[getOffset() & 0b1]; 
         }
@@ -207,7 +207,7 @@ class DynamicValue<uint32_t> : public OperationHandler {
 template<>
 class DynamicValue<uint16_t> : public OperationHandler {
     public:
-        DynamicValue(const SplitWord32& addr, uint16_t value) noexcept : OperationHandler(addr), value_{value} { }
+        DynamicValue(uint16_t value) noexcept : value_{value} { }
         uint16_t read(const Channel0Value& m0) const noexcept override { 
             return value_.getWholeValue();
         }
@@ -286,20 +286,20 @@ public:
     void handleExecution(const SplitWord32& addr, OperationHandlerUser fn) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available: {
-                                   ExpressUint16_t tmp{addr, available() ? 0xFFFF : 0};
-                                   fn(tmp);
+                                   ExpressUint16_t tmp{available() ? 0xFFFF : 0};
+                                   fn(addr, tmp);
                                    break;
                                }
             case E::Size: {
-                              ExpressUint32_t tmp{addr, size()};
-                              fn(tmp);
+                              ExpressUint32_t tmp{size()};
+                              fn(addr, tmp);
                               break;
                           }
             default:
                 if (validOperation(opcode)) {
                     handleExtendedOperation(addr, opcode, fn);
                 } else {
-                    fn(getNullHandler());
+                    fn(addr, getNullHandler());
                 }
                 break;
         }

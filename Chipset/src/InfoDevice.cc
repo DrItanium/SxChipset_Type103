@@ -29,20 +29,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
     constexpr auto SystemClockRate = F_CPU;
     constexpr auto CPUClockRate = SystemClockRate / 2;
-    ExpressUint32_t systemRateExpose{0, SystemClockRate};
-    ExpressUint32_t cpuClockRateExpose {0, CPUClockRate};
+    ExpressUint32_t systemRateExpose{SystemClockRate};
+    ExpressUint32_t cpuClockRateExpose {CPUClockRate};
 }
 void 
 InfoDevice::handleExtendedOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case InfoDeviceOperations::GetCPUClock: 
-            fn(cpuClockRateExpose);
+            fn(addr, cpuClockRateExpose);
             break;
         case InfoDeviceOperations::GetChipsetClock:
-            fn(systemRateExpose);
+            fn(addr, systemRateExpose);
             break;
         default:
-            fn(getNullHandler());
+            fn(addr, getNullHandler());
             break;
     }
 }

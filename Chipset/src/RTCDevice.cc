@@ -58,18 +58,18 @@ void
 TimerDevice::handleExtendedOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept {
     switch (value) {
         case TimerDeviceOperations::UnixTime: {
-                                                  ExpressUint32_t tmp{addr, rtc.now().unixtime()};
-                                                  fn(tmp);
+                                                  ExpressUint32_t tmp{rtc.now().unixtime()};
+                                                  fn(addr, tmp);
                                                   break;
                                               }
         case TimerDeviceOperations::SystemTimerComparisonValue:
-            fn(compareHandler);
+            fn(addr, compareHandler);
             break;
         case TimerDeviceOperations::SystemTimerPrescalar:
-            fn(prescalarHandler);
+            fn(addr, prescalarHandler);
             break;
         default:
-            fn(getNullHandler());
+            fn(addr, getNullHandler());
             break;
     }
 }

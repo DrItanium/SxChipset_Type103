@@ -363,7 +363,7 @@ handlePeripheralOperation(const SplitWord32& addr, OperationHandlerUser fn) noex
             timerInterface.handleExecution(addr, fn);
             break;
         default:
-            fn(getNullHandler());
+            fn(addr, getNullHandler());
             break;
     }
 }
@@ -383,24 +383,34 @@ handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
             handlePeripheralOperation(addr, fn);
             break;
         default:
-            fn(getNullHandler());
+            fn(addr, getNullHandler());
             break;
     }
 }
 class CacheOperationHandler : public OperationHandler {
     public:
-        CacheOperationHandler(const SplitWord32& baseAddress) noexcept : OperationHandler(baseAddress), line_(getCache().find(baseAddress)) { }
+        using Parent = OperationHandler;
         ~CacheOperationHandler() override = default;
+        void
+        startTransaction(const SplitWord32& addr) noexcept override {
+            Parent::startTransaction(addr);
+            line_ = &getCache().find(addr);
+        }
         uint16_t 
         read(const Channel0Value&) const noexcept {
-            return line_.getWord(getOffset());
+            return line_->getWord(getOffset());
         }
         void
         write(const Channel0Value& m0, uint16_t value) noexcept {
-            line_.setWord(getOffset(), value, m0.getByteEnable());
+            line_->setWord(getOffset(), value, m0.getByteEnable());
+        }
+        void
+        endTransaction() noexcept override {
+            Parent::endTransaction();
+            line_ = nullptr;
         }
     private:
-        DataCacheLine& line_;
+        DataCacheLine* line_;
 };
 template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
 void
@@ -529,11 +539,11 @@ handleTransaction() noexcept {
     if (addr.isIOInstruction()) {
         handleIOOperation(addr, m2.isReadOperation() ? talkToi960<true, false, true> : talkToi960<false, false, true>);
     } else {
-        CacheOperationHandler handler(addr);
+        CacheOperationHandler handler;
         if (m2.isReadOperation()) {
-            talkToi960<true, EnableInlineSPIOperation, DisableInterruptChecks>(handler);
+            talkToi960<true, EnableInlineSPIOperation, DisableInterruptChecks>(addr, handler);
         } else {
-            talkToi960<false, EnableInlineSPIOperation, DisableInterruptChecks>(handler);
+            talkToi960<false, EnableInlineSPIOperation, DisableInterruptChecks>(addr, handler);
         }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay

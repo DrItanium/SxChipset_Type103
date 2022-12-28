@@ -28,52 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RTClib.h"
 #include "Pinout.h"
 
-namespace {
-    class PrescalarHandler final : public TransactionInterface {
-        public:
-            ~PrescalarHandler() override = default;
-            uint16_t read(const Channel0Value&) const noexcept override { 
-                return static_cast<uint16_t>(TCCR2B & 0b111);
-            }
-            void write(const Channel0Value& m0, uint16_t value) noexcept override { 
-                uint8_t result = TCCR2B & 0b1111'1000;
-                result |= static_cast<uint8_t>(value & 0b111);
-                TCCR2B = result;
-            }
-    };
-    class CompareHandler final : public TransactionInterface {
-        public:
-            ~CompareHandler() override = default;
-            uint16_t read(const Channel0Value& m0) const noexcept override { 
-                return static_cast<uint16_t>(OCR2A);
-            }
-            void write(const Channel0Value& m0, uint16_t value) noexcept override { 
-                OCR2A = static_cast<uint8_t>(value);
-            }
-    };
-    PrescalarHandler prescalarHandler;
-    CompareHandler compareHandler;
-}
-void
-TimerDevice::handleExtendedOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept {
-    switch (value) {
-        case TimerDeviceOperations::UnixTime: {
-                                                  ExpressUint32_t tmp{rtc.now().unixtime()};
-                                                  fn(addr, tmp);
-                                                  break;
-                                              }
-        case TimerDeviceOperations::SystemTimerComparisonValue:
-            fn(addr, compareHandler);
-            break;
-        case TimerDeviceOperations::SystemTimerPrescalar:
-            fn(addr, prescalarHandler);
-            break;
-        default:
-            fn(addr, getNullHandler());
-            break;
-    }
-}
-
 bool
 TimerDevice::begin() noexcept {
     if (rtc.begin()) {
@@ -100,4 +54,37 @@ TimerDevice::begin() noexcept {
     TCNT2 = 0;
     digitalWrite<Pin::INT0_, HIGH>();
     return available_;
+}
+
+uint16_t 
+TimerDevice::extendedRead(const Channel0Value& m0) const noexcept override  {
+    /// @todo implement support for caching the target info field so we don't
+    /// need to keep looking up the dispatch address
+    switch (getCurrentOpcode()) {
+        case TimerDeviceOperations::SystemTimerPrescalar:
+            return static_cast<uint16_t>(TCCR2B & 0b111);
+        case TimerDeviceOperations::SystemTimerComparisonValue:
+            return static_cast<uint16_t>(OCR2A);
+        default:
+            return 0;
+    }
+}
+void 
+TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override {
+    // do nothing
+    switch (getCurrentOpcode()) {
+        case TimerDeviceOperations::SystemTimerPrescalar: {
+                                                              uint8_t result = TCCR2B & 0b1111'1000;
+                                                              result |= static_cast<uint8_t>(value & 0b111);
+                                                              TCCR2B = result;
+                                                              break;
+                                                          }
+        case TimerDeviceOperations::SystemTimerComparisonValue:
+            OCR2A = static_cast<uint8_t>(value);
+            break;
+        default:
+            break;
+    }
+    /// @todo update write operations so that we cache results and perform the
+    /// writes at the end
 }

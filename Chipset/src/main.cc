@@ -205,7 +205,7 @@ configurePins() noexcept {
     pinMode<Pin::SD_EN>(OUTPUT);
     pinMode<Pin::PSRAM0>(OUTPUT);
     pinMode<Pin::Ready>(OUTPUT);
-    pinMode<Pin::INT0_>(OUTPUT);
+    pinMode<Pin::INT0_960_>(OUTPUT);
     pinMode<Pin::Enable>(OUTPUT);
     pinMode<Pin::CLKSignal>(OUTPUT);
     pinMode<Pin::DEN>(INPUT);
@@ -222,7 +222,7 @@ configurePins() noexcept {
     digitalWrite<Pin::CLKSignal, LOW>();
     digitalWrite<Pin::Ready, HIGH>();
     digitalWrite<Pin::GPIOSelect, HIGH>();
-    digitalWrite<Pin::INT0_, HIGH>();
+    digitalWrite<Pin::INT0_960_, HIGH>();
     digitalWrite<Pin::PSRAM0, HIGH>();
     digitalWrite<Pin::SD_EN, HIGH>();
     digitalWrite<Pin::Enable, HIGH>();

@@ -39,7 +39,8 @@ TimerDevice::begin() noexcept {
         available_ = false;
     }
     // make sure that INT0 is enabled as an output. Make it high
-    pinMode<Pin::INT0_>(OUTPUT);
+    pinMode<Pin::INT0_960_>(OUTPUT);
+#ifdef TYPE103_BOARD
     // enable toggle mode
     bitSet(TCCR2A, COM2A0);
     bitClear(TCCR2A, COM2A1);
@@ -52,7 +53,11 @@ TimerDevice::begin() noexcept {
     bitClear(TCCR2B, CS21);
     bitClear(TCCR2B, CS22);
     TCNT2 = 0;
-    digitalWrite<Pin::INT0_, HIGH>();
+#endif
+#ifdef TYPE200_BOARD
+
+#endif
+    digitalWrite<Pin::INT0_960_, HIGH>();
     return available_;
 }
 
@@ -62,9 +67,13 @@ TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
         case TimerDeviceOperations::SystemTimerPrescalar:
+#ifdef TYPE103_BOARD
             return static_cast<uint16_t>(TCCR2B & 0b111);
+#endif
         case TimerDeviceOperations::SystemTimerComparisonValue:
+#ifdef TYPE103_BOARD
             return static_cast<uint16_t>(OCR2A);
+#endif
         default:
             return 0;
     }
@@ -73,15 +82,20 @@ void
 TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
     // do nothing
     switch (getCurrentOpcode()) {
-        case TimerDeviceOperations::SystemTimerPrescalar: {
-                                                              uint8_t result = TCCR2B & 0b1111'1000;
-                                                              result |= static_cast<uint8_t>(value & 0b111);
-                                                              TCCR2B = result;
-                                                              break;
-                                                          }
+        case TimerDeviceOperations::SystemTimerPrescalar: 
+#ifdef TYPE103_BOARD
+            {
+                uint8_t result = TCCR2B & 0b1111'1000;
+                result |= static_cast<uint8_t>(value & 0b111);
+                TCCR2B = result;
+                break;
+            }
+#endif
         case TimerDeviceOperations::SystemTimerComparisonValue:
+#ifdef TYPE103_BOARD
             OCR2A = static_cast<uint8_t>(value);
             break;
+#endif
         default:
             break;
     }

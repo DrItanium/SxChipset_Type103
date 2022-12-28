@@ -73,18 +73,14 @@ readInputChannelAs() noexcept {
         asm volatile ("nop");
         asm volatile ("nop");
     }
-    return T{PINA};
+    return T{readFromCapture()};
 }
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
-[[gnu::always_inline]] 
-inline void
-interruptI960() noexcept {
-    pulse<Pin::INT0_, LOW, HIGH>();
-}
+
 using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, byte);
 using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, byte, uint16_t);
 extern SplitWord16 previousValue;

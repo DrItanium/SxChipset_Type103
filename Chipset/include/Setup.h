@@ -51,9 +51,7 @@ void setupAddressAndDataLines() noexcept;
 SplitWord32 configureTransaction() noexcept;
 void enterTransactionSetup() noexcept;
 extern uint16_t dataLinesDirection;
-inline bool isReadOperation() noexcept {
-    return dataLinesDirection == 
-}
+bool isReadOperation() noexcept;
 void leaveTransactionSetup() noexcept;
 extern uint16_t currentDataLinesValue;
 void startInlineSPIOperation(bool isReadOperation) noexcept;

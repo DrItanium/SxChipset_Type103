@@ -71,22 +71,22 @@ setupIOExpanders() noexcept {
     reg.disableSequentialOperation();
     // at the start all of the io expanders will respond to the same address
     // so first just make sure we write out the initial iocon
-    MCP23S17::writeIOCON<MCP23S17::HardwareDeviceAddress::Device0>(reg);
+    MCP23S17::writeIOCON<MCP23S17::HardwareDeviceAddress::Device0, Pin::GPIOSelect>(reg);
     // now make sure that everything is configured correctly initially
-    MCP23S17::writeIOCON<DataLines>(reg);
-    MCP23S17::writeDirection<DataLines>(MCP23S17::AllInput16);
-    MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN>(0xFFFF);
+    MCP23S17::writeIOCON<DataLines, Pin::GPIOSelect>(reg);
+    MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(MCP23S17::AllInput16);
+    MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0xFFFF);
     reg.mirrorInterruptPins();
-    MCP23S17::writeIOCON<XIO>(reg);
-    MCP23S17::writeDirection<XIO>(0b1000'0100, 0b1111'1111);
+    MCP23S17::writeIOCON<XIO, Pin::GPIOSelect>(reg);
+    MCP23S17::writeDirection<XIO, Pin::GPIOSelect>(0b1000'0100, 0b1111'1111);
     // setup the extra interrupts as well (hooked in through xio)
-    MCP23S17::writeGPIO8_PORTA<XIO>(0b0010'0000); 
-    MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN>(0x0000); // no
+    MCP23S17::writeGPIO8_PORTA<XIO, Pin::GPIOSelect>(0b0010'0000); 
+    MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0x0000); // no
                                                                   // interrupts
 
     dataLinesDirection = MCP23S17::AllInput16;
     currentDataLinesValue = 0;
-    MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
+    MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(currentDataLinesValue);
 }
 void
 configurePins() noexcept {
@@ -160,7 +160,7 @@ configureTransaction() noexcept {
     auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
     if (direction != dataLinesDirection) {
         dataLinesDirection = direction;
-        MCP23S17::writeDirection<DataLines>(dataLinesDirection);
+        MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection);
     }
     return addr;
 }
@@ -192,7 +192,7 @@ getDataLines(const Channel0Value& c1) noexcept {
             previousValue.bytes[1] = SPI.transfer(0);
 #endif
         } else {
-            previousValue.full = MCP23S17::readGPIO16<DataLines>();
+            previousValue.full = MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
         }
     }
     return previousValue.full;
@@ -218,7 +218,7 @@ setDataLinesOutput(uint16_t value) noexcept {
             SPI.transfer(static_cast<byte>(value >> 8));
 #endif
         } else {
-            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
+            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(currentDataLinesValue);
         }
     }
 }

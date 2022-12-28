@@ -313,30 +313,6 @@ public:
                 break;
         }
     }
-#if 0
-    void handleExecution(const SplitWord32& addr, OperationHandlerUser fn) noexcept override {
-        switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
-            case E::Available: {
-                                   ExpressUint16_t tmp{available() ? 0xFFFF : 0};
-                                   fn(addr, tmp);
-                                   break;
-                               }
-            case E::Size: {
-                              ExpressUint32_t tmp{size()};
-                              fn(addr, tmp);
-                              break;
-                          }
-            default:
-                if (validOperation(opcode)) {
-                    handleExtendedOperation(addr, opcode, fn);
-                } else {
-                    fn(addr, getNullHandler());
-                }
-                break;
-        }
-
-    }
-#endif
 protected:
     //virtual void handleExtendedOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;
     virtual uint16_t extendedRead(const Channel0Value& m0) const noexcept = 0;
@@ -363,7 +339,8 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         void setBaudRate(uint32_t baudRate) noexcept;
         [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     protected:
-        void handleExtendedOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept override;
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
+        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
     private:
         uint32_t baud_ = 115200;
 };
@@ -371,7 +348,8 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:
         ~InfoDevice() override = default;
     protected:
-        void handleExtendedOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept override;
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
+        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
 };
 enum class TimerDeviceOperations {
     Available,
@@ -388,7 +366,8 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
         bool begin() noexcept override;
         bool available() const noexcept override { return available_; }
     protected:
-        void handleExtendedOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept override;
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
+        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
     private:
         RTC_DS1307 rtc;
         bool available_ = false;

@@ -27,22 +27,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 
 namespace {
-    constexpr auto SystemClockRate = F_CPU;
-    constexpr auto CPUClockRate = SystemClockRate / 2;
-    ExpressUint32_t systemRateExpose{SystemClockRate};
-    ExpressUint32_t cpuClockRateExpose {CPUClockRate};
+    constexpr SplitWord32 systemRateExpose{F_CPU};
+    constexpr SplitWord32 cpuClockRateExpose{F_CPU/2};
+}
+
+uint16_t 
+InfoDevice::extendedRead(const Channel0Value& m0) const noexcept override  {
+    /// @todo implement support for caching the target info field so we don't
+    /// need to keep looking up the dispatch address
+    switch (getCurrentOpcode()) {
+        case InfoDeviceOperations::GetChipsetClock:
+            return systemRateExpose.retrieveWord(getOffset());
+        case InfoDeviceOperations::GetCPUClock:
+            return cpuClockRateExpose.retrieveWord(getOffset());
+        default:
+            return 0;
+    }
 }
 void 
-InfoDevice::handleExtendedOperation(const SplitWord32& addr, InfoDeviceOperations value, OperationHandlerUser fn) noexcept {
-    switch (value) {
-        case InfoDeviceOperations::GetCPUClock: 
-            fn(addr, cpuClockRateExpose);
-            break;
-        case InfoDeviceOperations::GetChipsetClock:
-            fn(addr, systemRateExpose);
-            break;
-        default:
-            fn(addr, getNullHandler());
-            break;
-    }
+InfoDevice::extendedWrite(const Channel0Value&, uint16_t) noexcept override {
+    // do nothing
 }

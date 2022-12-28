@@ -190,6 +190,7 @@ union SplitWord32 {
     [[nodiscard]] constexpr bool operator<=(const SplitWord32& other) const noexcept { return full <= other.full; }
     [[nodiscard]] constexpr bool operator>(const SplitWord32& other) const noexcept { return full > other.full; }
     [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
+    [[nodiscard]] constexpr auto retrieveWord(byte offset) const noexcept { return halves[offset & 0b1]; }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 

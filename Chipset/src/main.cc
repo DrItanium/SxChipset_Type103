@@ -251,29 +251,22 @@ installMemoryImage() noexcept {
 
 SplitWord16 previousValue{0};
 
-inline void runFallbackHandler(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
-   fn(addr, getNullHandler()); 
-}
-inline void 
-handlePeripheralOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
+inline TransactionInterface& 
+getPeripheralDevice(const SplitWord32& addr) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            fn(addr, infoDevice);
-            break;
+            return infoDevice;
         case TargetPeripheral::Serial:
-            fn(addr, theSerial);
-            break;
+            return theSerial;
         case TargetPeripheral::RTC:
-            fn(addr, timerInterface);
-            break;
+            return timerInterface;
         default:
-            runFallbackHandler(addr, fn);
-            break;
+            return getNullHandler();
     }
 }
 
-inline void 
-handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
+inline TransactionInterface&
+handleIOOperation(const SplitWord32& addr) noexcept {
     // When we are in io space, we are treating the address as an opcode which
     // we can decompose while getting the pieces from the io expanders. Thus we
     // can overlay the act of decoding while getting the next part
@@ -284,11 +277,9 @@ handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
     // one starts when performing a write operation
     switch (addr.getIOGroup()) {
         case IOGroup::Peripherals:
-            handlePeripheralOperation(addr, fn);
-            break;
+            return getPeripheralDevice(addr);
         default:
-            runFallbackHandler(addr, fn);
-            break;
+            return getNullHandler();
     }
 }
 
@@ -392,7 +383,11 @@ handleTransaction() noexcept {
         }
     }
     if (addr.isIOInstruction()) {
-        handleIOOperation(addr, isReadOperation() ? talkToi960<true, false> : talkToi960<false, false>);
+        if (auto& device = handleIOOperation(addr); isReadOperation()) {
+            talkToi960<true, false>(addr, device);
+        } else {
+            talkToi960<false, false>(addr, device);
+        }
     } else {
         if (isReadOperation()) {
             talkToi960<true, true>(addr, cacheHandler);

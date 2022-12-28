@@ -269,10 +269,16 @@ uint16_t
 exposeBooleanValue(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return value ? 0xFFFF : 0;
 }
+class Peripheral : public OperationHandler {
+    public:
+        using Parent = OperationHandler;
+        ~Peripheral() override = default;
+        virtual bool begin() noexcept { return true; }
+};
 template<typename E>
-class OperatorPeripheral : public OperationHandler {
+class OperatorPeripheral : public Peripheral{
 public:
-    using Parent = OperationHandler;
+    using Parent = Peripheral;
     using OperationList = E;
     ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return true; }
@@ -291,7 +297,7 @@ public:
             case E::Available: 
                 return available() ? 0xFFFF : 0x0000;
             case E::Size:
-                return size_.halves[getOffset() & 0b1];
+                return size_.retrieveWord(getOffset());
             default:
                 if (validOperation(currentOpcode_)) {
                     return extendedRead(m0);
@@ -320,7 +326,7 @@ protected:
     [[nodiscard]] constexpr OperationList getCurrentOpcode() const noexcept { return currentOpcode_; }
 private:
     OperationList currentOpcode_ = OperationList::Count;
-    SplitWord32 size_{static_cast<uint32_t>(E::Count); };
+    SplitWord32 size_{static_cast<uint32_t>(E::Count) };
 };
 
 

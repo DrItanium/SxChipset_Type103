@@ -57,7 +57,7 @@ TimerDevice::begin() noexcept {
 }
 
 uint16_t 
-TimerDevice::extendedRead(const Channel0Value& m0) const noexcept override  {
+TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
@@ -70,7 +70,7 @@ TimerDevice::extendedRead(const Channel0Value& m0) const noexcept override  {
     }
 }
 void 
-TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override {
+TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
     // do nothing
     switch (getCurrentOpcode()) {
         case TimerDeviceOperations::SystemTimerPrescalar: {

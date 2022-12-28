@@ -26,19 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Peripheral.h"
 
-namespace {
-    class SerialIOHandler final : public TransactionInterface {
-        public:
-            ~SerialIOHandler() override = default;
-            uint16_t read(const Channel0Value& m0) const noexcept override { 
-                return Serial.read();
-            }
-            void write(const Channel0Value& m0, uint16_t value) noexcept override { 
-                Serial.write(static_cast<uint8_t>(value));
-            }
-    };
-    SerialIOHandler serialIO; // address does not matter in this case
-}
 
 void 
 SerialDevice::setBaudRate(uint32_t baudRate) noexcept { 
@@ -57,7 +44,7 @@ SerialDevice::begin() noexcept {
 
 
 uint16_t 
-SerialDevice::extendedRead(const Channel0Value& m0) const noexcept override  {
+SerialDevice::extendedRead(const Channel0Value& m0) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
@@ -73,7 +60,7 @@ SerialDevice::extendedRead(const Channel0Value& m0) const noexcept override  {
     }
 }
 void 
-SerialDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override {
+SerialDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
     // do nothing
     switch (getCurrentOpcode()) {
         case SerialDeviceOperations::RW:

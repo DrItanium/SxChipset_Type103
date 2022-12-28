@@ -50,9 +50,11 @@ void doHold(decltype(LOW) value) noexcept;
 void setupAddressAndDataLines() noexcept;
 SplitWord32 configureTransaction() noexcept;
 void enterTransactionSetup() noexcept;
-bool isReadOperation() noexcept;
-void leaveTransactionSetup() noexcept;
 extern uint16_t dataLinesDirection;
+inline bool isReadOperation() noexcept {
+    return dataLinesDirection == 
+}
+void leaveTransactionSetup() noexcept;
 extern uint16_t currentDataLinesValue;
 void startInlineSPIOperation(bool isReadOperation) noexcept;
 void endInlineSPIOperation() noexcept;

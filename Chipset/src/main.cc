@@ -284,7 +284,7 @@ handleIOOperation(const SplitWord32& addr) noexcept {
 }
 
 template<bool isReadOperation, bool inlineSPIOperation>
-void
+inline void
 talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
     handler.startTransaction(addr);
     if constexpr (inlineSPIOperation) {

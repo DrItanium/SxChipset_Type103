@@ -292,6 +292,87 @@ handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
     }
 }
 
+template<bool isReadOperation, bool inlineSPIOperation>
+void
+talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
+    handler.startTransaction(addr);
+    if constexpr (inlineSPIOperation) {
+        startInlineSPIOperation(isReadOperation);
+    }
+    while (true) {
+        singleCycleDelay();
+        // read it twice
+        auto c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out 
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            if constexpr (inlineSPIOperation) {
+                setDataLines(value, InlineSPI{});
+            } else {
+                setDataLines(value, NoInlineSPI{});
+            }
+        } else {
+            auto c0 = readInputChannelAs<Channel0Value>();
+            uint16_t value;
+            if constexpr (inlineSPIOperation) {
+                value = getDataLines(c0, InlineSPI{});
+            } else {
+                value = getDataLines(c0, NoInlineSPI{});
+            }
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        } else {
+            handler.next();
+        }
+    }
+    if constexpr (inlineSPIOperation) {
+        endInlineSPIOperation();
+    }
+    handler.endTransaction();
+}
+
+class CacheOperationHandler : public OperationHandler {
+    public:
+        using Parent = OperationHandler;
+        ~CacheOperationHandler() override = default;
+        void
+        startTransaction(const SplitWord32& addr) noexcept override {
+            Parent::startTransaction(addr);
+            line_ = &getCache().find(addr);
+        }
+        uint16_t 
+        read(const Channel0Value&) const noexcept {
+            return line_->getWord(getOffset());
+        }
+        void
+        write(const Channel0Value& m0, uint16_t value) noexcept {
+            line_->setWord(getOffset(), value, m0.getByteEnable());
+        }
+        void
+        endTransaction() noexcept override {
+            line_ = nullptr;
+        }
+    private:
+        DataCacheLine* line_;
+};
+CacheOperationHandler cacheHandler;
 inline void 
 handleTransaction() noexcept {
     enterTransactionSetup();
@@ -310,10 +391,14 @@ handleTransaction() noexcept {
             Serial.println(F("Write!"));
         }
     }
-    if (auto fn = getFunction(addr); addr.isIOInstruction()) {
-        handleIOOperation(addr, fn);
+    if (addr.isIOInstruction()) {
+        handleIOOperation(addr, isReadOperation() ? talkToi960<true, false> : talkToi960<false, false>);
     } else {
-        fn(addr, getCacheInterface());
+        if (isReadOperation()) {
+            talkToi960<true, true>(addr, cacheHandler);
+        } else {
+            talkToi960<false, true>(addr, cacheHandler);
+        }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0

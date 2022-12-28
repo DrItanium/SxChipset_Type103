@@ -54,9 +54,14 @@ bool isReadOperation() noexcept;
 void leaveTransactionSetup() noexcept;
 extern uint16_t dataLinesDirection;
 extern uint16_t currentDataLinesValue;
-TransactionInterface& getCacheInterface() noexcept;
-OperationHandlerUser getFunction(const SplitWord32& addr) noexcept;
-bool isBooting() noexcept;
+void startInlineSPIOperation(bool isReadOperation) noexcept;
+void endInlineSPIOperation() noexcept;
+struct InlineSPI { };
+struct NoInlineSPI { };
 
+uint16_t getDataLines(const Channel0Value&, InlineSPI) noexcept;
+uint16_t getDataLines(const Channel0Value&, NoInlineSPI) noexcept;
+void setDataLines(uint16_t, InlineSPI) noexcept;
+void setDataLines(uint16_t, NoInlineSPI) noexcept;
 
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

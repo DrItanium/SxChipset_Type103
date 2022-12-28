@@ -223,8 +223,8 @@ public:
     ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return true; }
     virtual uint32_t size() const noexcept { return size_.getWholeValue(); }
-    void startTransaction(const SplitWord32& addr, bool isReadOperation) noexcept override {
-        Parent::startTransaction(addr, isReadOperation);
+    void startTransaction(const SplitWord32& addr) noexcept override {
+        Parent::startTransaction(addr);
         // determine where we are looking :)
         currentOpcode_ = addr.getIOFunction<OperationList>();
     }

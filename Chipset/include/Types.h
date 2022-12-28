@@ -338,7 +338,7 @@ void setupCache() noexcept;
 class TransactionInterface {
     public:
         virtual ~TransactionInterface() = default;
-        virtual void startTransaction(const SplitWord32& addr, bool isReadOperation) noexcept { };
+        virtual void startTransaction(const SplitWord32& addr) noexcept { };
         virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
         virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
         virtual void next() noexcept { }
@@ -350,7 +350,7 @@ class TransactionInterface {
 class OperationHandler : public TransactionInterface {
     public:
         virtual ~OperationHandler() = default;
-        void startTransaction(const SplitWord32& addr, bool isReadOperation) noexcept override { 
+        void startTransaction(const SplitWord32& addr) noexcept override { 
             address_ = addr;
             offset_ = addr.getAddressOffset();
         }

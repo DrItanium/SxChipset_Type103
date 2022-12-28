@@ -533,7 +533,7 @@ handleTransaction() noexcept {
         }
     }
     if (addr.isIOInstruction()) {
-        handleIOOperation(addr, m2.isReadOperation() ? talkToi960<true, false, true> : talkToi960<false, false, true>);
+        handleIOOperation(addr, m2.isReadOperation() ? talkToi960<true, false, DisableInterruptChecks> : talkToi960<false, false, DisableInterruptChecks>);
     } else {
         CacheOperationHandler handler;
         if (m2.isReadOperation()) {

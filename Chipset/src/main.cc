@@ -40,7 +40,7 @@ InfoDevice infoDevice;
 TimerDevice timerInterface;
 
 
-template<bool, bool DisableInterruptChecks = true>
+template<bool>
 inline void handleTransaction() noexcept;
 
 void 
@@ -293,58 +293,8 @@ handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
             break;
     }
 }
-template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
-void
-talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
-    handler.startTransaction(addr, isReadOperation);
-    while (true) {
-        singleCycleDelay();
-        // read it twice
-        auto c0 = readInputChannelAs<Channel0Value, true>();
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-        }
-        if constexpr (isReadOperation) {
-            // okay it is a read operation, so... pull a cache line out 
-            auto value = handler.read(c0);
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tGot Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            setDataLinesOutput<inlineSPIOperation>(value);
-        } else {
-            auto c0 = readInputChannelAs<Channel0Value>();
-            auto value = getDataLines<inlineSPIOperation, disableWriteInterrupt>(c0);
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tWrite Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            // so we are writing to the cache
-            handler.write(c0, value);
-        }
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        } else {
-            handler.next();
-        }
-    }
-    handler.endTransaction();
-}
-enum class TransactionKind {
-    // 0b00 -> cache + read
-    // 0b01 -> cache + write
-    // 0b10 -> io + read
-    // 0b11 -> io + write
-    CacheRead,
-    CacheWrite,
-    IORead,
-    IOWrite,
-};
 
-template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
+template<bool EnableInlineSPIOperation>
 inline void 
 handleTransaction() noexcept {
     enterTransactionSetup();
@@ -363,15 +313,10 @@ handleTransaction() noexcept {
             Serial.println(F("Write!"));
         }
     }
-    if (addr.isIOInstruction()) {
-        handleIOOperation(addr, isReadOperation() ? talkToi960<true, false, DisableInterruptChecks> : talkToi960<false, false, DisableInterruptChecks>);
+    if (auto fn = getFunction(addr); addr.isIOInstruction()) {
+        handleIOOperation(addr, fn);
     } else {
-        CacheOperationHandler handler;
-        if (isReadOperation()) {
-            talkToi960<true, EnableInlineSPIOperation, DisableInterruptChecks>(addr, handler);
-        } else {
-            talkToi960<false, EnableInlineSPIOperation, DisableInterruptChecks>(addr, handler);
-        }
+        fn(addr, getCacheInterface());
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0
@@ -470,3 +415,4 @@ byte GPIOR2;
 #endif
 
 uint16_t currentDataLinesValue = 0;
+

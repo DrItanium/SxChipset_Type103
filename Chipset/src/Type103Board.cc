@@ -227,14 +227,14 @@ class CacheOperationHandler : public OperationHandler {
         using Parent = OperationHandler;
         ~CacheOperationHandler() override = default;
         void
-        startTransaction(const SplitWord32& addr) noexcept override {
-            Parent::startTransaction(addr);
+        startTransaction(const SplitWord32& addr, bool isReadOperation) noexcept override {
+            Parent::startTransaction(addr, isReadOperation);
             line_ = &getCache().find(addr);
             // in this case we are going to be starting an inline spi
             // transaction
             digitalWrite<Pin::GPIOSelect, LOW>();
-            static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
-            static constexpr auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
+            auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
+            auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
 #ifdef AVR_SPI_AVAILABLE
             SPDR = TargetAction;
             asm volatile ("nop");
@@ -271,4 +271,53 @@ getCacheInterface() noexcept {
     return handler;
 }
 
+OperationHandlerUser 
+getFunction(const SplitWord32& addr) noexcept {
+    if (addr.isIOInstruction()) {
+        return isReadOperation() ? talkToi960<true, false> : talkToi960<false, false>;
+    } else {
+        return isReadOperation() ? talkToi960<true, EnableInlineSPIOperation> : talkToi960<false, EnableInlineSPIOperation>;
+    }
+}
+
+template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
+void
+talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
+    handler.startTransaction(addr, isReadOperation);
+    while (true) {
+        singleCycleDelay();
+        // read it twice
+        auto c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out 
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            setDataLinesOutput<inlineSPIOperation>(value);
+        } else {
+            auto c0 = readInputChannelAs<Channel0Value>();
+            auto value = getDataLines<inlineSPIOperation, disableWriteInterrupt>(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        } else {
+            handler.next();
+        }
+    }
+    handler.endTransaction();
+}
 #endif

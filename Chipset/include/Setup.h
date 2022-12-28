@@ -55,6 +55,8 @@ void leaveTransactionSetup() noexcept;
 extern uint16_t dataLinesDirection;
 extern uint16_t currentDataLinesValue;
 TransactionInterface& getCacheInterface() noexcept;
+OperationHandlerUser getFunction(const SplitWord32& addr) noexcept;
+bool isBooting() noexcept;
 
 
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

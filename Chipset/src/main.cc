@@ -404,8 +404,8 @@ class CacheOperationHandler : public OperationHandler {
 };
 template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
 void
-talkToi960(TransactionInterface& handler) noexcept {
-    handler.startTransaction();
+talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
+    handler.startTransaction(addr);
     if constexpr (inlineSPIOperation) {
         digitalWrite<Pin::GPIOSelect, LOW>();
         static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;

@@ -337,7 +337,7 @@ void setupCache() noexcept;
 class TransactionInterface {
     public:
         virtual ~TransactionInterface() = default;
-        virtual void startTransaction() noexcept { };
+        virtual void startTransaction(const SplitWord32& addr) noexcept { };
         virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
         virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
         virtual void next() noexcept { }
@@ -348,9 +348,11 @@ class TransactionInterface {
  */
 class OperationHandler : public TransactionInterface {
     public:
-        OperationHandler(const SplitWord32& addr) noexcept : address_(addr), offset_(addr.getAddressOffset()) { }
         virtual ~OperationHandler() = default;
-        void startTransaction() noexcept override { }
+        void startTransaction(const SplitWord32& addr) noexcept override { 
+            address_ = addr;
+            offset_ = addr.getAddressOffset();
+        }
         void next() noexcept override {
             ++offset_;
         }
@@ -358,8 +360,8 @@ class OperationHandler : public TransactionInterface {
         [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
         [[nodiscard]] constexpr auto getOffset() const noexcept { return offset_; }
     private:
-        SplitWord32 address_;
-        byte offset_;
+        SplitWord32 address_{0};
+        byte offset_ = 0;
 };
 
 /**
@@ -372,7 +374,7 @@ class NullHandler final : public TransactionInterface {
         void write(const Channel0Value&, uint16_t ) noexcept override { }
 };
 
-using OperationHandlerUser = void(*)(TransactionInterface&);
+using OperationHandlerUser = void(*)(const SplitWord32&, TransactionInterface&);
 
 inline TransactionInterface& getNullHandler() noexcept  {
     static NullHandler temp;

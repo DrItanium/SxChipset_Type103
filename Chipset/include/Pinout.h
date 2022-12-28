@@ -42,13 +42,32 @@ Count = NUM_DIGITAL_PINS,
     XIO5,
     XIO6,
     XIO7,
+#ifdef PIN_WIRE_SDA
+    SDA = PIN_WIRE_SDA,
+#endif
+#ifdef PIN_WIRE_SCL
+    SCL = PIN_WIRE_SCL,
+#endif
+#ifdef PIN_SPI_SS
+    SPI_CS = PIN_SPI_SS,
+#endif
+#ifdef PIN_SPI_SCK
+    SPI_SCK = PIN_SPI_SCK,
+#endif
+#ifdef PIN_SPI_MOSI
+    SPI_MOSI = PIN_SPI_MOSI,
+#endif
+#ifdef PIN_SPI_MISO
+    SPI_MISO = PIN_SPI_MISO,
+#endif
     // aliases
+#ifdef TYPE103_BOARD
     Ready = PortB0,
     CLKO = PortB1,
     Enable = PortB2,
     CLKSignal = PortB3,
     GPIOSelect = PortB4,
-    INT0_ = PortD7,
+    INT0_960_ = PortD7,
 
     Capture0 = PortA0,
     Capture1 = PortA1,
@@ -65,7 +84,7 @@ Count = NUM_DIGITAL_PINS,
     DEN = Capture3, 
     FAIL = Capture4, 
     DATA_INT0 = Capture5,
-#define X(x, y) ADR ## x = Capture ## y
+#   define X(x, y) ADR ## x = Capture ## y
     // channel 1
     X(16, 0),
     X(17, 1),
@@ -93,7 +112,7 @@ Count = NUM_DIGITAL_PINS,
     X(13, 5),
     X(14, 6),
     X(15, 7),
-#undef X
+#   undef X
     ShieldD0 = PortD0,
     ShieldD1 = PortD1,
     ShieldD2 = PortD2,
@@ -121,6 +140,128 @@ Count = NUM_DIGITAL_PINS,
     ShieldA5 = PortC0,
     PSRAM0 = ShieldD2,
     SD_EN = ShieldD10,
+#elif defined(TYPE200_BOARD)
+    ShieldD0 = PortE0,
+    ShieldD1 = PortE1,
+    ShieldD2 = PortE4,
+    ShieldD3 = PortE5,
+    ShieldD4 = PortE6,
+    ShieldD5 = PortH0,
+    ShieldD6 = PortH1,
+    ShieldD7 = PortH2,
+    ShieldD8 = PortL0,
+    ShieldD9 = PortL1,
+    ShieldD10 = PortL2,
+    ShieldD11 = SPI_MOSI,
+    ShieldD12 = SPI_MISO,
+    ShieldD13 = SPI_SCK,
+    ShieldA0 = PortL4,
+    ShieldA1 = PortL5,
+    ShieldA2 = PortL6,
+    ShieldA3 = PortL7,
+    ShieldA4 = SDA,
+    ShieldA5 = SCL,
+    HLDA = ShieldA0,
+    HOLD = ShieldA1,
+    RESET960 = ShieldA2,
+    Shield2_D0 = ShieldD0,
+    Shield2_D1 = ShieldD1,
+    Shield2_D2 = PortD2,
+    Shield2_D3 = PortD3,
+    Shield2_D4 = PortD4,
+    Shield2_D5 = ShieldD5,
+    Shield2_D6 = ShieldD6,
+    Shield2_D7 = ShieldD7,
+    Shield2_D8 = PortD5,
+    Shield2_D9 = PortD6,
+    Shield2_D10 = PortD7,
+    Shield2_D11 = ShieldD11,
+    Shield2_D12 = ShieldD12,
+    Shield2_D13 = ShieldD13,
+    Shield2_A0 = PortH4,
+    Shield2_A1 = PortH5,
+    Shield2_A2 = PortH6,
+    Shield2_A3 = PortH7,
+    Shield2_A4 = ShieldA4,
+    Shield2_A5 = ShieldA5,
+    Signal_Address = PortG5,
+    AddressSel0 = PortG3,
+    AddressSel1 = PortG4,
+    Capture0 = PortJ0,
+    Capture1 = PortJ1,
+    Capture2 = PortJ2,
+    Capture3 = PortJ3,
+    Capture4 = PortJ4,
+    Capture5 = PortJ5,
+    Capture6 = PortJ6,
+    Capture7 = PortJ7,
+#   define X(x, y) ADR ## x = Capture ## y
+    X(0, 0),
+    X(1, 1),
+    X(2, 2),
+    X(3, 3),
+    X(4, 4),
+    X(5, 5),
+    X(6, 6),
+    X(7, 7),
+    X(8, 0),
+    X(9, 1),
+    X(10, 2),
+    X(11, 3),
+    X(12, 4),
+    X(13, 5),
+    X(14, 6),
+    X(15, 7),
+    X(16, 0),
+    X(17, 1),
+    X(18, 2),
+    X(19, 3),
+    X(20, 4),
+    X(21, 5),
+    X(22, 6),
+    X(23, 7),
+    X(24, 0),
+    X(25, 1),
+    X(26, 2),
+    X(27, 3),
+    X(28, 4),
+    X(29, 5),
+    X(30, 6),
+    X(31, 7),
+#   undef X
+    Data0 = PortK0,
+    Data1 = PortK1,
+    Data2 = PortK2,
+    Data3 = PortK3,
+    Data4 = PortK4,
+    Data5 = PortK5,
+    Data6 = PortK6,
+    Data7 = PortK7,
+    Data8 = PortF0,
+    Data9 = PortF1,
+    Data10 = PortF2,
+    Data11 = PortF3,
+    Data12 = PortF4,
+    Data13 = PortF5,
+    Data14 = PortF6,
+    Data15 = PortF7,
+    BE0 = Capture0,
+    BE1 = Capture1,
+    BLAST_ = Capture2,
+    DEN = Capture3, 
+    FAIL = Capture4, 
+    W_R_ = Capture5,
+
+    Ready = PortE2,
+    CLKO = PortE7,
+    INT0_960_ = PortB5,
+    INT1_960 = PortE3,
+    INT2_960 = PortH3,
+    INT3_960_ = PortL3,
+    PSRAM0 = Shield2_D3,
+#else
+#   error "Unknown board type defined!"
+#endif
 };
 enum class Port : byte {
     // stop at mega2560 tier
@@ -128,6 +269,14 @@ enum class Port : byte {
 #include "AVRPorts.def"
 #undef X
     None,
+#ifdef TYPE200_BOARD
+    DataLower = K,
+    DataUpper = F,
+    Capture = J,
+#endif
+#ifdef TYPE103_BOARD
+    Capture = A,
+#endif
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

@@ -55,79 +55,11 @@ constexpr IOGroup getGroup(uint8_t value) noexcept {
     }
 }
 
-
-
-union SplitWord32 {
-    uint32_t full;
-    ElementContainer<uint32_t, uint16_t> halves;
-    ElementContainer<uint32_t, uint8_t> bytes;
-    constexpr SplitWord32(uint32_t value) : full(value) { }
-    constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
-    constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
-    struct {
-        uint32_t a0 : 1;
-        uint32_t offset : (OffsetSize - 1);
-        uint32_t rest : (32 - OffsetSize);
-    } address;
-    struct {
-        uint32_t offset : OffsetSize;
-        uint32_t tag : TagSize; 
-        uint32_t key : KeySize;
-    } cacheAddress;
-    struct {
-        uint8_t subfunction;
-        uint8_t function;
-        uint8_t device;
-        uint8_t group : 4;
-        uint8_t req : 4;
-    } ioRequestAddress;
-    struct {
-        uint32_t offset : 23;
-        uint32_t targetDevice : 3;
-        uint32_t rest : 6;
-    } psramAddress;
-    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
-    [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
-    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
-    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
-    [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
-    [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return ioRequestAddress.device; }
-    [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
-    template<typename E>
-    [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
-    template<typename E>
-    [[nodiscard]] constexpr E getIOFunction() const noexcept { return static_cast<E>(getIOFunctionCode()); }
-    [[nodiscard]] constexpr auto getAddressOffset() const noexcept { return address.offset; }
-    [[nodiscard]] constexpr bool operator==(const SplitWord32& other) const noexcept { return full == other.full; }
-    [[nodiscard]] constexpr bool operator!=(const SplitWord32& other) const noexcept { return full != other.full; }
-    [[nodiscard]] constexpr bool operator<(const SplitWord32& other) const noexcept { return full < other.full; }
-    [[nodiscard]] constexpr bool operator<=(const SplitWord32& other) const noexcept { return full <= other.full; }
-    [[nodiscard]] constexpr bool operator>(const SplitWord32& other) const noexcept { return full > other.full; }
-    [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
-};
-static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
-
-
 enum class EnableStyle : byte {
     Full16 = 0b00,
     Upper8 = 0b01,
     Lower8 = 0b10,
     Undefined = 0b11,
-};
-union SplitWord16 {
-    uint16_t full;
-    ElementContainer<uint16_t, uint8_t> bytes;
-    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
-    constexpr SplitWord16() : full(0) { }
-    constexpr explicit SplitWord16(uint16_t value) : full(value) { }
-    constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
-    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
-    [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
-    [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
-    [[nodiscard]] constexpr bool operator<(const SplitWord16& other) const noexcept { return full < other.full; }
-    [[nodiscard]] constexpr bool operator<=(const SplitWord16& other) const noexcept { return full <= other.full; }
-    [[nodiscard]] constexpr bool operator>(const SplitWord16& other) const noexcept { return full > other.full; }
-    [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
 };
 
 union Word8 {
@@ -192,6 +124,76 @@ using Channel0Value = Word8;
 using Channel1Value = Word8;
 using Channel2Value = Word8;
 using Channel3Value = Word8;
+
+union SplitWord16 {
+    uint16_t full;
+    ElementContainer<uint16_t, uint8_t> bytes;
+    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
+    constexpr SplitWord16() : full(0) { }
+    constexpr explicit SplitWord16(uint16_t value) : full(value) { }
+    constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
+    [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
+    [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
+    [[nodiscard]] constexpr bool operator<(const SplitWord16& other) const noexcept { return full < other.full; }
+    [[nodiscard]] constexpr bool operator<=(const SplitWord16& other) const noexcept { return full <= other.full; }
+    [[nodiscard]] constexpr bool operator>(const SplitWord16& other) const noexcept { return full > other.full; }
+    [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
+};
+
+
+union SplitWord32 {
+    uint32_t full;
+    ElementContainer<uint32_t, uint16_t> halves;
+    ElementContainer<uint32_t, uint8_t> bytes;
+    ElementContainer<uint32_t, SplitWord16> word16;
+    constexpr SplitWord32(uint32_t value) : full(value) { }
+    constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
+    constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
+    struct {
+        uint32_t a0 : 1;
+        uint32_t offset : (OffsetSize - 1);
+        uint32_t rest : (32 - OffsetSize);
+    } address;
+    struct {
+        uint32_t offset : OffsetSize;
+        uint32_t tag : TagSize; 
+        uint32_t key : KeySize;
+    } cacheAddress;
+    struct {
+        uint8_t subfunction;
+        uint8_t function;
+        uint8_t device;
+        uint8_t group : 4;
+        uint8_t req : 4;
+    } ioRequestAddress;
+    struct {
+        uint32_t offset : 23;
+        uint32_t targetDevice : 3;
+        uint32_t rest : 6;
+    } psramAddress;
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
+    [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
+    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
+    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
+    [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
+    [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return ioRequestAddress.device; }
+    [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
+    template<typename E>
+    [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
+    template<typename E>
+    [[nodiscard]] constexpr E getIOFunction() const noexcept { return static_cast<E>(getIOFunctionCode()); }
+    [[nodiscard]] constexpr auto getAddressOffset() const noexcept { return address.offset; }
+    [[nodiscard]] constexpr bool operator==(const SplitWord32& other) const noexcept { return full == other.full; }
+    [[nodiscard]] constexpr bool operator!=(const SplitWord32& other) const noexcept { return full != other.full; }
+    [[nodiscard]] constexpr bool operator<(const SplitWord32& other) const noexcept { return full < other.full; }
+    [[nodiscard]] constexpr bool operator<=(const SplitWord32& other) const noexcept { return full <= other.full; }
+    [[nodiscard]] constexpr bool operator>(const SplitWord32& other) const noexcept { return full > other.full; }
+    [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
+};
+static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
+
+
 
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
@@ -363,9 +365,8 @@ class OperationHandler : public TransactionInterface {
 /**
  * @brief Fallback/through handler implementation
  */
-class NullHandler final : public OperationHandler {
+class NullHandler final : public TransactionInterface {
     public:
-        NullHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
         ~NullHandler() override = default;
         uint16_t read(const Channel0Value&) const noexcept override { return 0; }
         void write(const Channel0Value&, uint16_t ) noexcept override { }
@@ -373,8 +374,8 @@ class NullHandler final : public OperationHandler {
 
 using OperationHandlerUser = void(*)(TransactionInterface&);
 
-inline OperationHandler& getNullHandler() noexcept  {
-    static NullHandler temp(0);
+inline TransactionInterface& getNullHandler() noexcept  {
+    static NullHandler temp;
     return temp;
 }
 

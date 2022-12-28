@@ -29,9 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 
 namespace {
-    class PrescalarHandler final : public OperationHandler {
+    class PrescalarHandler final : public TransactionInterface {
         public:
-            PrescalarHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
             ~PrescalarHandler() override = default;
             uint16_t read(const Channel0Value&) const noexcept override { 
                 return static_cast<uint16_t>(TCCR2B & 0b111);
@@ -42,9 +41,8 @@ namespace {
                 TCCR2B = result;
             }
     };
-    class CompareHandler final : public OperationHandler {
+    class CompareHandler final : public TransactionInterface {
         public:
-            CompareHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
             ~CompareHandler() override = default;
             uint16_t read(const Channel0Value& m0) const noexcept override { 
                 return static_cast<uint16_t>(OCR2A);
@@ -53,8 +51,8 @@ namespace {
                 OCR2A = static_cast<uint8_t>(value);
             }
     };
-    PrescalarHandler prescalarHandler{0};
-    CompareHandler compareHandler{0};
+    PrescalarHandler prescalarHandler;
+    CompareHandler compareHandler;
 }
 void
 TimerDevice::handleExtendedOperation(const SplitWord32& addr, TimerDeviceOperations value, OperationHandlerUser fn) noexcept {

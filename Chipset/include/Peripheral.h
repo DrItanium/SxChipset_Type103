@@ -139,130 +139,6 @@ getDataLines(const Channel0Value& c1) noexcept {
     }
     return previousValue.full;
 }
-template<bool isReadOperation>
-inline void
-genericIOHandler(const SplitWord32& addr, ReadOperation onRead, WriteOperation onWrite) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        auto m0 = readInputChannelAs<Channel0Value>();
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, m0, offset));
-        } else {
-            onWrite(addr, m0, offset, getDataLines<false>(m0));
-        }
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-/**
- * @brief Fallback implementation when the io request doesn't map to any one
- * function
- */
-template<bool isReadOperation>
-inline void
-genericIOHandler(const SplitWord32& addr) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(0);
-        } 
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-
-template<bool isReadOperation>
-inline void
-genericIOHandler(const SplitWord32& addr, ReadOperation onRead) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, readInputChannelAs<Channel0Value>(), offset));
-        } 
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-
-template<bool isReadOperation, typename T>
-inline void
-genericIOHandler(const SplitWord32& addr, T onRead) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, readInputChannelAs<Channel0Value>(), offset));
-        } 
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-inline void
-readOnlyDynamicValue(const SplitWord32& addr, uint16_t value) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        setDataLinesOutput<false>(value);
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-inline void
-readOnlyDynamicValue(const SplitWord32& addr, uint32_t value) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if (offset & 0b1) {
-            setDataLinesOutput<false>(static_cast<uint16_t>(value >> 16));
-        } else {
-            setDataLinesOutput<false>(static_cast<uint16_t>(value));
-        }
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-
-inline void
-readOnlyDynamicValue(const SplitWord32& addr, uint64_t value) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        switch (offset & 0b11) {
-            case 0b00:
-                setDataLinesOutput<false>(value);
-                break;
-            case 0b01:
-                setDataLinesOutput<false>(value >> 16);
-                break;
-            case 0b10:
-                setDataLinesOutput<false>(value >> 32);
-                break;
-            case 0b11:
-                setDataLinesOutput<false>(value >> 48);
-                break;
-            default:
-                setDataLinesOutput<false>(0);
-                break;
-
-        }
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-inline void
-readOnlyDynamicValue(const SplitWord32& addr, bool value) noexcept {
-    readOnlyDynamicValue(addr, value ? 0xFFFF : 0x0);
-}
 
 template<typename T>
 class DynamicValue : public OperationHandler {
@@ -298,6 +174,62 @@ class DynamicValue : public OperationHandler {
             SplitWord16 words_[16 / sizeof(SplitWord16)]; // make sure that we
                                                           // can never overflow
         };
+};
+
+template<>
+class DynamicValue<uint32_t> : public OperationHandler {
+    public:
+        DynamicValue(const SplitWord32& addr, uint32_t value) noexcept : OperationHandler(addr), value_{value} { }
+        uint16_t read(const Channel0Value& m0) const noexcept override { 
+            return value_.halves[getOffset() & 0b1]; 
+        }
+        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+            SplitWord16 tmp(value);
+            switch (m0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    value_.word16[getOffset() & 0b1] = tmp;
+                    break;
+                case EnableStyle::Lower8:
+                    value_.word16[getOffset() & 0b1].bytes[0] = tmp.bytes[0];
+                    break;
+                case EnableStyle::Upper8:
+                    value_.word16[getOffset() & 0b1].bytes[1] = tmp.bytes[1];
+                    break;
+                default:
+                    break;
+            }
+        }
+        [[nodiscard]] uint32_t getValue() const noexcept { return value_.getWholeValue(); }
+    private:
+        SplitWord32 value_;
+};
+
+template<>
+class DynamicValue<uint16_t> : public OperationHandler {
+    public:
+        DynamicValue(const SplitWord32& addr, uint16_t value) noexcept : OperationHandler(addr), value_{value} { }
+        uint16_t read(const Channel0Value& m0) const noexcept override { 
+            return value_.getWholeValue();
+        }
+        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+            SplitWord16 tmp(value);
+            switch (m0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    value_.full = value;
+                    break;
+                case EnableStyle::Lower8:
+                    value_.bytes[0] = tmp.bytes[0];
+                    break;
+                case EnableStyle::Upper8:
+                    value_.bytes[1] = tmp.bytes[1];
+                    break;
+                default:
+                    break;
+            }
+        }
+        [[nodiscard]] uint16_t getValue() const noexcept { return value_.getWholeValue(); }
+    private:
+        SplitWord16 value_;
 };
 
 using ExpressUint16_t = DynamicValue<uint16_t>;

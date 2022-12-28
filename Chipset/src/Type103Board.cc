@@ -61,41 +61,37 @@ Platform::doHold(decltype(LOW) value) noexcept {
 }
 
 void
-configurePins() noexcept {
-    // configure pins
-    pinMode<Pin::GPIOSelect>(OUTPUT);
-    pinMode<Pin::SD_EN>(OUTPUT);
-    pinMode<Pin::PSRAM0>(OUTPUT);
-    pinMode<Pin::Ready>(OUTPUT);
-    pinMode<Pin::INT0_960_>(OUTPUT);
-    pinMode<Pin::Enable>(OUTPUT);
-    pinMode<Pin::CLKSignal>(OUTPUT);
-    pinMode<Pin::DEN>(INPUT);
-    pinMode<Pin::BLAST_>(INPUT);
-    pinMode<Pin::FAIL>(INPUT);
-    pinMode<Pin::Capture0>(INPUT);
-    pinMode<Pin::Capture1>(INPUT);
-    pinMode<Pin::Capture2>(INPUT);
-    pinMode<Pin::Capture3>(INPUT);
-    pinMode<Pin::Capture4>(INPUT);
-    pinMode<Pin::Capture5>(INPUT);
-    pinMode<Pin::Capture6>(INPUT);
-    pinMode<Pin::Capture7>(INPUT);
-    digitalWrite<Pin::CLKSignal, LOW>();
-    digitalWrite<Pin::Ready, HIGH>();
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-    digitalWrite<Pin::INT0_960_, HIGH>();
-    digitalWrite<Pin::PSRAM0, HIGH>();
-    digitalWrite<Pin::SD_EN, HIGH>();
-    digitalWrite<Pin::Enable, HIGH>();
-    // do an initial clear of the clock signal
-    pulse<Pin::CLKSignal, LOW, HIGH>();
-}
-void
 Platform::begin() noexcept {
     if (!initialized_) {
         initialized_ = true;
-        configurePins();
+        // configure pins
+        pinMode<Pin::GPIOSelect>(OUTPUT);
+        pinMode<Pin::SD_EN>(OUTPUT);
+        pinMode<Pin::PSRAM0>(OUTPUT);
+        pinMode<Pin::Ready>(OUTPUT);
+        pinMode<Pin::INT0_960_>(OUTPUT);
+        pinMode<Pin::Enable>(OUTPUT);
+        pinMode<Pin::CLKSignal>(OUTPUT);
+        pinMode<Pin::DEN>(INPUT);
+        pinMode<Pin::BLAST_>(INPUT);
+        pinMode<Pin::FAIL>(INPUT);
+        pinMode<Pin::Capture0>(INPUT);
+        pinMode<Pin::Capture1>(INPUT);
+        pinMode<Pin::Capture2>(INPUT);
+        pinMode<Pin::Capture3>(INPUT);
+        pinMode<Pin::Capture4>(INPUT);
+        pinMode<Pin::Capture5>(INPUT);
+        pinMode<Pin::Capture6>(INPUT);
+        pinMode<Pin::Capture7>(INPUT);
+        digitalWrite<Pin::CLKSignal, LOW>();
+        digitalWrite<Pin::Ready, HIGH>();
+        digitalWrite<Pin::GPIOSelect, HIGH>();
+        digitalWrite<Pin::INT0_960_, HIGH>();
+        digitalWrite<Pin::PSRAM0, HIGH>();
+        digitalWrite<Pin::SD_EN, HIGH>();
+        digitalWrite<Pin::Enable, HIGH>();
+        // do an initial clear of the clock signal
+        pulse<Pin::CLKSignal, LOW, HIGH>();
         MCP23S17::IOCON reg;
         reg.mirrorInterruptPins();
         reg.treatDeviceAsOne16BitPort();

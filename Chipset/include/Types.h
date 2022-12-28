@@ -37,9 +37,30 @@ template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 extern SdFat SD;
 constexpr auto OffsetSize = 4; // 16-byte line
-constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
-                                   // lines with 4 lines per set
-                                   // (4-way)
+constexpr auto getTagSize() noexcept {
+#if defined(TYPE103_BOARD)
+    return 7;
+#elif defined(TYPE200_BOARD)
+    return 6;
+#else
+# error "Unknown tag size!"
+    return 0;
+#endif
+}
+constexpr auto getNumberOfSets() noexcept {
+#if defined(TYPE103_BOARD)
+    return 128;
+#elif defined(TYPE200_BOARD)
+    return 64;
+#else
+# error "Unknown tag count!"
+    return 0;
+#endif
+
+}
+constexpr auto TagSize = getTagSize(); // 8192 bytes divided into 16-byte
+                                       // lines with 4 lines per set
+                                       // (4-way)
 constexpr auto KeySize = 32 - (OffsetSize + TagSize);
 enum class IOGroup : byte{
     Peripherals,
@@ -308,7 +329,7 @@ struct DataCacheSet {
         byte replacementIndex_;
 };
 struct DataCache {
-    static constexpr auto NumberOfSets = 128;
+    static constexpr auto NumberOfSets = getNumberOfSets();
     inline void clear() noexcept {
         for (auto& set : cache) {
             set.clear();

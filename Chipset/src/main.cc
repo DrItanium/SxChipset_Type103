@@ -32,27 +32,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Wire.h"
 #include "RTClib.h"
 #include "Peripheral.h"
+#include "Setup.h"
 
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
-constexpr bool EnableDebugMode = false;
-constexpr bool EnableTimingDebug = false;
-constexpr bool EnableInlineSPIOperation = true;
 
-template<bool doDebugCheck = EnableTimingDebug>
-[[gnu::always_inline]] inline 
-void 
-singleCycleDelay() noexcept {
-    if constexpr (doDebugCheck) {
-        delay(1);
-    } else {
-        asm volatile ("nop");
-        asm volatile ("nop");
-    }
-}
 
 template<bool, bool DisableInterruptChecks = true>
 inline void handleTransaction() noexcept;

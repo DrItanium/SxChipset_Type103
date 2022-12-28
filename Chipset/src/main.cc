@@ -40,7 +40,6 @@ InfoDevice infoDevice;
 TimerDevice timerInterface;
 
 
-void handleTransaction() noexcept;
 
 void 
 putCPUInReset() noexcept {
@@ -138,6 +137,153 @@ inline void
 waitForDataState() noexcept {
     singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
+}
+class CacheOperationHandler : public OperationHandler {
+    public:
+        using Parent = OperationHandler;
+        ~CacheOperationHandler() override = default;
+        void
+        startTransaction(const SplitWord32& addr) noexcept override {
+            Parent::startTransaction(addr);
+            line_ = &getCache().find(addr);
+        }
+        uint16_t 
+        read(const Channel0Value&) const noexcept {
+            return line_->getWord(getOffset());
+        }
+        void
+        write(const Channel0Value& m0, uint16_t value) noexcept {
+            line_->setWord(getOffset(), value, m0.getByteEnable());
+        }
+        void
+        endTransaction() noexcept override {
+            line_ = nullptr;
+        }
+    private:
+        DataCacheLine* line_;
+};
+inline TransactionInterface& 
+getPeripheralDevice(const SplitWord32& addr) noexcept {
+    switch (addr.getIODevice<TargetPeripheral>()) {
+        case TargetPeripheral::Info:
+            return infoDevice;
+        case TargetPeripheral::Serial:
+            return theSerial;
+        case TargetPeripheral::RTC:
+            return timerInterface;
+        default:
+            return getNullHandler();
+    }
+}
+
+inline TransactionInterface&
+handleIOOperation(const SplitWord32& addr) noexcept {
+    // When we are in io space, we are treating the address as an opcode which
+    // we can decompose while getting the pieces from the io expanders. Thus we
+    // can overlay the act of decoding while getting the next part
+    // 
+    // The W/~R pin is used to figure out if this is a read or write operation
+    //
+    // This system does not care about the size but it does care about where
+    // one starts when performing a write operation
+    switch (addr.getIOGroup()) {
+        case IOGroup::Peripherals:
+            return getPeripheralDevice(addr);
+        default:
+            return getNullHandler();
+    }
+}
+
+template<bool isReadOperation, bool inlineSPIOperation>
+inline void
+talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
+    handler.startTransaction(addr);
+    if constexpr (inlineSPIOperation) {
+        startInlineSPIOperation(isReadOperation);
+    }
+    while (true) {
+        singleCycleDelay();
+        // read it twice
+        auto c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out 
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            if constexpr (inlineSPIOperation) {
+                setDataLines(value, InlineSPI{});
+            } else {
+                setDataLines(value, NoInlineSPI{});
+            }
+        } else {
+            auto c0 = readInputChannelAs<Channel0Value>();
+            uint16_t value;
+            if constexpr (inlineSPIOperation) {
+                value = getDataLines(c0, InlineSPI{});
+            } else {
+                value = getDataLines(c0, NoInlineSPI{});
+            }
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        } else {
+            handler.next();
+        }
+    }
+    if constexpr (inlineSPIOperation) {
+        endInlineSPIOperation();
+    }
+    handler.endTransaction();
+}
+CacheOperationHandler cacheHandler;
+inline void 
+handleTransaction() noexcept {
+    enterTransactionSetup();
+    auto addr = configureTransaction();
+    leaveTransactionSetup();
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("Target address: 0x"));
+        Serial.print(addr.getWholeValue(), HEX);
+        Serial.print(F("(0b"));
+        Serial.print(addr.getWholeValue(), BIN);
+        Serial.println(F(")"));
+        Serial.print(F("Operation: "));
+        if (isReadOperation()) {
+            Serial.println(F("Read!"));
+        } else {
+            Serial.println(F("Write!"));
+        }
+    }
+    if (addr.isIOInstruction()) {
+        if (auto& device = handleIOOperation(addr); isReadOperation()) {
+            talkToi960<true, false>(addr, device);
+        } else {
+            talkToi960<false, false>(addr, device);
+        }
+    } else {
+        if (isReadOperation()) {
+            talkToi960<true, true>(addr, cacheHandler);
+        } else {
+            talkToi960<false, true>(addr, cacheHandler);
+        }
+    }
+    // allow for extra recovery time, introduce a single 10mhz cycle delay
+    // shift back to input channel 0
+    singleCycleDelay();
 }
 [[gnu::always_inline]] inline void 
 handleTransactionCycle() noexcept {
@@ -251,154 +397,7 @@ installMemoryImage() noexcept {
 
 SplitWord16 previousValue{0};
 
-inline TransactionInterface& 
-getPeripheralDevice(const SplitWord32& addr) noexcept {
-    switch (addr.getIODevice<TargetPeripheral>()) {
-        case TargetPeripheral::Info:
-            return infoDevice;
-        case TargetPeripheral::Serial:
-            return theSerial;
-        case TargetPeripheral::RTC:
-            return timerInterface;
-        default:
-            return getNullHandler();
-    }
-}
 
-inline TransactionInterface&
-handleIOOperation(const SplitWord32& addr) noexcept {
-    // When we are in io space, we are treating the address as an opcode which
-    // we can decompose while getting the pieces from the io expanders. Thus we
-    // can overlay the act of decoding while getting the next part
-    // 
-    // The W/~R pin is used to figure out if this is a read or write operation
-    //
-    // This system does not care about the size but it does care about where
-    // one starts when performing a write operation
-    switch (addr.getIOGroup()) {
-        case IOGroup::Peripherals:
-            return getPeripheralDevice(addr);
-        default:
-            return getNullHandler();
-    }
-}
-
-template<bool isReadOperation, bool inlineSPIOperation>
-inline void
-talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
-    handler.startTransaction(addr);
-    if constexpr (inlineSPIOperation) {
-        startInlineSPIOperation(isReadOperation);
-    }
-    while (true) {
-        singleCycleDelay();
-        // read it twice
-        auto c0 = readInputChannelAs<Channel0Value, true>();
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-        }
-        if constexpr (isReadOperation) {
-            // okay it is a read operation, so... pull a cache line out 
-            auto value = handler.read(c0);
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tGot Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            if constexpr (inlineSPIOperation) {
-                setDataLines(value, InlineSPI{});
-            } else {
-                setDataLines(value, NoInlineSPI{});
-            }
-        } else {
-            auto c0 = readInputChannelAs<Channel0Value>();
-            uint16_t value;
-            if constexpr (inlineSPIOperation) {
-                value = getDataLines(c0, InlineSPI{});
-            } else {
-                value = getDataLines(c0, NoInlineSPI{});
-            }
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tWrite Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            // so we are writing to the cache
-            handler.write(c0, value);
-        }
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        } else {
-            handler.next();
-        }
-    }
-    if constexpr (inlineSPIOperation) {
-        endInlineSPIOperation();
-    }
-    handler.endTransaction();
-}
-
-class CacheOperationHandler : public OperationHandler {
-    public:
-        using Parent = OperationHandler;
-        ~CacheOperationHandler() override = default;
-        void
-        startTransaction(const SplitWord32& addr) noexcept override {
-            Parent::startTransaction(addr);
-            line_ = &getCache().find(addr);
-        }
-        uint16_t 
-        read(const Channel0Value&) const noexcept {
-            return line_->getWord(getOffset());
-        }
-        void
-        write(const Channel0Value& m0, uint16_t value) noexcept {
-            line_->setWord(getOffset(), value, m0.getByteEnable());
-        }
-        void
-        endTransaction() noexcept override {
-            line_ = nullptr;
-        }
-    private:
-        DataCacheLine* line_;
-};
-CacheOperationHandler cacheHandler;
-inline void 
-handleTransaction() noexcept {
-    enterTransactionSetup();
-    auto addr = configureTransaction();
-    leaveTransactionSetup();
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("Target address: 0x"));
-        Serial.print(addr.getWholeValue(), HEX);
-        Serial.print(F("(0b"));
-        Serial.print(addr.getWholeValue(), BIN);
-        Serial.println(F(")"));
-        Serial.print(F("Operation: "));
-        if (isReadOperation()) {
-            Serial.println(F("Read!"));
-        } else {
-            Serial.println(F("Write!"));
-        }
-    }
-    if (addr.isIOInstruction()) {
-        if (auto& device = handleIOOperation(addr); isReadOperation()) {
-            talkToi960<true, false>(addr, device);
-        } else {
-            talkToi960<false, false>(addr, device);
-        }
-    } else {
-        if (isReadOperation()) {
-            talkToi960<true, true>(addr, cacheHandler);
-        } else {
-            talkToi960<false, true>(addr, cacheHandler);
-        }
-    }
-    // allow for extra recovery time, introduce a single 10mhz cycle delay
-    // shift back to input channel 0
-    singleCycleDelay();
-}
 
 
 namespace {

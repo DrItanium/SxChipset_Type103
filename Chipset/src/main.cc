@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SdFat.h>
 #include "Types.h"
 #include "Pinout.h"
-#include "MCP23S17.h"
 #include "Wire.h"
 #include "RTClib.h"
 #include "Peripheral.h"
@@ -44,26 +43,6 @@ TimerDevice timerInterface;
 template<bool, bool DisableInterruptChecks = true>
 inline void handleTransaction() noexcept;
 
-[[gnu::always_inline]] inline void 
-doReset(decltype(LOW) value) noexcept {
-    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
-    if (value == LOW) {
-        theGPIO &= ~1;
-    } else {
-        theGPIO |= 1;
-    }
-    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
-}
-[[gnu::always_inline]] inline void 
-doHold(decltype(LOW) value) noexcept {
-    auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
-    if (value == LOW) {
-        theGPIO &= ~0b10;
-    } else {
-        theGPIO |= 0b10;
-    }
-    MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
-}
 void 
 putCPUInReset() noexcept {
     doReset(LOW);
@@ -75,8 +54,6 @@ pullCPUOutOfReset() noexcept {
 void configurePins() noexcept;
 void setupIOExpanders() noexcept;
 void installMemoryImage() noexcept;
-uint16_t dataLinesDirection = MCP23S17::AllInput16;
-uint16_t currentDataLinesValue = 0;
 template<Pin targetPin, bool performFullMemoryTest>
 bool
 setupPSRAM() noexcept {
@@ -157,65 +134,6 @@ setupRTC() noexcept {
         Serial.println(F("No active RTC found!"));
     }
 }
-void
-setupIOExpanders() noexcept {
-    MCP23S17::IOCON reg;
-    reg.mirrorInterruptPins();
-    reg.treatDeviceAsOne16BitPort();
-    reg.enableHardwareAddressing();
-    reg.interruptIsActiveLow();
-    reg.configureInterruptsAsActiveDriver();
-    reg.disableSequentialOperation();
-    // at the start all of the io expanders will respond to the same address
-    // so first just make sure we write out the initial iocon
-    MCP23S17::writeIOCON<MCP23S17::HardwareDeviceAddress::Device0>(reg);
-    // now make sure that everything is configured correctly initially
-    MCP23S17::writeIOCON<DataLines>(reg);
-    MCP23S17::writeDirection<DataLines>(MCP23S17::AllInput16);
-    MCP23S17::write16<DataLines, MCP23S17::Registers::GPINTEN>(0xFFFF);
-    reg.mirrorInterruptPins();
-    MCP23S17::writeIOCON<XIO>(reg);
-    MCP23S17::writeDirection<XIO>(0b1000'0100, 0b1111'1111);
-    // setup the extra interrupts as well (hooked in through xio)
-    MCP23S17::writeGPIO8_PORTA<XIO>(0b0010'0000); 
-    MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN>(0x0000); // no
-                                                                  // interrupts
-
-    dataLinesDirection = MCP23S17::AllInput16;
-    currentDataLinesValue = 0;
-    MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
-}
-void
-configurePins() noexcept {
-    // configure pins
-    pinMode<Pin::GPIOSelect>(OUTPUT);
-    pinMode<Pin::SD_EN>(OUTPUT);
-    pinMode<Pin::PSRAM0>(OUTPUT);
-    pinMode<Pin::Ready>(OUTPUT);
-    pinMode<Pin::INT0_960_>(OUTPUT);
-    pinMode<Pin::Enable>(OUTPUT);
-    pinMode<Pin::CLKSignal>(OUTPUT);
-    pinMode<Pin::DEN>(INPUT);
-    pinMode<Pin::BLAST_>(INPUT);
-    pinMode<Pin::FAIL>(INPUT);
-    pinMode<Pin::Capture0>(INPUT);
-    pinMode<Pin::Capture1>(INPUT);
-    pinMode<Pin::Capture2>(INPUT);
-    pinMode<Pin::Capture3>(INPUT);
-    pinMode<Pin::Capture4>(INPUT);
-    pinMode<Pin::Capture5>(INPUT);
-    pinMode<Pin::Capture6>(INPUT);
-    pinMode<Pin::Capture7>(INPUT);
-    digitalWrite<Pin::CLKSignal, LOW>();
-    digitalWrite<Pin::Ready, HIGH>();
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-    digitalWrite<Pin::INT0_960_, HIGH>();
-    digitalWrite<Pin::PSRAM0, HIGH>();
-    digitalWrite<Pin::SD_EN, HIGH>();
-    digitalWrite<Pin::Enable, HIGH>();
-    // do an initial clear of the clock signal
-    pulse<Pin::CLKSignal, LOW, HIGH>();
-}
 [[gnu::always_inline]]
 inline void 
 waitForDataState() noexcept {
@@ -267,8 +185,7 @@ setup() {
     setupRTC();
     SPI.begin();
     // setup the IO Expanders
-    setupIOExpanders();
-    configurePins();
+    setupAddressAndDataLines();
     while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
         delay(1000);
@@ -376,46 +293,10 @@ handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
             break;
     }
 }
-class CacheOperationHandler : public OperationHandler {
-    public:
-        using Parent = OperationHandler;
-        ~CacheOperationHandler() override = default;
-        void
-        startTransaction(const SplitWord32& addr) noexcept override {
-            Parent::startTransaction(addr);
-            line_ = &getCache().find(addr);
-        }
-        uint16_t 
-        read(const Channel0Value&) const noexcept {
-            return line_->getWord(getOffset());
-        }
-        void
-        write(const Channel0Value& m0, uint16_t value) noexcept {
-            line_->setWord(getOffset(), value, m0.getByteEnable());
-        }
-    private:
-        DataCacheLine* line_;
-};
 template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
 void
 talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
-    handler.startTransaction(addr);
-    if constexpr (inlineSPIOperation) {
-        digitalWrite<Pin::GPIOSelect, LOW>();
-        static constexpr auto TargetAction = isReadOperation ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
-        static constexpr auto TargetRegister = static_cast<byte>(isReadOperation ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
-#ifdef AVR_SPI_AVAILABLE
-        SPDR = TargetAction;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))); 
-        SPDR = TargetRegister;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))); 
-#else
-        SPI.transfer(TargetAction);
-        SPI.transfer(TargetRegister);
-#endif
-    }
+    handler.startTransaction(addr, isReadOperation);
     while (true) {
         singleCycleDelay();
         // read it twice
@@ -450,9 +331,6 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
             handler.next();
         }
     }
-    if constexpr (inlineSPIOperation) {
-        digitalWrite<Pin::GPIOSelect, HIGH>();
-    }
     handler.endTransaction();
 }
 enum class TransactionKind {
@@ -466,46 +344,12 @@ enum class TransactionKind {
     IOWrite,
 };
 
-[[gnu::always_inline]] 
-inline void 
-triggerClock() noexcept {
-    pulse<Pin::CLKSignal, LOW, HIGH>();
-    singleCycleDelay();
-}
-inline void 
-enterAddressCapture() noexcept {
-    // clear the address counter to be on the safe side
-    triggerClock();
-    digitalWrite<Pin::Enable, LOW>();
-    singleCycleDelay(); // introduce this extra cycle of delay to make sure
-                        // that inputs are updated correctly since they are
-                        // tristated
-}
-inline void
-leaveAddressCapture() noexcept {
-    digitalWrite<Pin::Enable, HIGH>();
-    triggerClock();
-}
 template<bool EnableInlineSPIOperation, bool DisableInterruptChecks = true>
 inline void 
 handleTransaction() noexcept {
-    SplitWord32 addr { 0 };
-    enterAddressCapture();
-    auto m2 = readInputChannelAs<Channel2Value>();
-    addr.bytes[0] = m2.getWholeValue();
-    addr.address.a0 = 0;
-    triggerClock();
-    addr.bytes[1] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    addr.bytes[2] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    addr.bytes[3] = readInputChannelAs<uint8_t>();
-    leaveAddressCapture();
-    auto direction = m2.isReadOperation() ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    if (direction != dataLinesDirection) {
-        dataLinesDirection = direction;
-        MCP23S17::writeDirection<DataLines>(dataLinesDirection);
-    }
+    enterTransactionSetup();
+    auto addr = configureTransaction();
+    leaveTransactionSetup();
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target address: 0x"));
         Serial.print(addr.getWholeValue(), HEX);
@@ -513,17 +357,17 @@ handleTransaction() noexcept {
         Serial.print(addr.getWholeValue(), BIN);
         Serial.println(F(")"));
         Serial.print(F("Operation: "));
-        if (m2.isReadOperation()) {
+        if (isReadOperation()) {
             Serial.println(F("Read!"));
         } else {
             Serial.println(F("Write!"));
         }
     }
     if (addr.isIOInstruction()) {
-        handleIOOperation(addr, m2.isReadOperation() ? talkToi960<true, false, DisableInterruptChecks> : talkToi960<false, false, DisableInterruptChecks>);
+        handleIOOperation(addr, isReadOperation() ? talkToi960<true, false, DisableInterruptChecks> : talkToi960<false, false, DisableInterruptChecks>);
     } else {
         CacheOperationHandler handler;
-        if (m2.isReadOperation()) {
+        if (isReadOperation()) {
             talkToi960<true, EnableInlineSPIOperation, DisableInterruptChecks>(addr, handler);
         } else {
             talkToi960<false, EnableInlineSPIOperation, DisableInterruptChecks>(addr, handler);
@@ -625,3 +469,4 @@ byte GPIOR1;
 byte GPIOR2;
 #endif
 
+uint16_t currentDataLinesValue = 0;

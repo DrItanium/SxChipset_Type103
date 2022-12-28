@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_SETUP_H__
 #define SXCHIPSET_TYPE103_SETUP_H__
 #include <Arduino.h>
+#include "Detect.h"
+#include "Types.h"
 
 constexpr bool EnableDebugMode = false;
 constexpr bool EnableTimingDebug = false;
@@ -45,5 +47,14 @@ singleCycleDelay() noexcept {
 
 void doReset(decltype(LOW) value) noexcept;
 void doHold(decltype(LOW) value) noexcept;
+void setupAddressAndDataLines() noexcept;
+SplitWord32 configureTransaction() noexcept;
+void enterTransactionSetup() noexcept;
+bool isReadOperation() noexcept;
+void leaveTransactionSetup() noexcept;
+extern uint16_t dataLinesDirection;
+extern uint16_t currentDataLinesValue;
+TransactionInterface& getCacheInterface() noexcept;
+
 
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

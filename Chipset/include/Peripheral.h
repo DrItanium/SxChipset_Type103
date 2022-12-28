@@ -26,16 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_PERIPHERAL_H
 #define SXCHIPSET_TYPE103_PERIPHERAL_H
 #include <Arduino.h>
+#include "Detect.h"
 #include "Types.h"
 #include "MCP23S17.h"
 #include "Pinout.h"
 #include "RTClib.h"
 
-constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
-/**
- * @brief Onboard device to control reset and other various features
- */
-constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device7;
 
 enum class TargetPeripheral {
     Info, 
@@ -81,60 +77,8 @@ signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
 
-using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, byte);
-using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, byte, uint16_t);
 extern SplitWord16 previousValue;
 extern uint16_t currentDataLinesValue;
-template<bool busHeldOpen>
-[[gnu::always_inline]] 
-inline void 
-setDataLinesOutput(uint16_t value) noexcept {
-    if (currentDataLinesValue != value) {
-        currentDataLinesValue = value;
-        if constexpr (busHeldOpen) {
-#ifdef AVR_SPI_AVAILABLE
-            SPDR = static_cast<byte>(value);
-            asm volatile ("nop");
-            auto next = static_cast<byte>(value >> 8);
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = next;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-#else
-            SPI.transfer(static_cast<byte>(value));
-            SPI.transfer(static_cast<byte>(value >> 8));
-#endif
-        } else {
-            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
-        }
-    }
-}
-template<bool busHeldOpen, bool ignoreInterrupts = true>
-[[gnu::always_inline]] 
-inline uint16_t 
-getDataLines(const Channel0Value& c1) noexcept {
-    if (ignoreInterrupts || c1.dataInterruptTriggered()) {
-        if constexpr (busHeldOpen) {
-#ifdef AVR_SPI_AVAILABLE
-            SPDR = 0;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            auto value = SPDR;
-            SPDR = 0;
-            asm volatile ("nop");
-            previousValue.bytes[0] = value;
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            previousValue.bytes[1] = SPDR;
-#else
-            previousValue.bytes[0] = SPI.transfer(0);
-            previousValue.bytes[1] = SPI.transfer(0);
-#endif
-        } else {
-            previousValue.full = MCP23S17::readGPIO16<DataLines>();
-        }
-    }
-    return previousValue.full;
-}
 
 template<typename T>
 class DynamicValue : public OperationHandler {

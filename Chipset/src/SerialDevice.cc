@@ -53,7 +53,7 @@ SerialDevice::extendedRead(const Channel0Value& m0) const noexcept {
         case SerialDeviceOperations::Flush:
             Serial.flush();
             return 0;
-        case SerialDeviceOperation::Baud:
+        case SerialDeviceOperations::Baud:
             return SplitWord32{baud_}.retrieveWord(getOffset());
         default:
             return 0;

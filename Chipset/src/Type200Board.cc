@@ -48,16 +48,33 @@ Platform::begin() noexcept {
     if (!initialized_) {
         initialized_ = true;
         // configure pins
-        pinMode<Pin::GPIOSelect>(OUTPUT);
+        //pinMode<Pin::GPIOSelect>(OUTPUT);
         pinMode<Pin::SD_EN>(OUTPUT);
         pinMode<Pin::PSRAM0>(OUTPUT);
         pinMode<Pin::Ready>(OUTPUT);
         pinMode<Pin::INT0_960_>(OUTPUT);
-        pinMode<Pin::Enable>(OUTPUT);
-        pinMode<Pin::CLKSignal>(OUTPUT);
+        pinMode<Pin::INT1_960>(OUTPUT);
+        pinMode<Pin::INT2_960>(OUTPUT);
+        pinMode<Pin::INT3_960_>(OUTPUT);
         pinMode<Pin::DEN>(INPUT);
         pinMode<Pin::BLAST_>(INPUT);
         pinMode<Pin::FAIL>(INPUT);
+        pinMode<Pin::Data0>(INPUT);
+        pinMode<Pin::Data1>(INPUT);
+        pinMode<Pin::Data2>(INPUT);
+        pinMode<Pin::Data3>(INPUT);
+        pinMode<Pin::Data4>(INPUT);
+        pinMode<Pin::Data5>(INPUT);
+        pinMode<Pin::Data6>(INPUT);
+        pinMode<Pin::Data7>(INPUT);
+        pinMode<Pin::Data8>(INPUT);
+        pinMode<Pin::Data9>(INPUT);
+        pinMode<Pin::Data10>(INPUT);
+        pinMode<Pin::Data11>(INPUT);
+        pinMode<Pin::Data12>(INPUT);
+        pinMode<Pin::Data13>(INPUT);
+        pinMode<Pin::Data14>(INPUT);
+        pinMode<Pin::Data15>(INPUT);
         pinMode<Pin::Capture0>(INPUT);
         pinMode<Pin::Capture1>(INPUT);
         pinMode<Pin::Capture2>(INPUT);
@@ -66,55 +83,61 @@ Platform::begin() noexcept {
         pinMode<Pin::Capture5>(INPUT);
         pinMode<Pin::Capture6>(INPUT);
         pinMode<Pin::Capture7>(INPUT);
-        digitalWrite<Pin::CLKSignal, LOW>();
+        pinMode<Pin::AddressSel0>(OUTPUT);
+        pinMode<Pin::AddressSel1>(OUTPUT);
+        pinMode<Pin::Signal_Address>(OUTPUT);
+
         digitalWrite<Pin::Ready, HIGH>();
-        digitalWrite<Pin::GPIOSelect, HIGH>();
         digitalWrite<Pin::INT0_960_, HIGH>();
+        digitalWrite<Pin::INT1_960, LOW>();
+        digitalWrite<Pin::INT2_960, LOW>();
+        digitalWrite<Pin::INT3_960_, HIGH>();
         digitalWrite<Pin::PSRAM0, HIGH>();
         digitalWrite<Pin::SD_EN, HIGH>();
-        digitalWrite<Pin::Enable, HIGH>();
+        digitalWrite<Pin::AddressSel0>(LOW);
+        digitalWrite<Pin::AddressSel1>(LOW);
+        digitalWrite<Pin::Signal_Address>(LOW);
         // do an initial clear of the clock signal
-        pulse<Pin::CLKSignal, LOW, HIGH>();
     }
 }
 
-[[gnu::always_inline]] 
-inline void 
-triggerClock() noexcept {
-    pulse<Pin::CLKSignal, LOW, HIGH>();
-    singleCycleDelay();
-}
 void 
 Platform::startAddressTransaction() noexcept {
     // clear the address counter to be on the safe side
-    triggerClock();
-    digitalWrite<Pin::Enable, LOW>();
+    digitalWrite<Pin::AddressSel0>(LOW);
+    digitalWrite<Pin::AddressSel1>(LOW);
+    digitalWrite<Pin::Signal_Address>(LOW);
     singleCycleDelay(); // introduce this extra cycle of delay to make sure
                         // that inputs are updated correctly since they are
                         // tristated
 }
 void
 Platform::endAddressTransaction() noexcept {
-    digitalWrite<Pin::Enable, HIGH>();
-    triggerClock();
+    digitalWrite<Pin::Signal_Address>(HIGH);
+    singleCycleDelay();
+    isReadOperation_ = digitalRead<Pin::W_R_>() == LOW;
+    if (isReadOperation_) {
+        getDirectionRegister<Port::DataLower>() = 0;
+        getDirectionRegister<Port::DataUpper>() = 0;
+    } else {
+        getDirectionRegister<Port::DataLower>() = 0xFF;
+        getDirectionRegister<Port::DataUpper>() = 0xFF;
+    }
 }
 void
 Platform::collectAddress() noexcept {
-    auto m2 = readInputChannelAs<Channel2Value>();
-    address_.bytes[0] = m2.getWholeValue();
-    address_.address.a0 = 0;
-    triggerClock();
-    address_.bytes[1] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    address_.bytes[2] = readInputChannelAs<uint8_t>();
-    triggerClock();
     address_.bytes[3] = readInputChannelAs<uint8_t>();
-    isReadOperation_ = m2.isReadOperation();
-    auto direction = isReadOperation_ ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    if (direction != dataLinesDirection_) {
-        dataLinesDirection_ = direction;
-        MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_);
-    }
+    digitalWrite<Pin::AddressSel0>(HIGH);
+    singleCycleDelay();
+    address_.bytes[2] = readInputChannelAs<uint8_t>();
+    digitalWrite<Pin::AddressSel0>(LOW);
+    digitalWrite<Pin::AddressSel1>(HIGH);
+    singleCycleDelay();
+    address_.bytes[1] = readInputChannelAs<uint8_t>();
+    digitalWrite<Pin::AddressSel0>(HIGH);
+    singleCycleDelay();
+    address_.bytes[0] = readInputChannelAs<uint8_t>();
+    singleCycleDelay();
 }
 
 void

@@ -49,29 +49,42 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
     }
 }
 
-void
-SerialDevice::handleExtendedOperation(const SplitWord32& addr, SerialDeviceOperations value, OperationHandlerUser fn) noexcept {
-    switch (value) {
-        case SerialDeviceOperations::RW:
-            fn(addr, serialIO);
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            fn(addr, getNullHandler());
-            break;
-        case SerialDeviceOperations::Baud: {
-                                               ExpressUint32_t tmp{getBaudRate()};
-                                               fn(addr, tmp);
-                                               break;
-                                           }
-        default:
-            fn(addr, getNullHandler());
-            break;
-    }
-}
-
 bool
 SerialDevice::begin() noexcept {
     Serial.begin(baud_);
     return true;
+}
+
+
+uint16_t 
+SerialDevice::extendedRead(const Channel0Value& m0) const noexcept override  {
+    /// @todo implement support for caching the target info field so we don't
+    /// need to keep looking up the dispatch address
+    switch (getCurrentOpcode()) {
+        case SerialDeviceOperations::RW:
+            return Serial.read();
+        case SerialDeviceOperations::Flush:
+            Serial.flush();
+            return 0;
+        case SerialDeviceOperation::Baud:
+            return SplitWord32{baud_}.retrieveWord(getOffset());
+        default:
+            return 0;
+    }
+}
+void 
+SerialDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override {
+    // do nothing
+    switch (getCurrentOpcode()) {
+        case SerialDeviceOperations::RW:
+            Serial.write(static_cast<uint8_t>(value));
+            break;
+        case SerialDeviceOperations::Flush:
+            Serial.flush();
+            break;
+        default:
+            break;
+    }
+    /// @todo update write operations so that we cache results and perform the
+    /// writes at the end
 }

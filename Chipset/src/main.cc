@@ -40,8 +40,7 @@ InfoDevice infoDevice;
 TimerDevice timerInterface;
 
 
-template<bool>
-inline void handleTransaction() noexcept;
+void handleTransaction() noexcept;
 
 void 
 putCPUInReset() noexcept {
@@ -140,11 +139,10 @@ waitForDataState() noexcept {
     singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
 }
-template<bool enableInlineSPI, bool disableInterruptChecks>
 [[gnu::always_inline]] inline void 
 handleTransactionCycle() noexcept {
     waitForDataState();
-    handleTransaction<enableInlineSPI, disableInterruptChecks>();
+    handleTransaction();
 }
 void
 bootCPU() noexcept {
@@ -161,8 +159,8 @@ bootCPU() noexcept {
     }
     Serial.println(F("STARTUP COMPLETE! BOOTING..."));
     // okay so we got past this, just start performing actions
-    handleTransactionCycle<false, true>();
-    handleTransactionCycle<false, true>();
+    handleTransactionCycle();
+    handleTransactionCycle();
     if (digitalRead<Pin::FAIL>() == HIGH) {
         Serial.println(F("CHECKSUM FAILURE!"));
     } else {
@@ -204,7 +202,7 @@ void
 loop() {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     for (;;) {
-        handleTransactionCycle<EnableInlineSPIOperation, true>();
+        handleTransactionCycle();
     }
     SPI.endTransaction();
 }
@@ -294,7 +292,6 @@ handleIOOperation(const SplitWord32& addr, OperationHandlerUser fn) noexcept {
     }
 }
 
-template<bool EnableInlineSPIOperation>
 inline void 
 handleTransaction() noexcept {
     enterTransactionSetup();

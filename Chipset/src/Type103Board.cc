@@ -38,7 +38,8 @@ constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
  * @brief Onboard device to control reset and other various features
  */
 constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device7;
-inline void 
+
+void 
 doReset(decltype(LOW) value) noexcept {
     auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
     if (value == LOW) {
@@ -48,7 +49,7 @@ doReset(decltype(LOW) value) noexcept {
     }
     MCP23S17::write8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(theGPIO);
 }
-[[gnu::always_inline]] inline void 
+void 
 doHold(decltype(LOW) value) noexcept {
     auto theGPIO = MCP23S17::read8<XIO, MCP23S17::Registers::OLATA, Pin::GPIOSelect>(); 
     if (value == LOW) {
@@ -139,7 +140,7 @@ enterTransactionSetup() noexcept {
                         // that inputs are updated correctly since they are
                         // tristated
 }
-inline void
+void
 leaveTransactionSetup() noexcept {
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
@@ -170,11 +171,11 @@ isReadOperation() noexcept {
 
 uint16_t dataLinesDirection = MCP23S17::AllInput16;
 
-template<bool busHeldOpen, bool ignoreInterrupts = true>
+template<bool busHeldOpen>
 [[gnu::always_inline]] 
 inline uint16_t 
 getDataLines(const Channel0Value& c1) noexcept {
-    if (ignoreInterrupts || c1.dataInterruptTriggered()) {
+    if (c1.dataInterruptTriggered()) {
         if constexpr (busHeldOpen) {
 #ifdef AVR_SPI_AVAILABLE
             SPDR = 0;
@@ -271,16 +272,8 @@ getCacheInterface() noexcept {
     return handler;
 }
 
-OperationHandlerUser 
-getFunction(const SplitWord32& addr) noexcept {
-    if (addr.isIOInstruction()) {
-        return isReadOperation() ? talkToi960<true, false> : talkToi960<false, false>;
-    } else {
-        return isReadOperation() ? talkToi960<true, EnableInlineSPIOperation> : talkToi960<false, EnableInlineSPIOperation>;
-    }
-}
 
-template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
+template<bool isReadOperation, bool inlineSPIOperation>
 void
 talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
     handler.startTransaction(addr, isReadOperation);
@@ -302,7 +295,7 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
             setDataLinesOutput<inlineSPIOperation>(value);
         } else {
             auto c0 = readInputChannelAs<Channel0Value>();
-            auto value = getDataLines<inlineSPIOperation, disableWriteInterrupt>(c0);
+            auto value = getDataLines<inlineSPIOperation>(c0);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
@@ -320,4 +313,13 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
     }
     handler.endTransaction();
 }
+OperationHandlerUser 
+getFunction(const SplitWord32& addr) noexcept {
+    if (addr.isIOInstruction()) {
+        return isReadOperation() ? talkToi960<true, false> : talkToi960<false, false>;
+    } else {
+        return isReadOperation() ? talkToi960<true, EnableInlineSPIOperation> : talkToi960<false, EnableInlineSPIOperation>;
+    }
+}
+
 #endif

@@ -332,25 +332,29 @@ struct DataCache {
 DataCache& getCache() noexcept;
 void setupCache() noexcept;
 
+class TransactionInterface {
+    public:
+        virtual ~TransactionInterface() = default;
+        virtual void startTransaction() noexcept { };
+        virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
+        virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
+        virtual void next() noexcept { }
+        virtual void endTransaction() noexcept { };
+};
 /**
  * @brief Communication primitive for talking to the i960 or other devices,
  */
-class OperationHandler {
+class OperationHandler : public TransactionInterface {
     public:
         OperationHandler(const SplitWord32& addr) noexcept : address_(addr), offset_(addr.getAddressOffset()) { }
         virtual ~OperationHandler() = default;
-        virtual void startTransaction() noexcept = 0;
-        virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
-        virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
-        void next() noexcept {
+        void startTransaction() noexcept override { }
+        void next() noexcept override {
             ++offset_;
-            next0();
         }
-        virtual void endTransaction() noexcept = 0;
+        void endTransaction() noexcept override { }
         [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
         [[nodiscard]] constexpr auto getOffset() const noexcept { return offset_; }
-    protected:
-        virtual void next0() noexcept { }
     private:
         SplitWord32 address_;
         byte offset_;
@@ -363,15 +367,11 @@ class NullHandler final : public OperationHandler {
     public:
         NullHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
         ~NullHandler() override = default;
-        void startTransaction() noexcept override { }
         uint16_t read(const Channel0Value&) const noexcept override { return 0; }
         void write(const Channel0Value&, uint16_t ) noexcept override { }
-        void endTransaction() noexcept override { }
-    protected:
-        void next0() noexcept override { }
 };
 
-using OperationHandlerUser = void(*)(OperationHandler&);
+using OperationHandlerUser = void(*)(TransactionInterface&);
 
 inline OperationHandler& getNullHandler() noexcept  {
     static NullHandler temp(0);

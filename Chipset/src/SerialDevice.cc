@@ -27,22 +27,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 
 namespace {
-    class SerialIOHandler final : public OperationHandler {
+    class SerialIOHandler final : public TransactionInterface {
         public:
-            SerialIOHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
             ~SerialIOHandler() override = default;
-            void startTransaction() noexcept override { }
             uint16_t read(const Channel0Value& m0) const noexcept override { 
                 return Serial.read();
             }
             void write(const Channel0Value& m0, uint16_t value) noexcept override { 
                 Serial.write(static_cast<uint8_t>(value));
             }
-            void endTransaction() noexcept override { }
-        protected:
-            void next0() noexcept override { }
     };
-    SerialIOHandler serialIO(0); // address does not matter in this case
+    SerialIOHandler serialIO; // address does not matter in this case
 }
 
 void 

@@ -33,7 +33,6 @@ namespace {
         public:
             PrescalarHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
             ~PrescalarHandler() override = default;
-            void startTransaction() noexcept override { }
             uint16_t read(const Channel0Value&) const noexcept override { 
                 return static_cast<uint16_t>(TCCR2B & 0b111);
             }
@@ -42,24 +41,17 @@ namespace {
                 result |= static_cast<uint8_t>(value & 0b111);
                 TCCR2B = result;
             }
-            void endTransaction() noexcept override { }
-        protected:
-            void next0() noexcept override { }
     };
     class CompareHandler final : public OperationHandler {
         public:
             CompareHandler(const SplitWord32& addr) noexcept : OperationHandler(addr) { }
             ~CompareHandler() override = default;
-            void startTransaction() noexcept override { }
             uint16_t read(const Channel0Value& m0) const noexcept override { 
                 return static_cast<uint16_t>(OCR2A);
             }
             void write(const Channel0Value& m0, uint16_t value) noexcept override { 
                 OCR2A = static_cast<uint8_t>(value);
             }
-            void endTransaction() noexcept override { }
-        protected:
-            void next0() noexcept override { }
     };
     PrescalarHandler prescalarHandler{0};
     CompareHandler compareHandler{0};

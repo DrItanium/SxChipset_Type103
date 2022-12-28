@@ -272,8 +272,6 @@ class DynamicValue : public OperationHandler {
             // have to set it up this way
             value_ = value;
         }
-        void startTransaction() noexcept override { }
-        void endTransaction() noexcept override { }
         uint16_t read(const Channel0Value& m0) const noexcept override { 
             return words_[getOffset()].getWholeValue(); 
         }
@@ -294,9 +292,6 @@ class DynamicValue : public OperationHandler {
             }
         }
         [[nodiscard]] T getValue() const noexcept { return value_; }
-
-    protected:
-        void next0() noexcept override { }
     private:
         union {
             T value_;

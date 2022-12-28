@@ -391,8 +391,6 @@ class CacheOperationHandler : public OperationHandler {
     public:
         CacheOperationHandler(const SplitWord32& baseAddress) noexcept : OperationHandler(baseAddress), line_(getCache().find(baseAddress)) { }
         ~CacheOperationHandler() override = default;
-        void startTransaction() noexcept override { 
-        }
         uint16_t 
         read(const Channel0Value&) const noexcept {
             return line_.getWord(getOffset());
@@ -401,17 +399,12 @@ class CacheOperationHandler : public OperationHandler {
         write(const Channel0Value& m0, uint16_t value) noexcept {
             line_.setWord(getOffset(), value, m0.getByteEnable());
         }
-        void endTransaction() noexcept override { 
-        }
-    protected:
-        void next0() noexcept override {
-        }
     private:
         DataCacheLine& line_;
 };
 template<bool isReadOperation, bool inlineSPIOperation, bool disableWriteInterrupt>
 void
-talkToi960(OperationHandler& handler) noexcept {
+talkToi960(TransactionInterface& handler) noexcept {
     handler.startTransaction();
     if constexpr (inlineSPIOperation) {
         digitalWrite<Pin::GPIOSelect, LOW>();

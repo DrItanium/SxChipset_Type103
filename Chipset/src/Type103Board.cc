@@ -210,9 +210,9 @@ Platform::getDataLines(const Channel0Value& c1, InlineSPI) noexcept {
 uint16_t 
 Platform::getDataLines(const Channel0Value& c1, NoInlineSPI) noexcept {
     if (c1.dataInterruptTriggered()) {
-        previousValue.full = MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
+        previousValue_.full = MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
     }
-    return previousValue.full;
+    return previousValue_.full;
 }
 void 
 Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
@@ -235,8 +235,8 @@ Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
 void 
 Platform::setDataLines(uint16_t value, NoInlineSPI) noexcept {
     if (previousValue_ != value) {
-        previousValue_ = value;
-        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_);
+        previousValue_.full = value;
+        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
     }
 }
 #endif

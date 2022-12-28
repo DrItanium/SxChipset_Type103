@@ -404,11 +404,6 @@ class CacheOperationHandler : public OperationHandler {
         write(const Channel0Value& m0, uint16_t value) noexcept {
             line_->setWord(getOffset(), value, m0.getByteEnable());
         }
-        void
-        endTransaction() noexcept override {
-            Parent::endTransaction();
-            line_ = nullptr;
-        }
     private:
         DataCacheLine* line_;
 };
@@ -469,7 +464,6 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
     if constexpr (inlineSPIOperation) {
         digitalWrite<Pin::GPIOSelect, HIGH>();
     }
-
     handler.endTransaction();
 }
 enum class TransactionKind {

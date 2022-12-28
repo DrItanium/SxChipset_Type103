@@ -269,20 +269,51 @@ uint16_t
 exposeBooleanValue(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return value ? 0xFFFF : 0;
 }
-class Peripheral {
-    public:
-        virtual ~Peripheral() = default;
-        virtual void handleExecution(const SplitWord32& addr, OperationHandlerUser fn) noexcept = 0;
-        virtual bool begin() noexcept { return true; }
-};
 template<typename E>
-class OperatorPeripheral : public Peripheral {
+class OperatorPeripheral : public OperationHandler {
 public:
-
+    using Parent = OperationHandler;
     using OperationList = E;
     ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return true; }
-    virtual uint32_t size() const noexcept { return static_cast<uint32_t>(E::Count); }
+    virtual uint32_t size() const noexcept { return size_.getWholeValue(); }
+    void startTransaction(const SplitWord32& addr) noexcept override {
+        Parent::startTransaction(addr);
+        // determine where we are looking :)
+        currentOpcode_ = addr.getIOFunction<OperationList>();
+    }
+    void endTransaction() noexcept override {
+        // reset the current opcode
+        currentOpcode_ = OperationList::Count;
+    }
+    uint16_t read(const Channel0Value& m0) const noexcept override {
+        switch (currentOpcode_) {
+            case E::Available: 
+                return available() ? 0xFFFF : 0x0000;
+            case E::Size:
+                return size_.halves[getOffset() & 0b1];
+            default:
+                if (validOperation(currentOpcode_)) {
+                    return extendedRead(m0);
+                } else {
+                    return 0;
+                }
+        }
+    }
+    void write(const Channel0Value& m0, uint16_t value) noexcept override {
+        switch (currentOpcode_) {
+            case E::Available:
+            case E::Size:
+                // do nothing
+                break;
+            default:
+                if (validOperation(currentOpcode_)) {
+                    extendedWrite(m0, value);
+                }
+                break;
+        }
+    }
+#if 0
     void handleExecution(const SplitWord32& addr, OperationHandlerUser fn) noexcept override {
         switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
             case E::Available: {
@@ -305,8 +336,15 @@ public:
         }
 
     }
+#endif
 protected:
-    virtual void handleExtendedOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;
+    //virtual void handleExtendedOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;
+    virtual uint16_t extendedRead(const Channel0Value& m0) const noexcept = 0;
+    virtual void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept = 0;
+    [[nodiscard]] constexpr OperationList getCurrentOpcode() const noexcept { return currentOpcode_; }
+private:
+    OperationList currentOpcode_ = OperationList::Count;
+    SplitWord32 size_{static_cast<uint32_t>(E::Count); };
 };
 
 

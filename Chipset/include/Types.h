@@ -92,13 +92,17 @@ union Word8 {
         uint8_t blast : 1;
         uint8_t den : 1;
         uint8_t fail : 1;
+#ifdef TYPE103_BOARD
         uint8_t dataInt : 1;
+#else
+        uint8_t wr : 1;
+#endif
     } channel0;
     /**
      * @brief Address bits [A1, A7] + W/~{R} in place of A0
      */
     struct {
-        uint8_t wr : 1;
+        uint8_t a0 : 1;
         uint8_t addr : 7;
     } lowestAddr;
     /**
@@ -118,12 +122,34 @@ union Word8 {
         uint8_t hold : 1;
         uint8_t rest : 6;
     } xioPortADir;
-    [[nodiscard]] constexpr bool isReadOperation() const noexcept { return lowestAddr.wr == 0; }
-    [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return lowestAddr.wr != 0; }
+    [[nodiscard]] constexpr bool isReadOperation() const noexcept { 
+#ifdef TYPE103_BOARD
+        return lowestAddr.a0 == 0; 
+#else
+        return channel0.wr == 0;
+#endif
+    }
+    [[nodiscard]] constexpr bool isWriteOperation() const noexcept { 
+        return !isReadOperation();
+    }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
-    [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { return channel0.dataInt == 0; }
-    [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { return lowestAddr.addr; }
-    [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { return getAddressBits1_7() << 1; }
+    [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { 
+#ifdef TYPE103_BOARD
+        return channel0.dataInt == 0; 
+#else
+        return true;
+#endif
+    }
+    [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { 
+        return lowestAddr.addr;
+    }
+    [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { 
+#ifdef TYPE103_BOARD
+        return getAddressBits1_7() << 1; 
+#else
+        return value_;
+#endif
+    }
     [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }
     [[nodiscard]] constexpr auto getAddressBits16_23() const noexcept { return upperAddr; }
     [[nodiscard]] constexpr auto isBurstLast() const noexcept { return channel0.blast == 0; }
@@ -140,6 +166,12 @@ union Word8 {
     [[nodiscard]] constexpr bool operator<=(const Word8& other) const noexcept { return value_ <= other.value_; }
     [[nodiscard]] constexpr bool operator>(const Word8& other) const noexcept { return value_ > other.value_; }
     [[nodiscard]] constexpr bool operator>=(const Word8& other) const noexcept { return value_ >= other.value_; }
+    [[nodiscard]] constexpr bool operator==(uint8_t other) const noexcept { return value_ == other; }
+    [[nodiscard]] constexpr bool operator!=(uint8_t other) const noexcept { return value_ != other; }
+    [[nodiscard]] constexpr bool operator<(uint8_t other) const noexcept { return value_ < other; }
+    [[nodiscard]] constexpr bool operator<=(uint8_t other) const noexcept { return value_ <= other; }
+    [[nodiscard]] constexpr bool operator>(uint8_t other) const noexcept { return value_ > other; }
+    [[nodiscard]] constexpr bool operator>=(uint8_t other) const noexcept { return value_ >= other; }
 };
 using Channel0Value = Word8;
 using Channel1Value = Word8;

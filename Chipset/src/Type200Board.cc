@@ -86,7 +86,9 @@ Platform::begin() noexcept {
         pinMode<Pin::AddressSel0>(OUTPUT);
         pinMode<Pin::AddressSel1>(OUTPUT);
         pinMode<Pin::Signal_Address>(OUTPUT);
-
+        pinMode<Pin::RESET960>(OUTPUT);
+        pinMode<Pin::HOLD>(OUTPUT);
+        pinMode<Pin::SPI_MISO>(INPUT_PULLUP);
         digitalWrite<Pin::Ready, HIGH>();
         digitalWrite<Pin::INT0_960_, HIGH>();
         digitalWrite<Pin::INT1_960, LOW>();
@@ -97,6 +99,8 @@ Platform::begin() noexcept {
         digitalWrite<Pin::AddressSel0>(LOW);
         digitalWrite<Pin::AddressSel1>(LOW);
         digitalWrite<Pin::Signal_Address>(LOW);
+        doReset(LOW);
+        doHold(LOW);
         // do an initial clear of the clock signal
     }
 }

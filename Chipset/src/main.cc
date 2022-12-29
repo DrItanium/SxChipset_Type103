@@ -356,10 +356,12 @@ loop() {
 
 void sdCsInit(SdCsPin_t pin) {
     pinMode(pin, OUTPUT);
+    delay(1);
 }
 
 void sdCsWrite(SdCsPin_t pin, bool level) {
     digitalWrite(pin, level);
+    delay(1);
 }
 
 

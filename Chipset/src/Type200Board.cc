@@ -148,20 +148,21 @@ void
 Platform::endInlineSPIOperation() noexcept {
 }
 
-
-uint16_t 
-Platform::getDataLines(const Channel0Value& c1, InlineSPI) noexcept {
+[[gnu::always_inline]]
+inline uint16_t getDataLines() noexcept {
     SplitWord16 result{0};
     result.bytes[0] = getInputRegister<Port::DataLower>();
     result.bytes[1] = getInputRegister<Port::DataUpper>();
     return result.full;
 }
+
+uint16_t 
+Platform::getDataLines(const Channel0Value& c1, InlineSPI) noexcept {
+    return ::getDataLines();
+}
 uint16_t 
 Platform::getDataLines(const Channel0Value& c1, NoInlineSPI) noexcept {
-    SplitWord16 result{0};
-    result.bytes[0] = getInputRegister<Port::DataLower>();
-    result.bytes[1] = getInputRegister<Port::DataUpper>();
-    return result.full;
+    return ::getDataLines();
 }
 void 
 Platform::setDataLines(uint16_t value, InlineSPI) noexcept {

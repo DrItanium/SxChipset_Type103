@@ -115,8 +115,8 @@ Platform::begin() noexcept {
                                                                                        // interrupts
 
         dataLinesDirection_ = MCP23S17::AllInput16;
-        currentDataLinesValue = 0;
-        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(currentDataLinesValue);
+        previousValue_.setWholeValue(0);
+        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
     }
 }
 

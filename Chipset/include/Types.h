@@ -186,6 +186,7 @@ union SplitWord16 {
     constexpr explicit SplitWord16(uint16_t value) : full(value) { }
     constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
+    void setWholeValue(uint16_t value) noexcept { full = value; }
     [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
     [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
     [[nodiscard]] constexpr bool operator==(uint16_t other) const noexcept { return full == other; }

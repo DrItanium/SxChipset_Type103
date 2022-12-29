@@ -491,5 +491,3 @@ byte GPIOR1;
 byte GPIOR2;
 #endif
 
-uint16_t currentDataLinesValue = 0;
-

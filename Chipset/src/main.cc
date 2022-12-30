@@ -264,11 +264,12 @@ bootCPU() noexcept {
         Serial.println(F("BOOT SUCCESSFUL!"));
     }
 }
+
 void
 testCoprocessor() noexcept {
     Wire.beginTransmission(8);
+    Wire.write(0);
     Wire.write("Donuts are tasty!");
-    Wire.write(32);
     Wire.endTransmission();
 }
 void 

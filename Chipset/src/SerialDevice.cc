@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Arduino.h>
 #include "Peripheral.h"
-
+#include "Wire.h"
 uint16_t
 performSerialRead_Fast(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return Serial.read();
@@ -34,6 +34,10 @@ performSerialRead_Fast(const SplitWord32&, const Channel0Value&, byte) noexcept 
 void
 performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, byte, uint16_t value) noexcept {
     Serial.write(static_cast<uint8_t>(value));
+    Wire.beginTransmission(8);
+    Wire.write(0);
+    Wire.write(static_cast<uint8_t>(value));
+    Wire.endTransmission();
 }
 
 void 

@@ -42,7 +42,7 @@ discardBytes() noexcept {
 void
 printToSerial() noexcept {
     while (Wire.available() > 0) {
-        Serial.print(static_cast<char>(Wire.read()));
+        Serial1.print(static_cast<char>(Wire.read()));
     }
 }
 void 
@@ -68,7 +68,6 @@ void setup() {
     digitalWrite(DEFAULT_CS, HIGH);
     digitalWrite(SD_PIN, HIGH);
     digitalWrite(DAZZLER_SEL, HIGH);
-    Serial.begin(115200);
     Serial1.swap(1);
     Serial1.begin(115200);
     SPI.swap(2);
@@ -79,7 +78,6 @@ void setup() {
     digitalWrite(DAZZLER_SEL, HIGH);
     Wire.begin(8);
     Wire.onReceive(onReceive);
-    Serial.println(F("i960 Startup!"));
 }
 
 void loop() {

@@ -370,6 +370,7 @@ performNullRead(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return 0;
 }
 
+
 class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
     public:
         ~SerialDevice() override = default;

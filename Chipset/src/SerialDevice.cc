@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Peripheral.h"
 #include "Wire.h"
-const char* slashRslashN = "\r\n";
 void 
 sendToDazzler(uint8_t character) noexcept {
     Wire.beginTransmission(8);
@@ -38,15 +37,16 @@ uint16_t
 performSerialRead() noexcept {
     auto result = Serial.read();
     if (result != -1) {
-        Serial.write(static_cast<uint8_t>(result));
+        Serial1.write(static_cast<uint8_t>(result));
     }
+    
     return result;
 }
 
 void
 performSerialWrite(uint16_t value) noexcept {
-    auto theChar = static_cast<uint8_t>(value);
-    Serial.write(theChar);
+    Serial.write(static_cast<uint8_t>(value));
+    Serial1.write(static_cast<uint8_t>(value));
 }
 
 void 

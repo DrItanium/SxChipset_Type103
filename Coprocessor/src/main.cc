@@ -30,11 +30,33 @@
 #define SD_PIN PIN_PF3
 #define DAZZLER_SEL PIN_PE3
 #include <GD2.h>
-
-void onReceive() noexcept {
-
+enum class Opcodes : byte {
+    SerialConsole,
+};
+void
+discardBytes() noexcept {
+    while (Wire.available() > 0) {
+        (void)Wire.read();
+    }
 }
-void onRequest(int count) noexcept {
+void
+printToSerial() noexcept {
+    while (Wire.available() > 0) {
+        Serial.print(static_cast<char>(Wire.read()));
+    }
+}
+void 
+onReceive(int) noexcept {
+    switch (static_cast<Opcodes>(Wire.read())) {
+        case Opcodes::SerialConsole:
+            printToSerial();
+            break;
+        default:
+            discardBytes();
+            break;
+    }
+}
+void onRequest() noexcept {
 
 }
 
@@ -57,7 +79,6 @@ void setup() {
     digitalWrite(DAZZLER_SEL, HIGH);
     Wire.begin(8);
     Wire.onReceive(onReceive);
-    Wire.onRequest(onRequest);
     Serial.println(F("i960 Startup!"));
 }
 

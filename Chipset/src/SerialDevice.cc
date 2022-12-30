@@ -30,26 +30,22 @@ void
 sendToDazzler(uint8_t character) noexcept {
     Wire.beginTransmission(8);
     Wire.write(0);
-    if (character == '\n') {
-        Wire.write("\r\n");
-    }  else {
-        Wire.write(character);
-    }
+    Wire.write(character);
     Wire.endTransmission();
 }
 uint16_t
-performSerialRead_Fast(const SplitWord32&, const Channel0Value&, byte) noexcept {
+performSerialRead() noexcept {
     auto result = Serial.read();
     if (result != -1) {
         // display this to the screen
-        Serial.print(static_cast<uint8_t>(result));
+        Serial.write(static_cast<uint8_t>(result));
         sendToDazzler(result);
     }
     return result;
 }
 
 void
-performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, byte, uint16_t value) noexcept {
+performSerialWrite(uint16_t value) noexcept {
     auto theChar = static_cast<uint8_t>(value);
     Serial.write(theChar);
     sendToDazzler(theChar); 
@@ -77,7 +73,7 @@ SerialDevice::extendedRead(const Channel0Value& m0) const noexcept {
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
         case SerialDeviceOperations::RW:
-            return Serial.read();
+            return performSerialRead();
         case SerialDeviceOperations::Flush:
             Serial.flush();
             return 0;
@@ -92,7 +88,7 @@ SerialDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
     // do nothing
     switch (getCurrentOpcode()) {
         case SerialDeviceOperations::RW:
-            Serial.write(static_cast<uint8_t>(value));
+            performSerialWrite(value);
             break;
         case SerialDeviceOperations::Flush:
             Serial.flush();

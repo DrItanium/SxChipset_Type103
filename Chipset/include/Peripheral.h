@@ -26,16 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_PERIPHERAL_H
 #define SXCHIPSET_TYPE103_PERIPHERAL_H
 #include <Arduino.h>
+#include "Detect.h"
 #include "Types.h"
 #include "MCP23S17.h"
 #include "Pinout.h"
 #include "RTClib.h"
 
-constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
-/**
- * @brief Onboard device to control reset and other various features
- */
-constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device7;
 
 enum class TargetPeripheral {
     Info, 
@@ -73,198 +69,112 @@ readInputChannelAs() noexcept {
         asm volatile ("nop");
         asm volatile ("nop");
     }
-    return T{PINA};
+    return T{readFromCapture()};
 }
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
-[[gnu::always_inline]] 
-inline void
-interruptI960() noexcept {
-    pulse<Pin::INT0_, LOW, HIGH>();
-}
-using ReadOperation = uint16_t (*)(const SplitWord32&, const Channel0Value&, byte);
-using WriteOperation = void(*)(const SplitWord32&, const Channel0Value&, byte, uint16_t);
+
 extern SplitWord16 previousValue;
 extern uint16_t currentDataLinesValue;
-template<bool busHeldOpen>
-[[gnu::always_inline]] 
-inline void 
-setDataLinesOutput(uint16_t value) noexcept {
-    if (currentDataLinesValue != value) {
-        currentDataLinesValue = value;
-        if constexpr (busHeldOpen) {
-#ifdef AVR_SPI_AVAILABLE
-            SPDR = static_cast<byte>(value);
-            asm volatile ("nop");
-            auto next = static_cast<byte>(value >> 8);
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = next;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-#else
-            SPI.transfer(static_cast<byte>(value));
-            SPI.transfer(static_cast<byte>(value >> 8));
-#endif
-        } else {
-            MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT>(currentDataLinesValue);
-        }
-    }
-}
-template<bool busHeldOpen, bool ignoreInterrupts = true>
-[[gnu::always_inline]] 
-inline uint16_t 
-getDataLines(const Channel0Value& c1) noexcept {
-    if (ignoreInterrupts || c1.dataInterruptTriggered()) {
-        if constexpr (busHeldOpen) {
-#ifdef AVR_SPI_AVAILABLE
-            SPDR = 0;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            auto value = SPDR;
-            SPDR = 0;
-            asm volatile ("nop");
-            previousValue.bytes[0] = value;
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            previousValue.bytes[1] = SPDR;
-#else
-            previousValue.bytes[0] = SPI.transfer(0);
-            previousValue.bytes[1] = SPI.transfer(0);
-#endif
-        } else {
-            previousValue.full = MCP23S17::readGPIO16<DataLines>();
-        }
-    }
-    return previousValue.full;
-}
-template<bool isReadOperation>
-inline void
-genericIOHandler(const SplitWord32& addr, ReadOperation onRead, WriteOperation onWrite) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        auto m0 = readInputChannelAs<Channel0Value>();
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, m0, offset));
-        } else {
-            onWrite(addr, m0, offset, getDataLines<false>(m0));
-        }
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
-/**
- * @brief Fallback implementation when the io request doesn't map to any one
- * function
- */
-template<bool isReadOperation>
-inline void
-genericIOHandler(const SplitWord32& addr) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(0);
-        } 
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
 
-template<bool isReadOperation>
-inline void
-genericIOHandler(const SplitWord32& addr, ReadOperation onRead) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, readInputChannelAs<Channel0Value>(), offset));
-        } 
-        signalReady();
-        if (isBurstLast) {
-            break;
+template<typename T>
+class DynamicValue : public OperationHandler {
+    public:
+        static_assert(sizeof(T) <= 16, "Type is larger than 16-bytes! Use a different class!");
+        DynamicValue(T value) noexcept : words_{} {
+            // have to set it up this way
+            value_ = value;
         }
-    }
-}
+        uint16_t read(const Channel0Value& m0) const noexcept override { 
+            return words_[getOffset()].getWholeValue(); 
+        }
+        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+            SplitWord16 tmp(value);
+            switch (m0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    words_[getOffset()] = tmp;
+                    break;
+                case EnableStyle::Lower8:
+                    words_[getOffset()].bytes[0] = tmp.bytes[0];
+                    break;
+                case EnableStyle::Upper8:
+                    words_[getOffset()].bytes[1] = tmp.bytes[1];
+                    break;
+                default:
+                    break;
+            }
+        }
+        [[nodiscard]] T getValue() const noexcept { return value_; }
+    private:
+        union {
+            T value_;
+            SplitWord16 words_[16 / sizeof(SplitWord16)]; // make sure that we
+                                                          // can never overflow
+        };
+};
 
-template<bool isReadOperation, typename T>
-inline void
-genericIOHandler(const SplitWord32& addr, T onRead) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if constexpr (isReadOperation) {
-            setDataLinesOutput<false>(onRead(addr, readInputChannelAs<Channel0Value>(), offset));
-        } 
-        signalReady();
-        if (isBurstLast) {
-            break;
+template<>
+class DynamicValue<uint32_t> : public OperationHandler {
+    public:
+        DynamicValue(uint32_t value) noexcept : value_{value} { }
+        uint16_t read(const Channel0Value& m0) const noexcept override { 
+            return value_.halves[getOffset() & 0b1]; 
         }
-    }
-}
-inline void
-readOnlyDynamicValue(const SplitWord32& addr, uint16_t value) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        setDataLinesOutput<false>(value);
-        signalReady();
-        if (isBurstLast) {
-            break;
+        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+            SplitWord16 tmp(value);
+            switch (m0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    value_.word16[getOffset() & 0b1] = tmp;
+                    break;
+                case EnableStyle::Lower8:
+                    value_.word16[getOffset() & 0b1].bytes[0] = tmp.bytes[0];
+                    break;
+                case EnableStyle::Upper8:
+                    value_.word16[getOffset() & 0b1].bytes[1] = tmp.bytes[1];
+                    break;
+                default:
+                    break;
+            }
         }
-    }
-}
-inline void
-readOnlyDynamicValue(const SplitWord32& addr, uint32_t value) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if (offset & 0b1) {
-            setDataLinesOutput<false>(static_cast<uint16_t>(value >> 16));
-        } else {
-            setDataLinesOutput<false>(static_cast<uint16_t>(value));
-        }
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-    }
-}
+        [[nodiscard]] uint32_t getValue() const noexcept { return value_.getWholeValue(); }
+    private:
+        SplitWord32 value_;
+};
 
-inline void
-readOnlyDynamicValue(const SplitWord32& addr, uint64_t value) noexcept {
-    for (byte offset = addr.address.offset; ; ++offset) {
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        switch (offset & 0b11) {
-            case 0b00:
-                setDataLinesOutput<false>(value);
-                break;
-            case 0b01:
-                setDataLinesOutput<false>(value >> 16);
-                break;
-            case 0b10:
-                setDataLinesOutput<false>(value >> 32);
-                break;
-            case 0b11:
-                setDataLinesOutput<false>(value >> 48);
-                break;
-            default:
-                setDataLinesOutput<false>(0);
-                break;
-
+template<>
+class DynamicValue<uint16_t> : public OperationHandler {
+    public:
+        DynamicValue(uint16_t value) noexcept : value_{value} { }
+        uint16_t read(const Channel0Value& m0) const noexcept override { 
+            return value_.getWholeValue();
         }
-        signalReady();
-        if (isBurstLast) {
-            break;
+        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+            SplitWord16 tmp(value);
+            switch (m0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    value_.full = value;
+                    break;
+                case EnableStyle::Lower8:
+                    value_.bytes[0] = tmp.bytes[0];
+                    break;
+                case EnableStyle::Upper8:
+                    value_.bytes[1] = tmp.bytes[1];
+                    break;
+                default:
+                    break;
+            }
         }
-    }
-}
-inline void
-readOnlyDynamicValue(const SplitWord32& addr, bool value) noexcept {
-    readOnlyDynamicValue(addr, value ? 0xFFFF : 0x0);
-}
+        [[nodiscard]] uint16_t getValue() const noexcept { return value_.getWholeValue(); }
+    private:
+        SplitWord16 value_;
+};
 
-
+using ExpressUint16_t = DynamicValue<uint16_t>;
+using ExpressUint32_t = DynamicValue<uint32_t>;
+using ExpressUint64_t = DynamicValue<uint64_t>;
 
 template<uint32_t value>
 uint16_t
@@ -299,66 +209,64 @@ uint16_t
 exposeBooleanValue(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return value ? 0xFFFF : 0;
 }
-class Peripheral {
+class Peripheral : public OperationHandler {
     public:
-        virtual ~Peripheral() = default;
-        template<bool isReadOperation>
-        void handleExecution(const SplitWord32& addr) noexcept {
-            if constexpr (isReadOperation) {
-                readOperation(addr);
-            } else {
-                writeOperation(addr);
-            }
-        }
-        virtual void readOperation(const SplitWord32& addr) noexcept = 0;
-        virtual void writeOperation(const SplitWord32& addr) noexcept = 0;
+        using Parent = OperationHandler;
+        ~Peripheral() override = default;
         virtual bool begin() noexcept { return true; }
 };
 template<typename E>
-class OperatorPeripheral : public Peripheral {
+class OperatorPeripheral : public Peripheral{
 public:
-
+    using Parent = Peripheral;
     using OperationList = E;
     ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return true; }
-    virtual uint32_t size() const noexcept { return static_cast<uint32_t>(E::Count); }
-    void readOperation(const SplitWord32& addr) noexcept override {
-        switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
-            case E::Available:
-                readOnlyDynamicValue(addr, available());
-                break;
-            case E::Size:
-                readOnlyDynamicValue(addr, size());
-                break;
-            default:
-                if (validOperation(opcode)) {
-                    handleExtendedReadOperation(addr, opcode);
-                } else {
-                    genericIOHandler<true>(addr);
-                }
-                break;
-        }
-
+    virtual uint32_t size() const noexcept { return size_.getWholeValue(); }
+    void startTransaction(const SplitWord32& addr) noexcept override {
+        Parent::startTransaction(addr);
+        // determine where we are looking :)
+        currentOpcode_ = addr.getIOFunction<OperationList>();
     }
-    void writeOperation(const SplitWord32& addr) noexcept override {
-        switch (auto opcode = addr.getIOFunction<OperationList>(); opcode) {
+    void endTransaction() noexcept override {
+        // reset the current opcode
+        currentOpcode_ = OperationList::Count;
+    }
+    uint16_t read(const Channel0Value& m0) const noexcept override {
+        switch (currentOpcode_) {
+            case E::Available: 
+                return available() ? 0xFFFF : 0x0000;
+            case E::Size:
+                return size_.retrieveWord(getOffset());
+            default:
+                if (validOperation(currentOpcode_)) {
+                    return extendedRead(m0);
+                } else {
+                    return 0;
+                }
+        }
+    }
+    void write(const Channel0Value& m0, uint16_t value) noexcept override {
+        switch (currentOpcode_) {
             case E::Available:
             case E::Size:
-                genericIOHandler<false>(addr);
+                // do nothing
                 break;
             default:
-                if (validOperation(opcode)) {
-                    handleExtendedWriteOperation(addr, opcode);
-                } else {
-                    genericIOHandler<false>(addr);
+                if (validOperation(currentOpcode_)) {
+                    extendedWrite(m0, value);
                 }
                 break;
         }
-
     }
 protected:
-    virtual void handleExtendedReadOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
-    virtual void handleExtendedWriteOperation(const SplitWord32& addr, OperationList value) noexcept = 0;
+    //virtual void handleExtendedOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;
+    virtual uint16_t extendedRead(const Channel0Value& m0) const noexcept = 0;
+    virtual void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept = 0;
+    [[nodiscard]] constexpr OperationList getCurrentOpcode() const noexcept { return currentOpcode_; }
+private:
+    OperationList currentOpcode_ = OperationList::Count;
+    SplitWord32 size_{static_cast<uint32_t>(E::Count) };
 };
 
 
@@ -378,8 +286,8 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         void setBaudRate(uint32_t baudRate) noexcept;
         [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept override;
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
+        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
     private:
         uint32_t baud_ = 115200;
 };
@@ -387,8 +295,8 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:
         ~InfoDevice() override = default;
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept override;
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
+        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
 };
 enum class TimerDeviceOperations {
     Available,
@@ -405,8 +313,8 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
         bool begin() noexcept override;
         bool available() const noexcept override { return available_; }
     protected:
-        void handleExtendedReadOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
-        void handleExtendedWriteOperation(const SplitWord32& addr, TimerDeviceOperations value) noexcept override;
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
+        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
     private:
         RTC_DS1307 rtc;
         bool available_ = false;

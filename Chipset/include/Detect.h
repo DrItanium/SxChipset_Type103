@@ -83,4 +83,17 @@ constexpr auto getXMEMEnd() noexcept {
 #endif
 }
 
+#ifdef BOARD_TYPE
+#  if BOARD_TYPE == 103
+#    define TYPE103_BOARD
+#  elif BOARD_TYPE == 200
+#    define TYPE200_BOARD
+#  else
+#    error "Unknown Board type defined!"
+#  endif
+#else
+#  error "No Board Type defined!"
+#endif
+
+
 #endif // end SXCHIPSET_TYPE103_DETECT_H__

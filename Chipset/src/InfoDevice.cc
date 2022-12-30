@@ -27,34 +27,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 
 namespace {
-    constexpr auto SystemClockRate = F_CPU;
-    constexpr auto CPUClockRate = SystemClockRate / 2;
+    constexpr SplitWord32 systemRateExpose{F_CPU};
+    constexpr SplitWord32 cpuClockRateExpose{F_CPU/2};
 }
-void 
-InfoDevice::handleExtendedReadOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept {
-    switch (value) {
-        case InfoDeviceOperations::GetCPUClock:
-            genericIOHandler<true>(addr, expose32BitConstant<CPUClockRate>);
-            break;
+
+uint16_t 
+InfoDevice::extendedRead(const Channel0Value& m0) const noexcept {
+    /// @todo implement support for caching the target info field so we don't
+    /// need to keep looking up the dispatch address
+    switch (getCurrentOpcode()) {
         case InfoDeviceOperations::GetChipsetClock:
-            genericIOHandler<true>(addr, expose32BitConstant<SystemClockRate>);
-            break;
+            return systemRateExpose.retrieveWord(getOffset());
+        case InfoDeviceOperations::GetCPUClock:
+            return cpuClockRateExpose.retrieveWord(getOffset());
         default:
-            genericIOHandler<true>(addr);
-            break;
+            return 0;
     }
 }
 void 
-InfoDevice::handleExtendedWriteOperation(const SplitWord32& addr, InfoDeviceOperations value) noexcept {
-    switch (value) {
-        case InfoDeviceOperations::GetCPUClock:
-            genericIOHandler<false>(addr, expose32BitConstant<CPUClockRate>);
-            break;
-        case InfoDeviceOperations::GetChipsetClock:
-            genericIOHandler<false>(addr, expose32BitConstant<SystemClockRate>);
-            break;
-        default:
-            genericIOHandler<false>(addr);
-            break;
-    }
+InfoDevice::extendedWrite(const Channel0Value&, uint16_t) noexcept {
+    // do nothing
 }

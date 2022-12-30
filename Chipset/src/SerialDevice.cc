@@ -40,9 +40,11 @@ sendToDazzler(uint8_t character) noexcept {
 uint16_t
 performSerialRead_Fast(const SplitWord32&, const Channel0Value&, byte) noexcept {
     auto result = Serial.read();
-    // display this to the screen
-    Serial.print(static_cast<uint8_t>(result));
-    sendToDazzler(result);
+    if (result != -1) {
+        // display this to the screen
+        Serial.print(static_cast<uint8_t>(result));
+        sendToDazzler(result);
+    }
     return result;
 }
 
@@ -62,42 +64,42 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
     }
 }
 
-void 
-SerialDevice::handleExtendedReadOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept {
-    switch (value) {
-        case SerialDeviceOperations::RW:
-            genericIOHandler<true>(addr, performSerialRead_Fast, performSerialWrite_Fast);
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            genericIOHandler<true>(addr);
-            break;
-        case SerialDeviceOperations::Baud:
-            readOnlyDynamicValue(addr, getBaudRate());
-            break;
-        default:
-            genericIOHandler<true>(addr);
-            break;
-    }
-}
-void 
-SerialDevice::handleExtendedWriteOperation(const SplitWord32& addr, SerialDeviceOperations value) noexcept {
-    switch (value) {
-        case SerialDeviceOperations::RW:
-            genericIOHandler<false>(addr, performSerialRead_Fast, performSerialWrite_Fast);
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            genericIOHandler<false>(addr);
-            break;
-        default:
-            genericIOHandler<false>(addr);
-            break;
-    }
-}
-
 bool
 SerialDevice::begin() noexcept {
     Serial.begin(baud_);
     return true;
+}
+
+
+uint16_t 
+SerialDevice::extendedRead(const Channel0Value& m0) const noexcept {
+    /// @todo implement support for caching the target info field so we don't
+    /// need to keep looking up the dispatch address
+    switch (getCurrentOpcode()) {
+        case SerialDeviceOperations::RW:
+            return Serial.read();
+        case SerialDeviceOperations::Flush:
+            Serial.flush();
+            return 0;
+        case SerialDeviceOperations::Baud:
+            return SplitWord32{baud_}.retrieveWord(getOffset());
+        default:
+            return 0;
+    }
+}
+void 
+SerialDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
+    // do nothing
+    switch (getCurrentOpcode()) {
+        case SerialDeviceOperations::RW:
+            Serial.write(static_cast<uint8_t>(value));
+            break;
+        case SerialDeviceOperations::Flush:
+            Serial.flush();
+            break;
+        default:
+            break;
+    }
+    /// @todo update write operations so that we cache results and perform the
+    /// writes at the end
 }

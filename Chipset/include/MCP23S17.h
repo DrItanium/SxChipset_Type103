@@ -193,7 +193,7 @@ namespace MCP23S17 {
     constexpr auto ReadOpcode_v = generateReadOpcode(addr);
     template<HardwareDeviceAddress addr>
     constexpr auto WriteOpcode_v = generateWriteOpcode(addr);
-    template<HardwareDeviceAddress address, Registers opcode, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress address, Registers opcode, Pin pin>
     [[gnu::always_inline]]
     inline uint8_t read8() noexcept {
         digitalWrite<pin, LOW>();
@@ -216,7 +216,7 @@ namespace MCP23S17 {
         digitalWrite<pin, HIGH>();
         return result;
     }
-    template<HardwareDeviceAddress address, Registers opcode, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress address, Registers opcode, Pin pin>
     [[gnu::always_inline]]
     inline uint16_t read16() noexcept {
         uint16_t output = 0;
@@ -249,7 +249,7 @@ namespace MCP23S17 {
         output |= (static_cast<uint16_t>(value) << 8);
         return output;
     }
-    template<HardwareDeviceAddress addr, Registers opcode, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress addr, Registers opcode, Pin pin>
     [[gnu::always_inline]]
     inline void write8(byte value) noexcept {
         digitalWrite<pin, LOW>();
@@ -276,7 +276,7 @@ namespace MCP23S17 {
 #endif
         digitalWrite<pin, HIGH>();
     }
-    template<HardwareDeviceAddress addr, Registers opcode, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress addr, Registers opcode, Pin pin>
     [[gnu::always_inline]]
     inline void write16(uint16_t v) noexcept {
         digitalWrite<pin, LOW>();
@@ -308,7 +308,7 @@ namespace MCP23S17 {
      * @tparam addr The io expander to read from
      * @return The contents of the GPIO register pair
      */
-    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress addr, Pin pin>
     [[gnu::always_inline]]
     inline auto readGPIO16() noexcept {
         return read16<addr, Registers::GPIO, pin>();
@@ -319,13 +319,13 @@ namespace MCP23S17 {
      * @tparam standalone When true, wrap the call in a begin/endTransaction call. When false omit them because you are doing many spi operations back to back and the begin/end is handled manually (default true)
      * @param value The value to set the gpios to
      */
-    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress addr, Pin pin>
     [[gnu::always_inline]]
     inline void writeGPIO16(uint16_t value) noexcept {
         write16<addr, Registers::GPIO, pin>(value);
     }
 
-    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress addr, Pin pin>
     [[gnu::always_inline]]
     inline void writeGPIO8_PORTA(uint8_t value) noexcept {
         write8<addr, Registers::GPIOA, pin>(value);
@@ -336,32 +336,32 @@ namespace MCP23S17 {
      * @tparam standalone When true, wrap the call in a begin/endTransaction call. When false omit them because you are doing many spi operations back to back and the begin/end is handled manually (default true)
      * @param value The 16-bit direction mask to write to the io expander (a 1 means input, a 0 means output)
      */
-    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress addr, Pin pin>
     [[gnu::always_inline]]
     inline void writeDirection(uint16_t value) noexcept {
         write16<addr, Registers::IODIR, pin>(value) ;
     }
-    template<HardwareDeviceAddress addr, Pin pin = Pin::GPIOSelect>
+    template<HardwareDeviceAddress addr, Pin cs>
     [[gnu::always_inline]]
     inline void writeDirection(uint8_t porta, uint8_t portb) noexcept {
         SplitWord16 value(porta, portb);
-        writeDirection<addr, pin>(value.getWholeValue()) ;
+        writeDirection<addr, cs>(value.getWholeValue()) ;
     }
-    template<HardwareDeviceAddress addr>
+    template<HardwareDeviceAddress addr, Pin cs>
     [[gnu::always_inline]]
     inline auto readDirection() noexcept {
-        return read16<addr, Registers::IODIR, Pin::GPIOSelect>();
+        return read16<addr, Registers::IODIR, cs>();
     }
-    template<HardwareDeviceAddress addr>
+    template<HardwareDeviceAddress addr, Pin cs>
     [[gnu::always_inline]]
     inline IOCON readIOCON() noexcept {
-        return IOCON(read8<addr, Registers::IOCON, Pin::GPIOSelect>());
+        return IOCON(read8<addr, Registers::IOCON, cs>());
     }
 
-    template<HardwareDeviceAddress addr>
+    template<HardwareDeviceAddress addr, Pin cs>
     [[gnu::always_inline]]
     inline void writeIOCON(const IOCON& value) noexcept {
-        write8<addr, Registers::IOCON, Pin::GPIOSelect>(value.getRegister());
+        write8<addr, Registers::IOCON, cs>(value.getRegister());
     }
 } // end namespace MCP23S17
 #endif //SXCHIPSET_TYPE103_MCP23S17_H

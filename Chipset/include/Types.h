@@ -37,9 +37,30 @@ template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 extern SdFat SD;
 constexpr auto OffsetSize = 4; // 16-byte line
-constexpr auto TagSize = 7; // 8192 bytes divided into 16-byte
-                                   // lines with 4 lines per set
-                                   // (4-way)
+constexpr auto getTagSize() noexcept {
+#if defined(TYPE103_BOARD)
+    return 7;
+#elif defined(TYPE200_BOARD)
+    return 6;
+#else
+# error "Unknown tag size!"
+    return 0;
+#endif
+}
+constexpr auto getNumberOfSets() noexcept {
+#if defined(TYPE103_BOARD)
+    return 128;
+#elif defined(TYPE200_BOARD)
+    return 64;
+#else
+# error "Unknown tag count!"
+    return 0;
+#endif
+
+}
+constexpr auto TagSize = getTagSize(); // 8192 bytes divided into 16-byte
+                                       // lines with 4 lines per set
+                                       // (4-way)
 constexpr auto KeySize = 32 - (OffsetSize + TagSize);
 enum class IOGroup : byte{
     Peripherals,
@@ -55,12 +76,133 @@ constexpr IOGroup getGroup(uint8_t value) noexcept {
     }
 }
 
+enum class EnableStyle : byte {
+    Full16 = 0b00,
+    Upper8 = 0b01,
+    Lower8 = 0b10,
+    Undefined = 0b11,
+};
+
+union Word8 {
+    explicit Word8(uint8_t value = 0) noexcept : value_(value) { }
+
+    uint8_t value_;
+    struct {
+        uint8_t be : 2;
+        uint8_t blast : 1;
+        uint8_t den : 1;
+        uint8_t fail : 1;
+#ifdef TYPE103_BOARD
+        uint8_t dataInt : 1;
+#else
+        uint8_t wr : 1;
+#endif
+    } channel0;
+    /**
+     * @brief Address bits [A1, A7] + W/~{R} in place of A0
+     */
+    struct {
+        uint8_t a0 : 1;
+        uint8_t addr : 7;
+    } lowestAddr;
+    /**
+     * @brief Address bits [A8, A15]
+     */
+    uint8_t lowerAddr;
+    /**
+     * @brief Address bits [A16, A23]
+     */
+    uint8_t upperAddr;
+    struct {
+        uint8_t valid_ : 1;
+        uint8_t dirty_ : 1;
+    } lineFlags;
+    struct {
+        uint8_t rst : 1;
+        uint8_t hold : 1;
+        uint8_t rest : 6;
+    } xioPortADir;
+    [[nodiscard]] constexpr bool isReadOperation() const noexcept { 
+#ifdef TYPE103_BOARD
+        return lowestAddr.a0 == 0; 
+#else
+        return channel0.wr == 0;
+#endif
+    }
+    [[nodiscard]] constexpr bool isWriteOperation() const noexcept { 
+        return !isReadOperation();
+    }
+    [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
+    [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { 
+#ifdef TYPE103_BOARD
+        return channel0.dataInt == 0; 
+#else
+        return true;
+#endif
+    }
+    [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { 
+        return lowestAddr.addr;
+    }
+    [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { 
+#ifdef TYPE103_BOARD
+        return getAddressBits1_7() << 1; 
+#else
+        return value_;
+#endif
+    }
+    [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }
+    [[nodiscard]] constexpr auto getAddressBits16_23() const noexcept { return upperAddr; }
+    [[nodiscard]] constexpr auto isBurstLast() const noexcept { return channel0.blast == 0; }
+
+    [[nodiscard]] constexpr auto lineIsValid() const noexcept { return lineFlags.valid_; }
+    [[nodiscard]] constexpr auto lineIsDirty() const noexcept { return lineFlags.dirty_; }
+    void clear() noexcept {
+        value_ = 0;
+    }
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return value_; }
+    [[nodiscard]] constexpr bool operator==(const Word8& other) const noexcept { return value_ == other.value_; }
+    [[nodiscard]] constexpr bool operator!=(const Word8& other) const noexcept { return value_ != other.value_; }
+    [[nodiscard]] constexpr bool operator<(const Word8& other) const noexcept { return value_ < other.value_; }
+    [[nodiscard]] constexpr bool operator<=(const Word8& other) const noexcept { return value_ <= other.value_; }
+    [[nodiscard]] constexpr bool operator>(const Word8& other) const noexcept { return value_ > other.value_; }
+    [[nodiscard]] constexpr bool operator>=(const Word8& other) const noexcept { return value_ >= other.value_; }
+    [[nodiscard]] constexpr bool operator==(uint8_t other) const noexcept { return value_ == other; }
+    [[nodiscard]] constexpr bool operator!=(uint8_t other) const noexcept { return value_ != other; }
+    [[nodiscard]] constexpr bool operator<(uint8_t other) const noexcept { return value_ < other; }
+    [[nodiscard]] constexpr bool operator<=(uint8_t other) const noexcept { return value_ <= other; }
+    [[nodiscard]] constexpr bool operator>(uint8_t other) const noexcept { return value_ > other; }
+    [[nodiscard]] constexpr bool operator>=(uint8_t other) const noexcept { return value_ >= other; }
+};
+using Channel0Value = Word8;
+using Channel1Value = Word8;
+using Channel2Value = Word8;
+using Channel3Value = Word8;
+
+union SplitWord16 {
+    uint16_t full;
+    ElementContainer<uint16_t, uint8_t> bytes;
+    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
+    constexpr SplitWord16() : full(0) { }
+    constexpr explicit SplitWord16(uint16_t value) : full(value) { }
+    constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
+    void setWholeValue(uint16_t value) noexcept { full = value; }
+    [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
+    [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
+    [[nodiscard]] constexpr bool operator==(uint16_t other) const noexcept { return full == other; }
+    [[nodiscard]] constexpr bool operator!=(uint16_t other) const noexcept { return full != other; }
+    [[nodiscard]] constexpr bool operator<(const SplitWord16& other) const noexcept { return full < other.full; }
+    [[nodiscard]] constexpr bool operator<=(const SplitWord16& other) const noexcept { return full <= other.full; }
+    [[nodiscard]] constexpr bool operator>(const SplitWord16& other) const noexcept { return full > other.full; }
+    [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
+};
 
 
 union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
     ElementContainer<uint32_t, uint8_t> bytes;
+    ElementContainer<uint32_t, SplitWord16> word16;
     constexpr SplitWord32(uint32_t value) : full(value) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
@@ -104,94 +246,11 @@ union SplitWord32 {
     [[nodiscard]] constexpr bool operator<=(const SplitWord32& other) const noexcept { return full <= other.full; }
     [[nodiscard]] constexpr bool operator>(const SplitWord32& other) const noexcept { return full > other.full; }
     [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
+    [[nodiscard]] constexpr auto retrieveWord(byte offset) const noexcept { return halves[offset & 0b1]; }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 
 
-enum class EnableStyle : byte {
-    Full16 = 0b00,
-    Upper8 = 0b01,
-    Lower8 = 0b10,
-    Undefined = 0b11,
-};
-union SplitWord16 {
-    uint16_t full;
-    ElementContainer<uint16_t, uint8_t> bytes;
-    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
-    constexpr SplitWord16() : full(0) { }
-    constexpr explicit SplitWord16(uint16_t value) : full(value) { }
-    constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
-    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
-    [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
-    [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
-    [[nodiscard]] constexpr bool operator<(const SplitWord16& other) const noexcept { return full < other.full; }
-    [[nodiscard]] constexpr bool operator<=(const SplitWord16& other) const noexcept { return full <= other.full; }
-    [[nodiscard]] constexpr bool operator>(const SplitWord16& other) const noexcept { return full > other.full; }
-    [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
-};
-
-union Word8 {
-    explicit Word8(uint8_t value = 0) noexcept : value_(value) { }
-
-    uint8_t value_;
-    struct {
-        uint8_t be : 2;
-        uint8_t blast : 1;
-        uint8_t den : 1;
-        uint8_t fail : 1;
-        uint8_t dataInt : 1;
-    } channel0;
-    /**
-     * @brief Address bits [A1, A7] + W/~{R} in place of A0
-     */
-    struct {
-        uint8_t wr : 1;
-        uint8_t addr : 7;
-    } lowestAddr;
-    /**
-     * @brief Address bits [A8, A15]
-     */
-    uint8_t lowerAddr;
-    /**
-     * @brief Address bits [A16, A23]
-     */
-    uint8_t upperAddr;
-    struct {
-        uint8_t valid_ : 1;
-        uint8_t dirty_ : 1;
-    } lineFlags;
-    struct {
-        uint8_t rst : 1;
-        uint8_t hold : 1;
-        uint8_t rest : 6;
-    } xioPortADir;
-    [[nodiscard]] constexpr bool isReadOperation() const noexcept { return lowestAddr.wr == 0; }
-    [[nodiscard]] constexpr bool isWriteOperation() const noexcept { return lowestAddr.wr != 0; }
-    [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
-    [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { return channel0.dataInt == 0; }
-    [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { return lowestAddr.addr; }
-    [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { return getAddressBits1_7() << 1; }
-    [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }
-    [[nodiscard]] constexpr auto getAddressBits16_23() const noexcept { return upperAddr; }
-    [[nodiscard]] constexpr auto isBurstLast() const noexcept { return channel0.blast == 0; }
-
-    [[nodiscard]] constexpr auto lineIsValid() const noexcept { return lineFlags.valid_; }
-    [[nodiscard]] constexpr auto lineIsDirty() const noexcept { return lineFlags.dirty_; }
-    void clear() noexcept {
-        value_ = 0;
-    }
-    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return value_; }
-    [[nodiscard]] constexpr bool operator==(const Word8& other) const noexcept { return value_ == other.value_; }
-    [[nodiscard]] constexpr bool operator!=(const Word8& other) const noexcept { return value_ != other.value_; }
-    [[nodiscard]] constexpr bool operator<(const Word8& other) const noexcept { return value_ < other.value_; }
-    [[nodiscard]] constexpr bool operator<=(const Word8& other) const noexcept { return value_ <= other.value_; }
-    [[nodiscard]] constexpr bool operator>(const Word8& other) const noexcept { return value_ > other.value_; }
-    [[nodiscard]] constexpr bool operator>=(const Word8& other) const noexcept { return value_ >= other.value_; }
-};
-using Channel0Value = Word8;
-using Channel1Value = Word8;
-using Channel2Value = Word8;
-using Channel3Value = Word8;
 
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
@@ -303,7 +362,7 @@ struct DataCacheSet {
         byte replacementIndex_;
 };
 struct DataCache {
-    static constexpr auto NumberOfSets = 128;
+    static constexpr auto NumberOfSets = getNumberOfSets();
     inline void clear() noexcept {
         for (auto& set : cache) {
             set.clear();
@@ -331,5 +390,52 @@ struct DataCache {
 
 DataCache& getCache() noexcept;
 void setupCache() noexcept;
+
+class TransactionInterface {
+    public:
+        virtual ~TransactionInterface() = default;
+        virtual void startTransaction(const SplitWord32& addr) noexcept { };
+        virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
+        virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
+        virtual void next() noexcept { }
+        virtual void endTransaction() noexcept { };
+};
+/**
+ * @brief Communication primitive for talking to the i960 or other devices,
+ */
+class OperationHandler : public TransactionInterface {
+    public:
+        virtual ~OperationHandler() = default;
+        void startTransaction(const SplitWord32& addr) noexcept override { 
+            address_ = addr;
+            offset_ = addr.getAddressOffset();
+        }
+        void next() noexcept override {
+            ++offset_;
+        }
+        void endTransaction() noexcept override { }
+        [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
+        [[nodiscard]] constexpr auto getOffset() const noexcept { return offset_; }
+    private:
+        SplitWord32 address_{0};
+        byte offset_ = 0;
+};
+
+/**
+ * @brief Fallback/through handler implementation
+ */
+class NullHandler final : public TransactionInterface {
+    public:
+        ~NullHandler() override = default;
+        uint16_t read(const Channel0Value&) const noexcept override { return 0; }
+        void write(const Channel0Value&, uint16_t ) noexcept override { }
+};
+
+using OperationHandlerUser = void(*)(const SplitWord32&, TransactionInterface&);
+
+inline TransactionInterface& getNullHandler() noexcept  {
+    static NullHandler temp;
+    return temp;
+}
 
 #endif //SXCHIPSET_TYPE103_TYPES_H__

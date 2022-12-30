@@ -40,6 +40,8 @@ sendToDazzler(uint8_t character) noexcept {
 uint16_t
 performSerialRead_Fast(const SplitWord32&, const Channel0Value&, byte) noexcept {
     auto result = Serial.read();
+    // display this to the screen
+    Serial.print(static_cast<uint8_t>(result));
     sendToDazzler(result);
     return result;
 }

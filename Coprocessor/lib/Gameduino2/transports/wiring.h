@@ -48,7 +48,9 @@ public:
 #else
 #if !defined(__DUE__) && !defined(ESP8266) && !defined(ESP32) && !defined(ARDUINO_ARCH_STM32)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
+#ifdef SPSR
     SPSR = (1 << SPI2X);
+#endif
 #endif
 #endif
 
@@ -289,7 +291,11 @@ public:
     __end(); // stop streaming
     __wstart(addr);
     while (n--) {
+#ifdef SPDR
       SPDR = *src++;
+#elif defined(SPI0)
+      SPI0.DATA = *src++;
+#endif
       asm volatile("nop");
       asm volatile("nop");
       asm volatile("nop");
@@ -301,7 +307,11 @@ public:
       asm volatile("nop");
       asm volatile("nop");
     }
+#ifdef SPI0
+    while ((SPI0.INTFLAGS & SPI_RXCIF_bm) == 0);
+#else
     while (!(SPSR & _BV(SPIF))) ;
+#endif
     stream();
   }
 #else

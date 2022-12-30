@@ -336,7 +336,9 @@ class sdcard {
 
 #if !defined(__DUE__) && !defined(ESP8266) && !defined(ESP32) && !defined(ARDUINO_ARCH_STM32L4) && !defined(ARDUINO_ARCH_STM32)
     SPI.setClockDivider(SPI_CLOCK_DIV2);
+#ifdef SPSR
     SPSR = (1 << SPI2X);
+#endif
 #endif
 
 #if defined(ESP8266)

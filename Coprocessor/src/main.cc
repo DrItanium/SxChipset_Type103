@@ -24,6 +24,7 @@
 */
 
 #include <Arduino.h>
+#define CS PIN_PF2
 #include <Wire.h>
 #include <SPI.h>
 #include <GD2.h>
@@ -39,6 +40,7 @@ void onRequest(int count) noexcept {
 void setup() {
     Serial1.swap(1);
     Serial1.begin(115200);
+    SPI.swap(2);
     SPI.begin();
     Wire.begin(8);
     Wire.onReceive(onReceive);

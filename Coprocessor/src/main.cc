@@ -46,6 +46,7 @@ void setup() {
     digitalWrite(DEFAULT_CS, HIGH);
     digitalWrite(SD_PIN, HIGH);
     digitalWrite(DAZZLER_SEL, HIGH);
+    Serial.begin(115200);
     Serial1.swap(1);
     Serial1.begin(115200);
     SPI.swap(2);
@@ -57,6 +58,7 @@ void setup() {
     Wire.begin(8);
     Wire.onReceive(onReceive);
     Wire.onRequest(onRequest);
+    Serial.println(F("i960 Startup!"));
 }
 
 void loop() {

@@ -24,9 +24,11 @@
 */
 
 #include <Arduino.h>
-#define CS PIN_PF2
 #include <Wire.h>
 #include <SPI.h>
+#define DEFAULT_CS PIN_PF2
+#define SD_PIN PIN_PF3
+#define DAZZLER_SEL PIN_PE3
 #include <GD2.h>
 
 void onReceive() noexcept {
@@ -38,10 +40,20 @@ void onRequest(int count) noexcept {
 
 
 void setup() {
+    pinMode(DEFAULT_CS, OUTPUT);
+    pinMode(SD_PIN, OUTPUT);
+    pinMode(DAZZLER_SEL, OUTPUT);
+    digitalWrite(DEFAULT_CS, HIGH);
+    digitalWrite(SD_PIN, HIGH);
+    digitalWrite(DAZZLER_SEL, HIGH);
     Serial1.swap(1);
     Serial1.begin(115200);
     SPI.swap(2);
     SPI.begin();
+    digitalWrite(DAZZLER_SEL, LOW);
+    SPI.transfer(0x41);
+    SPI.transfer(0x01);
+    digitalWrite(DAZZLER_SEL, HIGH);
     Wire.begin(8);
     Wire.onReceive(onReceive);
     Wire.onRequest(onRequest);

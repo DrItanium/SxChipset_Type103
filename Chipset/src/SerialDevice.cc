@@ -26,13 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Peripheral.h"
 #include "Wire.h"
+void 
+sendToDazzler(uint8_t character) noexcept {
+    Wire.beginTransmission(8);
+    Wire.write(0);
+    if (character == '\n') {
+        Wire.write("\r\n");
+    }  else {
+        Wire.write(character);
+    }
+    Wire.endTransmission();
+}
 uint16_t
 performSerialRead_Fast(const SplitWord32&, const Channel0Value&, byte) noexcept {
     auto result = Serial.read();
-    Wire.beginTransmission(8);
-    Wire.write(0);
-    Wire.write(static_cast<uint8_t>(result));
-    Wire.endTransmission();
+    sendToDazzler(result);
     return result;
 }
 
@@ -40,10 +48,7 @@ void
 performSerialWrite_Fast(const SplitWord32&, const Channel0Value&, byte, uint16_t value) noexcept {
     auto theChar = static_cast<uint8_t>(value);
     Serial.write(theChar);
-    Wire.beginTransmission(8);
-    Wire.write(0);
-    Wire.write(theChar);
-    Wire.endTransmission();
+    sendToDazzler(theChar); 
 }
 
 void 

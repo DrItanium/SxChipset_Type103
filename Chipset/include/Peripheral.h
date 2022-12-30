@@ -411,4 +411,6 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
         RTC_DS1307 rtc;
         bool available_ = false;
 };
+
+void sendToDazzler(uint8_t character) noexcept;
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

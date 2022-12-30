@@ -270,7 +270,7 @@ testCoprocessor() noexcept {
     Wire.beginTransmission(8);
     Wire.write(0);
     Wire.write("Donuts are tasty!");
-    Wire.write('\n');
+    Wire.write("\r\n");
     Wire.endTransmission();
 }
 void 

@@ -36,7 +36,7 @@ void printCharactersToSerial1(T& source) noexcept {
         auto theChar = static_cast<char>(source.read());
         switch (theChar) {
             case '\n':
-            case '\r':
+                // shove a carriage return in
                 Serial1.print("\r\n");
                 break;
             default:

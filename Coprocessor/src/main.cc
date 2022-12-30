@@ -26,6 +26,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
+#include <GD2.h>
 
 void onReceive() noexcept {
 

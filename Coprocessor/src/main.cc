@@ -68,6 +68,7 @@ void setup() {
     digitalWrite(DEFAULT_CS, HIGH);
     digitalWrite(SD_PIN, HIGH);
     digitalWrite(DAZZLER_SEL, HIGH);
+    Serial.begin(115200);
     Serial1.swap(1);
     Serial1.begin(115200);
     SPI.swap(2);
@@ -81,5 +82,9 @@ void setup() {
 }
 
 void loop() {
-
+    // only send data off to the dazzler in text mode, we have to act as a
+    // passthrough
+    while (Serial.available()) {
+        Serial1.write(Serial.read());
+    }
 }

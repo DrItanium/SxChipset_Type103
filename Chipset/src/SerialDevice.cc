@@ -36,12 +36,17 @@ sendToDazzler(uint8_t character) noexcept {
 }
 uint16_t
 performSerialRead() noexcept {
-    return Serial.read();
+    auto result = Serial.read();
+    if (result != -1) {
+        Serial.write(static_cast<uint8_t>(result));
+    }
+    return result;
 }
 
 void
 performSerialWrite(uint16_t value) noexcept {
-    Serial.write(static_cast<uint8_t>(value));
+    auto theChar = static_cast<uint8_t>(value);
+    Serial.write(theChar);
 }
 
 void 

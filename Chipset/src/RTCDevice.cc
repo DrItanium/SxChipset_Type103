@@ -66,6 +66,8 @@ TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
+        case TimerDeviceOperations::UnixTime:
+            return unixtimeCopy_.retrieveWord(getOffset());
         case TimerDeviceOperations::SystemTimerPrescalar:
 #ifdef TYPE103_BOARD
             return static_cast<uint16_t>(TCCR2B & 0b111);
@@ -101,4 +103,18 @@ TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
     }
     /// @todo update write operations so that we cache results and perform the
     /// writes at the end
+}
+
+void
+TimerDevice::startTransaction(const SplitWord32& addr) noexcept {
+    Parent::startTransaction(addr);
+    // ahead of time, sample the unix time. It will be safe to do this since
+    // the resolution is in seconds. Even if it does shift over it is okay!
+    switch (getCurrentOpcode()) {
+        case TimerDeviceOperations::UnixTime:
+            unixtimeCopy_.full = rtc.now().unixtime();
+            break;
+        default:
+            break;
+    }
 }

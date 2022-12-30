@@ -27,39 +27,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "Wire.h"
 const char* slashRslashN = "\r\n";
-void
-outputToSerial(uint8_t character) noexcept {
-    if (character == '\n' || character == '\r') {
-        Serial.write(slashRslashN);
-    } else {
-        Serial.write(static_cast<uint8_t>(character));
-    }
-}
 void 
 sendToDazzler(uint8_t character) noexcept {
     Wire.beginTransmission(8);
     Wire.write(0);
-    if (character == '\n' || character == '\r') {
-        Wire.write(slashRslashN);
-    }  else {
-        Wire.write(character);
-    }
+    Wire.write(character);
     Wire.endTransmission();
 }
 uint16_t
 performSerialRead() noexcept {
-    auto result = Serial.read();
-    if (result != -1) {
-        // display this to the screen
-        outputToSerial(result);
-    }
-    return result;
+    return Serial.read();
 }
 
 void
 performSerialWrite(uint16_t value) noexcept {
-    auto theChar = static_cast<uint8_t>(value);
-    Serial.write(theChar);
+    Serial.write(static_cast<uint8_t>(value));
 }
 
 void 

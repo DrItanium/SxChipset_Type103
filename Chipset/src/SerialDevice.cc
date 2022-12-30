@@ -52,7 +52,6 @@ performSerialRead() noexcept {
     if (result != -1) {
         // display this to the screen
         outputToSerial(result);
-        //sendToDazzler(result);
     }
     return result;
 }
@@ -61,7 +60,6 @@ void
 performSerialWrite(uint16_t value) noexcept {
     auto theChar = static_cast<uint8_t>(value);
     Serial.write(theChar);
-    //sendToDazzler(theChar); 
 }
 
 void 

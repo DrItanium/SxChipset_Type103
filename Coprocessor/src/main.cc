@@ -30,6 +30,21 @@
 #define SD_PIN PIN_PF3
 #define DAZZLER_SEL PIN_PE3
 #include <GD2.h>
+template<typename T>
+void printCharactersToSerial1(T& source) noexcept {
+    while (source.available()) {
+        auto theChar = static_cast<char>(source.read());
+        switch (theChar) {
+            case '\n':
+            case '\r':
+                Serial1.print("\r\n");
+                break;
+            default:
+                Serial1.print(theChar);
+                break;
+        }
+    }
+}
 enum class Opcodes : byte {
     SerialConsole,
 };
@@ -41,9 +56,7 @@ discardBytes() noexcept {
 }
 void
 printToSerial() noexcept {
-    while (Wire.available() > 0) {
-        Serial1.print(static_cast<char>(Wire.read()));
-    }
+    printCharactersToSerial1(Wire);
 }
 void 
 onReceive(int) noexcept {
@@ -84,7 +97,5 @@ void setup() {
 void loop() {
     // only send data off to the dazzler in text mode, we have to act as a
     // passthrough
-    while (Serial.available()) {
-        Serial1.write(Serial.read());
-    }
+    printCharactersToSerial1(Serial);
 }

@@ -88,17 +88,7 @@ bringUpSDCard() noexcept {
 }
 void
 setupEBI() noexcept {
-    Serial.print(F("Setting up EBI..."));
-    // cleave the address space in half via sector limits.
-    // lower half is io space for the implementation
-    // upper half is the window into the 32/8 bus
-    XMCRB = 0;           // No external memory bus keeper and full 64k address
-                         // space
-    XMCRA = 0b1100'0000; // Divide the 64k address space in half at 0x8000, no
-                         // wait states activated either. Also turn on the EBI
-    set328BusAddress(0);
-    setInternalBusAddress(0);
-    Serial.println(F("DONE"));
+    xmem::begin(true);
 }
 void
 configureGPIOs() noexcept {
@@ -231,18 +221,15 @@ installMemoryImage() noexcept {
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
-        auto BufferSize = 2048;
+        xmem::setMemoryBank(0);
+        auto BufferSize = 16384;
         auto* buffer = new byte[BufferSize]();
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
-            //while (memoryImage.isBusy());
+            while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
             auto numRead = memoryImage.read(buffer, BufferSize);
             if (numRead < 0) {
-                Serial.println(F("Read no bytes from SD Card!"));
-                Serial.println(F("HALTING!"));
-                while (true) {
-                    delay(1000);
-                }
+                SD.errorHalt();
             }
             memoryWrite(currentAddressLine, buffer, numRead);
             if ((j % 16) == 0) {
@@ -255,22 +242,33 @@ installMemoryImage() noexcept {
         delete [] buffer;
     }
 }
+struct Cache {
+
+};
 struct CacheReference {
     void select() {
-        setInternalBusAddress(index_);
+        xmem::setMemoryBank(index_);
     }
     void begin(byte index) noexcept {
         if (!initialized_) {
             initialized_ = true;
-            index_ = index & 0b1111;
+            index_ = index;
+            select();
+            ptr_ = new Cache();
         }
     }
     private:
         byte index_ = 0;
         bool initialized_ = false;
+        Cache* ptr_ = nullptr;
 };
+CacheReference cacheBlocks_[64];
 void
 setupCache() noexcept {
+    for (int i = 0, j = 16; i < 64; ++i, ++j) {
+        cacheBlocks_[i].begin(j);
+    }
+    xmem::setMemoryBank(0);
 }
 
 
@@ -292,19 +290,12 @@ loop() {
     delay(1000);
 }
 
-namespace 
-
-void
-setInternalBusAddress(uint8_t bank) noexcept {
-}
-
 namespace External328Bus {
     void setBank(uint8_t bank) noexcept {
         // set the upper
         digitalWrite(FakeA15, bank & 0b1 ? HIGH : LOW);
         PORTF = bank >> 1;
         PORTK = 0;
-
     }
     void begin() noexcept {
         DDRK = 0xFF;

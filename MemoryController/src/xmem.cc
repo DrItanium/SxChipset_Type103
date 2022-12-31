@@ -87,9 +87,9 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
     void setupInternalMegaMemoryBus() noexcept {
 #ifdef I960_MEGA_MEMORY_CONTROLLER
         InternalBus::begin();
-        InternalBus::setAddress(0);
+        InternalBus::setBank(0);
         External328Bus::begin();
-        External328Bus::setAddress(0);
+        External328Bus::setBank(0);
 #endif
 
 
@@ -130,7 +130,7 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
         if (heapInXmem_) {
             __malloc_heap_end = reinterpret_cast<char*>(0xFFFF);
             __malloc_heap_start = reinterpret_cast<char*>(0x8000);
-            __brkval = static_cast<char*>(0x8000);
+            __brkval = reinterpret_cast<char*>(0x8000);
         }
         for (uint8_t i = 16; i < getNumberOfBankHeapStates(); ++i) {
             saveHeap(i);
@@ -143,10 +143,16 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 
 	void begin(bool heapInXmem_) {
 
-		// set up the xmem registers
-
-		XMCRB=0; // need all 64K. no pins released
-		XMCRA=1<<SRE; // enable xmem, no wait states
+        // set up the xmem registers
+#ifndef I960_MEGA_MEMORY_CONTROLLER
+        XMCRB=0; // need all 64K. no pins released
+        XMCRA=1<<SRE; // enable xmem, no wait states
+#else
+        XMCRB = 0;           // No external memory bus keeper and full 64k address
+                             // space
+        XMCRA = 0b1100'0000; // Divide the 64k address space in half at 0x8000, no
+                             // wait states activated either. Also turn on the EBI
+#endif
         setupQuadRamShield();
         setupAndyBrownShield();
         setupInternalMegaMemoryBus();
@@ -198,7 +204,9 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 			PORTL&=~_BV(PL6);
 #elif defined(I960_MEGA_MEMORY_CONTROLLER)
         if (bank_ < 16) {
-            InternalBus::setAddress(bank_);
+            InternalBus::setBank(bank_);
+        } else {
+            External328Bus::setBank(bank_ - 16);
         }
 #endif
 
@@ -238,7 +246,20 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 	 */
 
 	SelfTestResults selfTest() {
-
+        auto getStart = [](uint8_t bank) {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
+            return bank < 16 ? 0x7FFF : 0xFFFF;
+#else
+            return 0xFFFF;
+#endif
+        };
+        auto getEnd = [](uint8_t bank) {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
+            return bank < 16 ? (RAMEND + 1) : 0x8000;
+#else
+            return RAMEND + 1;
+#endif
+        };
 		volatile uint8_t *ptr;
 		uint8_t bank,writeValue,readValue;
 		SelfTestResults results;
@@ -247,11 +268,12 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 		// all memory banks
 
 		writeValue=1;
-		for(bank=0;bank<8;bank++) {
+		for(bank=0;bank<getNumberOfBankHeapStates();bank++) {
 
 			setMemoryBank(bank);
-
-			for(ptr=reinterpret_cast<uint8_t *> (0xFFFF);ptr>=reinterpret_cast<uint8_t *> (0x2200);ptr--) {
+            auto startPtr = getStart(bank);
+            auto stopPtr = getEnd(bank);
+			for(ptr=reinterpret_cast<uint8_t*>(startPtr); ptr >= reinterpret_cast<uint8_t*>(stopPtr); --ptr) {
 				*ptr=writeValue;
 
 				if(writeValue++==237)
@@ -262,12 +284,12 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 		// verify the writes
 
 		writeValue=1;
-		for(bank=0;bank<8;bank++) {
+		for(bank=0;bank<getNumberOfBankHeapStates();bank++) {
 
 			setMemoryBank(bank);
-
-			for(ptr=reinterpret_cast<uint8_t *> (0xFFFF);ptr>=reinterpret_cast<uint8_t *> (0x2200);ptr--) {
-
+            auto startPtr = getStart(bank);
+            auto stopPtr = getEnd(bank);
+			for(ptr=reinterpret_cast<uint8_t*>(startPtr); ptr >= reinterpret_cast<uint8_t*>(stopPtr); --ptr) {
 				readValue=*ptr;
 
 				if(readValue!=writeValue) {

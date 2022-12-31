@@ -274,8 +274,8 @@ setupCache() noexcept {
 
 void 
 setup() {
-    setupEBI();
     setupSerial();
+    setupEBI();
     setupSPI();
     setupTWI();
     configureGPIOs();
@@ -295,6 +295,8 @@ loop() {
         Serial.println(reinterpret_cast<uint16_t>(results.failedAddress), HEX);
         Serial.print(F("Failed Bank: 0x"));
         Serial.println(results.failedBank, HEX);
+        Serial.print(F("Got Value: 0x")); Serial.println(static_cast<int>(results.gotValue), HEX);
+        Serial.print(F("Expected Value: 0x")); Serial.println(static_cast<int>(results.expectedValue), HEX);
     }
     delay(1000);
 }
@@ -303,8 +305,10 @@ namespace External328Bus {
     void setBank(uint8_t bank) noexcept {
         // set the upper
         digitalWrite(FakeA15, bank & 0b1 ? HIGH : LOW);
-        PORTF = bank >> 1;
-        PORTK = 0;
+        PORTK = (bank >> 1) & 0b0111'1111;
+        PORTF = 0;
+        Serial.print(F("External Bank: "));
+        Serial.println(static_cast<int>(bank));
     }
     void begin() noexcept {
         DDRK = 0xFF;
@@ -319,6 +323,8 @@ namespace InternalBus {
         digitalWrite(BANK1, bank & 0b0010 ? HIGH : LOW);
         digitalWrite(BANK2, bank & 0b0100 ? HIGH : LOW);
         digitalWrite(BANK3, bank & 0b1000 ? HIGH : LOW);
+        Serial.print(F("Internal Bank: "));
+        Serial.println(static_cast<int>(bank));
     }
     void begin() noexcept {
         pinMode(BANK0, OUTPUT);

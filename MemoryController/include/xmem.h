@@ -43,6 +43,8 @@ namespace xmem {
 			bool succeeded;
 			volatile uint8_t *failedAddress;
 			uint8_t failedBank;
+            uint8_t expectedValue;
+            uint8_t gotValue;
 	};
 
 	/*

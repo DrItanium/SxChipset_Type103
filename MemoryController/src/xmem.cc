@@ -118,21 +118,19 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
         // We map 32k/24k chunks in each bank. The first 16 banks are mapped to
         // the internal 24k memory chunks. The remaning 64 banks are mapped to
         // the external 2 megabytes of ram found on the 328 bus
-        if (heapInXmem_) {
-            // first 32k of 
-            __malloc_heap_end = reinterpret_cast<char*>(0x7FFF);
-            __malloc_heap_start = reinterpret_cast<char*>(RAMEND+1);
-            __brkval = reinterpret_cast<char*>(RAMEND+1);
-        }
-        for (uint8_t i = 0; i < 16; ++i) {
-            saveHeap(i);
-        }
-        if (heapInXmem_) {
-            __malloc_heap_end = reinterpret_cast<char*>(0xFFFF);
-            __malloc_heap_start = reinterpret_cast<char*>(0x8000);
-            __brkval = reinterpret_cast<char*>(0x8000);
-        }
-        for (uint8_t i = 16; i < getNumberOfBankHeapStates(); ++i) {
+        for (uint8_t i = 0; i < getNumberOfBankHeapStates(); ++i) {
+            if (heapInXmem_) {
+                // first 32k of 
+                if (i < 16) {
+                    __malloc_heap_end = reinterpret_cast<char*>(0x7FFF);
+                    __malloc_heap_start = reinterpret_cast<char*>(RAMEND+1);
+                    __brkval = reinterpret_cast<char*>(RAMEND+1);
+                } else {
+                    __malloc_heap_end = reinterpret_cast<char*>(0xFFFF);
+                    __malloc_heap_start = reinterpret_cast<char*>(0x8000);
+                    __brkval = reinterpret_cast<char*>(0x8000);
+                }
+            }
             saveHeap(i);
         }
 		setMemoryBank(0);
@@ -164,7 +162,6 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 #endif
 
 	}
-
 	/*
 	 * Set the memory bank
 	 */
@@ -261,14 +258,13 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 #endif
         };
 		volatile uint8_t *ptr;
-		uint8_t bank,writeValue,readValue;
 		SelfTestResults results;
 
 		// write an ascending sequence of 1..237 running through
 		// all memory banks
 
-		writeValue=1;
-		for(bank=0;bank<getNumberOfBankHeapStates();bank++) {
+		auto writeValue=1;
+		for(auto bank=0;bank<getNumberOfBankHeapStates();bank++) {
 
 			setMemoryBank(bank);
             auto startPtr = getStart(bank);
@@ -284,18 +280,20 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 		// verify the writes
 
 		writeValue=1;
-		for(bank=0;bank<getNumberOfBankHeapStates();bank++) {
+		for(auto bank=0;bank<getNumberOfBankHeapStates();bank++) {
 
 			setMemoryBank(bank);
             auto startPtr = getStart(bank);
             auto stopPtr = getEnd(bank);
 			for(ptr=reinterpret_cast<uint8_t*>(startPtr); ptr >= reinterpret_cast<uint8_t*>(stopPtr); --ptr) {
-				readValue=*ptr;
+				auto readValue=*ptr;
 
 				if(readValue!=writeValue) {
 					results.succeeded=false;
 					results.failedAddress=ptr;
 					results.failedBank=bank;
+                    results.expectedValue = writeValue;
+                    results.gotValue = readValue;
 					return results;
 				}
 

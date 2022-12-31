@@ -26,7 +26,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 constexpr auto PSRAMEnable = 2;
 constexpr auto SDPin = 10;
 constexpr auto BANK0 = 45;
@@ -36,7 +36,7 @@ constexpr auto BANK3 = 42;
 constexpr auto FakeA15 = 38;
 using Ordinal = uint32_t;
 using LongOrdinal = uint64_t;
-
+SdFat SD;
 union SplitWord32 {
     constexpr SplitWord32 (Ordinal a) : whole(a) { }
     Ordinal whole;
@@ -227,6 +227,79 @@ bringUpPSRAM() noexcept {
     }
 }
 
+namespace {
+    template<int targetPin>
+    size_t
+    psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        digitalWrite(targetPin, LOW);
+        SPI.transfer(0x02);
+        SPI.transfer(baseAddress.bytes[2]);
+        SPI.transfer(baseAddress.bytes[1]);
+        SPI.transfer(baseAddress.bytes[0]);
+        SPI.transfer(bytes, count);
+        digitalWrite(targetPin, HIGH);
+        return count;
+    }
+
+    template<int targetPin>
+    size_t
+    psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+        digitalWrite(targetPin, LOW);
+        SPI.transfer(0x03);
+        SPI.transfer(baseAddress.bytes[2]);
+        SPI.transfer(baseAddress.bytes[1]);
+        SPI.transfer(baseAddress.bytes[0]);
+        SPI.transfer(bytes, count);
+        digitalWrite(targetPin, HIGH);
+        return count;
+    }
+}
+
+size_t
+memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+    return psramMemoryWrite<PSRAMEnable>(baseAddress, bytes, count);
+}
+size_t
+memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+    return psramMemoryRead<PSRAMEnable>(baseAddress, bytes, count);
+}
+
+void 
+installMemoryImage() noexcept {
+    if (File memoryImage; !SD.open("boot.sys", FILE_READ)) {
+        Serial.println(F("Couldn't open boot.sys!"));
+        while (true) {
+            delay(1000);
+        }
+    } else {
+        // write out to the data cache as we go along, when we do a miss then
+        // we will be successful in writing out to main memory
+        Serial.println(F("installing memory image from sd"));
+        auto BufferSize = 8192;
+        auto* buffer = new byte[BufferSize]();
+        for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
+            //while (memoryImage.isBusy());
+            SplitWord32 currentAddressLine(i);
+            auto numRead = memoryImage.read(buffer, BufferSize);
+            if (numRead < 0) {
+                Serial.println(F("Read no bytes from SD Card!"));
+                Serial.println(F("HALTING!"));
+                while (true) {
+                    delay(1000);
+                }
+            }
+            memoryWrite(currentAddressLine, buffer, numRead);
+            if ((j % 16) == 0) {
+                Serial.print(F("."));
+            }
+        }
+        memoryImage.close();
+        Serial.println();
+        Serial.println(F("transfer complete!"));
+        delete [] buffer;
+    }
+}
+
 void 
 setup() {
     setupSerial();
@@ -236,6 +309,7 @@ setup() {
     bringUpSDCard();
     bringUpPSRAM<false>();
     setupEBI();
+    installMemoryImage();
 }
 void 
 loop() {

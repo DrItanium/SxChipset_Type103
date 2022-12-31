@@ -145,3 +145,19 @@ setup() {
 void 
 loop() {
 }
+
+void
+set328BusAddress(const SplitWord32& address) noexcept {
+    // set the upper
+    PORTF = address.splitAddress.a24_31;
+    PORTK = address.splitAddress.a16_23;
+    digitalWrite(38, address.splitAddress.a15);
+}
+
+void
+setInternalBusAddress(const SplitWord32& address) noexcept {
+    digitalWrite(BANK0, address.internalBankAddress.bank0);
+    digitalWrite(BANK1, address.internalBankAddress.bank1);
+    digitalWrite(BANK2, address.internalBankAddress.bank2);
+    digitalWrite(BANK3, address.internalBankAddress.bank3);
+}

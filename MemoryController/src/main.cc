@@ -307,13 +307,13 @@ installMemoryImage() noexcept {
 
 void 
 setup() {
+    setupEBI();
     setupSerial();
     setupSPI();
     setupTWI();
     configureGPIOs();
     bringUpSDCard();
     bringUpPSRAM<false>();
-    setupEBI();
     installMemoryImage();
 }
 void 

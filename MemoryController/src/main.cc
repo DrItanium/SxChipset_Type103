@@ -232,6 +232,7 @@ setup() {
     setupSerial();
     setupSPI();
     setupTWI();
+    configureGPIOs();
     bringUpSDCard();
     bringUpPSRAM<false>();
     setupEBI();

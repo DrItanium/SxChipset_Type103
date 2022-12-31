@@ -276,13 +276,13 @@ void
 setup() {
     setupSerial();
     setupEBI();
+    //setupCache();
     setupSPI();
     setupTWI();
     configureGPIOs();
     bringUpSDCard();
     bringUpPSRAM<false>();
     installMemoryImage();
-    setupCache();
     // setup cache in the heap now!
 }
 void 
@@ -311,8 +311,12 @@ namespace External328Bus {
         Serial.println(static_cast<int>(bank));
     }
     void begin() noexcept {
-        DDRK = 0xFF;
-        DDRF = 0xFF;
+        static constexpr int PinList[] {
+            A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15
+        };
+        for (auto pin : PinList) {
+            pinMode(pin, OUTPUT);
+        }
         pinMode(FakeA15, OUTPUT);
         setBank(0);
     }

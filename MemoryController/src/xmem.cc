@@ -87,9 +87,7 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
     void setupInternalMegaMemoryBus() noexcept {
 #ifdef I960_MEGA_MEMORY_CONTROLLER
         InternalBus::begin();
-        InternalBus::setBank(0);
         External328Bus::begin();
-        External328Bus::setBank(0);
 #endif
 
 
@@ -142,15 +140,8 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 	void begin(bool heapInXmem_) {
 
         // set up the xmem registers
-#ifndef I960_MEGA_MEMORY_CONTROLLER
         XMCRB=0; // need all 64K. no pins released
         XMCRA=1<<SRE; // enable xmem, no wait states
-#else
-        XMCRB = 0;           // No external memory bus keeper and full 64k address
-                             // space
-        XMCRA = 0b1100'0000; // Divide the 64k address space in half at 0x8000, no
-                             // wait states activated either. Also turn on the EBI
-#endif
         setupQuadRamShield();
         setupAndyBrownShield();
         setupInternalMegaMemoryBus();

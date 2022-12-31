@@ -1,0 +1,17 @@
+GAL16V8
+SRAMCardDecoder
+
+SEL0  SEL1 SEL2 SEL3 A19 A20 A21 A22 A23 GND
+MATCH NC   P0   P1   P2  EN0 EN3 EN2 EN1 VCC
+
+P0 = SEL1 * A21 + /SEL1 * /A21
+P1 = SEL2 * A22 + /SEL2 * /A22
+P2 = SEL3 * A23 + /SEL3 * /A23
+/EN0 = /MATCH * P0 * P1 * P2 * /A19 * /A20
+/EN1 = /MATCH * P0 * P1 * P2 * A19 * /A20
+/EN2 = /MATCH * P0 * P1 * P2 * /A19 * A20
+/EN3 = /MATCH * P0 * P1 * P2 * A19 * A20
+
+DESCRIPTION
+
+SRAM Decoder card that selects one of four 512k SRAM chips

@@ -33,12 +33,14 @@ constexpr auto BANK0 = 45;
 constexpr auto BANK1 = 44;
 constexpr auto BANK2 = 43;
 constexpr auto BANK3 = 42;
+constexpr auto FakeA15 = 38;
 using Ordinal = uint32_t;
 using LongOrdinal = uint64_t;
 
 union SplitWord32 {
     constexpr SplitWord32 (Ordinal a) : whole(a) { }
     Ordinal whole;
+    uint8_t bytes[sizeof(Ordinal)/sizeof(uint8_t)];
     struct {
         Ordinal lower : 15;
         Ordinal a15 : 1;
@@ -58,10 +60,17 @@ union SplitWord32 {
         Ordinal space : 4;
     } addressKind;
     [[nodiscard]] constexpr bool inIOSpace() const noexcept { return addressKind.space == 0b1111; }
+    constexpr bool operator==(const SplitWord32& other) const noexcept {
+        return other.whole == whole;
+    }
+    constexpr bool operator!=(const SplitWord32& other) const noexcept {
+        return other.whole != whole;
+    }
 };
 union SplitWord64 {
     LongOrdinal whole;
     Ordinal parts[sizeof(LongOrdinal) / sizeof(Ordinal)];
+    uint8_t bytes[sizeof(LongOrdinal)/sizeof(uint8_t)];
 };
 void set328BusAddress(const SplitWord32& address) noexcept;
 void setInternalBusAddress(const SplitWord32& address) noexcept;
@@ -109,25 +118,17 @@ setupSerial(bool displayBootScreen = true) noexcept {
         Serial.println(F("Base Platform: Arduino Mega2560"));
     }
 }
-
-void 
-setup() {
-    setupSerial();
-    Serial.println(F("Bringing up peripherals"));
-    Serial.println();
-    setupSPI();
-    setupTWI();
-    Serial.print(F("Configuring GPIOs..."));
-    pinMode(BANK0, OUTPUT);
-    pinMode(BANK1, OUTPUT);
-    pinMode(BANK2, OUTPUT);
-    pinMode(BANK3, OUTPUT);
-    pinMode(SDPin, OUTPUT);
-    pinMode(PSRAMEnable, OUTPUT);
-    digitalWrite(SDPin, HIGH);
-    digitalWrite(PSRAMEnable, HIGH);
-
-    Serial.println(F("DONE"));
+void
+bringUpSDCard() noexcept {
+    Serial.println(F("Bringing up SD Card support"));
+    while (!SD.begin(SDPin)) {
+        Serial.println(F("SD Card not found, waiting a second and trying again!"));
+        delay(1000);
+    }
+    Serial.println(F("Brought up SD Card support"));
+}
+void
+setupEBI() noexcept {
     Serial.print(F("Setting up EBI..."));
     // cleave the address space in half via sector limits.
     // lower half is io space for the implementation
@@ -139,11 +140,105 @@ setup() {
     set328BusAddress(0);
     setInternalBusAddress(0);
     Serial.println(F("DONE"));
+}
+void
+configureGPIOs() noexcept {
+    Serial.print(F("Configuring GPIOs..."));
+    pinMode(BANK0, OUTPUT);
+    pinMode(BANK1, OUTPUT);
+    pinMode(BANK2, OUTPUT);
+    pinMode(BANK3, OUTPUT);
+    pinMode(SDPin, OUTPUT);
+    pinMode(PSRAMEnable, OUTPUT);
+    pinMode(FakeA15, OUTPUT);
+    digitalWrite(FakeA15, LOW);
+    portMode(PORTK, OUTPUT);
+    portMode(PORTF, OUTPUT);
+    digitalWrite(SDPin, HIGH);
+    digitalWrite(PSRAMEnable, HIGH);
+    Serial.println(F("DONE"));
+}
 
-    Serial.println(F("BOOT COMPLETE!!"));
+template<int targetPin, bool performFullMemoryTest>
+bool
+setupPSRAM() noexcept {
+    SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
+    // according to the manuals we need at least 200 microseconds after bootup
+    // to allow the psram to do it's thing
+    delayMicroseconds(200);
+    // 0x66 tells the PSRAM to initialize properly
+    digitalWrite(targetPin, LOW);
+    SPI.transfer(0x66);
+    digitalWrite(targetPin, HIGH);
+    // test the first 64k instead of the full 8 megabytes
+    constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
+    for (uint32_t i = 0; i < endAddress; i += 4) {
+        SplitWord32 container {i}, result {0};
+        digitalWrite(targetPin, LOW);
+        SPI.transfer(0x02); // write
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[0]);
+        SPI.transfer(container.bytes[0]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[3]);
+        digitalWrite(targetPin, HIGH);
+        asm volatile ("nop");
+        asm volatile ("nop");
+        asm volatile ("nop");
+        asm volatile ("nop");
+        digitalWrite(targetPin, LOW);
+        SPI.transfer(0x03); // read 
+        SPI.transfer(container.bytes[2]);
+        SPI.transfer(container.bytes[1]);
+        SPI.transfer(container.bytes[0]);
+        result.bytes[0] = SPI.transfer(0);
+        result.bytes[1] = SPI.transfer(0);
+        result.bytes[2] = SPI.transfer(0);
+        result.bytes[3] = SPI.transfer(0);
+        digitalWrite(targetPin, HIGH);
+        if (container != result) {
+            return false;
+        }
+    }
+    SPI.endTransaction();
+    return true;
+}
+template<bool performFullMemoryTest>
+void
+bringUpPSRAM() noexcept {
+    uint32_t memoryAmount = 0;
+    auto addPSRAMAmount = [&memoryAmount]() {
+        memoryAmount += (8ul * 1024ul * 1024ul);
+    };
+    if (setupPSRAM<PSRAMEnable, performFullMemoryTest>()) {
+        addPSRAMAmount();
+    }
+    if (memoryAmount == 0) {
+        Serial.println(F("NO MEMORY INSTALLED!"));
+        while (true) {
+            delay(1000);
+        }
+    } else {
+        Serial.print(F("Detected "));
+        Serial.print(memoryAmount);
+        Serial.println(F(" bytes of memory!"));
+    }
+}
+
+void 
+setup() {
+    setupSerial();
+    setupSPI();
+    setupTWI();
+    bringUpSDCard();
+    bringUpPSRAM<false>();
+    setupEBI();
 }
 void 
 loop() {
+    delay(1000);
 }
 
 void

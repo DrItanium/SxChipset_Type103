@@ -324,6 +324,14 @@ testCoprocessor() noexcept {
     Wire.endTransmission();
 }
 void 
+bringUpSDCard() noexcept {
+    while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
+        Serial.println(F("NO SD CARD FOUND...WAITING!"));
+        delay(1000);
+    }
+    Serial.println(F("SD CARD FOUND!"));
+}
+void 
 setup() {
     theSerial.begin();
     infoDevice.begin();
@@ -333,16 +341,12 @@ setup() {
     SPI.begin();
     // setup the IO Expanders
     Platform::begin();
-    while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
-        Serial.println(F("NO SD CARD FOUND...WAITING!"));
-        delay(1000);
-    }
-    Serial.println(F("SD CARD FOUND!"));
-    queryPSRAM<false>();
+    //bringUpSDCard();
+    //queryPSRAM<false>();
     setupCache();
-    installMemoryImage();
+    //installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card
-    SD.end();
+    //SD.end();
     bootCPU();
 }
 

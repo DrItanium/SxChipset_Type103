@@ -280,8 +280,8 @@ installMemoryImage() noexcept {
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
-        auto BufferSize = 16384;
-        auto* buffer = new  byte[BufferSize]();
+        auto BufferSize = 2048;
+        auto* buffer = new byte[BufferSize]();
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             //while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
@@ -304,14 +304,28 @@ installMemoryImage() noexcept {
         delete [] buffer;
     }
 }
+struct CacheReference {
+    void select() {
+        setInternalBusAddress(index_);
+    }
+    void begin(byte index) noexcept {
+        if (!initialized_) {
+            initialized_ = true;
+            index_ = index & 0b1111;
+        }
+    }
+    private:
+        byte index_ = 0;
+        bool initialized_ = false;
+};
 void
-setupHeapBlock() noexcept {
+setupCache() noexcept {
 }
+
 
 void 
 setup() {
     setupEBI();
-    setupHeapBlock();
     setupSerial();
     setupSPI();
     setupTWI();
@@ -319,6 +333,7 @@ setup() {
     bringUpSDCard();
     bringUpPSRAM<false>();
     installMemoryImage();
+    setupCache();
     // setup cache in the heap now!
 }
 void 

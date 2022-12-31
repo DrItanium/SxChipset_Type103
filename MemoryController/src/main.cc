@@ -27,53 +27,12 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <SdFat.h>
+#include "xmem.h"
+#include "BankSelection.h"
 constexpr auto PSRAMEnable = 2;
 constexpr auto SDPin = 10;
-constexpr auto BANK0 = 45;
-constexpr auto BANK1 = 44;
-constexpr auto BANK2 = 43;
-constexpr auto BANK3 = 42;
 constexpr auto FakeA15 = 38;
-using Ordinal = uint32_t;
-using LongOrdinal = uint64_t;
 SdFat SD;
-union SplitWord32 {
-    constexpr SplitWord32 (Ordinal a) : whole(a) { }
-    Ordinal whole;
-    uint8_t bytes[sizeof(Ordinal)/sizeof(uint8_t)];
-    struct {
-        Ordinal lower : 15;
-        Ordinal a15 : 1;
-        Ordinal a16_23 : 8;
-        Ordinal a24_31 : 8;
-    } splitAddress;
-    struct {
-        Ordinal lower : 15;
-        Ordinal bank0 : 1;
-        Ordinal bank1 : 1;
-        Ordinal bank2 : 1;
-        Ordinal bank3 : 1;
-        Ordinal rest : 13;
-    } internalBankAddress;
-    struct {
-        Ordinal offest : 28;
-        Ordinal space : 4;
-    } addressKind;
-    [[nodiscard]] constexpr bool inIOSpace() const noexcept { return addressKind.space == 0b1111; }
-    constexpr bool operator==(const SplitWord32& other) const noexcept {
-        return other.whole == whole;
-    }
-    constexpr bool operator!=(const SplitWord32& other) const noexcept {
-        return other.whole != whole;
-    }
-};
-union SplitWord64 {
-    LongOrdinal whole;
-    Ordinal parts[sizeof(LongOrdinal) / sizeof(Ordinal)];
-    uint8_t bytes[sizeof(LongOrdinal)/sizeof(uint8_t)];
-};
-void set328BusAddress(const SplitWord32& address) noexcept;
-void setInternalBusAddress(const SplitWord32& address) noexcept;
 #if 0
 void setup() {
     Serial.begin(115200);
@@ -144,16 +103,8 @@ setupEBI() noexcept {
 void
 configureGPIOs() noexcept {
     Serial.print(F("Configuring GPIOs..."));
-    pinMode(BANK0, OUTPUT);
-    pinMode(BANK1, OUTPUT);
-    pinMode(BANK2, OUTPUT);
-    pinMode(BANK3, OUTPUT);
     pinMode(SDPin, OUTPUT);
     pinMode(PSRAMEnable, OUTPUT);
-    pinMode(FakeA15, OUTPUT);
-    digitalWrite(FakeA15, LOW);
-    portMode(PORTK, OUTPUT);
-    portMode(PORTF, OUTPUT);
     digitalWrite(SDPin, HIGH);
     digitalWrite(PSRAMEnable, HIGH);
     Serial.println(F("DONE"));
@@ -341,18 +292,39 @@ loop() {
     delay(1000);
 }
 
-void
-set328BusAddress(const SplitWord32& address) noexcept {
-    // set the upper
-    PORTF = address.splitAddress.a24_31;
-    PORTK = address.splitAddress.a16_23;
-    digitalWrite(38, address.splitAddress.a15);
-}
+namespace 
 
 void
-setInternalBusAddress(const SplitWord32& address) noexcept {
-    digitalWrite(BANK0, address.internalBankAddress.bank0);
-    digitalWrite(BANK1, address.internalBankAddress.bank1);
-    digitalWrite(BANK2, address.internalBankAddress.bank2);
-    digitalWrite(BANK3, address.internalBankAddress.bank3);
+setInternalBusAddress(uint8_t bank) noexcept {
 }
+
+namespace External328Bus {
+    void setBank(uint8_t bank) noexcept {
+        // set the upper
+        digitalWrite(FakeA15, bank & 0b1 ? HIGH : LOW);
+        PORTF = bank >> 1;
+        PORTK = 0;
+
+    }
+    void begin() noexcept {
+        DDRK = 0xFF;
+        DDRF = 0xFF;
+        pinMode(FakeA15, OUTPUT);
+        setBank(0);
+    }
+} // end namespace External328Bus
+namespace InternalBus {
+    void setBank(uint8_t bank) noexcept {
+        digitalWrite(BANK0, bank & 0b0001 ? HIGH : LOW);
+        digitalWrite(BANK1, bank & 0b0010 ? HIGH : LOW);
+        digitalWrite(BANK2, bank & 0b0100 ? HIGH : LOW);
+        digitalWrite(BANK3, bank & 0b1000 ? HIGH : LOW);
+    }
+    void begin() noexcept {
+        pinMode(BANK0, OUTPUT);
+        pinMode(BANK1, OUTPUT);
+        pinMode(BANK2, OUTPUT);
+        pinMode(BANK3, OUTPUT);
+        setBank(0);
+    }
+} // end namespace InternalBus

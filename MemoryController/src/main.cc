@@ -287,6 +287,15 @@ setup() {
 }
 void 
 loop() {
+    if (auto results = xmem::selfTest(); results.succeeded) {
+        Serial.println(F("Memory Test Passed!"));
+    } else {
+        Serial.println(F("Memory Test Failed!"));
+        Serial.print(F("Failing Address: 0x"));
+        Serial.println(reinterpret_cast<uint16_t>(results.failedAddress), HEX);
+        Serial.print(F("Failed Bank: 0x"));
+        Serial.println(results.failedBank, HEX);
+    }
     delay(1000);
 }
 

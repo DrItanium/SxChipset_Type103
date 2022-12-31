@@ -264,9 +264,13 @@ memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
     return psramMemoryRead<PSRAMEnable>(baseAddress, bytes, count);
 }
 
+template<typename T>
+inline volatile T& memory(const size_t address) noexcept {
+    return *reinterpret_cast<volatile T*>(address);
+}
 void 
 installMemoryImage() noexcept {
-    if (File memoryImage; !SD.open("boot.sys", FILE_READ)) {
+    if (File memoryImage; !memoryImage.open("boot.sys", FILE_READ)) {
         Serial.println(F("Couldn't open boot.sys!"));
         while (true) {
             delay(1000);
@@ -274,9 +278,10 @@ installMemoryImage() noexcept {
     } else {
         // write out to the data cache as we go along, when we do a miss then
         // we will be successful in writing out to main memory
+        memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
         auto BufferSize = 8192;
-        auto* buffer = new byte[BufferSize]();
+        auto* buffer = new  byte[BufferSize]();
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             //while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);

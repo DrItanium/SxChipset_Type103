@@ -350,6 +350,12 @@ setup() {
     //installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card
     //SD.end();
+    // now we wait for the memory controller to come up!
+    while (!memoryControllerAvailable()) {
+        // wait one second in between requests to make sure that we don't flood
+        // the memory controller with requests
+        delay(1000);
+    }
     bootCPU();
 }
 
@@ -504,14 +510,11 @@ namespace {
 
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-//    return psramMemoryWrite<Pin::PSRAM0>(baseAddress, bytes, count);
     return writeData(baseAddress, bytes, count);
 }
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    //return psramMemoryRead<Pin::PSRAM0>(baseAddress, bytes, count);
     // we are now sending data over i2c to the external memory controller
-    bool memoryControllerNotUp = true;
     declareCacheLine(baseAddress);
     size_t i = 0;
     while (Wire.available()) {

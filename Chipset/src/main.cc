@@ -487,38 +487,40 @@ namespace {
         return count;
     }
 
-    void declareCacheLine(SplitWord32 address) noexcept {
-        Wire.beginTransmission(9);
-        Wire.write(address.bytes[0]);
-        Wire.write(address.bytes[1]);
-        Wire.write(address.bytes[2]);
-        Wire.write(address.bytes[3]);
-        Wire.endTransmission();
-    }
-    size_t 
-    writeData(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-        declareCacheLine(address);
-        /// @todo add support for carving up transmission blocks into multiples
-        /// of 16 automatically
-        ///
-        // right now, we just transmit everything as is!
-        Wire.beginTransmission(9);
-        Wire.write(bytes, count);
-        Wire.endTransmission();
-        return count;
-    }
 }
 
 size_t
-memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return writeData(baseAddress, bytes, count);
+memoryWrite(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
+    while (!memoryControllerAvailable());
+    /// @todo add support for carving up transmission blocks into multiples
+    /// of 16 automatically
+    ///
+    // right now, we just transmit everything as is!
+    Wire.beginTransmission(9);
+    Wire.write(1);
+    Wire.write(address.bytes, 4);
+    Wire.write(bytes, 16);
+    Wire.write(count);
+    Wire.endTransmission();
+    return 16;
 }
 size_t
-memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+memoryRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
     // we are now sending data over i2c to the external memory controller
-    declareCacheLine(baseAddress);
-    asm volatile ("nop");
-    Wire.requestFrom(9, 16);
+    while (!memoryControllerAvailable());
+    /// @todo add support for carving up transmission blocks into multiples
+    /// of 16 automatically
+    ///
+    // right now, we just transmit everything as is!
+    Wire.beginTransmission(9);
+    Wire.write(0);
+    Wire.write(address.bytes, 4);
+    Wire.write(bytes, 16);
+    Wire.write(count);
+    Wire.endTransmission();
+    while (!memoryControllerAvailable());
+    // okay, we got a packet back that we like :)
+    // load it into our buffer and return
     size_t i = 0;
     while (Wire.available()) {
         bytes[i] = Wire.read();

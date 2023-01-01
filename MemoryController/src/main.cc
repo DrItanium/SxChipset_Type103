@@ -265,11 +265,6 @@ performBankMemoryTest() noexcept {
         Serial.print(F("Expected Value: 0x")); Serial.println(static_cast<int>(results.expectedValue), HEX);
     }
 }
-void 
-loop() {
-    //performBankMemoryTest();
-    delay(1000);
-}
 
 namespace External328Bus {
     void setBank(uint8_t bank) noexcept {
@@ -311,6 +306,7 @@ namespace InternalBus {
     }
 } // end namespace InternalBus
 
+
 /*
  * Since requests are coming in over i2c, we have to be careful. I think we can
  * easily encode a system packet such that we are always swapping data in and
@@ -329,32 +325,28 @@ namespace InternalBus {
  * and there.
  *
  */
-
-SplitWord32 targetCacheLine(0);
-void
-commitToCacheLine() noexcept {
-    auto oldBank = xmem::getCurrentMemoryBank();
-    auto& line = thePool_.find(targetCacheLine);
-    for (int i = 0; i < 16; ++i) {
-        line.write(i, Wire.read());
-    }
-    xmem::setMemoryBank(oldBank);
-}
+// at all times we have a front end cache line that we operate on
+union Request {
+    Request() : contents{0} { }
+    byte contents[32];
+    struct {
+        byte direction;
+        SplitWord32 baseAddress;
+        byte data[16];
+        SplitWord16 size;
+    } packet;
+};
+volatile bool processingRequest = false;
+volatile bool availableForRead = false;
+volatile Request currentRequest;
 void
 onReceive(int howMany) noexcept {
-    if (systemBooted_) {
-        switch (howMany) {
-            case 4: // set the target cache line 
-                targetCacheLine.bytes[0] = Wire.read();
-                targetCacheLine.bytes[1] = Wire.read();
-                targetCacheLine.bytes[2] = Wire.read();
-                targetCacheLine.bytes[3] = Wire.read();
-                break;
-            case 16: // write out to the selected cache line address
-                commitToCacheLine();
-                break;
-            default:
-                break;
+    if (!processingRequest) {
+        // only create a new request if we are idle
+        processingRequest = true;
+        availableForRead = false;
+        for (int i = 0; i < howMany; ++i) {
+            currentRequest.contents[i] = Wire.read();
         }
     }
 }
@@ -362,14 +354,41 @@ onReceive(int howMany) noexcept {
 void
 onRequest() noexcept {
     if (systemBooted_) {
-        auto oldBank = xmem::getCurrentMemoryBank();
-        auto& line = thePool_.find(targetCacheLine);
-        for (int i = 0; i < 16; ++i) {
-            Wire.write(line.read(i));
+        if (processingRequest) {
+            Wire.write(0xFF);
+        } else {
+            if (availableForRead) {
+                Wire.write(const_cast<byte*>(currentRequest.packet.data), 16);
+            } else {
+                // send a one byte message stating we are not ready for you yet
+                Wire.write(0xFF);
+            }
         }
-        xmem::setMemoryBank(oldBank);
     } else {
         // we haven't booted the system yet!
+        // return a single byte sequence
         Wire.write(0xFF);
+    }
+}
+// process the requests outside of the 
+void 
+loop() {
+    if (processingRequest) {
+        // take the current request and process it
+        auto& theLine = thePool_.find(const_cast<const SplitWord32&>(currentRequest.packet.baseAddress));
+        if (currentRequest.packet.direction == 0) {
+            // read operation
+            for (int i = 0; i < 16; ++i) {
+                currentRequest.packet.data[i] = theLine.read(i);
+            }
+        } else {
+            // write operation
+            for (int i = 0; i < 16; ++i) {
+                theLine.write(i, currentRequest.packet.data[i]);
+            }
+        }
+        availableForRead = true;
+        processingRequest = false;
+        // at the end we mark the cache line as available for reading
     }
 }

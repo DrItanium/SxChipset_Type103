@@ -317,6 +317,9 @@ namespace External328Bus {
         pinMode(FakeA15, OUTPUT);
         setBank(0);
     }
+    void select() noexcept {
+        digitalWrite(RealA15, HIGH);
+    }
 } // end namespace External328Bus
 namespace InternalBus {
     void setBank(uint8_t bank) noexcept {
@@ -324,8 +327,6 @@ namespace InternalBus {
         digitalWrite(BANK1, bank & 0b0010 ? HIGH : LOW);
         digitalWrite(BANK2, bank & 0b0100 ? HIGH : LOW);
         digitalWrite(BANK3, bank & 0b1000 ? HIGH : LOW);
-        Serial.print(F("Internal Bank: "));
-        Serial.println(static_cast<int>(bank));
     }
     void begin() noexcept {
         pinMode(BANK0, OUTPUT);
@@ -335,6 +336,6 @@ namespace InternalBus {
         setBank(0);
     }
     void select() noexcept {
-        
+        digitalWrite(RealA15, LOW);
     }
 } // end namespace InternalBus

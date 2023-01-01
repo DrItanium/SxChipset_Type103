@@ -65,8 +65,16 @@ union SplitWord32 {
 static constexpr auto pow2(uint8_t value) noexcept {
     return _BV(value);
 }
+static_assert(pow2(0) == 1);
+static_assert(pow2(1) == 2);
+static_assert(pow2(2) == 4);
+static_assert(pow2(3) == 8);
+static_assert(pow2(4) == 16);
+static_assert(pow2(5) == 32);
 static_assert(pow2(6) == 64);
 static_assert(pow2(7) == 128);
 static_assert(pow2(8) == 256);
+static_assert(pow2(9) == 512);
+static_assert(pow2(10) == 1024);
 #endif // !defined(SXCHIPSET_TYPE103_TYPES_H__)
 

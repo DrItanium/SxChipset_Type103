@@ -73,7 +73,7 @@ void
 setupSerial(bool displayBootScreen = true) noexcept {
     Serial.begin(115200);
     if (displayBootScreen) {
-        Serial.println(F("i960 Simulator (C) 2022 and beyond Joshua Scoggins"));
+        Serial.println(F("i960 Memory Controller (C) 2022 and beyond Joshua Scoggins"));
         Serial.println(F("This software is open source software"));
         Serial.println(F("Base Platform: Arduino Mega2560"));
     }
@@ -246,6 +246,7 @@ installMemoryImage() noexcept {
 CachePool<4, 8, 6, 4> thePool_;
 void
 setupCache() noexcept {
+    // the pool will sit in the upper 64 elements
     thePool_.begin(16);
 }
 
@@ -254,14 +255,13 @@ void
 setup() {
     setupSerial();
     setupEBI();
-    //setupCache();
+    setupCache();
     setupSPI();
     setupTWI();
     configureGPIOs();
-    //bringUpSDCard();
-    //bringUpPSRAM<false>();
-    //installMemoryImage();
-    //setupCache();
+    bringUpSDCard();
+    bringUpPSRAM<false>();
+    installMemoryImage();
     // setup cache in the heap now!
 }
 void
@@ -280,7 +280,7 @@ performBankMemoryTest() noexcept {
 }
 void 
 loop() {
-    performBankMemoryTest();
+    //performBankMemoryTest();
     delay(1000);
 }
 

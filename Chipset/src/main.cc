@@ -39,6 +39,9 @@ SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
 
+bool memoryControllerAvailable() noexcept {
+    return Wire.requestFrom(9, 16) != 1;
+}
 
 
 void 
@@ -476,14 +479,46 @@ namespace {
         digitalWrite<targetPin, HIGH>();
         return count;
     }
+
+    void declareCacheLine(SplitWord32 address) noexcept {
+        Wire.beginTransmission(9);
+        Wire.write(address.bytes[0]);
+        Wire.write(address.bytes[1]);
+        Wire.write(address.bytes[2]);
+        Wire.write(address.bytes[3]);
+        Wire.endTransmission();
+    }
+    size_t 
+    writeData(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
+        declareCacheLine(address);
+        /// @todo add support for carving up transmission blocks into multiples
+        /// of 16 automatically
+        ///
+        // right now, we just transmit everything as is!
+        Wire.beginTransmission(9);
+        Wire.write(bytes, count);
+        Wire.endTransmission();
+        return 16;
+    }
 }
+
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryWrite<Pin::PSRAM0>(baseAddress, bytes, count);
+//    return psramMemoryWrite<Pin::PSRAM0>(baseAddress, bytes, count);
+    return writeData(baseAddress, bytes, count);
 }
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryRead<Pin::PSRAM0>(baseAddress, bytes, count);
+    //return psramMemoryRead<Pin::PSRAM0>(baseAddress, bytes, count);
+    // we are now sending data over i2c to the external memory controller
+    bool memoryControllerNotUp = true;
+    declareCacheLine(baseAddress);
+    size_t i = 0;
+    while (Wire.available()) {
+        bytes[i] = Wire.read();
+        ++i;
+    }
+    return i;
 }
 
 

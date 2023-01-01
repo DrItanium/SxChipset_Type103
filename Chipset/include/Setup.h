@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Detect.h"
 #include "Types.h"
 
-constexpr bool EnableDebugMode = false;
+constexpr bool EnableDebugMode = true;
 constexpr bool EnableTimingDebug = false;
 constexpr bool EnableInlineSPIOperation = true;
 

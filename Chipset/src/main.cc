@@ -40,7 +40,7 @@ InfoDevice infoDevice;
 TimerDevice timerInterface;
 
 bool memoryControllerAvailable() noexcept {
-    return Wire.requestFrom(9, 16) != 1;
+    return Wire.requestFrom(9, 16) && Wire.available() > 1;
 }
 
 
@@ -340,13 +340,14 @@ setup() {
     infoDevice.begin();
     Wire.begin();
     testCoprocessor();
-    setupRTC();
+    //setupRTC();
     SPI.begin();
     // setup the IO Expanders
     Platform::begin();
     //bringUpSDCard();
     //queryPSRAM<false>();
     setupCache();
+    delay(1000);
     //installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card
     //SD.end();
@@ -363,9 +364,9 @@ setup() {
 void 
 loop() {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    for (;;) {
+    //for (;;) {
         handleTransactionCycle();
-    }
+    //}
     SPI.endTransaction();
 }
 
@@ -504,7 +505,7 @@ namespace {
         Wire.beginTransmission(9);
         Wire.write(bytes, count);
         Wire.endTransmission();
-        return 16;
+        return count;
     }
 }
 
@@ -516,6 +517,8 @@ size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
     // we are now sending data over i2c to the external memory controller
     declareCacheLine(baseAddress);
+    asm volatile ("nop");
+    Wire.requestFrom(9, 16);
     size_t i = 0;
     while (Wire.available()) {
         bytes[i] = Wire.read();

@@ -281,7 +281,7 @@ setup() {
     configureGPIOs();
     bringUpSDCard();
     bringUpPSRAM<false>();
-    installMemoryImage();
+    //installMemoryImage();
     // setup cache in the heap now!
 }
 void 

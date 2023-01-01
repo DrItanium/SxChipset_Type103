@@ -99,5 +99,7 @@ static_assert(pow2(7) == 128);
 static_assert(pow2(8) == 256);
 static_assert(pow2(9) == 512);
 static_assert(pow2(10) == 1024);
+
+
 #endif // !defined(SXCHIPSET_TYPE103_TYPES_H__)
 

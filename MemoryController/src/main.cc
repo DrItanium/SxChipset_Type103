@@ -34,25 +34,9 @@
 constexpr auto PSRAMEnable = 2;
 constexpr auto SDPin = 10;
 SdFat SD;
-#if 0
-void setup() {
-    Serial.begin(115200);
-    SPI.begin();
-    enableXMEM();
-    Wire.begin(8);
-    Wire.onReceive(onReceive);
-}
-#endif
 
-void
-onReceive(int howMany) noexcept {
-
-}
-
-void
-onRequest() noexcept {
-
-}
+void onReceive(int) noexcept;
+void onRequest() noexcept;
 
 
 void
@@ -222,6 +206,7 @@ installMemoryImage() noexcept {
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
+        // use bank0 for the transfer cache
         xmem::setMemoryBank(0);
         auto BufferSize = 16384+8192;
         auto* buffer = new byte[BufferSize]();
@@ -323,3 +308,55 @@ namespace InternalBus {
         digitalWrite(RealA15, LOW);
     }
 } // end namespace InternalBus
+
+/*
+ * Since requests are coming in over i2c, we have to be careful. I think we can
+ * easily encode a system packet such that we are always swapping data in and
+ * out. It is totally possible to request the new address and commit the old
+ * data _after_ preparing the read operation. We can even queue the write
+ * operation after the fact too. We have a read operation and a swap operation
+ * only. I believe we will need to do a linked list implementation to support
+ * this as well. 
+ *
+ * What needs to happen is that we have a small subset of actions to perform
+ * which make sure that a given cache line is located in memory.
+ *
+ * The first thing to do is set the target cache line address. Then if we
+ * perform a write at this point, it will be to the targetCacheLine address.
+ * If it is a read then we find the cache line and perform the read right then
+ * and there.
+ *
+ */
+
+SplitWord32 targetCacheLine(0);
+void
+commitToCacheLine() noexcept {
+    auto& line = thePool_.find(targetCacheLine);
+    for (int i = 0; i < 16; ++i) {
+        line.write(i, Wire.read());
+    }
+}
+void
+onReceive(int howMany) noexcept {
+    switch (howMany) {
+        case 4: // set the target cache line 
+            targetCacheLine.bytes[0] = Wire.read();
+            targetCacheLine.bytes[1] = Wire.read();
+            targetCacheLine.bytes[2] = Wire.read();
+            targetCacheLine.bytes[3] = Wire.read();
+            break;
+        case 16: // write out to the selected cache line address
+            commitToCacheLine();
+            break;
+        default:
+            break;
+    }
+}
+
+void
+onRequest() noexcept {
+    auto& line = thePool_.find(targetCacheLine);
+    for (int i = 0; i < 16; ++i) {
+        Wire.write(line.read(i));
+    }
+}

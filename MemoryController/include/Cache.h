@@ -46,7 +46,6 @@ union BasicCacheAddress {
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
     BasicCacheAddress(uint32_t address) : backingStore_(address) { }
-    BasicCacheAddress(SplitWord32 address) : backingStore_(address) { }
     BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     SplitWord32 backingStore_;
     struct {
@@ -62,51 +61,37 @@ struct BasicDataCacheLine {
     static constexpr auto NumberOfDataBytes = pow2(offsetBits);
     static constexpr auto NumberOfWords = NumberOfDataBytes / NumberOfDataBytes;
     static constexpr uint8_t WordMask = NumberOfWords - 1;
-    inline uint16_t getWord(byte offset) const noexcept {
-        return words[offset & WordMask].full;
-    }
     inline void clear() noexcept {
         key_ = 0;
         flags_.whole = 0;
         for (int i = 0; i < NumberOfWords; ++i) {
-            words[i].full = 0;
+            words[i] = 0;
         }
     }
     inline bool matches(CacheAddress other) const noexcept {
-        return flags_.lineIsValid() && (other.cacheAddress.key == key_);
+        return flags_.lineFlags.valid_ && (other.key == key_);
     }
     inline void reset(CacheAddress newAddress) noexcept {
-        newAddress.cacheAddress.offset = 0;
-        if (flags_.lineIsValid() && flags_.lineIsDirty()) {
+        newAddress.offset = 0;
+        if (flags_.lineFlags.valid_ && flags_.lineFlags.dirty_) {
             auto copy = newAddress;
-            copy.cacheAddress.key = key_;
-            memoryWrite(copy, reinterpret_cast<byte*>(words), NumberOfDataBytes);
+            copy.key = key_;
+            memoryWrite(copy.backingStore_, words, NumberOfDataBytes);
         }
         flags_.lineFlags.valid_ = true;
         flags_.lineFlags.dirty_ = false;
-        key_ = newAddress.cacheAddress.key;
-        memoryRead(newAddress, reinterpret_cast<byte*>(words), NumberOfDataBytes);
-    }
-    inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
-        switch (style) {
-            case EnableStyle::Full16:
-                words[offset & WordMask].full = value;
-                flags_.lineFlags.dirty_ = true;
-                break;
-            case EnableStyle::Lower8:
-                words[offset & WordMask].bytes[0] = value;
-                flags_.lineFlags.dirty_ = true;
-                break;
-            case EnableStyle::Upper8:
-                words[offset & WordMask].bytes[1] = (value >> 8);
-                flags_.lineFlags.dirty_ = true;
-                break;
-            default:
-                break;
-        }
+        key_ = newAddress.key;
+        memoryRead(newAddress.backingStore_, words, NumberOfDataBytes);
     }
     void begin() noexcept { 
         clear();
+    }
+    byte read(byte offset) const noexcept {
+        return words[offset & WordMask];
+    }
+    void write(byte offset, byte value) noexcept {
+        flags_.lineFlags.dirty_ = true;
+        words[offset] = value;
     }
     private:
         uint32_t key_ : CacheAddress::KeyBitsCount;
@@ -117,7 +102,7 @@ struct BasicDataCacheLine {
                 uint8_t valid_ : 1;
             } lineFlags;
         } flags_;
-        SplitWord16 words[NumberOfWords];
+        byte words[NumberOfDataBytes];
 
 
 };
@@ -177,6 +162,7 @@ struct BasicDataCacheSet {
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct BasicDataCache {
     using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, numberOfLines>;
+    using DataCacheLine = typename DataCacheSet::DataCacheLine;
     using CacheAddress = typename DataCacheSet::CacheAddress;
     static constexpr auto NumberOfSets = pow2(tagBits);
     inline void clear() noexcept {
@@ -185,7 +171,7 @@ struct BasicDataCache {
         }
     }
     [[gnu::always_inline]] inline auto& find(CacheAddress address) noexcept {
-        return cache[address.cacheAddress.tag].find(address);
+        return cache[address.tag].find(address);
     }
     inline void begin() noexcept {
         for (auto& set : cache) {
@@ -205,6 +191,7 @@ struct BasicDataCache {
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct BasicCacheReference {
     using Cache = BasicDataCache<offsetBits, tagBits, bankBits, numberOfLines>;
+    using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
     void select() {
         if (initialized_) {
@@ -234,6 +221,7 @@ template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOf
 struct CachePool {
     using CacheReference = BasicCacheReference<offsetBits, tagBits, bankBits, numberOfLines>;
     using CacheAddress = typename CacheReference::CacheAddress;
+    using CacheLine = typename CacheReference::DataCacheLine;
     static constexpr auto NumberOfBanks = pow2(bankBits);
     void begin(byte bankOffset) noexcept {
         if (!initialized_) {

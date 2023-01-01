@@ -29,6 +29,8 @@
 #include <SdFat.h>
 #include "xmem.h"
 #include "BankSelection.h"
+#include "Types.h"
+#include "Cache.h"
 constexpr auto PSRAMEnable = 2;
 constexpr auto SDPin = 10;
 SdFat SD;

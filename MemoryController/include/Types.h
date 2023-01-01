@@ -27,10 +27,33 @@
 #define SXCHIPSET_TYPE103_TYPES_H__ 
 #include <stdint.h>
 #include <Arduino.h>
+
+template<typename W, typename E>
+constexpr auto ElementCount = sizeof(W) / sizeof(E);
+template<typename W, typename T>
+using ElementContainer = T[ElementCount<W, T>];
+union SplitWord16 {
+    uint16_t full;
+    ElementContainer<uint16_t, uint8_t> bytes;
+    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
+    constexpr SplitWord16() : full(0) { }
+    constexpr explicit SplitWord16(uint16_t value) : full(value) { }
+    constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
+    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
+    void setWholeValue(uint16_t value) noexcept { full = value; }
+    [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
+    [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
+    [[nodiscard]] constexpr bool operator==(uint16_t other) const noexcept { return full == other; }
+    [[nodiscard]] constexpr bool operator!=(uint16_t other) const noexcept { return full != other; }
+    [[nodiscard]] constexpr bool operator<(const SplitWord16& other) const noexcept { return full < other.full; }
+    [[nodiscard]] constexpr bool operator<=(const SplitWord16& other) const noexcept { return full <= other.full; }
+    [[nodiscard]] constexpr bool operator>(const SplitWord16& other) const noexcept { return full > other.full; }
+    [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
+};
 union SplitWord32 {
-    constexpr SplitWord32 (uint32_t a) : whole(a) { }
-    uint32_t whole;
-    uint8_t bytes[sizeof(uint32_t)/sizeof(uint8_t)];
+    constexpr SplitWord32 (uint32_t a) : full(a) { }
+    uint32_t full;
+    ElementContainer<uint32_t, uint8_t> bytes;
     struct {
         uint32_t lower : 15;
         uint32_t a15 : 1;
@@ -56,10 +79,10 @@ union SplitWord32 {
     } psramAddress;
     [[nodiscard]] constexpr bool inIOSpace() const noexcept { return addressKind.space == 0b1111; }
     constexpr bool operator==(const SplitWord32& other) const noexcept {
-        return other.whole == whole;
+        return other.full == full;
     }
     constexpr bool operator!=(const SplitWord32& other) const noexcept {
-        return other.whole != whole;
+        return other.full != full;
     }
 };
 static constexpr auto pow2(uint8_t value) noexcept {

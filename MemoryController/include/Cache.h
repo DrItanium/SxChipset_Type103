@@ -29,6 +29,13 @@
 #include "Types.h"
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+
+enum class EnableStyle : byte {
+    Full16 = 0b00,
+    Upper8 = 0b01,
+    Lower8 = 0b10,
+    Undefined = 0b11,
+};
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 union CacheAddress {
     static constexpr auto OffsetBitsCount = offsetBits;
@@ -38,6 +45,8 @@ union CacheAddress {
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
     CacheAddress(uint32_t address) : backingStore_(address) { }
+    CacheAddress(SplitWord32 address) : backingStore_(address) { }
+    CacheAddress(const SplitWord32& address) : backingStore_(address) { }
     SplitWord32 backingStore_;
     struct {
         uint32_t offset : OffsetBitsCount;
@@ -48,9 +57,8 @@ union CacheAddress {
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct DataCacheLine {
-    static constexpr auto NumberOfDataBytes = 
-    static constexpr auto NumberOfWords = 8;
-    static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
+    static constexpr auto NumberOfDataBytes = pow2(offsetBits);
+    static constexpr auto NumberOfWords = NumberOfDataBytes / NumberOfDataBytes;
     static constexpr uint8_t WordMask = 0b111;
     inline uint16_t getWord(byte offset) const noexcept {
         return words[offset & WordMask].full;
@@ -62,10 +70,10 @@ struct DataCacheLine {
             words[i].full = 0;
         }
     }
-    inline bool matches(SplitWord32 other) const noexcept {
+    inline bool matches(CacheAddress other) const noexcept {
         return flags_.lineIsValid() && (other.cacheAddress.key == key_);
     }
-    inline void reset(SplitWord32 newAddress) noexcept {
+    inline void reset(CacheAddress newAddress) noexcept {
         newAddress.cacheAddress.offset = 0;
         if (flags_.lineIsValid() && flags_.lineIsDirty()) {
             auto copy = newAddress;

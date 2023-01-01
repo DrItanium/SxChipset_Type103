@@ -43,7 +43,7 @@ void onRequest() noexcept;
 void
 setupTWI() noexcept {
     Serial.print(F("Configuring TWI..."));
-    Wire.begin(8);
+    Wire.begin(9);
     Wire.onReceive(onReceive);
     Wire.onRequest(onRequest);
     Serial.println(F("DONE"));

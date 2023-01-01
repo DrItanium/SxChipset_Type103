@@ -45,7 +45,7 @@
 namespace xmem {
 constexpr auto getNumberOfBankHeapStates() noexcept {
 #ifdef I960_MEGA_MEMORY_CONTROLLER
-    return 80;
+    return 16;
 #else
     return 8;
 #endif
@@ -116,22 +116,20 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
         // We map 32k/24k chunks in each bank. The first 16 banks are mapped to
         // the internal 24k memory chunks. The remaning 64 banks are mapped to
         // the external 2 megabytes of ram found on the 328 bus
+        // 
+        //
+        // However, I'm running into issues with that design. So instead, I'm
+        // setting it up so that we get nearly a meg of ram across both pools
+        // using mirrored bank ids
+        if (heapInXmem_) {
+            __malloc_heap_end = reinterpret_cast<char*>(XMEM_END);
+            __malloc_heap_start = reinterpret_cast<char*>(XMEM_START);
+            __brkval = reinterpret_cast<char*>(XMEM_START);
+        }
         for (uint8_t i = 0; i < getNumberOfBankHeapStates(); ++i) {
-            if (heapInXmem_) {
-                // first 32k of 
-                if (i < 16) {
-                    __malloc_heap_end = reinterpret_cast<char*>(0x7FFF);
-                    __malloc_heap_start = reinterpret_cast<char*>(RAMEND+1);
-                    __brkval = reinterpret_cast<char*>(RAMEND+1);
-                } else {
-                    __malloc_heap_end = reinterpret_cast<char*>(0xFFFF);
-                    __malloc_heap_start = reinterpret_cast<char*>(0x8000);
-                    __brkval = reinterpret_cast<char*>(0x8000);
-                }
-            }
             saveHeap(i);
         }
-		setMemoryBank(0);
+        setMemoryBank(0);
     }
 	/*
 	 * Initial setup. You must call this once
@@ -191,11 +189,14 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 		else
 			PORTL&=~_BV(PL6);
 #elif defined(I960_MEGA_MEMORY_CONTROLLER)
-        if (bank_ < 16) {
-            InternalBus::setBank(bank_);
-        } else {
-            External328Bus::setBank(bank_ - 16);
-        }
+        //if (bank_ < 16) {
+        //    InternalBus::setBank(bank_);
+        //} else {
+        //    External328Bus::setBank(bank_ - 16);
+        //}
+        // Combined together, we get a 56k block of storage with 16 banks
+        InternalBus::setBank(bank_);
+        External328Bus::setBank(bank_);
 #endif
 
 		// save state and restore the malloc settings for this bank
@@ -234,20 +235,8 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 	 */
 
 	SelfTestResults selfTest() {
-        auto getStart = [](uint8_t bank) {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
-            return bank < 16 ? 0x7FFF : 0xFFFF;
-#else
-            return 0xFFFF;
-#endif
-        };
-        auto getEnd = [](uint8_t bank) {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
-            return bank < 16 ? (RAMEND + 1) : 0x8000;
-#else
-            return RAMEND + 1;
-#endif
-        };
+        auto getStart = [](uint8_t bank) { return XMEM_END; };
+        auto getEnd = [](uint8_t bank) { return XMEM_START; };
 		volatile uint8_t *ptr;
 		SelfTestResults results;
 

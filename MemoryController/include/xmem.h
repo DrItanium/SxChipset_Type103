@@ -29,10 +29,10 @@ namespace xmem {
 	 */
 
 	struct heapState {
-			char *__malloc_heap_start;
-			char *__malloc_heap_end;
-			void *__brkval;
-			void *__flp;
+        char *__malloc_heap_start;
+        char *__malloc_heap_end;
+        void *__brkval;
+        void *__flp;
 	};
 
 	/*
@@ -40,11 +40,11 @@ namespace xmem {
 	 */
 
 	struct SelfTestResults {
-			bool succeeded;
-			volatile uint8_t *failedAddress;
-			uint8_t failedBank;
-            uint8_t expectedValue;
-            uint8_t gotValue;
+        bool succeeded;
+        volatile uint8_t *failedAddress;
+        uint8_t failedBank;
+        uint8_t expectedValue;
+        uint8_t gotValue;
 	};
 
 	/*

@@ -309,6 +309,8 @@ namespace External328Bus {
         PORTF = 0;
         Serial.print(F("External Bank: "));
         Serial.println(static_cast<int>(bank));
+        Serial.print(F("\tExternal Bank Shifted: 0b"));
+        Serial.println((bank >> 1) & 0b0111'1111, BIN);
     }
     void begin() noexcept {
         static constexpr int PinList[] {

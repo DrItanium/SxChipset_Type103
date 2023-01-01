@@ -34,6 +34,7 @@
 constexpr auto PSRAMEnable = 2;
 constexpr auto SDPin = 10;
 SdFat SD;
+volatile bool systemBooted_ = false;
 
 void onReceive(int) noexcept;
 void onRequest() noexcept;
@@ -247,6 +248,7 @@ setup() {
     bringUpSDCard();
     bringUpPSRAM<false>();
     installMemoryImage();
+    systemBooted_ = true;
     // setup cache in the heap now!
 }
 void
@@ -331,32 +333,43 @@ namespace InternalBus {
 SplitWord32 targetCacheLine(0);
 void
 commitToCacheLine() noexcept {
+    auto oldBank = xmem::getCurrentMemoryBank();
     auto& line = thePool_.find(targetCacheLine);
     for (int i = 0; i < 16; ++i) {
         line.write(i, Wire.read());
     }
+    xmem::setMemoryBank(oldBank);
 }
 void
 onReceive(int howMany) noexcept {
-    switch (howMany) {
-        case 4: // set the target cache line 
-            targetCacheLine.bytes[0] = Wire.read();
-            targetCacheLine.bytes[1] = Wire.read();
-            targetCacheLine.bytes[2] = Wire.read();
-            targetCacheLine.bytes[3] = Wire.read();
-            break;
-        case 16: // write out to the selected cache line address
-            commitToCacheLine();
-            break;
-        default:
-            break;
+    if (systemBooted_) {
+        switch (howMany) {
+            case 4: // set the target cache line 
+                targetCacheLine.bytes[0] = Wire.read();
+                targetCacheLine.bytes[1] = Wire.read();
+                targetCacheLine.bytes[2] = Wire.read();
+                targetCacheLine.bytes[3] = Wire.read();
+                break;
+            case 16: // write out to the selected cache line address
+                commitToCacheLine();
+                break;
+            default:
+                break;
+        }
     }
 }
 
 void
 onRequest() noexcept {
-    auto& line = thePool_.find(targetCacheLine);
-    for (int i = 0; i < 16; ++i) {
-        Wire.write(line.read(i));
+    if (systemBooted_) {
+        auto oldBank = xmem::getCurrentMemoryBank();
+        auto& line = thePool_.find(targetCacheLine);
+        for (int i = 0; i < 16; ++i) {
+            Wire.write(line.read(i));
+        }
+        xmem::setMemoryBank(oldBank);
+    } else {
+        // we haven't booted the system yet!
+        Wire.write(0xFF);
     }
 }

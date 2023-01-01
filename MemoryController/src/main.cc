@@ -243,33 +243,10 @@ installMemoryImage() noexcept {
         delete [] buffer;
     }
 }
-struct Cache {
-    
-};
-struct CacheReference {
-    void select() {
-        xmem::setMemoryBank(index_);
-    }
-    void begin(byte index) noexcept {
-        if (!initialized_) {
-            initialized_ = true;
-            index_ = index;
-            select();
-            ptr_ = new Cache();
-        }
-    }
-    private:
-        byte index_ = 0;
-        bool initialized_ = false;
-        Cache* ptr_ = nullptr;
-};
-CacheReference cacheBlocks_[64];
+CachePool<4, 8, 6, 4> thePool_;
 void
 setupCache() noexcept {
-    for (int i = 0, j = 16; i < 64; ++i, ++j) {
-        cacheBlocks_[i].begin(j);
-    }
-    xmem::setMemoryBank(0);
+    thePool_.begin(16);
 }
 
 

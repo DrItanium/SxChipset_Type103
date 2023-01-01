@@ -54,6 +54,7 @@ namespace xmem {
 	void begin(bool heapInXmem_);
 	void setMemoryBank(uint8_t bank_,bool switchHeap_=true);
 	SelfTestResults selfTest();
+    uint8_t getCurrentMemoryBank() noexcept;
 	void saveHeap(uint8_t bank_);
 	void restoreHeap(uint8_t bank_);
 }

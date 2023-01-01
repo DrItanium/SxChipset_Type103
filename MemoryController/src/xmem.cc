@@ -41,24 +41,30 @@
 
 
 namespace xmem {
-constexpr auto getNumberOfBankHeapStates() noexcept {
-    return 16 + 64;
-}
-constexpr auto getLastAddress() noexcept {
-    return RAMEND + 0x8000;
-}
-static_assert(getLastAddress() == 0xA1FF);
-	/*
-	 * State for all 8 banks
-	 */
+    namespace {
 
-	struct heapState bankHeapStates[getNumberOfBankHeapStates()];
+        constexpr auto getNumberOfBankHeapStates() noexcept {
+            return 16 + 64;
+        }
+        constexpr auto getLastAddress() noexcept {
+            return RAMEND + 0x8000;
+        }
+        constexpr auto getFirstAddress() noexcept {
+            return RAMEND + 1;
+        }
+        static_assert(getLastAddress() == 0xA1FF);
 
-	/*
-	 * The currently selected bank
-	 */
+        /**
+         * @brief state for each bank
+         */
+	    heapState bankHeapStates[getNumberOfBankHeapStates()];
+        /*
+         * The currently selected bank
+         */
+        uint8_t currentBank;
+    }
 
-	uint8_t currentBank;
+
 	/*
 	 * Initial setup. You must call this once
 	 */
@@ -82,14 +88,15 @@ static_assert(getLastAddress() == 0xA1FF);
         // the internal 24k memory chunks. The remaning 64 banks are mapped to
         // the external 2 megabytes of ram found on the 328 bus
         // 
+        // I am making it a 32k window so that we can get a full 32k out of
+        // each section. That gives us exactly 2.5 megabytes of ram!
         //
-        // However, I'm running into issues with that design. So instead, I'm
-        // setting it up so that we get nearly a meg of ram across both pools
-        // using mirrored bank ids
+        // This change also prevents shenanigans when dealing with the two pool
+        // sets
         if (heapInXmem_) {
             __malloc_heap_end = reinterpret_cast<char*>(getLastAddress());
-            __malloc_heap_start = reinterpret_cast<char*>(RAMEND+1);
-            __brkval= reinterpret_cast<char*>(RAMEND+1);
+            __malloc_heap_start = reinterpret_cast<char*>(getFirstAddress());
+            __brkval= reinterpret_cast<char*>(getFirstAddress());
         }
         for (uint8_t i = 0; i < getNumberOfBankHeapStates(); ++i) {
             saveHeap(i);
@@ -156,7 +163,7 @@ static_assert(getLastAddress() == 0xA1FF);
 	 */
 	SelfTestResults selfTest() {
         auto getStart = [](uint8_t bank) { return getLastAddress(); };
-        auto getEnd = [](uint8_t bank) { return RAMEND+1; };
+        auto getEnd = [](uint8_t bank) { return getFirstAddress(); };
 		volatile uint8_t *ptr;
 		SelfTestResults results;
 
@@ -205,4 +212,9 @@ static_assert(getLastAddress() == 0xA1FF);
 		results.succeeded=true;
 		return results;
 	}
+
+    uint8_t 
+    getCurrentMemoryBank() noexcept {
+        return currentBank; 
+    }
 }

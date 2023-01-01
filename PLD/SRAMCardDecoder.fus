@@ -1,34 +1,34 @@
 
 
 Pin 19 = EN1          XOR = 0   AC1 = 0
-  0  ---- ---- ---- x--- -x-- ---- ---- ---x
-  1  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  2  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  3  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  4  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  5  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+  0  x--- x--- x--- x--- -x-- x--- x--- x--x
+  1  -x-- x--- x--- x--- -x-- -x-- x--- x--x
+  2  x--- -x-- x--- x--- -x-- x--- -x-- x--x
+  3  -x-- -x-- x--- x--- -x-- -x-- -x-- x--x
+  4  x--- x--- -x-- x--- -x-- x--- x--- -x-x
+  5  -x-- x--- -x-- x--- -x-- -x-- x--- -x-x
+  6  x--- -x-- -x-- x--- -x-- x--- -x-- -x-x
+  7  -x-- -x-- -x-- x--- -x-- -x-- -x-- -x-x
 
 Pin 18 = EN2          XOR = 0   AC1 = 0
-  8  ---- ---- ---- -x-- x--- ---- ---- ---x
-  9  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 10  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 11  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 12  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 13  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 14  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 15  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+  8  x--- x--- x--- -x-- x--- x--- x--- x--x
+  9  -x-- x--- x--- -x-- x--- -x-- x--- x--x
+ 10  x--- -x-- x--- -x-- x--- x--- -x-- x--x
+ 11  -x-- -x-- x--- -x-- x--- -x-- -x-- x--x
+ 12  x--- x--- -x-- -x-- x--- x--- x--- -x-x
+ 13  -x-- x--- -x-- -x-- x--- -x-- x--- -x-x
+ 14  x--- -x-- -x-- -x-- x--- x--- -x-- -x-x
+ 15  -x-- -x-- -x-- -x-- x--- -x-- -x-- -x-x
 
 Pin 17 = EN3          XOR = 0   AC1 = 0
- 16  ---- ---- ---- x--- x--- ---- ---- ---x
- 17  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 18  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 19  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 20  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 21  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 22  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
- 23  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+ 16  x--- x--- x--- x--- x--- x--- x--- x--x
+ 17  -x-- x--- x--- x--- x--- -x-- x--- x--x
+ 18  x--- -x-- x--- x--- x--- x--- -x-- x--x
+ 19  -x-- -x-- x--- x--- x--- -x-- -x-- x--x
+ 20  x--- x--- -x-- x--- x--- x--- x--- -x-x
+ 21  -x-- x--- -x-- x--- x--- -x-- x--- -x-x
+ 22  x--- -x-- -x-- x--- x--- x--- -x-- -x-x
+ 23  -x-- -x-- -x-- x--- x--- -x-- -x-- -x-x
 
 Pin 16 = EN0          XOR = 0   AC1 = 0
  24  x--- x--- x--- -x-- -x-- x--- x--- x--x

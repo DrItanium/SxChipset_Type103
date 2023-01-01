@@ -242,7 +242,7 @@ installMemoryImage() noexcept {
     }
 }
 struct Cache {
-
+    
 };
 struct CacheReference {
     void select() {
@@ -282,10 +282,11 @@ setup() {
     //bringUpSDCard();
     //bringUpPSRAM<false>();
     //installMemoryImage();
+    //setupCache();
     // setup cache in the heap now!
 }
-void 
-loop() {
+void
+performBankMemoryTest() noexcept {
     if (auto results = xmem::selfTest(); results.succeeded) {
         Serial.println(F("Memory Test Passed!"));
     } else {
@@ -297,6 +298,10 @@ loop() {
         Serial.print(F("Got Value: 0x")); Serial.println(static_cast<int>(results.gotValue), HEX);
         Serial.print(F("Expected Value: 0x")); Serial.println(static_cast<int>(results.expectedValue), HEX);
     }
+}
+void 
+loop() {
+    performBankMemoryTest();
     delay(1000);
 }
 

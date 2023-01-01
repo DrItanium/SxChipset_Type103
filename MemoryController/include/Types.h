@@ -23,26 +23,50 @@
 * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef BANK_SELECTION_H__
-#define BANK_SELECTION_H__
+#ifndef SXCHIPSET_TYPE103_TYPES_H__ 
+#define SXCHIPSET_TYPE103_TYPES_H__ 
 #include <stdint.h>
 #include <Arduino.h>
-#include "Types.h"
-constexpr auto BANK0 = 45;
-constexpr auto BANK1 = 44;
-constexpr auto BANK2 = 43;
-constexpr auto BANK3 = 42;
-constexpr auto FakeA15 = 38;
-constexpr auto RealA15 = PIN_PC7;
-namespace External328Bus {
-    void setBank(uint8_t bank) noexcept;
-    void begin() noexcept;
-    void select() noexcept;
-} // end namespace External328Bus
-namespace InternalBus {
-    void setBank(uint8_t bank) noexcept;
-    void begin() noexcept;
-    void select() noexcept;
-} // end namespace InternalBus
+union SplitWord32 {
+    constexpr SplitWord32 (uint32_t a) : whole(a) { }
+    uint32_t whole;
+    uint8_t bytes[sizeof(uint32_t)/sizeof(uint8_t)];
+    struct {
+        uint32_t lower : 15;
+        uint32_t a15 : 1;
+        uint32_t a16_23 : 8;
+        uint32_t a24_31 : 8;
+    } splitAddress;
+    struct {
+        uint32_t lower : 15;
+        uint32_t bank0 : 1;
+        uint32_t bank1 : 1;
+        uint32_t bank2 : 1;
+        uint32_t bank3 : 1;
+        uint32_t rest : 13;
+    } internalBankAddress;
+    struct {
+        uint32_t offest : 28;
+        uint32_t space : 4;
+    } addressKind;
+    struct {
+        uint32_t offset : 23;
+        uint32_t targetDevice : 3;
+        uint32_t rest : 6;
+    } psramAddress;
+    [[nodiscard]] constexpr bool inIOSpace() const noexcept { return addressKind.space == 0b1111; }
+    constexpr bool operator==(const SplitWord32& other) const noexcept {
+        return other.whole == whole;
+    }
+    constexpr bool operator!=(const SplitWord32& other) const noexcept {
+        return other.whole != whole;
+    }
+};
+static constexpr auto pow2(uint8_t value) noexcept {
+    return _BV(value);
+}
+static_assert(pow2(6) == 64);
+static_assert(pow2(7) == 128);
+static_assert(pow2(8) == 256);
+#endif // !defined(SXCHIPSET_TYPE103_TYPES_H__)
 
-#endif

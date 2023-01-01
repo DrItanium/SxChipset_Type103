@@ -217,4 +217,13 @@ namespace xmem {
     getCurrentMemoryBank() noexcept {
         return currentBank; 
     }
+
+    uintptr_t 
+    getStartAddress(uint8_t) noexcept {
+        return getFirstAddress();
+    }
+    uintptr_t 
+    getEndAddress(uint8_t) noexcept {
+        return getLastAddress();
+    }
 }

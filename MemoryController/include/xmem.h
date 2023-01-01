@@ -18,13 +18,6 @@
 namespace xmem {
 
 	/*
-	 * Pointers to the start and end of memory
-	 */
-
-#define XMEM_START ((void *)0x2200)
-#define XMEM_END ((void *)0xFFFF)
-
-	/*
 	 * State variables used by the heap
 	 */
 
@@ -57,6 +50,8 @@ namespace xmem {
     uint8_t getCurrentMemoryBank() noexcept;
 	void saveHeap(uint8_t bank_);
 	void restoreHeap(uint8_t bank_);
+    uintptr_t getStartAddress(uint8_t bank) noexcept;
+    uintptr_t getEndAddress(uint8_t bank) noexcept;
 }
 
 /*

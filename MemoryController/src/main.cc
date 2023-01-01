@@ -223,7 +223,7 @@ installMemoryImage() noexcept {
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
         xmem::setMemoryBank(0);
-        auto BufferSize = 16384;
+        auto BufferSize = 16384+8192;
         auto* buffer = new byte[BufferSize]();
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             while (memoryImage.isBusy());

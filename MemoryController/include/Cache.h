@@ -205,6 +205,7 @@ struct BasicDataCache {
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct BasicCacheReference {
     using Cache = BasicDataCache<offsetBits, tagBits, bankBits, numberOfLines>;
+    using CacheAddress = typename Cache::CacheAddress;
     void select() {
         if (initialized_) {
             xmem::setMemoryBank(index_);
@@ -216,13 +217,14 @@ struct BasicCacheReference {
             index_ = index;
             select();
             ptr_ = new Cache();
-            if (ptr_) {
-                ptr_->begin();
-            }
+            ptr_->begin();
         }
     }
-    bool valid() const noexcept { return initialized_ && ptr_; }
-    Cache& get() const noexcept { return *ptr_; }
+    auto& find(CacheAddress addr) noexcept { 
+        // make sure we select this bank before we jump to the pointer
+        select();
+        return ptr_->find(addr);
+    }
     private:
         byte index_ = 0;
         bool initialized_ = false;
@@ -231,6 +233,7 @@ struct BasicCacheReference {
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct CachePool {
     using CacheReference = BasicCacheReference<offsetBits, tagBits, bankBits, numberOfLines>;
+    using CacheAddress = typename CacheReference::CacheAddress;
     static constexpr auto NumberOfBanks = pow2(bankBits);
     void begin(byte bankOffset) noexcept {
         if (!initialized_) {
@@ -240,6 +243,10 @@ struct CachePool {
                 pool_[i].begin(j);
             }
         }
+    }
+    inline auto& find(const SplitWord32& address) noexcept {
+        CacheAddress addr(address);
+        return pool_[addr.bank].find(addr);
     }
     private:
         bool initialized_ = false;

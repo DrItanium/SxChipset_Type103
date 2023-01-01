@@ -279,8 +279,8 @@ setup() {
     setupSPI();
     setupTWI();
     configureGPIOs();
-    bringUpSDCard();
-    bringUpPSRAM<false>();
+    //bringUpSDCard();
+    //bringUpPSRAM<false>();
     //installMemoryImage();
     // setup cache in the heap now!
 }

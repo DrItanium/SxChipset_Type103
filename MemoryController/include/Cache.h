@@ -37,16 +37,16 @@ enum class EnableStyle : byte {
     Undefined = 0b11,
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-union CacheAddress {
+union BasicCacheAddress {
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto TagBitsCount = tagBits;
     static constexpr auto BankBitsCount = bankBits;
     static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount;
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
-    CacheAddress(uint32_t address) : backingStore_(address) { }
-    CacheAddress(SplitWord32 address) : backingStore_(address) { }
-    CacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    BasicCacheAddress(uint32_t address) : backingStore_(address) { }
+    BasicCacheAddress(SplitWord32 address) : backingStore_(address) { }
+    BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     SplitWord32 backingStore_;
     struct {
         uint32_t offset : OffsetBitsCount;
@@ -57,6 +57,7 @@ union CacheAddress {
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct DataCacheLine {
+    using CacheAddress = BasicCacheAddress<offsetBits, tagBits, bankBits>;
     static constexpr auto NumberOfDataBytes = pow2(offsetBits);
     static constexpr auto NumberOfWords = NumberOfDataBytes / NumberOfDataBytes;
     static constexpr uint8_t WordMask = 0b111;
@@ -107,8 +108,14 @@ struct DataCacheLine {
         clear();
     }
     private:
-        uint32_t key_ : KeySize;
-        Word8 flags_;
+        uint32_t key_ : CacheAddress::KeySize;
+        union {
+            uint8_t whole;
+            struct {
+                uint8_t dirty_ : 1;
+                uint8_t valid_ : 1;
+            } lineFlags;
+        } flags_;
         SplitWord16 words[NumberOfWords];
 
 

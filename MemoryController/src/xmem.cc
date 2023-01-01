@@ -26,8 +26,6 @@
 // Select which shield you are using, Andy Brown's or the Rugged Circuits QuadRAM Shield.
 // Only uncomment one of the two lines below.
 
-//#define QUADRAM_SHIELD
-//#define ANDYBROWN_SHIELD
 
 #include <avr/io.h>
 #include "xmem.h"
@@ -44,12 +42,12 @@
 
 namespace xmem {
 constexpr auto getNumberOfBankHeapStates() noexcept {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
-    return 16;
-#else
-    return 8;
-#endif
+    return 16 + 64;
 }
+constexpr auto getLastAddress() noexcept {
+    return RAMEND + 0x8000;
+}
+static_assert(getLastAddress() == 0xA1FF);
 	/*
 	 * State for all 8 banks
 	 */
@@ -61,54 +59,21 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 	 */
 
 	uint8_t currentBank;
-    
-    void setupQuadRamShield() noexcept {
-#if defined(QUADRAM_SHIELD)
-		// set up the bank selector pins (address lines A16..A18)
-		// these are on pins 42,43,44 (PL7,PL6,PL5). Also, enable
-        // the RAM by driving PD7 (pin 38) low.
+	/*
+	 * Initial setup. You must call this once
+	 */
 
-        pinMode(38, OUTPUT); digitalWrite(38, LOW);
-        pinMode(42, OUTPUT);
-        pinMode(43, OUTPUT);
-        pinMode(44, OUTPUT);
-#endif
-    }
-    void setupAndyBrownShield() noexcept {
-#if defined(ANDYBROWN_SHIELD)
-		// set up the bank selector pins (address lines A16..A18)
-		// these are on pins 38,42,43 (PD7,PL7,PL6)
+	void begin(bool heapInXmem_) {
 
-		DDRD|=_BV(PD7);
-		DDRL|=(_BV(PL6)|_BV(PL7));
-#endif
+		// initialise the heap states
 
-    }
-    void setupInternalMegaMemoryBus() noexcept {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+        // set up the xmem registers
+        XMCRB=0b00000'001; // need 32k. one pin released
+        XMCRA=0b1'100'00'00; // put in one cycle wait states
+        pinMode(RealA15, OUTPUT);
         InternalBus::begin();
         External328Bus::begin();
-#endif
-
-
-    }
-    void 
-    setupMemoryBanks_Normal(bool heapInXmem_) noexcept {
-		if(heapInXmem_) {
-			__malloc_heap_end=static_cast<char *>(XMEM_END);
-			__malloc_heap_start=static_cast<char *>(XMEM_START);
-			__brkval=static_cast<char *>(XMEM_START);
-		}
-
-		for(auto bank=0;bank<getNumberOfBankHeapStates();bank++) {
-			saveHeap(bank);
-        }
-
-		// set the current bank to zero
-		setMemoryBank(0,false);
-    }
-    void 
-    setupMemoryBanks_MemoryController(bool heapInXmem_) noexcept {
+        InternalBus::select();
         // we have two spaces on the memory controller
         // internal bus is mapped to the lower 32k of the memory space
         // the 32/8 bus is mapped to the upper 32k of the memory space
@@ -122,34 +87,14 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
         // setting it up so that we get nearly a meg of ram across both pools
         // using mirrored bank ids
         if (heapInXmem_) {
-            __malloc_heap_end = reinterpret_cast<char*>(XMEM_END);
-            __malloc_heap_start = reinterpret_cast<char*>(XMEM_START);
-            __brkval = reinterpret_cast<char*>(XMEM_START);
+            __malloc_heap_end = reinterpret_cast<char*>(getLastAddress());
+            __malloc_heap_start = reinterpret_cast<char*>(RAMEND+1);
+            __brkval= reinterpret_cast<char*>(RAMEND+1);
         }
         for (uint8_t i = 0; i < getNumberOfBankHeapStates(); ++i) {
             saveHeap(i);
         }
         setMemoryBank(0);
-    }
-	/*
-	 * Initial setup. You must call this once
-	 */
-
-	void begin(bool heapInXmem_) {
-
-        // set up the xmem registers
-        XMCRB=0; // need all 64K. no pins released
-        XMCRA=1<<SRE; // enable xmem, no wait states
-        setupQuadRamShield();
-        setupAndyBrownShield();
-        setupInternalMegaMemoryBus();
-		// initialise the heap states
-#ifndef I960_MEGA_MEMORY_CONTROLLER
-        setupMemoryBanks_Normal(heapInXmem_);
-#else
-        setupMemoryBanks_MemoryController(heapInXmem_);
-#endif
-
 	}
 	/*
 	 * Set the memory bank
@@ -169,36 +114,13 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 
 		// switch in the new bank
 
-#if defined(QUADRAM_SHIELD)
-        // Write lower 3 bits of 'bank' to upper 3 bits of Port L
-		PORTL = (PORTL & 0x1F) | ((bank_ & 0x7) << 5);
-
-#elif defined(ANDYBROWN_SHIELD)
-		if((bank_&1)!=0)
-			PORTD|=_BV(PD7);
-		else
-			PORTD&=~_BV(PD7);
-
-		if((bank_&2)!=0)
-			PORTL|=_BV(PL7);
-		else
-			PORTL&=~_BV(PL7);
-
-		if((bank_&4)!=0)
-			PORTL|=_BV(PL6);
-		else
-			PORTL&=~_BV(PL6);
-#elif defined(I960_MEGA_MEMORY_CONTROLLER)
-        //if (bank_ < 16) {
-        //    InternalBus::setBank(bank_);
-        //} else {
-        //    External328Bus::setBank(bank_ - 16);
-        //}
-        // Combined together, we get a 56k block of storage with 16 banks
-        InternalBus::setBank(bank_);
-        External328Bus::setBank(bank_);
-#endif
-
+        if (bank_ < 16) {
+            InternalBus::setBank(bank_);
+            InternalBus::select();
+        } else {
+            External328Bus::setBank(bank_ - 16);
+            External328Bus::select();
+        }
 		// save state and restore the malloc settings for this bank
 
 		currentBank=bank_;
@@ -228,15 +150,13 @@ constexpr auto getNumberOfBankHeapStates() noexcept {
 		__brkval=bankHeapStates[bank_].__brkval;
 		__flp=bankHeapStates[bank_].__flp;
 	}
-
 	/*
 	 * Self test the memory. This will destroy the entire content of all
 	 * memory banks so don't use it except in a test scenario.
 	 */
-
 	SelfTestResults selfTest() {
-        auto getStart = [](uint8_t bank) { return XMEM_END; };
-        auto getEnd = [](uint8_t bank) { return XMEM_START; };
+        auto getStart = [](uint8_t bank) { return getLastAddress(); };
+        auto getEnd = [](uint8_t bank) { return RAMEND+1; };
 		volatile uint8_t *ptr;
 		SelfTestResults results;
 

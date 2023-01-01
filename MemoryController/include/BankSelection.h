@@ -26,10 +26,13 @@
 #ifndef BANK_SELECTION_H__
 #define BANK_SELECTION_H__
 #include <stdint.h>
+#include <Arduino.h>
 constexpr auto BANK0 = 45;
 constexpr auto BANK1 = 44;
 constexpr auto BANK2 = 43;
 constexpr auto BANK3 = 42;
+constexpr auto FakeA15 = 38;
+constexpr auto RealA15 = PIN_PC7;
 using Ordinal = uint32_t;
 using LongOrdinal = uint64_t;
 union SplitWord32 {
@@ -70,10 +73,12 @@ union SplitWord64 {
 namespace External328Bus {
     void setBank(uint8_t bank) noexcept;
     void begin() noexcept;
+    void select() noexcept;
 } // end namespace External328Bus
 namespace InternalBus {
     void setBank(uint8_t bank) noexcept;
     void begin() noexcept;
+    void select() noexcept;
 } // end namespace InternalBus
 
 #endif

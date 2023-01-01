@@ -31,7 +31,6 @@
 #include "BankSelection.h"
 constexpr auto PSRAMEnable = 2;
 constexpr auto SDPin = 10;
-constexpr auto FakeA15 = 38;
 SdFat SD;
 #if 0
 void setup() {
@@ -307,10 +306,6 @@ namespace External328Bus {
         digitalWrite(FakeA15, bank & 0b1 ? HIGH : LOW);
         PORTK = (bank >> 1) & 0b0111'1111;
         PORTF = 0;
-        Serial.print(F("External Bank: "));
-        Serial.println(static_cast<int>(bank));
-        Serial.print(F("\tExternal Bank Shifted: 0b"));
-        Serial.println((bank >> 1) & 0b0111'1111, BIN);
     }
     void begin() noexcept {
         static constexpr int PinList[] {
@@ -338,5 +333,8 @@ namespace InternalBus {
         pinMode(BANK2, OUTPUT);
         pinMode(BANK3, OUTPUT);
         setBank(0);
+    }
+    void select() noexcept {
+        
     }
 } // end namespace InternalBus

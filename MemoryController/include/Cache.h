@@ -38,46 +38,57 @@ enum class EnableStyle : byte {
     Undefined = 0b11,
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-union BasicBankedCacheAddress {
+union BasicCacheAddress {
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto TagBitsCount = tagBits;
     static constexpr auto BankBitsCount = bankBits;
     static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
-    BasicBankedCacheAddress(uint32_t address) : backingStore_(address) { }
-    BasicBankedCacheAddress(const SplitWord32& address) : backingStore_(address) { }
-    SplitWord32 backingStore_;
-    struct {
-        uint32_t offset : OffsetBitsCount;
-        uint32_t tag : TagBitsCount;
-        uint32_t bank : BankBitsCount;
-        uint32_t key : KeyBitsCount;
-    };
+    BasicCacheAddress(uint32_t address) : backingStore_(address) { }
+    BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    constexpr auto getBankIndex() const noexcept { return bank; }
+    constexpr auto getOffset() const noexcept { return offset; }
+    constexpr auto getTag() const noexcept { return tag; }
+    constexpr auto getKey() const noexcept { return key; }
+    constexpr auto getBackingStore() const noexcept { return backingStore_; }
+    void setOffset(uint32_t value) noexcept { offset = value; }
+    void setKey(uint32_t value) noexcept { key = value; }
+    private:
+        SplitWord32 backingStore_;
+        struct {
+            uint32_t offset : OffsetBitsCount;
+            uint32_t tag : TagBitsCount;
+            uint32_t bank : BankBitsCount;
+            uint32_t key : KeyBitsCount;
+        };
 };
 
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-union BasicNoBankedCacheAddress {
+template<uint8_t offsetBits, uint8_t tagBits>
+union BasicCacheAddress<offsetBits, tagBits, 0> {
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto TagBitsCount = tagBits;
-    static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount;
+    static constexpr auto BankBitsCount = 0;
+    static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
-    BasicNoBankedCacheAddress(uint32_t address) : backingStore_(address) { }
-    BasicNoBankedCacheAddress(const SplitWord32& address) : backingStore_(address) { }
-    SplitWord32 backingStore_;
-    struct {
-        uint32_t offset : OffsetBitsCount;
-        uint32_t tag : TagBitsCount;
-        uint32_t key : KeyBitsCount;
-    };
+    BasicCacheAddress(uint32_t address) : backingStore_(address) { }
+    BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    constexpr auto getBankIndex() const noexcept { return 0; }
+    constexpr auto getOffset() const noexcept { return offset; }
+    constexpr auto getTag() const noexcept { return tag; }
+    constexpr auto getKey() const noexcept { return key; }
+    constexpr auto getBackingStore() const noexcept { return backingStore_; }
+    void setOffset(uint32_t value) noexcept { offset = value; }
+    void setKey(uint32_t value) noexcept { key = value; }
+    private:
+        SplitWord32 backingStore_;
+        struct {
+            uint32_t offset : OffsetBitsCount;
+            uint32_t tag : TagBitsCount;
+            uint32_t key : KeyBitsCount;
+        };
 };
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-#ifdef I960_MEGA_MEMORY_CONTROLLER
-using BasicCacheAddress = BasicBankedCacheAddress<offsetBits, tagBits, bankBits>;
-#else
-using BasicCacheAddress = BasicNoBankedCacheAddress<offsetBits, tagBits, bankBits>;
-#endif
 
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
@@ -93,19 +104,19 @@ struct BasicDataCacheLine {
         }
     }
     inline bool matches(CacheAddress other) const noexcept {
-        return valid_ && (other.key == key_);
+        return valid_ && (other.getKey() == key_);
     }
     inline void reset(CacheAddress newAddress) noexcept {
-        newAddress.offset = 0;
+        newAddress.setOffset(0);
         if (valid_ && dirty_) {
             auto copy = newAddress;
-            copy.key = key_;
-            memoryWrite(copy.backingStore_, words, NumberOfDataBytes);
+            copy.setKey(key_);
+            memoryWrite(copy.getBackingStore(), words, NumberOfDataBytes);
         }
         valid_ = true;
         dirty_ = false;
-        key_ = newAddress.key;
-        memoryRead(newAddress.backingStore_, words, NumberOfDataBytes);
+        key_ = newAddress.getKey();
+        memoryRead(newAddress.getBackingStore(), words, NumberOfDataBytes);
     }
     void begin() noexcept { 
         clear();
@@ -190,7 +201,7 @@ struct BasicDataCache {
         }
     }
     [[gnu::always_inline]] inline auto& find(CacheAddress address) noexcept {
-        return cache[address.tag].find(address);
+        return cache[address.getTag()].find(address);
     }
     inline void begin() noexcept {
         for (auto& set : cache) {
@@ -206,7 +217,7 @@ struct BasicCacheReference {
     using Cache = BasicDataCache<offsetBits, tagBits, bankBits, numberOfLines>;
 #ifdef I960_MEGA_MEMORY_CONTROLLER
     static_assert(sizeof(Cache) < 32767, "Cache implementation is too large to fit in a 32k block");
-#elif defined(I960_METRO_M4_MEMORY_CONTROLLER
+#elif defined(I960_METRO_M4_MEMORY_CONTROLLER)
 // we get 192k total, keep a bunch around for other purposes
     static_assert(sizeof(Cache) < (128 * 1024), "Cache implementation is too large to fit in a 128k block");
 #else
@@ -224,33 +235,22 @@ struct BasicCacheReference {
             Serial.print(F("Sizeof cache = "));
             Serial.println(sizeof(Cache));
             initialized_ = true;
-#ifdef I960_MEGA_MEMORY_CONTROLLER
             index_ = index;
             select();
             ptr_ = new Cache();
             ptr_->begin();
-#else
-            ptr_.begin();
-#endif
-
         }
     }
     auto& find(CacheAddress addr) noexcept { 
         // make sure we select this bank before we jump to the pointer
-#ifdef I960_MEGA_MEMORY_CONTROLLER
         select();
         return ptr_->find(addr);
-#else
 
     }
     private:
         bool initialized_ = false;
-#ifdef I960_MEGA_MEMORY_CONTROLLER
         byte index_ = 0;
         Cache* ptr_ = nullptr;
-#else
-        Cache ptr_;
-#endif
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct CachePool {
@@ -269,7 +269,7 @@ struct CachePool {
     }
     inline auto& find(const SplitWord32& address) noexcept {
         CacheAddress addr(address);
-        return pool_[addr.bank].find(addr);
+        return pool_[addr.getBankIndex()].find(addr);
     }
     private:
         bool initialized_ = false;

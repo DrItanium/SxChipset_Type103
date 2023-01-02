@@ -61,6 +61,7 @@ setupSPI() noexcept {
 void
 setupSerial(bool displayBootScreen = true) noexcept {
     Serial.begin(115200);
+    while(!Serial);
     if (displayBootScreen) {
         Serial.println(F("i960 Memory Controller (C) 2022 and beyond Joshua Scoggins"));
         Serial.println(F("This software is open source software"));
@@ -280,7 +281,7 @@ installMemoryImage() noexcept {
 #ifdef I960_MEGA_MEMORY_CONTROLLER
 CachePool<4, 8, 6, 6> thePool_;
 #elif defined I960_METRO_M4_MEMORY_CONTROLLER
-CachePool<4, 8, 6, 6> thePool_;
+CachePool<4, 8, 0, 6> thePool_;
 #else
 #error "Define Cache properly for target!"
 #endif
@@ -398,7 +399,7 @@ loop() {
                 Serial.println(F("READ OPERATION!"));
             }
             // read operation
-            for (int i = 0, j = targetAddress.offset; i < 16; ++i, ++j) {
+            for (int i = 0, j = targetAddress.getOffset(); i < 16; ++i, ++j) {
                 currentRequest.packet.data[i] = theLine.read(j);
             }
         } else {
@@ -406,7 +407,7 @@ loop() {
                 Serial.println(F("WRITE OPERATION!"));
             }
             // write operation
-            for (int i = 0, j = targetAddress.offset; i < 16; ++i, ++j) {
+            for (int i = 0, j = targetAddress.getOffset(); i < 16; ++i, ++j) {
                 theLine.write(j, currentRequest.packet.data[i]);
             }
         }

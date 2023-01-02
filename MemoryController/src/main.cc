@@ -204,6 +204,15 @@ namespace {
             bytes[i] = SPDR;
         }
         digitalWrite(targetPin, HIGH);
+        if (systemBooted_) {
+            Serial.println(F("\t\tPSRAM READ RESULT:"));
+            for (size_t i = 0; i < count; ++i) {
+                Serial.print(F("\t\t\t["));
+                Serial.print(i);
+                Serial.print(F("]: 0x"));
+                Serial.println(bytes[i], HEX);
+            }
+        }
         return count;
     }
 }

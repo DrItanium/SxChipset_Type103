@@ -88,9 +88,18 @@ struct BasicDataCacheLine {
         clear();
     }
     byte read(byte offset) const noexcept {
-        return words[offset & WordMask];
+        auto outcome = words[offset];
+        Serial.print(F("\tREAD OFFSET: 0x"));
+        Serial.print(offset, HEX);
+        Serial.print(F(", Value: 0x"));
+        Serial.println(outcome, HEX);
+        return outcome;
     }
     void write(byte offset, byte value) noexcept {
+        Serial.print(F("\tWRITE OFFSET: 0x"));
+        Serial.print(offset, HEX);
+        Serial.print(F(", Value: 0x"));
+        Serial.println(value, HEX);
         dirty_ = true;
         words[offset] = value;
     }
@@ -173,12 +182,6 @@ struct BasicDataCache {
         for (auto& set : cache) {
             set.begin();
         }
-    }
-    [[nodiscard]] byte* asBuffer() noexcept {
-        return reinterpret_cast<byte*>(cache);
-    }
-    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
-        return sizeof(cache);
     }
     private:
         DataCacheSet cache[NumberOfSets];

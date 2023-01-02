@@ -209,8 +209,9 @@ installMemoryImage() noexcept {
         Serial.println(F("installing memory image from sd"));
         // use bank0 for the transfer cache
         xmem::setMemoryBank(0);
-        auto BufferSize = 16384+8192;
+        auto BufferSize = 8192;
         auto* buffer = new byte[BufferSize]();
+        auto* buffer2 = new byte[BufferSize]();
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
@@ -218,8 +219,25 @@ installMemoryImage() noexcept {
             if (numRead < 0) {
                 SD.errorHalt();
             }
-            memoryWrite(currentAddressLine, buffer, numRead);
+            auto numWritten = memoryWrite(currentAddressLine, buffer, numRead);
+            memoryRead(currentAddressLine, buffer2, numWritten);
+            bool dataMismatch = false;
+            for (uint32_t k = 0; k < numWritten; ++k) {
+                if (buffer[k] != buffer2[k]) {
+                    Serial.println(F("DATA MISMATCH: "));
+                    Serial.print(F("\t Address: 0x"));
+                    Serial.println(i + k, HEX);
+                    Serial.print(F("\t Expected 0x"));
+                    Serial.println(buffer[k], HEX);
+                    Serial.print(F("\t Got 0x"));
+                    Serial.println(buffer2[k], HEX);
+                }
+            }
+            if (dataMismatch) {
+                while (true);
+            }
             if ((j % 16) == 0) {
+                Serial.println(F("HALTING!"));
                 Serial.print(F("."));
             }
         }
@@ -227,6 +245,7 @@ installMemoryImage() noexcept {
         Serial.println();
         Serial.println(F("transfer complete!"));
         delete [] buffer;
+        delete [] buffer2;
     }
 }
 CachePool<4, 8, 6, 4> thePool_;
@@ -374,19 +393,25 @@ onRequest() noexcept {
 void 
 loop() {
     if (processingRequest) {
+        Serial.println(F("Processing Request From: "));
+        Serial.print(F("\t Address 0x"));
+        Serial.println(currentRequest.packet.baseAddress.full, HEX);
         // take the current request and process it
         auto& theLine = thePool_.find(const_cast<const SplitWord32&>(currentRequest.packet.baseAddress));
         if (currentRequest.packet.direction == 0) {
+            Serial.println(F("READ OPERATION!"));
             // read operation
             for (int i = 0; i < 16; ++i) {
                 currentRequest.packet.data[i] = theLine.read(i);
             }
         } else {
+            Serial.println(F("WRITE OPERATION!"));
             // write operation
             for (int i = 0; i < 16; ++i) {
                 theLine.write(i, currentRequest.packet.data[i]);
             }
         }
+        Serial.println(F("Finished Processing Request"));
         availableForRead = true;
         processingRequest = false;
         // at the end we mark the cache line as available for reading

@@ -364,31 +364,33 @@ volatile Request currentRequest;
 void
 onReceive(int howMany) noexcept {
     if (systemBooted_) {
-        digitalWrite(LED_BUILTIN, HIGH);
-        if (!processingRequest) {
-            // only create a new request if we are idle
-            processingRequest = true;
-            availableForRead = false;
-            for (int i = 0; i < howMany; ++i) {
-                auto value = Wire.read();
-                if constexpr (EnableDebugging) {
-                    Serial.print(F("\t@"));
-                    Serial.print(i);
-                    Serial.print(F(": 0x"));
-                    Serial.println(value, HEX);
-                }
-                currentRequest.contents[i] = value;
-            }
-            if constexpr (EnableDebugging) {
+        if (howMany > 0) {
+            digitalWrite(LED_BUILTIN, HIGH);
+            if (!processingRequest) {
+                // only create a new request if we are idle
+                processingRequest = true;
+                availableForRead = false;
                 for (int i = 0; i < howMany; ++i) {
-                    Serial.print(F("\t@"));
-                    Serial.print(i);
-                    Serial.print(F(": 0x"));
-                    Serial.println(currentRequest.contents[i], HEX);
+                    auto value = Wire.read();
+                    if constexpr (EnableDebugging) {
+                        Serial.print(F("\t@"));
+                        Serial.print(i);
+                        Serial.print(F(": 0x"));
+                        Serial.println(value, HEX);
+                    }
+                    currentRequest.contents[i] = value;
+                }
+                if constexpr (EnableDebugging) {
+                    for (int i = 0; i < howMany; ++i) {
+                        Serial.print(F("\t@"));
+                        Serial.print(i);
+                        Serial.print(F(": 0x"));
+                        Serial.println(value, HEX);
+                    }
                 }
             }
+            digitalWrite(LED_BUILTIN, LOW);
         }
-        digitalWrite(LED_BUILTIN, LOW);
     }
 }
 constexpr byte BootingUp = 0xFF;

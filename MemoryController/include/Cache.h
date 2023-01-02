@@ -59,7 +59,6 @@ template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheLine {
     using CacheAddress = BasicCacheAddress<offsetBits, tagBits, bankBits>;
     static constexpr auto NumberOfDataBytes = pow2(offsetBits);
-    static constexpr uint8_t WordMask = NumberOfDataBytes - 1;
     inline void clear() noexcept {
         key_ = 0;
         dirty_ = false;
@@ -87,11 +86,11 @@ struct BasicDataCacheLine {
         clear();
     }
     inline byte read(byte offset) const noexcept {
-        return words[offset & WordMask];
+        return words[offset ];
     }
     inline void write(byte offset, byte value) noexcept {
         dirty_ = true;
-        words[offset & WordMask] = value;
+        words[offset ] = value;
     }
     private:
         uint32_t key_ : CacheAddress::KeyBitsCount;

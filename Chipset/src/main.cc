@@ -39,14 +39,14 @@ SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
 
-byte memoryControllerStatus() noexcept {
+inline byte memoryControllerStatus() noexcept {
     Wire.requestFrom(9, 17);
     return Wire.read();
 }
-bool memoryControllerBooting() noexcept {
+inline bool memoryControllerBooting() noexcept {
     return memoryControllerStatus() == 0xFF;
 }
-void waitForMemoryControllerToBeIdle() noexcept {
+inline void waitForMemoryControllerToBeIdle() noexcept {
     while (true) {
         switch (memoryControllerStatus()) {
             case 0x55:
@@ -57,7 +57,7 @@ void waitForMemoryControllerToBeIdle() noexcept {
         }
     }
 }
-void
+inline void
 waitForSuccessfulCacheLineRead() noexcept {
     while (memoryControllerStatus() != 0x55);
 }
@@ -358,6 +358,7 @@ setup() {
     theSerial.begin();
     infoDevice.begin();
     Wire.begin();
+    Wire.setClock(400'000);
     testCoprocessor();
     //setupRTC();
     SPI.begin();

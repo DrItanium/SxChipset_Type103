@@ -45,6 +45,7 @@ void
 setupTWI() noexcept {
     Serial.print(F("Configuring TWI..."));
     Wire.begin(9);
+    Wire.setClock(400'000);
     Wire.onReceive(onReceive);
     Wire.onRequest(onRequest);
     Serial.println(F("DONE"));

@@ -189,6 +189,8 @@ struct BasicCacheReference {
     }
     void begin(byte index) noexcept {
         if (!initialized_) {
+            Serial.print(F("Sizeof cache = "));
+            Serial.println(sizeof(Cache));
             initialized_ = true;
             index_ = index;
             select();

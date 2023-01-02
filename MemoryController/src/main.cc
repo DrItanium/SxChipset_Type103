@@ -283,7 +283,7 @@ installMemoryImage() noexcept {
         delete [] buffer2;
     }
 }
-CachePool<4, 8, 6, 4> thePool_;
+CachePool<6, 6, 6, 7> thePool_;
 void
 setupCache() noexcept {
     // the pool will sit in the upper 64 elements
@@ -397,7 +397,6 @@ volatile Request currentRequest;
 void
 onReceive(int howMany) noexcept {
     if (systemBooted_) {
-        digitalWrite(LED_BUILTIN, LOW);
         if (!processingRequest) {
             // only create a new request if we are idle
             processingRequest = true;
@@ -406,7 +405,6 @@ onReceive(int howMany) noexcept {
                 currentRequest.contents[i] = Wire.read();
             }
         }
-        digitalWrite(LED_BUILTIN, HIGH);
     }
 }
 constexpr byte BootingUp = 0xFF;
@@ -445,21 +443,22 @@ loop() {
         }
         // take the current request and process it
         auto& theLine = thePool_.find(const_cast<const SplitWord32&>(currentRequest.packet.baseAddress));
+        decltype(thePool_)::CacheAddress targetAddress(const_cast<const SplitWord32&>(currentRequest.packet.baseAddress));
         if (currentRequest.packet.direction == 0) {
             if constexpr (EnableDebugging) {
                 Serial.println(F("READ OPERATION!"));
             }
             // read operation
-            for (int i = 0; i < 16; ++i) {
-                currentRequest.packet.data[i] = theLine.read(i);
+            for (int i = 0, j = targetAddress.offset; i < 16; ++i, ++j) {
+                currentRequest.packet.data[i] = theLine.read(j);
             }
         } else {
             if constexpr (EnableDebugging) {
                 Serial.println(F("WRITE OPERATION!"));
             }
             // write operation
-            for (int i = 0; i < 16; ++i) {
-                theLine.write(i, currentRequest.packet.data[i]);
+            for (int i = 0, j = targetAddress.offset; i < 16; ++i, ++j) {
+                theLine.write(j, currentRequest.packet.data[i]);
             }
         }
         if constexpr (EnableDebugging) {

@@ -112,7 +112,7 @@ TimerDevice::startTransaction(const SplitWord32& addr) noexcept {
     // the resolution is in seconds. Even if it does shift over it is okay!
     switch (getCurrentOpcode()) {
         case TimerDeviceOperations::UnixTime:
-            unixtimeCopy_.full = rtc.now().unixtime();
+            unixtimeCopy_.full = available_ ? rtc.now().unixtime() : 0;
             break;
         default:
             break;

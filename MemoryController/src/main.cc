@@ -360,82 +360,80 @@ volatile Packet currentRequest;
 void
 onReceive(int howMany) noexcept {
     if (systemBooted_) {
-        if (howMany > 0) {
-            digitalWrite(LED_BUILTIN, HIGH);
-            if (!processingRequest) {
-                // only create a new request if we are idle
-                switch (howMany) {
-                    case 5:
-                        processingRequest = true;
-                        availableForRead = false;
-                        currentRequest.direction = Wire.read();
-                        currentRequest.baseAddress.bytes[0] = Wire.read();
-                        currentRequest.baseAddress.bytes[1] = Wire.read();
-                        currentRequest.baseAddress.bytes[2] = Wire.read();
-                        currentRequest.baseAddress.bytes[3] = Wire.read();
-                        break;
-                    case 21:
-                        processingRequest = true;
-                        availableForRead = false;
-                        currentRequest.direction = Wire.read();
-                        currentRequest.baseAddress.bytes[0] = Wire.read();
-                        currentRequest.baseAddress.bytes[1] = Wire.read();
-                        currentRequest.baseAddress.bytes[2] = Wire.read();
-                        currentRequest.baseAddress.bytes[3] = Wire.read();
-                        currentRequest.data[0] = Wire.read();
-                        currentRequest.data[1] = Wire.read();
-                        currentRequest.data[2] = Wire.read();
-                        currentRequest.data[3] = Wire.read();
-                        currentRequest.data[4] = Wire.read();
-                        currentRequest.data[5] = Wire.read();
-                        currentRequest.data[6] = Wire.read();
-                        currentRequest.data[7] = Wire.read();
-                        currentRequest.data[8] = Wire.read();
-                        currentRequest.data[9] = Wire.read();
-                        currentRequest.data[10] = Wire.read();
-                        currentRequest.data[11] = Wire.read();
-                        currentRequest.data[12] = Wire.read();
-                        currentRequest.data[13] = Wire.read();
-                        currentRequest.data[14] = Wire.read();
-                        currentRequest.data[15] = Wire.read();
-                        break;
-                    case 23:
-                        processingRequest = true;
-                        availableForRead = false;
-                        currentRequest.direction = Wire.read();
-                        currentRequest.baseAddress.bytes[0] = Wire.read();
-                        currentRequest.baseAddress.bytes[1] = Wire.read();
-                        currentRequest.baseAddress.bytes[2] = Wire.read();
-                        currentRequest.baseAddress.bytes[3] = Wire.read();
-                        currentRequest.data[0] = Wire.read();
-                        currentRequest.data[1] = Wire.read();
-                        currentRequest.data[2] = Wire.read();
-                        currentRequest.data[3] = Wire.read();
-                        currentRequest.data[4] = Wire.read();
-                        currentRequest.data[5] = Wire.read();
-                        currentRequest.data[6] = Wire.read();
-                        currentRequest.data[7] = Wire.read();
-                        currentRequest.data[8] = Wire.read();
-                        currentRequest.data[9] = Wire.read();
-                        currentRequest.data[10] = Wire.read();
-                        currentRequest.data[11] = Wire.read();
-                        currentRequest.data[12] = Wire.read();
-                        currentRequest.data[13] = Wire.read();
-                        currentRequest.data[14] = Wire.read();
-                        currentRequest.data[15] = Wire.read();
-                        currentRequest.size.bytes[0] = Wire.read();
-                        currentRequest.size.bytes[1] = Wire.read();
-                        break;
-                    default:
-                        break;
-                }
-                if constexpr (EnableDebugging) {
-                    Serial.print(F("\tTarget Address: 0x"));
-                    Serial.println(currentRequest.baseAddress.full, HEX);
-                }
+        digitalWrite(LED_BUILTIN, HIGH);
+        if (!processingRequest) {
+            // only create a new request if we are idle
+            switch (howMany) {
+                case 5:
+                    processingRequest = true;
+                    availableForRead = false;
+                    currentRequest.direction = Wire.read();
+                    currentRequest.baseAddress.bytes[0] = Wire.read();
+                    currentRequest.baseAddress.bytes[1] = Wire.read();
+                    currentRequest.baseAddress.bytes[2] = Wire.read();
+                    currentRequest.baseAddress.bytes[3] = Wire.read();
+                    break;
+                case 21:
+                    processingRequest = true;
+                    availableForRead = false;
+                    currentRequest.direction = Wire.read();
+                    currentRequest.baseAddress.bytes[0] = Wire.read();
+                    currentRequest.baseAddress.bytes[1] = Wire.read();
+                    currentRequest.baseAddress.bytes[2] = Wire.read();
+                    currentRequest.baseAddress.bytes[3] = Wire.read();
+                    currentRequest.data[0] = Wire.read();
+                    currentRequest.data[1] = Wire.read();
+                    currentRequest.data[2] = Wire.read();
+                    currentRequest.data[3] = Wire.read();
+                    currentRequest.data[4] = Wire.read();
+                    currentRequest.data[5] = Wire.read();
+                    currentRequest.data[6] = Wire.read();
+                    currentRequest.data[7] = Wire.read();
+                    currentRequest.data[8] = Wire.read();
+                    currentRequest.data[9] = Wire.read();
+                    currentRequest.data[10] = Wire.read();
+                    currentRequest.data[11] = Wire.read();
+                    currentRequest.data[12] = Wire.read();
+                    currentRequest.data[13] = Wire.read();
+                    currentRequest.data[14] = Wire.read();
+                    currentRequest.data[15] = Wire.read();
+                    break;
+                case 23:
+                    processingRequest = true;
+                    availableForRead = false;
+                    currentRequest.direction = Wire.read();
+                    currentRequest.baseAddress.bytes[0] = Wire.read();
+                    currentRequest.baseAddress.bytes[1] = Wire.read();
+                    currentRequest.baseAddress.bytes[2] = Wire.read();
+                    currentRequest.baseAddress.bytes[3] = Wire.read();
+                    currentRequest.data[0] = Wire.read();
+                    currentRequest.data[1] = Wire.read();
+                    currentRequest.data[2] = Wire.read();
+                    currentRequest.data[3] = Wire.read();
+                    currentRequest.data[4] = Wire.read();
+                    currentRequest.data[5] = Wire.read();
+                    currentRequest.data[6] = Wire.read();
+                    currentRequest.data[7] = Wire.read();
+                    currentRequest.data[8] = Wire.read();
+                    currentRequest.data[9] = Wire.read();
+                    currentRequest.data[10] = Wire.read();
+                    currentRequest.data[11] = Wire.read();
+                    currentRequest.data[12] = Wire.read();
+                    currentRequest.data[13] = Wire.read();
+                    currentRequest.data[14] = Wire.read();
+                    currentRequest.data[15] = Wire.read();
+                    currentRequest.size.bytes[0] = Wire.read();
+                    currentRequest.size.bytes[1] = Wire.read();
+                    break;
+                default:
+                    break;
             }
-            digitalWrite(LED_BUILTIN, LOW);
+            if constexpr (EnableDebugging) {
+                Serial.print(F("\tTarget Address: 0x"));
+                Serial.println(currentRequest.baseAddress.full, HEX);
+            }
         }
+        digitalWrite(LED_BUILTIN, LOW);
     }
 }
 constexpr byte BootingUp = 0xFF;

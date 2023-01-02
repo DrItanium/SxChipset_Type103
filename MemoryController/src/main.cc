@@ -283,7 +283,7 @@ installMemoryImage() noexcept {
         delete [] buffer2;
     }
 }
-CachePool<6, 6, 6, 7> thePool_;
+CachePool<4, 4, 6, 80> thePool_;
 void
 setupCache() noexcept {
     // the pool will sit in the upper 64 elements

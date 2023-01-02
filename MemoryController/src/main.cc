@@ -34,7 +34,10 @@
 #include "Types.h"
 #include "Cache.h"
 constexpr bool EnableDebugging = false;
-constexpr auto PSRAMEnable = 3;
+constexpr auto PSRAMEnable0 = 3;
+constexpr auto PSRAMEnable1 = 4;
+constexpr auto PSRAMEnable2 = 5;
+constexpr auto PSRAMEnable3 = 6;
 #ifndef SDCARD_SS_PIN
 #define SDCARD_SS_PIN 10
 #endif
@@ -98,12 +101,16 @@ setupEBI() noexcept {
 void
 configureGPIOs() noexcept {
     Serial.print(F("Configuring GPIOs..."));
-#ifndef I960_GRAND_CENTRAL_M4_MEMORY_CONTROLLER
     pinMode(SDPin, OUTPUT);
     digitalWrite(SDPin, HIGH);
-#endif
-    pinMode(PSRAMEnable, OUTPUT);
-    digitalWrite(PSRAMEnable, HIGH);
+    pinMode(PSRAMEnable0, OUTPUT);
+    digitalWrite(PSRAMEnable0, HIGH);
+    pinMode(PSRAMEnable1, OUTPUT);
+    digitalWrite(PSRAMEnable1, HIGH);
+    pinMode(PSRAMEnable2, OUTPUT);
+    digitalWrite(PSRAMEnable2, HIGH);
+    pinMode(PSRAMEnable2, OUTPUT);
+    digitalWrite(PSRAMEnable2, HIGH);
     pinMode(LED_BUILTIN, OUTPUT);
     Serial.println(F("DONE"));
 }
@@ -159,7 +166,16 @@ bringUpPSRAM() noexcept {
     auto addPSRAMAmount = [&memoryAmount]() {
         memoryAmount += (8ul * 1024ul * 1024ul);
     };
-    if (setupPSRAM<PSRAMEnable, performFullMemoryTest>()) {
+    if (setupPSRAM<PSRAMEnable0, performFullMemoryTest>()) {
+        addPSRAMAmount();
+    }
+    if (setupPSRAM<PSRAMEnable1, performFullMemoryTest>()) {
+        addPSRAMAmount();
+    }
+    if (setupPSRAM<PSRAMEnable2, performFullMemoryTest>()) {
+        addPSRAMAmount();
+    }
+    if (setupPSRAM<PSRAMEnable3, performFullMemoryTest>()) {
         addPSRAMAmount();
     }
     if (memoryAmount == 0) {
@@ -179,31 +195,11 @@ namespace {
         size_t
         psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
             digitalWrite(targetPin, LOW);
-#ifdef I960_MEGA_MEMORY_CONTROLLER
-            SPDR = 0x02;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = baseAddress.bytes[2];
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = baseAddress.bytes[1];
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = baseAddress.bytes[0];
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            for (size_t i = 0; i < count; ++i) {
-                SPDR = bytes[i]; 
-                asm volatile ("nop");
-                while (!(SPSR & _BV(SPIF))) ; // wait
-            }
-#else
             SPI.transfer(0x02);
             SPI.transfer(baseAddress.bytes[2]);
             SPI.transfer(baseAddress.bytes[1]);
             SPI.transfer(baseAddress.bytes[0]);
             SPI.transfer(bytes, count);
-#endif
             digitalWrite(targetPin, HIGH);
             return count;
         }
@@ -212,32 +208,11 @@ namespace {
         size_t
         psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
             digitalWrite(targetPin, LOW);
-#ifdef I960_MEGA_MEMORY_CONTROLLER
-            SPDR = 0x03;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = baseAddress.bytes[2];
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = baseAddress.bytes[1];
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            SPDR = baseAddress.bytes[0];
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            for (size_t i = 0; i < count; ++i) {
-                SPDR = 0; 
-                asm volatile ("nop");
-                while (!(SPSR & _BV(SPIF))) ; // wait
-                bytes[i] = SPDR;
-            }
-#else
             SPI.transfer(0x03);
             SPI.transfer(baseAddress.bytes[2]);
             SPI.transfer(baseAddress.bytes[1]);
             SPI.transfer(baseAddress.bytes[0]);
             SPI.transfer(bytes, count);
-#endif
             digitalWrite(targetPin, HIGH);
             return count;
         }
@@ -245,11 +220,33 @@ namespace {
 
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryWrite<PSRAMEnable>(baseAddress, bytes, count);
+    switch (baseAddress.psramAddress.targetDevice) {
+        case 0:
+            return psramMemoryWrite<PSRAMEnable0>(baseAddress, bytes, count);
+        case 1:
+            return psramMemoryWrite<PSRAMEnable1>(baseAddress, bytes, count);
+        case 2:
+            return psramMemoryWrite<PSRAMEnable2>(baseAddress, bytes, count);
+        case 3:
+            return psramMemoryWrite<PSRAMEnable3>(baseAddress, bytes, count);
+        default:
+            return 0;
+    }
 }
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryRead<PSRAMEnable>(baseAddress, bytes, count);
+    switch (baseAddress.psramAddress.targetDevice) {
+        case 0:
+            return psramMemoryRead<PSRAMEnable0>(baseAddress, bytes, count);
+        case 1:
+            return psramMemoryRead<PSRAMEnable1>(baseAddress, bytes, count);
+        case 2:
+            return psramMemoryRead<PSRAMEnable2>(baseAddress, bytes, count);
+        case 3:
+            return psramMemoryRead<PSRAMEnable3>(baseAddress, bytes, count);
+        default:
+            return 0;
+    }
 }
 
 template<typename T>

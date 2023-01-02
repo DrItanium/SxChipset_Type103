@@ -358,7 +358,7 @@ setup() {
     theSerial.begin();
     infoDevice.begin();
     Wire.begin();
-    //Wire.setClock(400'000);
+    Wire.setClock(400'000);
     testCoprocessor();
     //setupRTC();
     SPI.begin();

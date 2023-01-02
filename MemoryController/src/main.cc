@@ -34,10 +34,9 @@
 #include "Types.h"
 #include "Cache.h"
 constexpr bool EnableDebugging = false;
-constexpr auto PSRAMEnable0 = 3;
-constexpr auto PSRAMEnable1 = 4;
-constexpr auto PSRAMEnable2 = 5;
-constexpr auto PSRAMEnable3 = 6;
+constexpr auto PSRAMEnable = 2;
+constexpr auto PSRAMDevSel0 = 3;
+constexpr auto PSRAMDevSel1 = 5;
 #ifndef SDCARD_SS_PIN
 #define SDCARD_SS_PIN 10
 #endif
@@ -102,16 +101,15 @@ void
 configureGPIOs() noexcept {
     Serial.print(F("Configuring GPIOs..."));
     pinMode(SDPin, OUTPUT);
-    digitalWrite(SDPin, HIGH);
-    pinMode(PSRAMEnable0, OUTPUT);
-    digitalWrite(PSRAMEnable0, HIGH);
-    pinMode(PSRAMEnable1, OUTPUT);
-    digitalWrite(PSRAMEnable1, HIGH);
-    pinMode(PSRAMEnable2, OUTPUT);
-    digitalWrite(PSRAMEnable2, HIGH);
-    pinMode(PSRAMEnable2, OUTPUT);
-    digitalWrite(PSRAMEnable2, HIGH);
+    pinMode(PSRAMEnable, OUTPUT);
+    pinMode(PSRAMDevSel0, OUTPUT);
+    pinMode(PSRAMDevSel1, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(PSRAMEnable, HIGH);
+    digitalWrite(SDPin, HIGH);
+    digitalWrite(PSRAMDevSel0, HIGH);
+    digitalWrite(PSRAMDevSel1, LOW);
     Serial.println(F("DONE"));
 }
 
@@ -166,16 +164,14 @@ bringUpPSRAM() noexcept {
     auto addPSRAMAmount = [&memoryAmount]() {
         memoryAmount += (8ul * 1024ul * 1024ul);
     };
-    if (setupPSRAM<PSRAMEnable0, performFullMemoryTest>()) {
+    digitalWrite(PSRAMDevSel0, HIGH);
+    digitalWrite(PSRAMDevSel1, LOW);
+    if (setupPSRAM<PSRAMEnable, performFullMemoryTest>()) {
         addPSRAMAmount();
     }
-    if (setupPSRAM<PSRAMEnable1, performFullMemoryTest>()) {
-        addPSRAMAmount();
-    }
-    if (setupPSRAM<PSRAMEnable2, performFullMemoryTest>()) {
-        addPSRAMAmount();
-    }
-    if (setupPSRAM<PSRAMEnable3, performFullMemoryTest>()) {
+    digitalWrite(PSRAMDevSel0, HIGH);
+    digitalWrite(PSRAMDevSel1, HIGH);
+    if (setupPSRAM<PSRAMEnable, performFullMemoryTest>()) {
         addPSRAMAmount();
     }
     if (memoryAmount == 0) {
@@ -220,33 +216,13 @@ namespace {
 
 size_t
 memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    switch (baseAddress.psramAddress.targetDevice) {
-        case 0:
-            return psramMemoryWrite<PSRAMEnable0>(baseAddress, bytes, count);
-        case 1:
-            return psramMemoryWrite<PSRAMEnable1>(baseAddress, bytes, count);
-        case 2:
-            return psramMemoryWrite<PSRAMEnable2>(baseAddress, bytes, count);
-        case 3:
-            return psramMemoryWrite<PSRAMEnable3>(baseAddress, bytes, count);
-        default:
-            return 0;
-    }
+    digitalWrite(PSRAMDevSel1, baseAddress.psramAddress.sel);
+    return psramMemoryWrite<PSRAMEnable>(baseAddress, bytes, count);
 }
 size_t
 memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-    switch (baseAddress.psramAddress.targetDevice) {
-        case 0:
-            return psramMemoryRead<PSRAMEnable0>(baseAddress, bytes, count);
-        case 1:
-            return psramMemoryRead<PSRAMEnable1>(baseAddress, bytes, count);
-        case 2:
-            return psramMemoryRead<PSRAMEnable2>(baseAddress, bytes, count);
-        case 3:
-            return psramMemoryRead<PSRAMEnable3>(baseAddress, bytes, count);
-        default:
-            return 0;
-    }
+    digitalWrite(PSRAMDevSel1, baseAddress.psramAddress.sel);
+    return psramMemoryRead<PSRAMEnable>(baseAddress, bytes, count);
 }
 
 template<typename T>
@@ -313,8 +289,8 @@ setup() {
     setupSPI();
     setupTWI();
     configureGPIOs();
-    bringUpSDCard();
     bringUpPSRAM<false>();
+    bringUpSDCard();
     installMemoryImage();
     systemBooted_ = true;
     // setup cache in the heap now!

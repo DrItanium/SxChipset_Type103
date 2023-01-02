@@ -361,9 +361,7 @@ setup() {
     Wire.begin();
     Wire.setClock(400'000);
     testCoprocessor();
-#ifdef TYPE103_BOARD
     setupRTC();
-#endif
     SPI.begin();
     // setup the IO Expanders
     Platform::begin();

@@ -73,8 +73,8 @@ union SplitWord32 {
     } addressKind;
     struct {
         uint32_t offset : 23;
-        uint32_t targetDevice : 2;
-        uint32_t rest : 7;
+        uint32_t sel : 1;
+        uint32_t rest : 8;
     } psramAddress;
     [[nodiscard]] constexpr bool inIOSpace() const noexcept { return addressKind.space == 0b1111; }
     constexpr bool operator==(const SplitWord32& other) const noexcept {

@@ -355,7 +355,7 @@ union Request {
 volatile bool processingRequest = false;
 volatile bool availableForRead = false;
 volatile Request currentRequest;
-
+volatile uint32_t counter = 0;
 void
 onReceive(int howMany) noexcept {
     if (systemBooted_) {
@@ -367,6 +367,8 @@ onReceive(int howMany) noexcept {
                 Serial.println(howMany);
                 Serial.print(F("Available count: "));
                 Serial.println(Wire.available());
+                Serial.println(counter);
+                ++counter;
             }
             processingRequest = true;
             availableForRead = false;

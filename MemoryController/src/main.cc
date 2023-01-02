@@ -159,11 +159,23 @@ namespace {
     size_t
     psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         digitalWrite(targetPin, LOW);
-        SPI.transfer(0x02);
-        SPI.transfer(baseAddress.bytes[2]);
-        SPI.transfer(baseAddress.bytes[1]);
-        SPI.transfer(baseAddress.bytes[0]);
-        SPI.transfer(bytes, count);
+        SPDR = 0x02;
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[2];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[1];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[0];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        for (size_t i = 0; i < count; ++i) {
+            SPDR = bytes[i]; 
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+        }
         digitalWrite(targetPin, HIGH);
         return count;
     }
@@ -172,11 +184,24 @@ namespace {
     size_t
     psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
         digitalWrite(targetPin, LOW);
-        SPI.transfer(0x03);
-        SPI.transfer(baseAddress.bytes[2]);
-        SPI.transfer(baseAddress.bytes[1]);
-        SPI.transfer(baseAddress.bytes[0]);
-        SPI.transfer(bytes, count);
+        SPDR = 0x03;
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[2];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[1];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        SPDR = baseAddress.bytes[0];
+        asm volatile ("nop");
+        while (!(SPSR & _BV(SPIF))) ; // wait
+        for (size_t i = 0; i < count; ++i) {
+            SPDR = 0; 
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            bytes[i] = SPDR;
+        }
         digitalWrite(targetPin, HIGH);
         return count;
     }
@@ -221,7 +246,6 @@ installMemoryImage() noexcept {
             }
             auto numWritten = memoryWrite(currentAddressLine, buffer, numRead);
             memoryRead(currentAddressLine, buffer2, numWritten);
-            bool dataMismatch = false;
             for (uint32_t k = 0; k < numWritten; ++k) {
                 if (buffer[k] != buffer2[k]) {
                     Serial.println(F("DATA MISMATCH: "));
@@ -231,13 +255,11 @@ installMemoryImage() noexcept {
                     Serial.println(buffer[k], HEX);
                     Serial.print(F("\t Got 0x"));
                     Serial.println(buffer2[k], HEX);
+                    Serial.println(F("HALTING!"));
+                    while (true);
                 }
             }
-            if (dataMismatch) {
-                while (true);
-            }
             if ((j % 16) == 0) {
-                Serial.println(F("HALTING!"));
                 Serial.print(F("."));
             }
         }

@@ -350,12 +350,12 @@ setup() {
 // at all times we have a front end cache line that we operate on
 union Request {
     Request() : contents{0} { }
-    byte contents[32];
+    volatile byte contents[32];
     struct {
-        byte direction;
-        SplitWord32 baseAddress;
-        byte data[16];
-        SplitWord16 size;
+        volatile byte direction;
+        volatile SplitWord32 baseAddress;
+        volatile byte data[16];
+        volatile SplitWord16 size;
     } packet;
 };
 volatile bool processingRequest = false;
@@ -364,18 +364,31 @@ volatile Request currentRequest;
 void
 onReceive(int howMany) noexcept {
     if (systemBooted_) {
-        if (howMany > 0) {
-            digitalWrite(LED_BUILTIN, HIGH);
-            if (!processingRequest) {
-                // only create a new request if we are idle
-                processingRequest = true;
-                availableForRead = false;
+        digitalWrite(LED_BUILTIN, HIGH);
+        if (!processingRequest) {
+            // only create a new request if we are idle
+            processingRequest = true;
+            availableForRead = false;
+            for (int i = 0; i < howMany; ++i) {
+                auto value = Wire.read();
+                if constexpr (EnableDebugging) {
+                    Serial.print(F("\t@"));
+                    Serial.print(i);
+                    Serial.print(F(": 0x"));
+                    Serial.println(value, HEX);
+                }
+                currentRequest.contents[i] = value;
+            }
+            if constexpr (EnableDebugging) {
                 for (int i = 0; i < howMany; ++i) {
-                    currentRequest.contents[i] = Wire.read();
+                    Serial.print(F("\t@"));
+                    Serial.print(i);
+                    Serial.print(F(": 0x"));
+                    Serial.println(currentRequest.contents[i], HEX);
                 }
             }
-            digitalWrite(LED_BUILTIN, LOW);
         }
+        digitalWrite(LED_BUILTIN, LOW);
     }
 }
 constexpr byte BootingUp = 0xFF;

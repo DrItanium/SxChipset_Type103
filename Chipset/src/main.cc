@@ -39,8 +39,27 @@ SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
 
-bool memoryControllerAvailable() noexcept {
-    return Wire.requestFrom(9, 16) && Wire.available() > 1;
+byte memoryControllerStatus() noexcept {
+    Wire.requestFrom(9, 17);
+    return Wire.read();
+}
+bool memoryControllerBooting() noexcept {
+    return memoryControllerStatus() == 0xFF;
+}
+void waitForMemoryControllerToBeIdle() noexcept {
+    while (true) {
+        switch (memoryControllerStatus()) {
+            case 0x55:
+            case 0xFD:
+                return;
+            default:
+                break;
+        }
+    }
+}
+void
+waitForSuccessfulCacheLineRead() noexcept {
+    while (memoryControllerStatus() != 0x55);
 }
 
 
@@ -352,7 +371,7 @@ setup() {
     // okay so we got the image installed, now we just terminate the SD card
     //SD.end();
     // now we wait for the memory controller to come up!
-    while (!memoryControllerAvailable()) {
+    while (memoryControllerBooting()) {
         // wait one second in between requests to make sure that we don't flood
         // the memory controller with requests
         delay(1000);
@@ -491,7 +510,7 @@ namespace {
 
 size_t
 memoryWrite(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-    while (!memoryControllerAvailable());
+    waitForMemoryControllerToBeIdle();
     /// @todo add support for carving up transmission blocks into multiples
     /// of 16 automatically
     ///
@@ -507,7 +526,7 @@ memoryWrite(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
 size_t
 memoryRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
     // we are now sending data over i2c to the external memory controller
-    while (!memoryControllerAvailable());
+    waitForMemoryControllerToBeIdle();
     /// @todo add support for carving up transmission blocks into multiples
     /// of 16 automatically
     ///
@@ -518,10 +537,12 @@ memoryRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
     Wire.write(bytes, 16);
     Wire.write(count);
     Wire.endTransmission();
-    while (!memoryControllerAvailable());
+    waitForSuccessfulCacheLineRead();
     // okay, we got a packet back that we like :)
     // load it into our buffer and return
     size_t i = 0;
+    Serial.print(F("\t\tNumber of available bytes: "));
+    Serial.println(Wire.available());
     while (Wire.available()) {
         bytes[i] = Wire.read();
         ++i;

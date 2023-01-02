@@ -83,6 +83,7 @@ configureGPIOs() noexcept {
     pinMode(PSRAMEnable, OUTPUT);
     digitalWrite(SDPin, HIGH);
     digitalWrite(PSRAMEnable, HIGH);
+    pinMode(LED_BUILTIN, OUTPUT);
     Serial.println(F("DONE"));
 }
 
@@ -380,35 +381,45 @@ union Request {
 volatile bool processingRequest = false;
 volatile bool availableForRead = false;
 volatile Request currentRequest;
+
 void
 onReceive(int howMany) noexcept {
-    if (!processingRequest) {
-        // only create a new request if we are idle
-        processingRequest = true;
-        availableForRead = false;
-        for (int i = 0; i < howMany; ++i) {
-            currentRequest.contents[i] = Wire.read();
+    if (systemBooted_) {
+        digitalWrite(LED_BUILTIN, LOW);
+        if (!processingRequest) {
+            // only create a new request if we are idle
+            processingRequest = true;
+            availableForRead = false;
+            for (int i = 0; i < howMany; ++i) {
+                currentRequest.contents[i] = Wire.read();
+            }
         }
+        digitalWrite(LED_BUILTIN, HIGH);
     }
 }
-
+constexpr byte BootingUp = 0xFF;
+constexpr byte CurrentlyProcessingRequest = 0xFE;
+constexpr byte NoCacheLineLoaded = 0xFD;
+constexpr byte SuccessfulCacheLineRead = 0x55;
 void
 onRequest() noexcept {
     if (systemBooted_) {
         if (processingRequest) {
-            Wire.write(0xFF);
+            Wire.write(CurrentlyProcessingRequest);
         } else {
             if (availableForRead) {
+                Wire.write(SuccessfulCacheLineRead); // write a valid byte to differentiate things
                 Wire.write(const_cast<byte*>(currentRequest.packet.data), 16);
             } else {
                 // send a one byte message stating we are not ready for you yet
-                Wire.write(0xFF);
+                // it can also mean we haven't requested anything yet
+                Wire.write(NoCacheLineLoaded);
             }
         }
     } else {
         // we haven't booted the system yet!
         // return a single byte sequence
-        Wire.write(0xFF);
+        Wire.write(BootingUp);
     }
 }
 // process the requests outside of the 
@@ -432,6 +443,12 @@ loop() {
             for (int i = 0; i < 16; ++i) {
                 theLine.write(i, currentRequest.packet.data[i]);
             }
+        }
+        for (int i = 0; i < 16; ++i) {
+            Serial.print(F("\tIndex: ")); 
+            Serial.print(i);
+            Serial.print(F(", Value: 0x")); 
+            Serial.println(currentRequest.packet.data[i], HEX);
         }
         Serial.println(F("Finished Processing Request"));
         availableForRead = true;

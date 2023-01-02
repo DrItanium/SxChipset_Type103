@@ -23,6 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -61,9 +62,6 @@ void
 setupTWI() noexcept {
     Serial.print(F("Configuring TWI..."));
     Wire.begin(9);
-#ifdef I960_MEGA_MEMORY_CONTROLLER
-    Wire.setClock(400'000);
-#endif
     Wire.onReceive(onReceive);
     Wire.onRequest(onRequest);
     Serial.println(F("DONE"));

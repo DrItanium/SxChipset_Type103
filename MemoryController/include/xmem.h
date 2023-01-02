@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 namespace xmem {
-
+#ifdef I960_MEGA_MEMORY_CONTROLLER
 	/*
 	 * State variables used by the heap
 	 */
@@ -27,6 +27,7 @@ namespace xmem {
         void *__brkval;
         void *__flp;
 	};
+#endif
 
 	/*
 	 * Results of a self-test run
@@ -57,10 +58,11 @@ namespace xmem {
 /*
  * References to the private heap variables
  */
-
+#ifdef I960_MEGA_MEMORY_CONTROLLER
 extern "C" {
 	extern void *__flp;
 	extern void *__brkval;
 }
+#endif
 
 #endif

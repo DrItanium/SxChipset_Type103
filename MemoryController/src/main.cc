@@ -28,7 +28,9 @@
 #include <SPI.h>
 #include <SdFat.h>
 #include "xmem.h"
+#ifdef I960_MEGA_MEMORY_CONTROLLER
 #include "BankSelection.h"
+#endif
 #include "Types.h"
 #include "Cache.h"
 constexpr bool EnableDebugging = false;
@@ -162,6 +164,7 @@ namespace {
         size_t
         psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
             digitalWrite(targetPin, LOW);
+#ifdef I960_MEGA_MEMORY_CONTROLLER
             SPDR = 0x02;
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait
@@ -179,6 +182,13 @@ namespace {
                 asm volatile ("nop");
                 while (!(SPSR & _BV(SPIF))) ; // wait
             }
+#else
+            SPI.transfer(0x02);
+            SPI.transfer(baseAddress.bytes[2]);
+            SPI.transfer(baseAddress.bytes[1]);
+            SPI.transfer(baseAddress.bytes[0]);
+            SPI.transfer(bytes, count);
+#endif
             digitalWrite(targetPin, HIGH);
             return count;
         }
@@ -187,6 +197,7 @@ namespace {
         size_t
         psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
             digitalWrite(targetPin, LOW);
+#ifdef I960_MEGA_MEMORY_CONTROLLER
             SPDR = 0x03;
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait
@@ -205,18 +216,14 @@ namespace {
                 while (!(SPSR & _BV(SPIF))) ; // wait
                 bytes[i] = SPDR;
             }
+#else
+            SPI.transfer(0x03);
+            SPI.transfer(baseAddress.bytes[2]);
+            SPI.transfer(baseAddress.bytes[1]);
+            SPI.transfer(baseAddress.bytes[0]);
+            SPI.transfer(bytes, count);
+#endif
             digitalWrite(targetPin, HIGH);
-            if constexpr (EnableDebugging) {
-                if (systemBooted_) {
-                    Serial.println(F("\t\tPSRAM READ RESULT:"));
-                    for (size_t i = 0; i < count; ++i) {
-                        Serial.print(F("\t\t\t["));
-                        Serial.print(i);
-                        Serial.print(F("]: 0x"));
-                        Serial.println(bytes[i], HEX);
-                    }
-                }
-            }
             return count;
         }
 }
@@ -249,9 +256,8 @@ installMemoryImage() noexcept {
         Serial.println(F("installing memory image from sd"));
         // use bank0 for the transfer cache
         xmem::setMemoryBank(0);
-        auto BufferSize = 8192;
+        auto BufferSize = 16384;
         auto* buffer = new byte[BufferSize]();
-        auto* buffer2 = new byte[BufferSize]();
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
@@ -259,21 +265,7 @@ installMemoryImage() noexcept {
             if (numRead < 0) {
                 SD.errorHalt();
             }
-            auto numWritten = memoryWrite(currentAddressLine, buffer, numRead);
-            memoryRead(currentAddressLine, buffer2, numWritten);
-            for (uint32_t k = 0; k < numWritten; ++k) {
-                if (buffer[k] != buffer2[k]) {
-                    Serial.println(F("DATA MISMATCH: "));
-                    Serial.print(F("\t Address: 0x"));
-                    Serial.println(i + k, HEX);
-                    Serial.print(F("\t Expected 0x"));
-                    Serial.println(buffer[k], HEX);
-                    Serial.print(F("\t Got 0x"));
-                    Serial.println(buffer2[k], HEX);
-                    Serial.println(F("HALTING!"));
-                    while (true);
-                }
-            }
+            memoryWrite(currentAddressLine, buffer, numRead);
             if ((j % 16) == 0) {
                 Serial.print(F("."));
             }
@@ -282,11 +274,16 @@ installMemoryImage() noexcept {
         Serial.println();
         Serial.println(F("transfer complete!"));
         delete [] buffer;
-        delete [] buffer2;
         SPI.endTransaction();
     }
 }
+#ifdef I960_MEGA_MEMORY_CONTROLLER
 CachePool<4, 8, 6, 6> thePool_;
+#elif defined I960_METRO_M4_MEMORY_CONTROLLER
+CachePool<4, 8, 6, 6> thePool_;
+#else
+#error "Define Cache properly for target!"
+#endif
 void
 setupCache() noexcept {
     // the pool will sit in the upper 64 elements
@@ -308,60 +305,7 @@ setup() {
     systemBooted_ = true;
     // setup cache in the heap now!
 }
-void
-performBankMemoryTest() noexcept {
-    if (auto results = xmem::selfTest(); results.succeeded) {
-        Serial.println(F("Memory Test Passed!"));
-    } else {
-        Serial.println(F("Memory Test Failed!"));
-        Serial.print(F("Failing Address: 0x"));
-        Serial.println(reinterpret_cast<uint16_t>(results.failedAddress), HEX);
-        Serial.print(F("Failed Bank: 0x"));
-        Serial.println(results.failedBank, HEX);
-        Serial.print(F("Got Value: 0x")); Serial.println(static_cast<int>(results.gotValue), HEX);
-        Serial.print(F("Expected Value: 0x")); Serial.println(static_cast<int>(results.expectedValue), HEX);
-    }
-}
 
-namespace External328Bus {
-    void setBank(uint8_t bank) noexcept {
-        // set the upper
-        digitalWrite(FakeA15, bank & 0b1 ? HIGH : LOW);
-        PORTK = (bank >> 1) & 0b0111'1111;
-        PORTF = 0;
-    }
-    void begin() noexcept {
-        static constexpr int PinList[] {
-            A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15
-        };
-        for (auto pin : PinList) {
-            pinMode(pin, OUTPUT);
-        }
-        pinMode(FakeA15, OUTPUT);
-        setBank(0);
-    }
-    void select() noexcept {
-        digitalWrite(RealA15, HIGH);
-    }
-} // end namespace External328Bus
-namespace InternalBus {
-    void setBank(uint8_t bank) noexcept {
-        digitalWrite(BANK0, bank & 0b0001 ? HIGH : LOW);
-        digitalWrite(BANK1, bank & 0b0010 ? HIGH : LOW);
-        digitalWrite(BANK2, bank & 0b0100 ? HIGH : LOW);
-        digitalWrite(BANK3, bank & 0b1000 ? HIGH : LOW);
-    }
-    void begin() noexcept {
-        pinMode(BANK0, OUTPUT);
-        pinMode(BANK1, OUTPUT);
-        pinMode(BANK2, OUTPUT);
-        pinMode(BANK3, OUTPUT);
-        setBank(0);
-    }
-    void select() noexcept {
-        digitalWrite(RealA15, LOW);
-    }
-} // end namespace InternalBus
 
 
 /*

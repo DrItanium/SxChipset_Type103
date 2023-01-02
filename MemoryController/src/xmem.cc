@@ -44,14 +44,27 @@ namespace xmem {
     namespace {
 
         constexpr auto getNumberOfBankHeapStates() noexcept {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
             return 16 + 64;
+#else
+            return 0;
+#endif
         }
         constexpr auto getLastAddress() noexcept {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
             return RAMEND + 0x8000;
+#else
+            return 0;
+#endif
         }
         constexpr auto getFirstAddress() noexcept {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
             return RAMEND + 1;
+#else
+            return 0;
+#endif
         }
+#ifdef I960_MEGA_MEMORY_CONTROLLER
         static_assert(getLastAddress() == 0xA1FF);
 
         /**
@@ -62,6 +75,7 @@ namespace xmem {
          * The currently selected bank
          */
         volatile uint8_t currentBank = 0;
+#endif
     }
 
 
@@ -71,6 +85,7 @@ namespace xmem {
 
 	void begin(bool heapInXmem_) {
 
+#ifdef I960_MEGA_MEMORY_CONTROLLER
 		// initialise the heap states
 
         // set up the xmem registers
@@ -102,12 +117,14 @@ namespace xmem {
             saveHeap(i);
         }
         setMemoryBank(0);
+#endif
 	}
 	/*
 	 * Set the memory bank
 	 */
 
 	void setMemoryBank(uint8_t bank_,bool switchHeap_) {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
 		// check
         //Serial.print(F("Switching to bank: "));
         //Serial.println(bank_);
@@ -134,6 +151,7 @@ namespace xmem {
 
 		if(switchHeap_)
 			restoreHeap(currentBank);
+#endif
 	}
 
 	/*
@@ -141,10 +159,12 @@ namespace xmem {
 	 */
 
 	void saveHeap(uint8_t bank_) {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
 		bankHeapStates[bank_].__malloc_heap_start=__malloc_heap_start;
 		bankHeapStates[bank_].__malloc_heap_end=__malloc_heap_end;
 		bankHeapStates[bank_].__brkval=__brkval;
 		bankHeapStates[bank_].__flp=__flp;
+#endif
 	}
 
 	/*
@@ -152,24 +172,26 @@ namespace xmem {
 	 */
 
 	void restoreHeap(uint8_t bank_) {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
 		__malloc_heap_start=bankHeapStates[bank_].__malloc_heap_start;
 		__malloc_heap_end=bankHeapStates[bank_].__malloc_heap_end;
 		__brkval=bankHeapStates[bank_].__brkval;
 		__flp=bankHeapStates[bank_].__flp;
+#endif
 	}
 	/*
 	 * Self test the memory. This will destroy the entire content of all
 	 * memory banks so don't use it except in a test scenario.
 	 */
 	SelfTestResults selfTest() {
-        auto getStart = [](uint8_t bank) { return getLastAddress(); };
-        auto getEnd = [](uint8_t bank) { return getFirstAddress(); };
-		volatile uint8_t *ptr;
 		SelfTestResults results;
 
 		// write an ascending sequence of 1..237 running through
 		// all memory banks
-
+#ifdef I960_MEGA_MEMORY_CONTROLLER
+        auto getStart = [](uint8_t bank) { return getLastAddress(); };
+        auto getEnd = [](uint8_t bank) { return getFirstAddress(); };
+		volatile uint8_t *ptr;
 		auto writeValue=1;
 		for(auto bank=0;bank<getNumberOfBankHeapStates();bank++) {
 
@@ -208,14 +230,18 @@ namespace xmem {
 					writeValue=1;
 			}
 		}
-
+#endif
 		results.succeeded=true;
 		return results;
 	}
 
     uint8_t 
     getCurrentMemoryBank() noexcept {
+#ifdef I960_MEGA_MEMORY_CONTROLLER
         return currentBank; 
+#else
+        return 0;
+#endif
     }
 
     uintptr_t 

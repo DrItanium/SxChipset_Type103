@@ -38,15 +38,15 @@ enum class EnableStyle : byte {
     Undefined = 0b11,
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-union BasicCacheAddress {
+union BasicBankedCacheAddress {
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto TagBitsCount = tagBits;
     static constexpr auto BankBitsCount = bankBits;
-    static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount;
+    static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
-    BasicCacheAddress(uint32_t address) : backingStore_(address) { }
-    BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    BasicBankedCacheAddress(uint32_t address) : backingStore_(address) { }
+    BasicBankedCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     SplitWord32 backingStore_;
     struct {
         uint32_t offset : OffsetBitsCount;
@@ -55,6 +55,31 @@ union BasicCacheAddress {
         uint32_t key : KeyBitsCount;
     };
 };
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+union BasicNoBankedCacheAddress {
+    static constexpr auto OffsetBitsCount = offsetBits;
+    static constexpr auto TagBitsCount = tagBits;
+    static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount;
+    static_assert(KeyDifferential < 32, "Number of tag bits is too high");
+    static constexpr auto KeyBitsCount = (32 - KeyDifferential);
+    BasicNoBankedCacheAddress(uint32_t address) : backingStore_(address) { }
+    BasicNoBankedCacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    SplitWord32 backingStore_;
+    struct {
+        uint32_t offset : OffsetBitsCount;
+        uint32_t tag : TagBitsCount;
+        uint32_t key : KeyBitsCount;
+    };
+};
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+#ifdef I960_MEGA_MEMORY_CONTROLLER
+using BasicCacheAddress = BasicBankedCacheAddress<offsetBits, tagBits, bankBits>;
+#else
+using BasicCacheAddress = BasicNoBankedCacheAddress<offsetBits, tagBits, bankBits>;
+#endif
+
+
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheLine {
     using CacheAddress = BasicCacheAddress<offsetBits, tagBits, bankBits>;
@@ -179,7 +204,14 @@ struct BasicDataCache {
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct BasicCacheReference {
     using Cache = BasicDataCache<offsetBits, tagBits, bankBits, numberOfLines>;
+#ifdef I960_MEGA_MEMORY_CONTROLLER
     static_assert(sizeof(Cache) < 32767, "Cache implementation is too large to fit in a 32k block");
+#elif defined(I960_METRO_M4_MEMORY_CONTROLLER
+// we get 192k total, keep a bunch around for other purposes
+    static_assert(sizeof(Cache) < (128 * 1024), "Cache implementation is too large to fit in a 128k block");
+#else
+#   error("Please define the maximum cache size")
+#endif
     using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
     void select() {
@@ -192,21 +224,33 @@ struct BasicCacheReference {
             Serial.print(F("Sizeof cache = "));
             Serial.println(sizeof(Cache));
             initialized_ = true;
+#ifdef I960_MEGA_MEMORY_CONTROLLER
             index_ = index;
             select();
             ptr_ = new Cache();
             ptr_->begin();
+#else
+            ptr_.begin();
+#endif
+
         }
     }
     auto& find(CacheAddress addr) noexcept { 
         // make sure we select this bank before we jump to the pointer
+#ifdef I960_MEGA_MEMORY_CONTROLLER
         select();
         return ptr_->find(addr);
+#else
+
     }
     private:
-        byte index_ = 0;
         bool initialized_ = false;
+#ifdef I960_MEGA_MEMORY_CONTROLLER
+        byte index_ = 0;
         Cache* ptr_ = nullptr;
+#else
+        Cache ptr_;
+#endif
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct CachePool {

@@ -84,7 +84,10 @@ union SplitWord32 {
         return other.full != full;
     }
 };
-static constexpr auto pow2(uint8_t value) noexcept {
+#ifndef _BV
+#define _BV(value) (1 << value)
+#endif
+constexpr auto pow2(uint8_t value) noexcept {
     return _BV(value);
 }
 static_assert(pow2(0) == 1);

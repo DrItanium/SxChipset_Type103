@@ -386,8 +386,8 @@ union Request {
     struct {
         byte direction;
         SplitWord32 baseAddress;
-        SplitWord16 size;
         byte data[16];
+        SplitWord16 size;
     } packet;
 };
 volatile bool processingRequest = false;

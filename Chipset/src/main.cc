@@ -518,8 +518,8 @@ memoryWrite(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
     Wire.beginTransmission(9);
     Wire.write(1);
     Wire.write(address.bytes, 4);
-    Wire.write(count);
     Wire.write(bytes, 16);
+    //Wire.write(count);
     Wire.endTransmission();
     return 16;
 }
@@ -534,8 +534,9 @@ memoryRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
     Wire.beginTransmission(9);
     Wire.write(0);
     Wire.write(address.bytes, 4);
-    Wire.write(count);
     // don't send bytes
+    //Wire.write(bytes, 16);
+    //Wire.write(count);
     Wire.endTransmission();
     waitForSuccessfulCacheLineRead();
     // okay, we got a packet back that we like :)

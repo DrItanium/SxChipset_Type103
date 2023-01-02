@@ -63,23 +63,24 @@ struct BasicDataCacheLine {
     static constexpr uint8_t WordMask = NumberOfWords - 1;
     inline void clear() noexcept {
         key_ = 0;
-        flags_.whole = 0;
+        dirty_ = false;
+        valid_ = false;
         for (int i = 0; i < NumberOfWords; ++i) {
             words[i] = 0;
         }
     }
     inline bool matches(CacheAddress other) const noexcept {
-        return flags_.lineFlags.valid_ && (other.key == key_);
+        return valid_ && (other.key == key_);
     }
     inline void reset(CacheAddress newAddress) noexcept {
         newAddress.offset = 0;
-        if (flags_.lineFlags.valid_ && flags_.lineFlags.dirty_) {
+        if (valid_ && dirty_) {
             auto copy = newAddress;
             copy.key = key_;
             memoryWrite(copy.backingStore_, words, NumberOfDataBytes);
         }
-        flags_.lineFlags.valid_ = true;
-        flags_.lineFlags.dirty_ = false;
+        valid_ = true;
+        dirty_ = false;
         key_ = newAddress.key;
         memoryRead(newAddress.backingStore_, words, NumberOfDataBytes);
     }
@@ -90,18 +91,13 @@ struct BasicDataCacheLine {
         return words[offset & WordMask];
     }
     void write(byte offset, byte value) noexcept {
-        flags_.lineFlags.dirty_ = true;
+        dirty_ = true;
         words[offset] = value;
     }
     private:
         uint32_t key_ : CacheAddress::KeyBitsCount;
-        union {
-            uint8_t whole;
-            struct {
-                uint8_t dirty_ : 1;
-                uint8_t valid_ : 1;
-            } lineFlags;
-        } flags_;
+        bool dirty_ = false;
+        bool valid_ = false;
         byte words[NumberOfDataBytes];
 
 
@@ -191,6 +187,7 @@ struct BasicDataCache {
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct BasicCacheReference {
     using Cache = BasicDataCache<offsetBits, tagBits, bankBits, numberOfLines>;
+    static_assert(sizeof(Cache) < 32767, "Cache implementation is too large to fit in a 32k block");
     using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
     void select() {

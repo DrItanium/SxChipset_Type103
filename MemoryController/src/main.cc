@@ -347,20 +347,16 @@ setup() {
  * and there.
  *
  */
-// at all times we have a front end cache line that we operate on
-union Request {
-    Request() : contents{0} { }
-    volatile byte contents[32];
-    struct {
-        volatile byte direction;
-        volatile SplitWord32 baseAddress;
-        volatile byte data[16];
-        volatile SplitWord16 size;
-    } packet;
+struct Packet {
+    Packet() : direction(0), baseAddress(0), data{0}, size{0} { }
+    byte direction;
+    SplitWord32 baseAddress;
+    byte data[16];
+    SplitWord16 size;
 };
 volatile bool processingRequest = false;
 volatile bool availableForRead = false;
-volatile Request currentRequest;
+volatile Packet currentRequest;
 void
 onReceive(int howMany) noexcept {
     if (systemBooted_) {
@@ -368,25 +364,74 @@ onReceive(int howMany) noexcept {
             digitalWrite(LED_BUILTIN, HIGH);
             if (!processingRequest) {
                 // only create a new request if we are idle
-                processingRequest = true;
-                availableForRead = false;
-                for (int i = 0; i < howMany; ++i) {
-                    auto value = Wire.read();
-                    if constexpr (EnableDebugging) {
-                        Serial.print(F("\t@"));
-                        Serial.print(i);
-                        Serial.print(F(": 0x"));
-                        Serial.println(value, HEX);
-                    }
-                    currentRequest.contents[i] = value;
+                switch (howMany) {
+                    case 5:
+                        processingRequest = true;
+                        availableForRead = false;
+                        currentRequest.direction = Wire.read();
+                        currentRequest.baseAddress.bytes[0] = Wire.read();
+                        currentRequest.baseAddress.bytes[1] = Wire.read();
+                        currentRequest.baseAddress.bytes[2] = Wire.read();
+                        currentRequest.baseAddress.bytes[3] = Wire.read();
+                        break;
+                    case 21:
+                        processingRequest = true;
+                        availableForRead = false;
+                        currentRequest.direction = Wire.read();
+                        currentRequest.baseAddress.bytes[0] = Wire.read();
+                        currentRequest.baseAddress.bytes[1] = Wire.read();
+                        currentRequest.baseAddress.bytes[2] = Wire.read();
+                        currentRequest.baseAddress.bytes[3] = Wire.read();
+                        currentRequest.data[0] = Wire.read();
+                        currentRequest.data[1] = Wire.read();
+                        currentRequest.data[2] = Wire.read();
+                        currentRequest.data[3] = Wire.read();
+                        currentRequest.data[4] = Wire.read();
+                        currentRequest.data[5] = Wire.read();
+                        currentRequest.data[6] = Wire.read();
+                        currentRequest.data[7] = Wire.read();
+                        currentRequest.data[8] = Wire.read();
+                        currentRequest.data[9] = Wire.read();
+                        currentRequest.data[10] = Wire.read();
+                        currentRequest.data[11] = Wire.read();
+                        currentRequest.data[12] = Wire.read();
+                        currentRequest.data[13] = Wire.read();
+                        currentRequest.data[14] = Wire.read();
+                        currentRequest.data[15] = Wire.read();
+                        break;
+                    case 23:
+                        processingRequest = true;
+                        availableForRead = false;
+                        currentRequest.direction = Wire.read();
+                        currentRequest.baseAddress.bytes[0] = Wire.read();
+                        currentRequest.baseAddress.bytes[1] = Wire.read();
+                        currentRequest.baseAddress.bytes[2] = Wire.read();
+                        currentRequest.baseAddress.bytes[3] = Wire.read();
+                        currentRequest.data[0] = Wire.read();
+                        currentRequest.data[1] = Wire.read();
+                        currentRequest.data[2] = Wire.read();
+                        currentRequest.data[3] = Wire.read();
+                        currentRequest.data[4] = Wire.read();
+                        currentRequest.data[5] = Wire.read();
+                        currentRequest.data[6] = Wire.read();
+                        currentRequest.data[7] = Wire.read();
+                        currentRequest.data[8] = Wire.read();
+                        currentRequest.data[9] = Wire.read();
+                        currentRequest.data[10] = Wire.read();
+                        currentRequest.data[11] = Wire.read();
+                        currentRequest.data[12] = Wire.read();
+                        currentRequest.data[13] = Wire.read();
+                        currentRequest.data[14] = Wire.read();
+                        currentRequest.data[15] = Wire.read();
+                        currentRequest.size.bytes[0] = Wire.read();
+                        currentRequest.size.bytes[1] = Wire.read();
+                        break;
+                    default:
+                        break;
                 }
                 if constexpr (EnableDebugging) {
-                    for (int i = 0; i < howMany; ++i) {
-                        Serial.print(F("\t@"));
-                        Serial.print(i);
-                        Serial.print(F(": 0x"));
-                        Serial.println(value, HEX);
-                    }
+                    Serial.print(F("\tTarget Address: 0x"));
+                    Serial.println(currentRequest.baseAddress.full, HEX);
                 }
             }
             digitalWrite(LED_BUILTIN, LOW);
@@ -405,7 +450,7 @@ onRequest() noexcept {
         } else {
             if (availableForRead) {
                 Wire.write(SuccessfulCacheLineRead); // write a valid byte to differentiate things
-                Wire.write(const_cast<byte*>(currentRequest.packet.data), 16);
+                Wire.write(const_cast<byte*>(currentRequest.data), 16);
             } else {
                 // send a one byte message stating we are not ready for you yet
                 // it can also mean we haven't requested anything yet
@@ -422,21 +467,22 @@ onRequest() noexcept {
 void 
 loop() {
     if (processingRequest) {
+        SplitWord32 address{currentRequest.baseAddress.full};
         if constexpr (EnableDebugging) {
             Serial.println(F("Processing Request From: "));
             Serial.print(F("\t Address 0x"));
-            Serial.println(currentRequest.packet.baseAddress.full, HEX);
+            Serial.println(address.full, HEX);
         }
         // take the current request and process it
-        auto& theLine = thePool_.find(const_cast<const SplitWord32&>(currentRequest.packet.baseAddress));
-        decltype(thePool_)::CacheAddress targetAddress(const_cast<const SplitWord32&>(currentRequest.packet.baseAddress));
-        if (currentRequest.packet.direction == 0) {
+        auto& theLine = thePool_.find(address);
+        decltype(thePool_)::CacheAddress targetAddress(address);
+        if (currentRequest.direction == 0) {
             if constexpr (EnableDebugging) {
                 Serial.println(F("READ OPERATION!"));
             }
             // read operation
             for (int i = 0, j = targetAddress.getOffset(); i < 16; ++i, ++j) {
-                currentRequest.packet.data[i] = theLine.read(j);
+                currentRequest.data[i] = theLine.read(j);
             }
         } else {
             if constexpr (EnableDebugging) {
@@ -444,7 +490,7 @@ loop() {
             }
             // write operation
             for (int i = 0, j = targetAddress.getOffset(); i < 16; ++i, ++j) {
-                theLine.write(j, currentRequest.packet.data[i]);
+                theLine.write(j, currentRequest.data[i]);
             }
         }
         if constexpr (EnableDebugging) {
@@ -452,7 +498,7 @@ loop() {
                 Serial.print(F("\tIndex: ")); 
                 Serial.print(i);
                 Serial.print(F(", Value: 0x")); 
-                Serial.println(currentRequest.packet.data[i], HEX);
+                Serial.println(currentRequest.data[i], HEX);
             }
             Serial.println(F("Finished Processing Request"));
         }

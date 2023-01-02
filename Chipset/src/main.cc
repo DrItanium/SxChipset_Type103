@@ -541,8 +541,8 @@ memoryRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
     // okay, we got a packet back that we like :)
     // load it into our buffer and return
     size_t i = 0;
-    Serial.print(F("\t\tNumber of available bytes: "));
-    Serial.println(Wire.available());
+    //Serial.print(F("\t\tNumber of available bytes: "));
+    //Serial.println(Wire.available());
     while (Wire.available()) {
         bytes[i] = Wire.read();
         ++i;

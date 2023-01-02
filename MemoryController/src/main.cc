@@ -1,27 +1,27 @@
 /**
-* i960SxChipset_Type103
-* Copyright (c) 2022-2023, Joshua Scoggins
-* All rights reserved.
-* 
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions are met:
-*     * Redistributions of source code must retain the above copyright
-*       notice, this list of conditions and the following disclaimer.
-*     * Redistributions in binary form must reproduce the above copyright
-*       notice, this list of conditions and the following disclaimer in the
-*       documentation and/or other materials provided with the distribution.
-* 
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-* ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR 
-* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-* ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-* SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ * i960SxChipset_Type103
+ * Copyright (c) 2022-2023, Joshua Scoggins
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR 
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -31,6 +31,7 @@
 #include "BankSelection.h"
 #include "Types.h"
 #include "Cache.h"
+constexpr bool EnableDebugging = false;
 constexpr auto PSRAMEnable = 2;
 constexpr auto SDPin = 10;
 SdFat SD;
@@ -157,64 +158,64 @@ bringUpPSRAM() noexcept {
 
 namespace {
     template<int targetPin>
-    size_t
-    psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        digitalWrite(targetPin, LOW);
-        SPDR = 0x02;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[2];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[1];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[0];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        for (size_t i = 0; i < count; ++i) {
-            SPDR = bytes[i]; 
+        size_t
+        psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+            digitalWrite(targetPin, LOW);
+            SPDR = 0x02;
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = baseAddress.bytes[2];
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = baseAddress.bytes[1];
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = baseAddress.bytes[0];
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            for (size_t i = 0; i < count; ++i) {
+                SPDR = bytes[i]; 
+                asm volatile ("nop");
+                while (!(SPSR & _BV(SPIF))) ; // wait
+            }
+            digitalWrite(targetPin, HIGH);
+            return count;
         }
-        digitalWrite(targetPin, HIGH);
-        return count;
-    }
 
     template<int targetPin>
-    size_t
-    psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        digitalWrite(targetPin, LOW);
-        SPDR = 0x03;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[2];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[1];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[0];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        for (size_t i = 0; i < count; ++i) {
-            SPDR = 0; 
+        size_t
+        psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
+            digitalWrite(targetPin, LOW);
+            SPDR = 0x03;
             asm volatile ("nop");
             while (!(SPSR & _BV(SPIF))) ; // wait
-            bytes[i] = SPDR;
-        }
-        digitalWrite(targetPin, HIGH);
-        if (systemBooted_) {
-            Serial.println(F("\t\tPSRAM READ RESULT:"));
+            SPDR = baseAddress.bytes[2];
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = baseAddress.bytes[1];
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
+            SPDR = baseAddress.bytes[0];
+            asm volatile ("nop");
+            while (!(SPSR & _BV(SPIF))) ; // wait
             for (size_t i = 0; i < count; ++i) {
-                Serial.print(F("\t\t\t["));
-                Serial.print(i);
-                Serial.print(F("]: 0x"));
-                Serial.println(bytes[i], HEX);
+                SPDR = 0; 
+                asm volatile ("nop");
+                while (!(SPSR & _BV(SPIF))) ; // wait
+                bytes[i] = SPDR;
             }
+            digitalWrite(targetPin, HIGH);
+            if (systemBooted_) {
+                Serial.println(F("\t\tPSRAM READ RESULT:"));
+                for (size_t i = 0; i < count; ++i) {
+                    Serial.print(F("\t\t\t["));
+                    Serial.print(i);
+                    Serial.print(F("]: 0x"));
+                    Serial.println(bytes[i], HEX);
+                }
+            }
+            return count;
         }
-        return count;
-    }
 }
 
 size_t
@@ -435,31 +436,39 @@ onRequest() noexcept {
 void 
 loop() {
     if (processingRequest) {
-        Serial.println(F("Processing Request From: "));
-        Serial.print(F("\t Address 0x"));
-        Serial.println(currentRequest.packet.baseAddress.full, HEX);
+        if constexpr (EnableDebugging) {
+            Serial.println(F("Processing Request From: "));
+            Serial.print(F("\t Address 0x"));
+            Serial.println(currentRequest.packet.baseAddress.full, HEX);
+        }
         // take the current request and process it
         auto& theLine = thePool_.find(const_cast<const SplitWord32&>(currentRequest.packet.baseAddress));
         if (currentRequest.packet.direction == 0) {
-            Serial.println(F("READ OPERATION!"));
+            if constexpr (EnableDebugging) {
+                Serial.println(F("READ OPERATION!"));
+            }
             // read operation
             for (int i = 0; i < 16; ++i) {
                 currentRequest.packet.data[i] = theLine.read(i);
             }
         } else {
-            Serial.println(F("WRITE OPERATION!"));
+            if constexpr (EnableDebugging) {
+                Serial.println(F("WRITE OPERATION!"));
+            }
             // write operation
             for (int i = 0; i < 16; ++i) {
                 theLine.write(i, currentRequest.packet.data[i]);
             }
         }
-        for (int i = 0; i < 16; ++i) {
-            Serial.print(F("\tIndex: ")); 
-            Serial.print(i);
-            Serial.print(F(", Value: 0x")); 
-            Serial.println(currentRequest.packet.data[i], HEX);
+        if constexpr (EnableDebugging) {
+            for (int i = 0; i < 16; ++i) {
+                Serial.print(F("\tIndex: ")); 
+                Serial.print(i);
+                Serial.print(F(", Value: 0x")); 
+                Serial.println(currentRequest.packet.data[i], HEX);
+            }
+            Serial.println(F("Finished Processing Request"));
         }
-        Serial.println(F("Finished Processing Request"));
         availableForRead = true;
         processingRequest = false;
         // at the end we mark the cache line as available for reading

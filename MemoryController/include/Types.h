@@ -27,7 +27,6 @@
 #define SXCHIPSET_TYPE103_TYPES_H__ 
 #include <stdint.h>
 #include <Arduino.h>
-
 template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>

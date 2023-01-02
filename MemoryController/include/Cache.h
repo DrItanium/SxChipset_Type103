@@ -59,13 +59,12 @@ template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheLine {
     using CacheAddress = BasicCacheAddress<offsetBits, tagBits, bankBits>;
     static constexpr auto NumberOfDataBytes = pow2(offsetBits);
-    static constexpr auto NumberOfWords = NumberOfDataBytes / NumberOfDataBytes;
-    static constexpr uint8_t WordMask = NumberOfWords - 1;
+    static constexpr uint8_t WordMask = NumberOfDataBytes - 1;
     inline void clear() noexcept {
         key_ = 0;
         dirty_ = false;
         valid_ = false;
-        for (int i = 0; i < NumberOfWords; ++i) {
+        for (int i = 0; i < NumberOfDataBytes; ++i) {
             words[i] = 0;
         }
     }
@@ -87,21 +86,12 @@ struct BasicDataCacheLine {
     void begin() noexcept { 
         clear();
     }
-    byte read(byte offset) const noexcept {
-        auto outcome = words[offset];
-        Serial.print(F("\tREAD OFFSET: 0x"));
-        Serial.print(offset, HEX);
-        Serial.print(F(", Value: 0x"));
-        Serial.println(outcome, HEX);
-        return outcome;
+    inline byte read(byte offset) const noexcept {
+        return words[offset & WordMask];
     }
-    void write(byte offset, byte value) noexcept {
-        Serial.print(F("\tWRITE OFFSET: 0x"));
-        Serial.print(offset, HEX);
-        Serial.print(F(", Value: 0x"));
-        Serial.println(value, HEX);
+    inline void write(byte offset, byte value) noexcept {
         dirty_ = true;
-        words[offset] = value;
+        words[offset & WordMask] = value;
     }
     private:
         uint32_t key_ : CacheAddress::KeyBitsCount;

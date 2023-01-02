@@ -108,8 +108,6 @@ namespace xmem {
 	 */
 
 	void setMemoryBank(uint8_t bank_,bool switchHeap_) {
-        Serial.print(F("Switching to bank: "));
-        Serial.println(bank_);
 		// check
 
 		if(bank_==currentBank)

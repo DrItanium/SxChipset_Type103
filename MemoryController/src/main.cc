@@ -283,7 +283,7 @@ installMemoryImage() noexcept {
         delete [] buffer2;
     }
 }
-CachePool<4, 4, 6, 80> thePool_;
+CachePool<4, 8, 6, 6> thePool_;
 void
 setupCache() noexcept {
     // the pool will sit in the upper 64 elements
@@ -386,8 +386,8 @@ union Request {
     struct {
         byte direction;
         SplitWord32 baseAddress;
-        byte data[16];
         SplitWord16 size;
+        byte data[16];
     } packet;
 };
 volatile bool processingRequest = false;

@@ -34,7 +34,11 @@
 #include "Types.h"
 #include "Cache.h"
 constexpr bool EnableDebugging = true;
+#ifdef I960_METRO_M4_MEMORY_CONTROLLER
+constexpr auto PSRAMEnable = 3;
+#else
 constexpr auto PSRAMEnable = 2;
+#endif
 #ifndef SDCARD_SS_PIN
 #define SDCARD_SS_PIN 10
 #endif
@@ -45,6 +49,7 @@ volatile bool systemBooted_ = false;
 void onReceive(int) noexcept;
 void onRequest() noexcept;
 
+#if 0
 #if defined(I960_METRO_M4_MEMORY_CONTROLLER) || defined(I960_GRAND_CENTRAL_M4_MEMORY_CONTROLLER)
 /// Taken from https://forums.adafruit.com/viewtopic.php?f=25&p=858974
 /// Apparently it is a configuration problem
@@ -52,6 +57,7 @@ void SERCOM5_0_Handler() { Wire.onService(); }
 void SERCOM5_1_Handler() { Wire.onService(); }
 void SERCOM5_2_Handler() { Wire.onService(); }
 void SERCOM5_3_Handler() { Wire.onService(); }
+#endif
 #endif
 void
 setupTWI() noexcept {
@@ -292,7 +298,7 @@ installMemoryImage() noexcept {
 }
 #ifdef I960_MEGA_MEMORY_CONTROLLER
 CachePool<4, 8, 6, 6> thePool_;
-#elif defined(I960_METRO_M4_MEMORY_CONTROLLER)
+#elif defined(I960_METRO_M4_MEMORY_CONTROLLER) || defined(I960_METRO_M4_AIRLIFT_MEMORY_CONTROLLER)
 CachePool<4, 8, 0, 6> thePool_;
 #elif defined(I960_GRAND_CENTRAL_M4_MEMORY_CONTROLLER)
 CachePool<4, 9, 0, 6> thePool_;
@@ -355,28 +361,21 @@ union Request {
 volatile bool processingRequest = false;
 volatile bool availableForRead = false;
 volatile Request currentRequest;
-volatile uint32_t counter = 0;
 void
 onReceive(int howMany) noexcept {
     if (systemBooted_) {
-        digitalWrite(LED_BUILTIN, HIGH);
-        if (!processingRequest) {
-            // only create a new request if we are idle
-            if constexpr (EnableDebugging) {
-                Serial.print(F("Number of Bytes received: "));
-                Serial.println(howMany);
-                Serial.print(F("Available count: "));
-                Serial.println(Wire.available());
-                Serial.println(counter);
-                ++counter;
+        if (howMany > 0) {
+            digitalWrite(LED_BUILTIN, HIGH);
+            if (!processingRequest) {
+                // only create a new request if we are idle
+                processingRequest = true;
+                availableForRead = false;
+                for (int i = 0; i < howMany; ++i) {
+                    currentRequest.contents[i] = Wire.read();
+                }
             }
-            processingRequest = true;
-            availableForRead = false;
-            for (int i = 0; i < howMany; ++i) {
-                currentRequest.contents[i] = Wire.read();
-            }
+            digitalWrite(LED_BUILTIN, LOW);
         }
-        digitalWrite(LED_BUILTIN, LOW);
     }
 }
 constexpr byte BootingUp = 0xFF;

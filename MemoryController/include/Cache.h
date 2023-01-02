@@ -217,7 +217,7 @@ struct BasicCacheReference {
     using Cache = BasicDataCache<offsetBits, tagBits, bankBits, numberOfLines>;
 #ifdef I960_MEGA_MEMORY_CONTROLLER
     static_assert(sizeof(Cache) < 32767, "Cache implementation is too large to fit in a 32k block");
-#elif defined(I960_METRO_M4_MEMORY_CONTROLLER)
+#elif defined(I960_METRO_M4_MEMORY_CONTROLLER) || defined(I960_METRO_M4_AIRLIFT_MEMORY_CONTROLLER)
 // we get 192k total, keep a bunch around for other purposes
     static_assert(sizeof(Cache) < (128 * 1024), "Cache implementation is too large to fit in a 128k block");
 #elif defined(I960_GRAND_CENTRAL_M4_MEMORY_CONTROLLER)

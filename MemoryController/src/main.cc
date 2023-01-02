@@ -35,7 +35,10 @@
 #include "Cache.h"
 constexpr bool EnableDebugging = false;
 constexpr auto PSRAMEnable = 2;
-constexpr auto SDPin = 10;
+#ifndef SDCARD_SS_PIN
+#define SDCARD_SS_PIN 10
+#endif
+constexpr auto SDPin = SDCARD_SS_PIN;
 SdFat SD;
 volatile bool systemBooted_ = false;
 
@@ -84,9 +87,11 @@ setupEBI() noexcept {
 void
 configureGPIOs() noexcept {
     Serial.print(F("Configuring GPIOs..."));
+#ifndef I960_GRAND_CENTRAL_M4_MEMORY_CONTROLLER
     pinMode(SDPin, OUTPUT);
-    pinMode(PSRAMEnable, OUTPUT);
     digitalWrite(SDPin, HIGH);
+#endif
+    pinMode(PSRAMEnable, OUTPUT);
     digitalWrite(PSRAMEnable, HIGH);
     pinMode(LED_BUILTIN, OUTPUT);
     Serial.println(F("DONE"));
@@ -95,7 +100,6 @@ configureGPIOs() noexcept {
 template<int targetPin, bool performFullMemoryTest>
 bool
 setupPSRAM() noexcept {
-    SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
     // according to the manuals we need at least 200 microseconds after bootup
     // to allow the psram to do it's thing
     delayMicroseconds(200);
@@ -135,7 +139,6 @@ setupPSRAM() noexcept {
             return false;
         }
     }
-    SPI.endTransaction();
     return true;
 }
 template<bool performFullMemoryTest>
@@ -280,7 +283,7 @@ installMemoryImage() noexcept {
 }
 #ifdef I960_MEGA_MEMORY_CONTROLLER
 CachePool<4, 8, 6, 6> thePool_;
-#elif defined I960_METRO_M4_MEMORY_CONTROLLER
+#elif defined(I960_METRO_M4_MEMORY_CONTROLLER)
 CachePool<4, 8, 0, 6> thePool_;
 #else
 #error "Define Cache properly for target!"
@@ -384,8 +387,7 @@ onRequest() noexcept {
 void 
 loop() {
     if (processingRequest) {
-
-        SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+        SPI.beginTransaction(SPISettings(33 * 1024 * 1024, MSBFIRST, SPI_MODE0)); // force to 10 MHz
         if constexpr (EnableDebugging) {
             Serial.println(F("Processing Request From: "));
             Serial.print(F("\t Address 0x"));

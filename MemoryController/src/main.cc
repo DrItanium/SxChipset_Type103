@@ -45,7 +45,14 @@ volatile bool systemBooted_ = false;
 void onReceive(int) noexcept;
 void onRequest() noexcept;
 
-
+#if defined(I960_METRO_M4_MEMORY_CONTROLLER) || defined(I960_GRAND_CENTRAL_M4_MEMORY_CONTROLLER)
+/// Taken from https://forums.adafruit.com/viewtopic.php?f=25&p=858974
+/// Apparently it is a configuration problem
+void SERCOM5_0_Handler() { Wire.onService(); }
+void SERCOM5_1_Handler() { Wire.onService(); }
+void SERCOM5_2_Handler() { Wire.onService(); }
+void SERCOM5_3_Handler() { Wire.onService(); }
+#endif
 void
 setupTWI() noexcept {
     Serial.print(F("Configuring TWI..."));
@@ -355,6 +362,12 @@ onReceive(int howMany) noexcept {
         digitalWrite(LED_BUILTIN, HIGH);
         if (!processingRequest) {
             // only create a new request if we are idle
+            if constexpr (EnableDebugging) {
+                Serial.print(F("Number of Bytes received: "));
+                Serial.println(howMany);
+                Serial.print(F("Available count: "));
+                Serial.println(Wire.available());
+            }
             processingRequest = true;
             availableForRead = false;
             for (int i = 0; i < howMany; ++i) {

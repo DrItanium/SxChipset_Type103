@@ -38,7 +38,7 @@ using ElementContainer = T[ElementCount<W, T>];
 extern SdFat SD;
 constexpr auto OffsetSize = 4; // 16-byte line
 constexpr auto getTagSize() noexcept {
-#if defined(TYPE103_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
     return 7;
 #elif defined(TYPE200_BOARD)
     return 6;
@@ -48,7 +48,7 @@ constexpr auto getTagSize() noexcept {
 #endif
 }
 constexpr auto getNumberOfSets() noexcept {
-#if defined(TYPE103_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
     return 128;
 #elif defined(TYPE200_BOARD)
     return 64;
@@ -92,7 +92,7 @@ union Word8 {
         uint8_t blast : 1;
         uint8_t den : 1;
         uint8_t fail : 1;
-#ifdef TYPE103_BOARD
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
         uint8_t dataInt : 1;
 #else
         uint8_t wr : 1;
@@ -123,7 +123,7 @@ union Word8 {
         uint8_t rest : 6;
     } xioPortADir;
     [[nodiscard]] constexpr bool isReadOperation() const noexcept { 
-#ifdef TYPE103_BOARD
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
         return lowestAddr.a0 == 0; 
 #else
         return channel0.wr == 0;
@@ -134,7 +134,7 @@ union Word8 {
     }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
     [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { 
-#ifdef TYPE103_BOARD
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
         return channel0.dataInt == 0; 
 #else
         return true;
@@ -144,7 +144,7 @@ union Word8 {
         return lowestAddr.addr;
     }
     [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { 
-#ifdef TYPE103_BOARD
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
         return getAddressBits1_7() << 1; 
 #else
         return value_;

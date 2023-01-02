@@ -34,11 +34,7 @@
 #include "Types.h"
 #include "Cache.h"
 constexpr bool EnableDebugging = false;
-#ifdef I960_METRO_M4_MEMORY_CONTROLLER
 constexpr auto PSRAMEnable = 3;
-#else
-constexpr auto PSRAMEnable = 2;
-#endif
 #ifndef SDCARD_SS_PIN
 #define SDCARD_SS_PIN 10
 #endif

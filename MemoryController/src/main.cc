@@ -242,6 +242,7 @@ installMemoryImage() noexcept {
             delay(1000);
         }
     } else {
+        SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
         // write out to the data cache as we go along, when we do a miss then
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
@@ -282,6 +283,7 @@ installMemoryImage() noexcept {
         Serial.println(F("transfer complete!"));
         delete [] buffer;
         delete [] buffer2;
+        SPI.endTransaction();
     }
 }
 CachePool<4, 8, 6, 6> thePool_;
@@ -437,6 +439,8 @@ onRequest() noexcept {
 void 
 loop() {
     if (processingRequest) {
+
+        SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
         if constexpr (EnableDebugging) {
             Serial.println(F("Processing Request From: "));
             Serial.print(F("\t Address 0x"));
@@ -474,5 +478,6 @@ loop() {
         availableForRead = true;
         processingRequest = false;
         // at the end we mark the cache line as available for reading
+        SPI.endTransaction();
     }
 }

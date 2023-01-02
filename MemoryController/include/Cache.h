@@ -220,6 +220,8 @@ struct BasicCacheReference {
 #elif defined(I960_METRO_M4_MEMORY_CONTROLLER)
 // we get 192k total, keep a bunch around for other purposes
     static_assert(sizeof(Cache) < (128 * 1024), "Cache implementation is too large to fit in a 128k block");
+#elif defined(I960_GRAND_CENTRAL_M4_MEMORY_CONTROLLER)
+    static_assert(sizeof(Cache) < (200 * 1024), "Cache implementation is too large to fit in a 200k block");
 #else
 #   error("Please define the maximum cache size")
 #endif

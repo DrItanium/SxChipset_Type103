@@ -33,7 +33,7 @@
 #endif
 #include "Types.h"
 #include "Cache.h"
-constexpr bool EnableDebugging = false;
+constexpr bool EnableDebugging = true;
 constexpr auto PSRAMEnable = 2;
 #ifndef SDCARD_SS_PIN
 #define SDCARD_SS_PIN 10
@@ -50,7 +50,9 @@ void
 setupTWI() noexcept {
     Serial.print(F("Configuring TWI..."));
     Wire.begin(9);
+#ifdef I960_MEGA_MEMORY_CONTROLLER
     Wire.setClock(400'000);
+#endif
     Wire.onReceive(onReceive);
     Wire.onRequest(onRequest);
     Serial.println(F("DONE"));
@@ -285,6 +287,8 @@ installMemoryImage() noexcept {
 CachePool<4, 8, 6, 6> thePool_;
 #elif defined(I960_METRO_M4_MEMORY_CONTROLLER)
 CachePool<4, 8, 0, 6> thePool_;
+#elif defined(I960_GRAND_CENTRAL_M4_MEMORY_CONTROLLER)
+CachePool<4, 9, 0, 6> thePool_;
 #else
 #error "Define Cache properly for target!"
 #endif
@@ -348,6 +352,7 @@ volatile Request currentRequest;
 void
 onReceive(int howMany) noexcept {
     if (systemBooted_) {
+        digitalWrite(LED_BUILTIN, HIGH);
         if (!processingRequest) {
             // only create a new request if we are idle
             processingRequest = true;
@@ -356,6 +361,7 @@ onReceive(int howMany) noexcept {
                 currentRequest.contents[i] = Wire.read();
             }
         }
+        digitalWrite(LED_BUILTIN, LOW);
     }
 }
 constexpr byte BootingUp = 0xFF;
@@ -387,7 +393,6 @@ onRequest() noexcept {
 void 
 loop() {
     if (processingRequest) {
-        SPI.beginTransaction(SPISettings(33 * 1024 * 1024, MSBFIRST, SPI_MODE0)); // force to 10 MHz
         if constexpr (EnableDebugging) {
             Serial.println(F("Processing Request From: "));
             Serial.print(F("\t Address 0x"));
@@ -425,6 +430,5 @@ loop() {
         availableForRead = true;
         processingRequest = false;
         // at the end we mark the cache line as available for reading
-        SPI.endTransaction();
     }
 }

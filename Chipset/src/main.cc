@@ -194,21 +194,32 @@ class CacheOperationHandler : public OperationHandler {
         MemoryCache::CacheAddress currentAddress_{0};
         MemoryCache ::DataCacheLine* line_;
 };
-inline TransactionInterface& 
+template<bool isReadOperation, bool inlineSPIOperation, typename T>
+void
+talkToi960(const SplitWord32& addr, T& handler) noexcept;
+template<bool isReadOperation, bool inlineSPIOperation>
+void
+//inline TransactionInterface&
 getPeripheralDevice(const SplitWord32& addr) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            return infoDevice;
+            talkToi960<isReadOperation, inlineSPIOperation>(addr, infoDevice);
+            break;
         case TargetPeripheral::Serial:
-            return theSerial;
+            talkToi960<isReadOperation, inlineSPIOperation>(addr, theSerial);
+            break;
         case TargetPeripheral::RTC:
-            return timerInterface;
+            talkToi960<isReadOperation, inlineSPIOperation>(addr, timerInterface);
+            break;
         default:
-            return getNullHandler();
+            talkToi960<isReadOperation, inlineSPIOperation>(addr, getNullHandler());
+            break;
     }
 }
 
-inline TransactionInterface&
+template<bool isReadOperation, bool inlineSPIOperation>
+void
+//inline TransactionInterface&
 handleIOOperation(const SplitWord32& addr) noexcept {
     // When we are in io space, we are treating the address as an opcode which
     // we can decompose while getting the pieces from the io expanders. Thus we
@@ -220,15 +231,17 @@ handleIOOperation(const SplitWord32& addr) noexcept {
     // one starts when performing a write operation
     switch (addr.getIOGroup()) {
         case IOGroup::Peripherals:
-            return getPeripheralDevice(addr);
+            getPeripheralDevice<isReadOperation, inlineSPIOperation>(addr);
+            break;
         default:
-            return getNullHandler();
+            talkToi960<isReadOperation, inlineSPIOperation>(addr, getNullHandler());
+            break;
     }
 }
 
-template<bool isReadOperation, bool inlineSPIOperation>
-inline void
-talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
+template<bool isReadOperation, bool inlineSPIOperation, typename T>
+void
+talkToi960(const SplitWord32& addr, T& handler) noexcept {
     handler.startTransaction(addr);
     if constexpr (inlineSPIOperation) {
         Platform::startInlineSPIOperation();
@@ -242,7 +255,7 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
             Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
         }
         if constexpr (isReadOperation) {
-            // okay it is a read operation, so... pull a cache line out 
+            // okay it is a read operation, so... pull a cache line out
             auto value = handler.read(c0);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tGot Value: 0x"));
@@ -304,11 +317,19 @@ handleTransaction() noexcept {
         Serial.println(addr.getWholeValue(), HEX);
     }
     if (addr.isIOInstruction()) {
+#if 0
         if (auto& device = handleIOOperation(addr); Platform::isReadOperation()) {
             talkToi960<true, false>(addr, device);
         } else {
             talkToi960<false, false>(addr, device);
         }
+#else
+        if (Platform::isReadOperation()) {
+            handleIOOperation<true, false>(addr);
+        } else {
+            handleIOOperation<false, false>(addr);
+        }
+#endif
     } else {
         if (Platform::isReadOperation()) {
             talkToi960<true, true>(addr, cacheHandler);

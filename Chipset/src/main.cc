@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AddressTranslation.h"
 #include "SerialDevice.h"
 #include "RTCDevice.h"
+#include "InfoDevice.h"
 
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC

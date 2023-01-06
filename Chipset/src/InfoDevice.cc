@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Arduino.h>
 #include "Peripheral.h"
+#include "InfoDevice.h"
 
 namespace {
     constexpr SplitWord32 systemRateExpose{F_CPU};

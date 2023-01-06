@@ -260,18 +260,6 @@ private:
 
 
 
-BeginDeviceOperationsList(InfoDevice)
-    GetChipsetClock,
-    GetCPUClock,
-EndDeviceOperationsList(InfoDevice)
-
-class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
-    public:
-        ~InfoDevice() override = default;
-    protected:
-        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
-        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
-};
 
 
 BeginDeviceOperationsList(AddressTranslationDevice)

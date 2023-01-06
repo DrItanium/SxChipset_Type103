@@ -23,34 +23,22 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef CHIPSET_RTCDEVICE_H
-#define CHIPSET_RTCDEVICE_H
-#include <Arduino.h>
-#include "Types.h"
+#ifndef CHIPSET_INFODEVICE_H
+#define CHIPSET_INFODEVICE_H
 #include "Detect.h"
-#include "RTClib.h"
+#include "Types.h"
 #include "Peripheral.h"
+BeginDeviceOperationsList(InfoDevice)
+    GetChipsetClock,
+    GetCPUClock,
+EndDeviceOperationsList(InfoDevice)
 
-
-BeginDeviceOperationsList(TimerDevice)
-    UnixTime,
-    SystemTimerComparisonValue,
-    SystemTimerPrescalar,
-EndDeviceOperationsList(TimerDevice)
-
-class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
+class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
 public:
-    using Parent = OperatorPeripheral<TimerDeviceOperations>;
-    ~TimerDevice() override = default;
-    bool begin() noexcept override;
-    bool available() const noexcept override { return available_; }
-    void startTransaction(const SplitWord32& addr) noexcept override;
+    ~InfoDevice() override = default;
 protected:
     uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
     void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
-private:
-    RTC_DS1307 rtc;
-    bool available_ = false;
-    SplitWord32 unixtimeCopy_{0};
 };
-#endif //CHIPSET_RTCDEVICE_H
+
+#endif //CHIPSET_INFODEVICE_H

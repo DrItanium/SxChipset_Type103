@@ -30,7 +30,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 
 /**
- * @brief Converts virtual addresses to physical addresses
+ * @brief Converts virtual addresses to physical addresses; It follows the i960
+ * region mapping concept where we divide the 32-bit memory space up into four
+ * regions (0-3) with regions 0-2 being per process and the third region being
+ * shared across all processes. This is where we can share data structures
+ * across all targets. Region three is also where IO space is found as well.
+ * This is mostly intentional but wasn't made with regions in mind. Each region
+ * has its own TLB (address lookup cache) and is just another cache with the
+ * same replacement algorithms as the data cache itself.
  */
 class AddressTranslator {
     public:
@@ -40,6 +47,14 @@ class AddressTranslator {
         AddressTranslator(AddressTranslator&&) = delete;
         AddressTranslator& operator=(const AddressTranslator&) = delete;
         AddressTranslator& operator=(AddressTranslator&&) = delete;
+
+        static SplitWord32 translate(const SplitWord32& address) noexcept;
+        static void enable() noexcept;
+        static void disable() noexcept;
+        static bool active() noexcept { return enabled_; }
+        static void begin() noexcept;
+    private:
+        static inline bool enabled_ = false;
 };
 
 #endif // end !defined(SXCHIPSET_ADDRESS_TRANSLATION_H__)

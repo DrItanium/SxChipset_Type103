@@ -25,8 +25,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AddressTranslation.h"
 
-/**
- * @brief Performs virtual to physical address translation based of page tables
- * found in memory
- */
 
+SplitWord32
+AddressTranslator::translate(const SplitWord32& address) noexcept {
+    if (active()) {
+        /// @todo implement
+        // carve the virtual address up into multiple parts and walk through
+        // the table (and directory) if we have them. 
+        return address;
+    } else {
+        // no virtual mapping look up actions
+        return address;
+    }
+}
+
+
+
+void
+AddressTranslator::begin() noexcept {
+
+}
+
+void
+AddressTranslator::enable() noexcept {
+
+}
+
+void
+AddressTranslator::disable() noexcept {
+
+}

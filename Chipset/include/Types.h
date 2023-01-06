@@ -228,6 +228,23 @@ union SplitWord32 {
         uint32_t targetDevice : 3;
         uint32_t rest : 6;
     } psramAddress;
+    /**
+     * @brief Describes a virtual 32-bit address with 4k pages, does not take 
+     */
+    struct {
+        /**
+         * @brief The offset into the 4k page
+         */
+        uint32_t offset : 12;
+        /**
+         * @brief The page number inside of the given region
+         */
+        uint32_t pageNumber : 18;
+        /**
+         * @brief the region that this address points to
+         */
+        uint32_t region : 2;
+    } virtualAddress;
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }

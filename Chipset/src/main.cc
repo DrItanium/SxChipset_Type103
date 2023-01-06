@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RTClib.h"
 #include "Peripheral.h"
 #include "Setup.h"
+#include "AddressTranslation.h"
 
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
@@ -225,7 +226,7 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
     }
     while (true) {
         singleCycleDelay();
-        // read it twice
+        // read it twice, otherwise we lose our minds
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
@@ -244,6 +245,7 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
                 Platform::setDataLines(value, NoInlineSPI{});
             }
         } else {
+            // yes I know this shadows the outer value but I really need it to be this way
             auto c0 = readInputChannelAs<Channel0Value>();
             uint16_t value;
             if constexpr (inlineSPIOperation) {
@@ -277,11 +279,12 @@ handleTransaction() noexcept {
     Platform::startAddressTransaction();
     Platform::collectAddress();
     Platform::endAddressTransaction();
-    auto addr = Platform::getAddress();
+    auto virtualAddress = Platform::getAddress();
+    auto addr = AddressTranslator::translate(virtualAddress);
     if constexpr (EnableDebugMode) {
-        Serial.print(F("Target address: 0x"));
+        Serial.print(F("Virtual address: 0x"));
         Serial.print(addr.getWholeValue(), HEX);
-        Serial.print(F("(0b"));
+        Serial.print(F(" (0b"));
         Serial.print(addr.getWholeValue(), BIN);
         Serial.println(F(")"));
         Serial.print(F("Operation: "));
@@ -290,6 +293,8 @@ handleTransaction() noexcept {
         } else {
             Serial.println(F("Write!"));
         }
+        Serial.print(F("Physical Address: 0x"));
+        Serial.println(addr.getWholeValue(), HEX);
     }
     if (addr.isIOInstruction()) {
         if (auto& device = handleIOOperation(addr); Platform::isReadOperation()) {
@@ -368,6 +373,7 @@ setup() {
     queryPSRAM<false>();
 #endif
     setupCache();
+    AddressTranslator::begin();
     delay(1000);
 #ifdef TYPE103_BOARD
     installMemoryImage();

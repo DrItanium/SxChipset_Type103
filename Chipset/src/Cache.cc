@@ -29,10 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 
 namespace {
-    DataCache cache;
+    MemoryCache cache;
 }
 
-DataCache& 
+MemoryCache &
 getCache() noexcept {
     return cache;
 }

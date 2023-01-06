@@ -186,7 +186,7 @@ class CacheOperationHandler : public OperationHandler {
             line_ = nullptr;
         }
     private:
-        DataCacheLine* line_;
+        MemoryCache ::Line * line_;
 };
 inline TransactionInterface& 
 getPeripheralDevice(const SplitWord32& addr) noexcept {

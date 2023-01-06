@@ -273,12 +273,12 @@ static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the 
 
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+template<byte numberOfDataBytes = 8>
 struct DataCacheLine {
-    static constexpr auto NumberOfWords = 8;
-    static constexpr auto NumberOfDataBytes = sizeof(SplitWord16)*NumberOfWords;
-    static constexpr uint8_t WordMask = 0b111;
+    static constexpr auto NumberOfDataBytes = numberOfDataBytes;
+    static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
     inline uint16_t getWord(byte offset) const noexcept {
-        return words[offset & WordMask].full;
+        return words[offset].full;
     }
     inline void clear() noexcept {
         key_ = 0;
@@ -305,15 +305,15 @@ struct DataCacheLine {
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
         switch (style) {
             case EnableStyle::Full16:
-                words[offset & WordMask].full = value;
+                words[offset].full = value;
                 flags_.lineFlags.dirty_ = true;
                 break;
             case EnableStyle::Lower8:
-                words[offset & WordMask].bytes[0] = value;
+                words[offset].bytes[0] = value;
                 flags_.lineFlags.dirty_ = true;
                 break;
             case EnableStyle::Upper8:
-                words[offset & WordMask].bytes[1] = (value >> 8);
+                words[offset].bytes[1] = (value >> 8);
                 flags_.lineFlags.dirty_ = true;
                 break;
             default:
@@ -327,11 +327,11 @@ struct DataCacheLine {
         uint32_t key_ : KeySize;
         Word8 flags_;
         SplitWord16 words[NumberOfWords];
-
-
 };
+template<byte numberOfDataBytes = 8, byte numberOfLines = 4>
 struct DataCacheSet {
-    static constexpr auto NumberOfLines = 4;
+    using CacheLine = DataCacheLine<numberOfDataBytes>;
+    static constexpr auto NumberOfLines = numberOfLines;
     inline void begin() noexcept {
         replacementIndex_ = 0;
         for (auto& line : lines) {
@@ -377,11 +377,14 @@ struct DataCacheSet {
         }
     }
     private:
-        DataCacheLine lines[NumberOfLines];
+        CacheLine lines[NumberOfLines];
         byte replacementIndex_;
 };
+template<byte numberOfDataBytes = 4, byte numberOfLines = 8, byte numberOfSets = getNumberOfSets()>
 struct DataCache {
-    static constexpr auto NumberOfSets = getNumberOfSets();
+    using Set = DataCacheSet<numberOfDataBytes, numberOfLines>;
+    using Line = typename Set::CacheLine;
+    static constexpr auto NumberOfSets = numberOfSets;
     inline void clear() noexcept {
         for (auto& set : cache) {
             set.clear();
@@ -402,12 +405,12 @@ struct DataCache {
         return sizeof(cache);
     }
     private:
-        DataCacheSet cache[NumberOfSets];
+        Set cache[NumberOfSets];
 };
 
+using MemoryCache = DataCache<4, 8, getNumberOfSets()>;
 
-
-DataCache& getCache() noexcept;
+MemoryCache& getCache() noexcept;
 void setupCache() noexcept;
 
 class TransactionInterface {

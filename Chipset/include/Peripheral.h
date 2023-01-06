@@ -40,22 +40,6 @@ enum class TargetPeripheral {
     Count,
 };
 static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");
-enum class InfoDeviceOperations {
-    Available,
-    Size,
-    GetChipsetClock,
-    GetCPUClock,
-    Count,
-};
-static_assert(static_cast<byte>(InfoDeviceOperations::Count) <= 256, "Too many Peripheral devices!");
-enum class SerialDeviceOperations {
-    Available,
-    Size,
-    RW,
-    Flush,
-    Baud,
-    Count,
-};
 
 template<typename E>
 constexpr bool validOperation(E value) noexcept {
@@ -269,6 +253,18 @@ private:
     SplitWord32 size_{static_cast<uint32_t>(E::Count) };
 };
 
+#define BeginDeviceOperationsList(name) enum class name ## Operations : byte { Available, Size,
+
+#define EndDeviceOperationsList(name) Count, }; static_assert(static_cast<byte>( name ## Operations :: Count ) <= 256, "Too many " #name "Operations entries defined!");
+
+
+
+BeginDeviceOperationsList(SerialDevice)
+    RW,
+    Flush,
+    Baud,
+EndDeviceOperationsList(SerialDevice)
+
 
 class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
     public:
@@ -283,6 +279,12 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         uint32_t baud_ = 115200;
         SplitWord32 baudAssignTemporary_{0};
 };
+
+BeginDeviceOperationsList(InfoDevice)
+    GetChipsetClock,
+    GetCPUClock,
+EndDeviceOperationsList(InfoDevice)
+
 class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:
         ~InfoDevice() override = default;
@@ -290,14 +292,12 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
         uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
         void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
 };
-enum class TimerDeviceOperations {
-    Available,
-    Size,
+
+BeginDeviceOperationsList(TimerDevice)
     UnixTime,
     SystemTimerComparisonValue,
     SystemTimerPrescalar,
-    Count,
-};
+EndDeviceOperationsList(TimerDevice)
 
 class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
     public:
@@ -314,6 +314,9 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
         bool available_ = false;
         SplitWord32 unixtimeCopy_{0};
 };
+
+BeginDeviceOperationsList(AddressTranslationDevice)
+EndDeviceOperationsList(AddressTranslationDevice)
 #if 0
 void sendToDazzler(uint8_t character) noexcept;
 #endif

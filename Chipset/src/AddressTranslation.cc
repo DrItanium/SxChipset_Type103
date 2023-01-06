@@ -48,11 +48,12 @@ AddressTranslationDevice::begin() noexcept {
 
 void
 AddressTranslationDevice::enable() noexcept {
+    enabled_ = true;
 }
 
 void
 AddressTranslationDevice::disable() noexcept {
-
+    enabled_ = false;
 }
 uint16_t
 AddressTranslationDevice::extendedRead(const Channel0Value& m0) const noexcept {

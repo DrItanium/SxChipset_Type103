@@ -28,11 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 #include "Wire.h"
-#include "RTClib.h"
 #include "Peripheral.h"
 #include "Setup.h"
 #include "AddressTranslation.h"
 #include "SerialDevice.h"
+#include "RTCDevice.h"
 
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC

@@ -273,27 +273,6 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
         void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
 };
 
-BeginDeviceOperationsList(TimerDevice)
-    UnixTime,
-    SystemTimerComparisonValue,
-    SystemTimerPrescalar,
-EndDeviceOperationsList(TimerDevice)
-
-class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
-    public:
-        using Parent = OperatorPeripheral<TimerDeviceOperations>;
-        ~TimerDevice() override = default;
-        bool begin() noexcept override;
-        bool available() const noexcept override { return available_; }
-        void startTransaction(const SplitWord32& addr) noexcept override;
-    protected:
-        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
-        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
-    private:
-        RTC_DS1307 rtc;
-        bool available_ = false;
-        SplitWord32 unixtimeCopy_{0};
-};
 
 BeginDeviceOperationsList(AddressTranslationDevice)
 EndDeviceOperationsList(AddressTranslationDevice)

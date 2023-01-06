@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "RTClib.h"
 #include "Pinout.h"
+#include "RTCDevice.h"
 
 bool
 TimerDevice::begin() noexcept {

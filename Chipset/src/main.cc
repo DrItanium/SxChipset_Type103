@@ -172,6 +172,11 @@ class CacheOperationHandler : public OperationHandler {
         void
         startTransaction(const SplitWord32& addr) noexcept override {
             Parent::startTransaction(addr);
+            if (valid_ && currentAddress_.matches(addr)) {
+                return;
+            }
+            valid_ = true;
+            currentAddress_ = addr;
             line_ = &getCache().find(addr);
         }
         uint16_t 
@@ -184,9 +189,11 @@ class CacheOperationHandler : public OperationHandler {
         }
         void
         endTransaction() noexcept override {
-            line_ = nullptr;
+            // @todo this will get strange if bank switching is allowed
         }
     private:
+        bool valid_ = false;
+        MemoryCache::CacheAddress currentAddress_{0};
         MemoryCache ::DataCacheLine* line_;
 };
 inline TransactionInterface& 
@@ -364,8 +371,6 @@ bringUpSDCard() noexcept {
 }
 void 
 setup() {
-    Serial.begin(115200);
-    Serial.println(F("Donuts"));
     theSerial.begin();
     infoDevice.begin();
     Wire.begin();

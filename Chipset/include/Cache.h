@@ -35,6 +35,7 @@ size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcep
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 union BasicCacheAddress {
+    using Self = BasicCacheAddress<offsetBits, tagBits, bankBits>;
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto TagBitsCount = tagBits;
     static constexpr auto BankBitsCount = bankBits;
@@ -50,6 +51,7 @@ union BasicCacheAddress {
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
     void setKey(uint32_t value) noexcept { key = value; }
+    bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
 private:
     SplitWord32 backingStore_;
     struct {
@@ -58,10 +60,15 @@ private:
         uint32_t bank : BankBitsCount;
         uint32_t key : KeyBitsCount;
     };
+    struct {
+        uint32_t offset : OffsetBitsCount;
+        uint32_t check : (TagBitsCount + KeyBitsCount + BankBitsCount);
+    } compare;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits>
 union BasicCacheAddress<offsetBits, tagBits, 0> {
+    using Self = BasicCacheAddress<offsetBits, tagBits, 0>;
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto TagBitsCount = tagBits;
     static constexpr auto BankBitsCount = 0;
@@ -77,6 +84,7 @@ union BasicCacheAddress<offsetBits, tagBits, 0> {
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
     void setKey(uint32_t value) noexcept { key = value; }
+    bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
 private:
     SplitWord32 backingStore_;
     struct {
@@ -84,6 +92,10 @@ private:
         uint32_t tag : TagBitsCount;
         uint32_t key : KeyBitsCount;
     };
+    struct {
+       uint32_t offset : OffsetBitsCount;
+       uint32_t check : (TagBitsCount + KeyBitsCount);
+    } compare;
 };
 
 
@@ -94,24 +106,23 @@ struct BasicDataCacheLine {
     static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
     inline void clear() noexcept {
         key_ = 0;
-        dirty_ = false;
-        valid_ = false;
+        flags_.reg = 0;
         for (int i = 0; i < NumberOfDataBytes; ++i) {
             words[i].full = 0;
         }
     }
     inline bool matches(CacheAddress other) const noexcept {
-        return valid_ && (other.getKey() == key_);
+        return flags_.valid_ && (other.getKey() == key_);
     }
     inline void reset(CacheAddress newAddress) noexcept {
         newAddress.setOffset(0);
-        if (valid_ && dirty_) {
+        if (flags_.valid_ && flags_.dirty_) {
             auto copy = newAddress;
             copy.setKey(key_);
             memoryWrite(copy.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
         }
-        valid_ = true;
-        dirty_ = false;
+        flags_.valid_ = true;
+        flags_.dirty_ = false;
         key_ = newAddress.getKey();
         memoryRead(newAddress.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
     }
@@ -122,7 +133,7 @@ struct BasicDataCacheLine {
         return words[offset].getWholeValue();
     }
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
-        dirty_ = true;
+        flags_.dirty_ = true;
         switch (style) {
             case EnableStyle::Full16:
                 words[offset].full = value;
@@ -139,8 +150,14 @@ struct BasicDataCacheLine {
     }
 private:
     uint32_t key_ : CacheAddress::KeyBitsCount;
-    bool dirty_ = false;
-    bool valid_ = false;
+    union {
+        uint8_t reg;
+        struct {
+            uint8_t dirty_ : 1;
+            uint8_t valid_ : 1;
+        };
+
+    } flags_;
     SplitWord16 words[NumberOfWords];
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines = 4>

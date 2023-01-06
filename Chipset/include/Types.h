@@ -304,16 +304,16 @@ class OperationHandler : public TransactionInterface {
 /**
  * @brief Fallback/through handler implementation
  */
-class NullHandler final : public TransactionInterface {
-    public:
-        ~NullHandler() override = default;
-        uint16_t read(const Channel0Value&) const noexcept override { return 0; }
-        void write(const Channel0Value&, uint16_t ) noexcept override { }
+class NullHandler final {
+public:
+    void startTransaction(const SplitWord32&) noexcept { }
+    uint16_t read(const Channel0Value&) const noexcept { return 0; }
+    void write(const Channel0Value&, uint16_t ) noexcept { }
+    void endTransaction() noexcept { }
+    void next() noexcept { }
 };
 
-using OperationHandlerUser = void(*)(const SplitWord32&, TransactionInterface&);
-
-inline TransactionInterface& getNullHandler() noexcept  {
+inline NullHandler& getNullHandler() noexcept  {
     static NullHandler temp;
     return temp;
 }

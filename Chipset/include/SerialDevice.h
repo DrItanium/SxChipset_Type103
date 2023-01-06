@@ -38,6 +38,7 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations, SerialDev
 public:
     ~SerialDevice() override = default;
     bool begin() noexcept;
+    bool isAvailable() const noexcept { return true; }
     void setBaudRate(uint32_t baudRate) noexcept;
     [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     uint16_t extendedRead(const Channel0Value& m0) const noexcept;

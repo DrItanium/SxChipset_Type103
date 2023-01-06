@@ -72,10 +72,10 @@ class DynamicValue : public OperationHandler {
             // have to set it up this way
             value_ = value;
         }
-        uint16_t read(const Channel0Value& m0) const noexcept override { 
+        uint16_t read(const Channel0Value& m0) const noexcept override {
             return words_[getOffset()].getWholeValue(); 
         }
-        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+        void write(const Channel0Value& m0, uint16_t value) noexcept override {
             SplitWord16 tmp(value);
             switch (m0.getByteEnable()) {
                 case EnableStyle::Full16:
@@ -200,13 +200,13 @@ class Peripheral : public OperationHandler {
         bool begin() noexcept { return true; }
 };
 template<typename E, typename T>
-class OperatorPeripheral : public Peripheral{
+class OperatorPeripheral : public Peripheral {
 public:
     using Parent = Peripheral;
     using OperationList = E;
     using Child = T;
     ~OperatorPeripheral() override = default;
-    bool available() const noexcept { return true; }
+    bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
     uint32_t size() const noexcept { return size_.getWholeValue(); }
     void stashOpcode(const SplitWord32& addr) noexcept {
         // determine where we are looking :)

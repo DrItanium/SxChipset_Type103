@@ -47,18 +47,19 @@ EndDeviceOperationsList(AddressTranslationDevice)
  * same replacement algorithms as the data cache itself.
  */
 class AddressTranslationDevice : public OperatorPeripheral<AddressTranslationDeviceOperations, AddressTranslationDevice> {
-    public:
-        using Parent = OperatorPeripheral<AddressTranslationDeviceOperations, AddressTranslationDevice>;
-        SplitWord32 translate(const SplitWord32& address) noexcept;
-        void enable() noexcept;
-        void disable() noexcept;
-        [[nodiscard]] constexpr bool active() const noexcept { return enabled_; }
-        bool begin() noexcept ;
-        //void startTransaction(const SplitWord32& addr) noexcept override;
-        uint16_t extendedRead(const Channel0Value& m0) const noexcept ;
-        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;
-    private:
-        bool enabled_ = false;
+public:
+    using Parent = OperatorPeripheral<AddressTranslationDeviceOperations, AddressTranslationDevice>;
+    SplitWord32 translate(const SplitWord32& address) noexcept;
+    void enable() noexcept;
+    void disable() noexcept;
+    [[nodiscard]] constexpr bool active() const noexcept { return enabled_; }
+    bool isAvailable() const noexcept { return true; }
+    bool begin() noexcept ;
+    //void startTransaction(const SplitWord32& addr) noexcept override;
+    uint16_t extendedRead(const Channel0Value& m0) const noexcept ;
+    void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;
+private:
+    bool enabled_ = false;
 };
 
 #endif // end !defined(SXCHIPSET_ADDRESS_TRANSLATION_H__)

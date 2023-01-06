@@ -36,6 +36,7 @@ EndDeviceOperationsList(InfoDevice)
 class InfoDevice : public OperatorPeripheral<InfoDeviceOperations, InfoDevice> {
 public:
     ~InfoDevice() override = default;
+    bool isAvailable() const noexcept { return true; }
     uint16_t extendedRead(const Channel0Value& m0) const noexcept;
     void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;
 };

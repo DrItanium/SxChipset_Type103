@@ -26,27 +26,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Peripheral.h"
 #include "Wire.h"
-void 
+#if 0
+void
 sendToDazzler(uint8_t character) noexcept {
     Wire.beginTransmission(8);
     Wire.write(0);
     Wire.write(character);
     Wire.endTransmission();
 }
+#endif
 uint16_t
 performSerialRead() noexcept {
+#if 0
     auto result = Serial.read();
     if (result != -1) {
         Serial1.write(static_cast<uint8_t>(result));
     }
     
     return result;
+#else
+    return Serial.read();
+#endif
 }
 
 void
 performSerialWrite(uint16_t value) noexcept {
     Serial.write(static_cast<uint8_t>(value));
+#if 0
     Serial1.write(static_cast<uint8_t>(value));
+#endif
 }
 
 void 
@@ -61,9 +69,11 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
 bool
 SerialDevice::begin() noexcept {
     Serial.begin(baud_);
+#if 0
     Serial1.begin(115200);
     // disable the reciever
     bitClear(UCSR1B, RXEN1);
+#endif
     return true;
 }
 

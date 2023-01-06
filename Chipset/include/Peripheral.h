@@ -314,6 +314,7 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
         bool available_ = false;
         SplitWord32 unixtimeCopy_{0};
 };
-
+#if 0
 void sendToDazzler(uint8_t character) noexcept;
+#endif
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

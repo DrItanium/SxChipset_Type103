@@ -237,7 +237,7 @@ public:
             case E::Available: 
                 return available() ? 0xFFFF : 0x0000;
             case E::Size:
-                return size_.retrieveWord(getOffset());
+                return size_.retrieveHalf(getOffset());
             default:
                 if (validOperation(currentOpcode_)) {
                     return extendedRead(m0);
@@ -277,10 +277,11 @@ class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
         void setBaudRate(uint32_t baudRate) noexcept;
         [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     protected:
-        uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept override;
         void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
     private:
         uint32_t baud_ = 115200;
+        SplitWord32 baudAssignTemporary_{0};
 };
 class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
     public:

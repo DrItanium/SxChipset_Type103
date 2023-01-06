@@ -65,7 +65,7 @@ TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
         case TimerDeviceOperations::UnixTime:
-            return unixtimeCopy_.retrieveWord(getOffset());
+            return unixtimeCopy_.retrieveHalf(getOffset());
         case TimerDeviceOperations::SystemTimerPrescalar:
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) 
             return static_cast<uint16_t>(TCCR2B & 0b111);

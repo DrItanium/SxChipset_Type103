@@ -37,9 +37,9 @@ InfoDevice::extendedRead(const Channel0Value& m0) const noexcept {
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
         case InfoDeviceOperations::GetChipsetClock:
-            return systemRateExpose.retrieveWord(getOffset());
+            return systemRateExpose.retrieveHalf(getOffset());
         case InfoDeviceOperations::GetCPUClock:
-            return cpuClockRateExpose.retrieveWord(getOffset());
+            return cpuClockRateExpose.retrieveHalf(getOffset());
         default:
             return 0;
     }

@@ -79,7 +79,7 @@ SerialDevice::extendedRead(const Channel0Value& m0) const noexcept {
             Serial.flush();
             return 0;
         case SerialDeviceOperations::Baud:
-            return SplitWord32{baud_}.retrieveWord(getOffset());
+            return SplitWord32{baud_}.retrieveHalf(getOffset());
         default:
             return 0;
     }
@@ -87,6 +87,7 @@ SerialDevice::extendedRead(const Channel0Value& m0) const noexcept {
 void 
 SerialDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
     // do nothing
+    bool setBaud = false;
     switch (getCurrentOpcode()) {
         case SerialDeviceOperations::RW:
             performSerialWrite(value);
@@ -94,9 +95,17 @@ SerialDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
         case SerialDeviceOperations::Flush:
             Serial.flush();
             break;
+        case SerialDeviceOperations::Baud:
+            baudAssignTemporary_.assignHalf(getOffset(), value);
+            // when we assign the upper half then we want to set the baud
+            setBaud = (getOffset() & 0b1);
+            break;
         default:
             break;
     }
-    /// @todo update write operations so that we cache results and perform the
-    /// writes at the end
+    if (setBaud) {
+        Serial.flush();
+        setBaudRate(baudAssignTemporary_.getWholeValue());
+        baudAssignTemporary_.clear();
+    }
 }

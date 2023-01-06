@@ -43,7 +43,7 @@ public:
     using Parent = OperatorPeripheral<TimerDeviceOperations>;
     ~TimerDevice() override = default;
     bool begin() noexcept ;
-    bool available() const noexcept override { return available_; }
+    bool available() const noexcept { return available_; }
     void startTransaction(const SplitWord32& addr) noexcept override;
 protected:
     uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;

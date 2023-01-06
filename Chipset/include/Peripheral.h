@@ -205,8 +205,8 @@ public:
     using Parent = Peripheral;
     using OperationList = E;
     ~OperatorPeripheral() override = default;
-    virtual bool available() const noexcept { return true; }
-    virtual uint32_t size() const noexcept { return size_.getWholeValue(); }
+    bool available() const noexcept { return true; }
+    uint32_t size() const noexcept { return size_.getWholeValue(); }
     void stashOpcode(const SplitWord32& addr) noexcept {
         // determine where we are looking :)
         currentOpcode_ = addr.getIOFunction<OperationList>();

@@ -207,18 +207,23 @@ public:
     ~OperatorPeripheral() override = default;
     virtual bool available() const noexcept { return true; }
     virtual uint32_t size() const noexcept { return size_.getWholeValue(); }
-    void startTransaction(const SplitWord32& addr) noexcept override {
-        Parent::startTransaction(addr);
+    void stashOpcode(const SplitWord32& addr) noexcept {
         // determine where we are looking :)
         currentOpcode_ = addr.getIOFunction<OperationList>();
     }
-    void endTransaction() noexcept override {
-        // reset the current opcode
+    void resetOpcode() noexcept {
         currentOpcode_ = OperationList::Count;
     }
-    uint16_t read(const Channel0Value& m0) const noexcept override {
+    void startTransaction(const SplitWord32& addr) noexcept override {
+        Parent::startTransaction(addr);
+        stashOpcode(addr);
+    }
+    void endTransaction() noexcept override {
+        resetOpcode();
+    }
+    uint16_t performRead(const Channel0Value& m0) const noexcept {
         switch (currentOpcode_) {
-            case E::Available: 
+            case E::Available:
                 return available() ? 0xFFFF : 0x0000;
             case E::Size:
                 return size_.retrieveHalf(getOffset());
@@ -230,7 +235,7 @@ public:
                 }
         }
     }
-    void write(const Channel0Value& m0, uint16_t value) noexcept override {
+    void performWrite(const Channel0Value& m0, uint16_t value) noexcept {
         switch (currentOpcode_) {
             case E::Available:
             case E::Size:
@@ -242,6 +247,12 @@ public:
                 }
                 break;
         }
+    }
+    uint16_t read(const Channel0Value& m0) const noexcept override {
+        return performRead(m0);
+    }
+    void write(const Channel0Value& m0, uint16_t value) noexcept override {
+        performWrite(m0, value);
     }
 protected:
     //virtual void handleExtendedOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;

@@ -48,7 +48,6 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
 bool
 SerialDevice::begin() noexcept {
     Serial.begin(baud_);
-    Serial.println(F("SERIAL BROUGHT UP!"));
     return true;
 }
 

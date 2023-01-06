@@ -280,12 +280,18 @@ class TransactionInterface {
 class OperationHandler : public TransactionInterface {
     public:
         virtual ~OperationHandler() = default;
-        void startTransaction(const SplitWord32& addr) noexcept override { 
+        void recordAddress(const SplitWord32& addr) noexcept {
             address_ = addr;
             offset_ = addr.getAddressOffset();
         }
-        void next() noexcept override {
+        void advanceOffset() noexcept {
             ++offset_;
+        }
+        void startTransaction(const SplitWord32& addr) noexcept override {
+            recordAddress(addr);
+        }
+        void next() noexcept override {
+            advanceOffset();
         }
         void endTransaction() noexcept override { }
         [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }

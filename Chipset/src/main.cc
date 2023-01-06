@@ -172,10 +172,9 @@ class CacheOperationHandler : public OperationHandler {
         void
         startTransaction(const SplitWord32& addr) noexcept override {
             Parent::startTransaction(addr);
-            if (valid_ && currentAddress_.matches(addr)) {
+            if (line_ && currentAddress_.matches(addr)) {
                 return;
             }
-            valid_ = true;
             currentAddress_ = addr;
             line_ = &getCache().find(addr);
         }
@@ -192,7 +191,6 @@ class CacheOperationHandler : public OperationHandler {
             // @todo this will get strange if bank switching is allowed
         }
     private:
-        bool valid_ = false;
         MemoryCache::CacheAddress currentAddress_{0};
         MemoryCache ::DataCacheLine* line_;
 };
@@ -256,8 +254,6 @@ talkToi960(const SplitWord32& addr, TransactionInterface& handler) noexcept {
                 Platform::setDataLines(value, NoInlineSPI{});
             }
         } else {
-            // yes I know this shadows the outer value but I really need it to be this way
-            auto c0 = readInputChannelAs<Channel0Value>();
             uint16_t value;
             if constexpr (inlineSPIOperation) {
                 value = Platform::getDataLines(c0, InlineSPI{});

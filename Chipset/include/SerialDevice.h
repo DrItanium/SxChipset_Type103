@@ -34,15 +34,14 @@ BeginDeviceOperationsList(SerialDevice)
 EndDeviceOperationsList(SerialDevice)
 
 
-class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
+class SerialDevice : public OperatorPeripheral<SerialDeviceOperations, SerialDevice> {
 public:
     ~SerialDevice() override = default;
     bool begin() noexcept;
     void setBaudRate(uint32_t baudRate) noexcept;
     [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
-protected:
-    uint16_t extendedRead(const Channel0Value& m0) const noexcept override;
-    void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
+    uint16_t extendedRead(const Channel0Value& m0) const noexcept;
+    void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;
 private:
     uint32_t baud_ = 115200;
     SplitWord32 baudAssignTemporary_{0};

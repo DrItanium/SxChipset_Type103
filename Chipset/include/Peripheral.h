@@ -199,11 +199,12 @@ class Peripheral : public OperationHandler {
         ~Peripheral() override = default;
         bool begin() noexcept { return true; }
 };
-template<typename E>
+template<typename E, typename T>
 class OperatorPeripheral : public Peripheral{
 public:
     using Parent = Peripheral;
     using OperationList = E;
+    using Child = T;
     ~OperatorPeripheral() override = default;
     bool available() const noexcept { return true; }
     uint32_t size() const noexcept { return size_.getWholeValue(); }
@@ -229,7 +230,7 @@ public:
                 return size_.retrieveHalf(getOffset());
             default:
                 if (validOperation(currentOpcode_)) {
-                    return extendedRead(m0);
+                    return static_cast<const Child*>(this)->extendedRead(m0);
                 } else {
                     return 0;
                 }
@@ -243,7 +244,7 @@ public:
                 break;
             default:
                 if (validOperation(currentOpcode_)) {
-                    extendedWrite(m0, value);
+                    static_cast<Child*>(this)->extendedWrite(m0, value);
                 }
                 break;
         }
@@ -256,8 +257,8 @@ public:
     }
 protected:
     //virtual void handleExtendedOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;
-    virtual uint16_t extendedRead(const Channel0Value& m0) const noexcept = 0;
-    virtual void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept = 0;
+    //virtual uint16_t extendedRead(const Channel0Value& m0) const noexcept = 0;
+    //virtual void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept = 0;
     [[nodiscard]] constexpr OperationList getCurrentOpcode() const noexcept { return currentOpcode_; }
 private:
     OperationList currentOpcode_ = OperationList::Count;

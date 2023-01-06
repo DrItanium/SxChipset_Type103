@@ -33,12 +33,11 @@ BeginDeviceOperationsList(InfoDevice)
     GetCPUClock,
 EndDeviceOperationsList(InfoDevice)
 
-class InfoDevice : public OperatorPeripheral<InfoDeviceOperations> {
+class InfoDevice : public OperatorPeripheral<InfoDeviceOperations, InfoDevice> {
 public:
     ~InfoDevice() override = default;
-protected:
-    uint16_t extendedRead(const Channel0Value& m0) const noexcept override ;
-    void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
+    uint16_t extendedRead(const Channel0Value& m0) const noexcept;
+    void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;
 };
 
 #endif //CHIPSET_INFODEVICE_H

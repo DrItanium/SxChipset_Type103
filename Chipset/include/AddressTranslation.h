@@ -46,18 +46,17 @@ EndDeviceOperationsList(AddressTranslationDevice)
  * has its own TLB (address lookup cache) and is just another cache with the
  * same replacement algorithms as the data cache itself.
  */
-class AddressTranslationDevice : public OperatorPeripheral<AddressTranslationDeviceOperations> {
+class AddressTranslationDevice : public OperatorPeripheral<AddressTranslationDeviceOperations, AddressTranslationDevice> {
     public:
-        using Parent = OperatorPeripheral<AddressTranslationDeviceOperations>;
+        using Parent = OperatorPeripheral<AddressTranslationDeviceOperations, AddressTranslationDevice>;
         SplitWord32 translate(const SplitWord32& address) noexcept;
         void enable() noexcept;
         void disable() noexcept;
         [[nodiscard]] constexpr bool active() const noexcept { return enabled_; }
         bool begin() noexcept ;
         //void startTransaction(const SplitWord32& addr) noexcept override;
-    protected:
-        uint16_t extendedRead(const Channel0Value& m0) const noexcept override;
-        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept ;
+        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;
     private:
         bool enabled_ = false;
 };

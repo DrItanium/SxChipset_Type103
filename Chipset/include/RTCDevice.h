@@ -42,7 +42,7 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations> {
 public:
     using Parent = OperatorPeripheral<TimerDeviceOperations>;
     ~TimerDevice() override = default;
-    bool begin() noexcept override;
+    bool begin() noexcept ;
     bool available() const noexcept override { return available_; }
     void startTransaction(const SplitWord32& addr) noexcept override;
 protected:

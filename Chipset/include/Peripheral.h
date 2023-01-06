@@ -197,7 +197,7 @@ class Peripheral : public OperationHandler {
     public:
         using Parent = OperationHandler;
         ~Peripheral() override = default;
-        virtual bool begin() noexcept { return true; }
+        bool begin() noexcept { return true; }
 };
 template<typename E>
 class OperatorPeripheral : public Peripheral{

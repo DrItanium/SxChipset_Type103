@@ -53,7 +53,7 @@ class AddressTranslationDevice : public OperatorPeripheral<AddressTranslationDev
         void enable() noexcept;
         void disable() noexcept;
         [[nodiscard]] constexpr bool active() const noexcept { return enabled_; }
-        bool begin() noexcept override;
+        bool begin() noexcept ;
         //void startTransaction(const SplitWord32& addr) noexcept override;
     protected:
         uint16_t extendedRead(const Channel0Value& m0) const noexcept override;

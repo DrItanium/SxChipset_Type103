@@ -37,7 +37,7 @@ EndDeviceOperationsList(SerialDevice)
 class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
 public:
     ~SerialDevice() override = default;
-    bool begin() noexcept override;
+    bool begin() noexcept;
     void setBaudRate(uint32_t baudRate) noexcept;
     [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
 protected:

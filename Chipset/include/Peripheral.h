@@ -200,12 +200,12 @@ class Peripheral : public OperationHandler {
         bool begin() noexcept { return true; }
 };
 template<typename E, typename T>
-class OperatorPeripheral : public Peripheral {
+class OperatorPeripheral : public AddressTracker {
 public:
-    using Parent = Peripheral;
     using OperationList = E;
     using Child = T;
-    ~OperatorPeripheral() override = default;
+    //~OperatorPeripheral() override = default;
+    bool begin() noexcept { return static_cast<Child*>(this)->init(); }
     bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
     uint32_t size() const noexcept { return size_.getWholeValue(); }
     void stashOpcode(const SplitWord32& addr) noexcept {
@@ -215,12 +215,14 @@ public:
     void resetOpcode() noexcept {
         currentOpcode_ = OperationList::Count;
     }
-    void startTransaction(const SplitWord32& addr) noexcept override {
-        Parent::startTransaction(addr);
+    void startTransaction(const SplitWord32& addr) noexcept {
+        recordAddress(addr);
         stashOpcode(addr);
+        static_cast<T*>(this)->onStartTransaction(addr);
     }
-    void endTransaction() noexcept override {
+    void endTransaction() noexcept {
         resetOpcode();
+        static_cast<T*>(this)->onEndTransaction();
     }
     uint16_t performRead(const Channel0Value& m0) const noexcept {
         switch (currentOpcode_) {
@@ -249,11 +251,14 @@ public:
                 break;
         }
     }
-    uint16_t read(const Channel0Value& m0) const noexcept override {
+    uint16_t read(const Channel0Value& m0) const noexcept {
         return performRead(m0);
     }
-    void write(const Channel0Value& m0, uint16_t value) noexcept override {
+    void write(const Channel0Value& m0, uint16_t value) noexcept {
         performWrite(m0, value);
+    }
+    void next() noexcept {
+        advanceOffset();
     }
 protected:
     //virtual void handleExtendedOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;

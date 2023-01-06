@@ -41,10 +41,10 @@ EndDeviceOperationsList(TimerDevice)
 class TimerDevice : public OperatorPeripheral<TimerDeviceOperations, TimerDevice> {
 public:
     using Parent = OperatorPeripheral<TimerDeviceOperations, TimerDevice>;
-    ~TimerDevice() override = default;
-    bool begin() noexcept ;
+    bool init() noexcept ;
     bool isAvailable() const noexcept { return available_; }
-    void startTransaction(const SplitWord32& addr) noexcept override;
+    void onStartTransaction(const SplitWord32& addr) noexcept;
+    void onEndTransaction() noexcept { }
     uint16_t extendedRead(const Channel0Value& m0) const noexcept ;
     void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept ;
 private:

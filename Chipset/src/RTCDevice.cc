@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RTCDevice.h"
 
 bool
-TimerDevice::begin() noexcept {
+TimerDevice::init() noexcept {
     if (rtc.begin()) {
         if (!rtc.isrunning()) {
             rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
@@ -105,8 +105,7 @@ TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
 }
 
 void
-TimerDevice::startTransaction(const SplitWord32& addr) noexcept {
-    Parent::startTransaction(addr);
+TimerDevice::onStartTransaction(const SplitWord32 &addr) noexcept {
     // ahead of time, sample the unix time. It will be safe to do this since
     // the resolution is in seconds. Even if it does shift over it is okay!
     switch (getCurrentOpcode()) {

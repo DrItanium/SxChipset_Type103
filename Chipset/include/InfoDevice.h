@@ -35,10 +35,12 @@ EndDeviceOperationsList(InfoDevice)
 
 class InfoDevice : public OperatorPeripheral<InfoDeviceOperations, InfoDevice> {
 public:
-    ~InfoDevice() override = default;
+    bool init() noexcept  { return true; }
     bool isAvailable() const noexcept { return true; }
     uint16_t extendedRead(const Channel0Value& m0) const noexcept;
     void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;
+    void onEndTransaction() noexcept { }
+    void onStartTransaction(const SplitWord32&) noexcept { }
 };
 
 #endif //CHIPSET_INFODEVICE_H

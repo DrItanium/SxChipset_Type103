@@ -42,7 +42,7 @@ AddressTranslationDevice::translate(const SplitWord32& address) noexcept {
 
 
 bool
-AddressTranslationDevice::begin() noexcept {
+AddressTranslationDevice::init() noexcept {
     return true;
 }
 

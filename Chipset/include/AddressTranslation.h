@@ -54,7 +54,7 @@ public:
     void disable() noexcept;
     [[nodiscard]] constexpr bool active() const noexcept { return enabled_; }
     bool isAvailable() const noexcept { return true; }
-    bool begin() noexcept ;
+    bool init() noexcept ;
     //void startTransaction(const SplitWord32& addr) noexcept override;
     uint16_t extendedRead(const Channel0Value& m0) const noexcept ;
     void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;

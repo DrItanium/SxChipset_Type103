@@ -46,7 +46,7 @@ SerialDevice::setBaudRate(uint32_t baudRate) noexcept {
 }
 
 bool
-SerialDevice::begin() noexcept {
+SerialDevice::init() noexcept {
     Serial.begin(baud_);
     return true;
 }

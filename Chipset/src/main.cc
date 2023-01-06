@@ -165,13 +165,12 @@ waitForDataState() noexcept {
     singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
 }
-class CacheOperationHandler {
+class CacheOperationHandler : public AddressTracker {
 public:
     //~CacheOperationHandler() override = default;
     void
     startTransaction(const SplitWord32& addr) noexcept {
-        address_ = addr;
-        offset_ = addr.getAddressOffset();
+        recordAddress(addr);
         if (line_ && currentAddress_.matches(addr)) {
             return;
         }
@@ -191,13 +190,9 @@ public:
         // @todo this will get strange if bank switching is allowed
     }
     void next() noexcept {
-        ++offset_;
+        advanceOffset();
     }
-    [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
-    [[nodiscard]] constexpr byte getOffset() const noexcept { return offset_; }
 private:
-    SplitWord32 address_{0};
-    byte offset_ = 0;
     MemoryCache::CacheAddress currentAddress_{0};
     MemoryCache ::DataCacheLine* line_;
 };

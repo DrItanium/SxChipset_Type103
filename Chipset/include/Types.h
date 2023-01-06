@@ -274,19 +274,31 @@ class TransactionInterface {
         virtual void next() noexcept { }
         virtual void endTransaction() noexcept { };
 };
+class AddressTracker {
+public:
+    void recordAddress(const SplitWord32& addr) noexcept {
+        address_ = addr;
+        offset_ = addr.getAddressOffset();
+    }
+    void advanceOffset() noexcept {
+        ++offset_;
+    }
+    void clear() noexcept {
+        address_.clear();
+        offset_ = 0;
+    }
+    [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
+    [[nodiscard]] constexpr auto getOffset() const noexcept { return offset_; }
+private:
+    SplitWord32 address_{0};
+    byte offset_ = 0;
+};
 /**
  * @brief Communication primitive for talking to the i960 or other devices,
  */
-class OperationHandler : public TransactionInterface {
+class OperationHandler : public TransactionInterface, public AddressTracker {
     public:
         virtual ~OperationHandler() = default;
-        void recordAddress(const SplitWord32& addr) noexcept {
-            address_ = addr;
-            offset_ = addr.getAddressOffset();
-        }
-        void advanceOffset() noexcept {
-            ++offset_;
-        }
         void startTransaction(const SplitWord32& addr) noexcept override {
             recordAddress(addr);
         }
@@ -294,11 +306,6 @@ class OperationHandler : public TransactionInterface {
             advanceOffset();
         }
         void endTransaction() noexcept override { }
-        [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
-        [[nodiscard]] constexpr auto getOffset() const noexcept { return offset_; }
-    private:
-        SplitWord32 address_{0};
-        byte offset_ = 0;
 };
 
 /**

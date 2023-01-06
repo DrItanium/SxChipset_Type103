@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 SplitWord32
-AddressTranslator::translate(const SplitWord32& address) noexcept {
+AddressTranslationDevice::translate(const SplitWord32& address) noexcept {
     if (active()) {
         /// @todo implement
         // carve the virtual address up into multiple parts and walk through
@@ -41,17 +41,16 @@ AddressTranslator::translate(const SplitWord32& address) noexcept {
 
 
 
-void
-AddressTranslator::begin() noexcept {
+bool
+AddressTranslationDevice::begin() noexcept {
 
 }
 
 void
-AddressTranslator::enable() noexcept {
-
+AddressTranslationDevice::enable() noexcept {
 }
 
 void
-AddressTranslator::disable() noexcept {
+AddressTranslationDevice::disable() noexcept {
 
 }

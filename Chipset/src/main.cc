@@ -40,6 +40,7 @@ SdFat SD;
 SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
+AddressTranslationDevice theAddressTranslator;
 #ifdef TYPE104_BOARD
 inline byte memoryControllerStatus() noexcept {
     Wire.requestFrom(9, 17);
@@ -282,7 +283,7 @@ handleTransaction() noexcept {
     Platform::collectAddress();
     Platform::endAddressTransaction();
     auto virtualAddress = Platform::getAddress();
-    auto addr = AddressTranslator::translate(virtualAddress);
+    auto addr = theAddressTranslator.translate(virtualAddress);
     if constexpr (EnableDebugMode) {
         Serial.print(F("Virtual address: 0x"));
         Serial.print(addr.getWholeValue(), HEX);
@@ -375,7 +376,7 @@ setup() {
     queryPSRAM<false>();
 #endif
     setupCache();
-    AddressTranslator::begin();
+    theAddressTranslator.begin();
     delay(1000);
 #ifdef TYPE103_BOARD
     installMemoryImage();

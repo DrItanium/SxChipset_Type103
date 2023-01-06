@@ -28,7 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SXCHIPSET_ADDRESS_TRANSLATION_H__
 #include "Detect.h"
 #include "Types.h"
+#include "Peripheral.h"
 
+BeginDeviceOperationsList(AddressTranslationDevice)
+    Active,
+    Enable,
+EndDeviceOperationsList(AddressTranslationDevice)
 /**
  * @brief Converts virtual addresses to physical addresses; It follows the i960
  * region mapping concept where we divide the 32-bit memory space up into four
@@ -39,22 +44,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * has its own TLB (address lookup cache) and is just another cache with the
  * same replacement algorithms as the data cache itself.
  */
-class AddressTranslator {
+class AddressTranslationDevice : public OperatorPeripheral<AddressTranslationDeviceOperations> {
     public:
-        AddressTranslator() = delete;
-        ~AddressTranslator() = delete;
-        AddressTranslator(const AddressTranslator&) = delete;
-        AddressTranslator(AddressTranslator&&) = delete;
-        AddressTranslator& operator=(const AddressTranslator&) = delete;
-        AddressTranslator& operator=(AddressTranslator&&) = delete;
-
-        static SplitWord32 translate(const SplitWord32& address) noexcept;
-        static void enable() noexcept;
-        static void disable() noexcept;
-        static bool active() noexcept { return enabled_; }
-        static void begin() noexcept;
+        using Parent = OperatorPeripheral<AddressTranslationDeviceOperations>;
+        SplitWord32 translate(const SplitWord32& address) noexcept;
+        void enable() noexcept;
+        void disable() noexcept;
+        bool active() noexcept { return enabled_; }
+        bool begin() noexcept override;
+        void startTransaction(const SplitWord32& addr) noexcept override;
+    protected:
+        uint16_t extendedRead(const Channel0Value& m0) const noexcept override;
+        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
     private:
-        static inline bool enabled_ = false;
+        bool enabled_ = false;
 };
 
 #endif // end !defined(SXCHIPSET_ADDRESS_TRANSLATION_H__)

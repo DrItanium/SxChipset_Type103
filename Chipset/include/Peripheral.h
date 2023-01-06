@@ -262,8 +262,6 @@ private:
 
 
 
-BeginDeviceOperationsList(AddressTranslationDevice)
-EndDeviceOperationsList(AddressTranslationDevice)
 #if 0
 void sendToDazzler(uint8_t character) noexcept;
 #endif

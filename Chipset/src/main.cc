@@ -165,59 +165,66 @@ waitForDataState() noexcept {
     singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
 }
-class CacheOperationHandler : public OperationHandler {
-    public:
-        using Parent = OperationHandler;
-        ~CacheOperationHandler() override = default;
-        void
-        startTransaction(const SplitWord32& addr) noexcept override {
-            Parent::startTransaction(addr);
-            if (line_ && currentAddress_.matches(addr)) {
-                return;
-            }
-            currentAddress_ = addr;
-            line_ = &getCache().find(addr);
+class CacheOperationHandler {
+public:
+    //~CacheOperationHandler() override = default;
+    void
+    startTransaction(const SplitWord32& addr) noexcept {
+        address_ = addr;
+        offset_ = addr.getAddressOffset();
+        if (line_ && currentAddress_.matches(addr)) {
+            return;
         }
-        uint16_t 
-        read(const Channel0Value&) const noexcept {
-            return line_->getWord(getOffset());
-        }
-        void
-        write(const Channel0Value& m0, uint16_t value) noexcept {
-            line_->setWord(getOffset(), value, m0.getByteEnable());
-        }
-        void
-        endTransaction() noexcept override {
-            // @todo this will get strange if bank switching is allowed
-        }
-    private:
-        MemoryCache::CacheAddress currentAddress_{0};
-        MemoryCache ::DataCacheLine* line_;
+        currentAddress_ = addr;
+        line_ = &getCache().find(addr);
+    }
+    uint16_t
+    read(const Channel0Value&) const noexcept {
+        return line_->getWord(getOffset());
+    }
+    void
+    write(const Channel0Value& m0, uint16_t value) noexcept {
+        line_->setWord(getOffset(), value, m0.getByteEnable());
+    }
+    void
+    endTransaction() noexcept {
+        // @todo this will get strange if bank switching is allowed
+    }
+    void next() noexcept {
+        ++offset_;
+    }
+    [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
+    [[nodiscard]] constexpr byte getOffset() const noexcept { return offset_; }
+private:
+    SplitWord32 address_{0};
+    byte offset_ = 0;
+    MemoryCache::CacheAddress currentAddress_{0};
+    MemoryCache ::DataCacheLine* line_;
 };
 template<bool isReadOperation, bool inlineSPIOperation, typename T>
 void
 talkToi960(const SplitWord32& addr, T& handler) noexcept;
-template<bool isReadOperation, bool inlineSPIOperation>
+template<bool isReadOperation>
 void
 //inline TransactionInterface&
 getPeripheralDevice(const SplitWord32& addr) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            talkToi960<isReadOperation, inlineSPIOperation>(addr, infoDevice);
+            talkToi960<isReadOperation, false>(addr, infoDevice);
             break;
         case TargetPeripheral::Serial:
-            talkToi960<isReadOperation, inlineSPIOperation>(addr, theSerial);
+            talkToi960<isReadOperation, false>(addr, theSerial);
             break;
         case TargetPeripheral::RTC:
-            talkToi960<isReadOperation, inlineSPIOperation>(addr, timerInterface);
+            talkToi960<isReadOperation, false>(addr, timerInterface);
             break;
         default:
-            talkToi960<isReadOperation, inlineSPIOperation>(addr, getNullHandler());
+            talkToi960<isReadOperation, false>(addr, getNullHandler());
             break;
     }
 }
 
-template<bool isReadOperation, bool inlineSPIOperation>
+template<bool isReadOperation>
 void
 //inline TransactionInterface&
 handleIOOperation(const SplitWord32& addr) noexcept {
@@ -231,10 +238,10 @@ handleIOOperation(const SplitWord32& addr) noexcept {
     // one starts when performing a write operation
     switch (addr.getIOGroup()) {
         case IOGroup::Peripherals:
-            getPeripheralDevice<isReadOperation, inlineSPIOperation>(addr);
+            getPeripheralDevice<isReadOperation>(addr);
             break;
         default:
-            talkToi960<isReadOperation, inlineSPIOperation>(addr, getNullHandler());
+            talkToi960<isReadOperation, false>(addr, getNullHandler());
             break;
     }
 }
@@ -325,9 +332,9 @@ handleTransaction() noexcept {
         }
 #else
         if (Platform::isReadOperation()) {
-            handleIOOperation<true, false>(addr);
+            handleIOOperation<true>(addr);
         } else {
-            handleIOOperation<false, false>(addr);
+            handleIOOperation<false>(addr);
         }
 #endif
     } else {

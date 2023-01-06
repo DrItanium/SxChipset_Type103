@@ -31,8 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 
 BeginDeviceOperationsList(AddressTranslationDevice)
+/**
+ * @brief Reading from this register will return if the translator is active or not; Writes will activate/deactivate it
+ */
     Active,
-    Enable,
 EndDeviceOperationsList(AddressTranslationDevice)
 /**
  * @brief Converts virtual addresses to physical addresses; It follows the i960
@@ -50,9 +52,9 @@ class AddressTranslationDevice : public OperatorPeripheral<AddressTranslationDev
         SplitWord32 translate(const SplitWord32& address) noexcept;
         void enable() noexcept;
         void disable() noexcept;
-        bool active() noexcept { return enabled_; }
+        [[nodiscard]] constexpr bool active() const noexcept { return enabled_; }
         bool begin() noexcept override;
-        void startTransaction(const SplitWord32& addr) noexcept override;
+        //void startTransaction(const SplitWord32& addr) noexcept override;
     protected:
         uint16_t extendedRead(const Channel0Value& m0) const noexcept override;
         void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;

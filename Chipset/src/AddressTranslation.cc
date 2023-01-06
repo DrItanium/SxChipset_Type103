@@ -54,3 +54,28 @@ void
 AddressTranslationDevice::disable() noexcept {
 
 }
+uint16_t
+AddressTranslationDevice::extendedRead(const Channel0Value& m0) const noexcept {
+    /// @todo implement support for caching the target info field so we don't
+    /// need to keep looking up the dispatch address
+    switch (getCurrentOpcode()) {
+        case AddressTranslationDeviceOperations::Active:
+            return active() ? 0xFFFF : 0x0000;
+        default:
+            return 0;
+    }
+}
+void
+AddressTranslationDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
+    switch (getCurrentOpcode()) {
+        case AddressTranslationDeviceOperations::Active:
+            if (value) {
+                enable();
+            } else {
+                disable();
+            }
+            break;
+        default:
+            break;
+    }
+}

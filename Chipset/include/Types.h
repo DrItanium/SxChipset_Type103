@@ -265,9 +265,6 @@ union SplitWord32 {
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 
 
-
-
-
 class TransactionInterface {
     public:
         virtual ~TransactionInterface() = default;
@@ -332,4 +329,6 @@ static_assert(pow2(7) == 128);
 static_assert(pow2(8) == 256);
 static_assert(pow2(9) == 512);
 static_assert(pow2(10) == 1024);
+
+
 #endif //SXCHIPSET_TYPE103_TYPES_H__

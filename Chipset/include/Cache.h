@@ -91,12 +91,13 @@ template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheLine {
     using CacheAddress = BasicCacheAddress<offsetBits, tagBits, bankBits>;
     static constexpr auto NumberOfDataBytes = pow2(offsetBits);
+    static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
     inline void clear() noexcept {
         key_ = 0;
         dirty_ = false;
         valid_ = false;
         for (int i = 0; i < NumberOfDataBytes; ++i) {
-            words[i] = 0;
+            words[i].full = 0;
         }
     }
     inline bool matches(CacheAddress other) const noexcept {
@@ -107,28 +108,40 @@ struct BasicDataCacheLine {
         if (valid_ && dirty_) {
             auto copy = newAddress;
             copy.setKey(key_);
-            memoryWrite(copy.getBackingStore(), words, NumberOfDataBytes);
+            memoryWrite(copy.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
         }
         valid_ = true;
         dirty_ = false;
         key_ = newAddress.getKey();
-        memoryRead(newAddress.getBackingStore(), words, NumberOfDataBytes);
+        memoryRead(newAddress.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
     }
     void begin() noexcept {
         clear();
     }
-    inline byte read(byte offset) const noexcept {
-        return words[offset ];
+    inline uint16_t getWord(byte offset) const noexcept {
+        return words[offset].getWholeValue();
     }
-    inline void write(byte offset, byte value) noexcept {
+    inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
         dirty_ = true;
-        words[offset ] = value;
+        switch (style) {
+            case EnableStyle::Full16:
+                words[offset].full = value;
+                break;
+            case EnableStyle::Lower8:
+                words[offset].bytes[0] = static_cast<uint8_t>(value);
+                break;
+            case EnableStyle::Upper8:
+                words[offset].bytes[1] = static_cast<uint8_t>(value >> 8);
+                break;
+            default:
+                break;
+        }
     }
 private:
     uint32_t key_ : CacheAddress::KeyBitsCount;
     bool dirty_ = false;
     bool valid_ = false;
-    byte words[NumberOfDataBytes];
+    SplitWord16 words[NumberOfWords];
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines = 4>
 struct BasicDataCacheSet {
@@ -201,6 +214,12 @@ struct BasicDataCache {
         for (auto& set : cache) {
             set.begin();
         }
+    }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return reinterpret_cast<byte*>(cache);
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return sizeof(cache);
     }
 private:
     DataCacheSet cache[NumberOfSets];

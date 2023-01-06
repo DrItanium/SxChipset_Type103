@@ -43,7 +43,7 @@ AddressTranslationDevice::translate(const SplitWord32& address) noexcept {
 
 bool
 AddressTranslationDevice::begin() noexcept {
-
+    return true;
 }
 
 void

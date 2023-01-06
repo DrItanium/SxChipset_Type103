@@ -30,19 +30,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 
 constexpr bool EnableDebugMode = false;
-constexpr bool EnableTimingDebug = false;
 constexpr bool EnableInlineSPIOperation = true;
 
-template<bool doDebugCheck = EnableTimingDebug>
-[[gnu::always_inline]] inline 
-void 
+[[gnu::always_inline]]
+inline void
 singleCycleDelay() noexcept {
-    if constexpr (doDebugCheck) {
-        delay(1);
-    } else {
-        asm volatile ("nop");
-        asm volatile ("nop");
-    }
+    asm volatile ("nop");
+    asm volatile ("nop");
 }
 
 struct InlineSPI { };

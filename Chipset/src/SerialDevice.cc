@@ -25,7 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Arduino.h>
 #include "Peripheral.h"
-#include "Wire.h"
+#include "SerialDevice.h"
 #if 0
 void
 sendToDazzler(uint8_t character) noexcept {

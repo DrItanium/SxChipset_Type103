@@ -1,6 +1,6 @@
 /*
 i960SxChipset_Type103
-Copyright (c) 2022, Joshua Scoggins
+Copyright (c) 2022-2023, Joshua Scoggins
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -259,26 +259,6 @@ private:
 
 
 
-BeginDeviceOperationsList(SerialDevice)
-    RW,
-    Flush,
-    Baud,
-EndDeviceOperationsList(SerialDevice)
-
-
-class SerialDevice : public OperatorPeripheral<SerialDeviceOperations> {
-    public:
-        ~SerialDevice() override = default;
-        bool begin() noexcept override;
-        void setBaudRate(uint32_t baudRate) noexcept;
-        [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
-    protected:
-        uint16_t extendedRead(const Channel0Value& m0) const noexcept override;
-        void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept override;
-    private:
-        uint32_t baud_ = 115200;
-        SplitWord32 baudAssignTemporary_{0};
-};
 
 BeginDeviceOperationsList(InfoDevice)
     GetChipsetClock,

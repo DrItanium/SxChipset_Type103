@@ -364,6 +364,8 @@ bringUpSDCard() noexcept {
 }
 void 
 setup() {
+    Serial.begin(115200);
+    Serial.println(F("Donuts"));
     theSerial.begin();
     infoDevice.begin();
     Wire.begin();

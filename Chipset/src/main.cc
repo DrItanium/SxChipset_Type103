@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SerialDevice.h"
 #include "RTCDevice.h"
 #include "InfoDevice.h"
+#include "Cache.h"
 
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
@@ -186,7 +187,7 @@ class CacheOperationHandler : public OperationHandler {
             line_ = nullptr;
         }
     private:
-        MemoryCache ::Line * line_;
+        MemoryCache ::DataCacheLine* line_;
 };
 inline TransactionInterface& 
 getPeripheralDevice(const SplitWord32& addr) noexcept {

@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SPI.h"
 #include "Types.h"
 #include "Pinout.h"
+#include "Cache.h"
 
 namespace {
     MemoryCache cache;

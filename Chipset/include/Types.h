@@ -212,11 +212,6 @@ union SplitWord32 {
         uint32_t rest : (32 - OffsetSize);
     } address;
     struct {
-        uint32_t offset : OffsetSize;
-        uint32_t tag : TagSize; 
-        uint32_t key : KeySize;
-    } cacheAddress;
-    struct {
         uint8_t subfunction;
         uint8_t function;
         uint8_t device;
@@ -271,147 +266,7 @@ static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the 
 
 
 
-size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
-size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
-template<byte numberOfDataBytes = 8>
-struct DataCacheLine {
-    static constexpr auto NumberOfDataBytes = numberOfDataBytes;
-    static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
-    inline uint16_t getWord(byte offset) const noexcept {
-        return words[offset].full;
-    }
-    inline void clear() noexcept {
-        key_ = 0;
-        flags_.clear();
-        for (int i = 0; i < NumberOfWords; ++i) {
-            words[i].full = 0;
-        }
-    }
-    inline bool matches(SplitWord32 other) const noexcept {
-        return flags_.lineIsValid() && (other.cacheAddress.key == key_);
-    }
-    inline void reset(SplitWord32 newAddress) noexcept {
-        newAddress.cacheAddress.offset = 0;
-        if (flags_.lineIsValid() && flags_.lineIsDirty()) {
-            auto copy = newAddress;
-            copy.cacheAddress.key = key_;
-            memoryWrite(copy, reinterpret_cast<byte*>(words), NumberOfDataBytes);
-        }
-        flags_.lineFlags.valid_ = true;
-        flags_.lineFlags.dirty_ = false;
-        key_ = newAddress.cacheAddress.key;
-        memoryRead(newAddress, reinterpret_cast<byte*>(words), NumberOfDataBytes);
-    }
-    inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
-        switch (style) {
-            case EnableStyle::Full16:
-                words[offset].full = value;
-                flags_.lineFlags.dirty_ = true;
-                break;
-            case EnableStyle::Lower8:
-                words[offset].bytes[0] = value;
-                flags_.lineFlags.dirty_ = true;
-                break;
-            case EnableStyle::Upper8:
-                words[offset].bytes[1] = (value >> 8);
-                flags_.lineFlags.dirty_ = true;
-                break;
-            default:
-                break;
-        }
-    }
-    void begin() noexcept { 
-        clear();
-    }
-    private:
-        uint32_t key_ : KeySize;
-        Word8 flags_;
-        SplitWord16 words[NumberOfWords];
-};
-template<byte numberOfDataBytes = 8, byte numberOfLines = 4>
-struct DataCacheSet {
-    using CacheLine = DataCacheLine<numberOfDataBytes>;
-    static constexpr auto NumberOfLines = numberOfLines;
-    inline void begin() noexcept {
-        replacementIndex_ = 0;
-        for (auto& line : lines) {
-            line.begin();
-        }
-    }
-    template<bool useMostRecentlyUsedCheck = false>
-    inline auto& find(SplitWord32 address) noexcept {
-        if constexpr (useMostRecentlyUsedCheck) {
-            for (int i = 0; i < NumberOfLines; ++i) {
-                auto& line = lines[i];
-                if (line.matches(address)) {
-                    // shift ahead by one to make sure we don't swap the current
-                    // line out on next miss. It is a form of most recently used
-                    if (i == replacementIndex_) {
-                        updateFlags();
-                    }
-                    return line;
-                }
-            }
-        } else {
-            for (auto& line : lines) {
-                if (line.matches(address)) {
-                    return line;
-                }
-            }
-        }
-        auto& target = lines[replacementIndex_];
-        updateFlags();
-        target.reset(address);
-        return target;
-    }
-    inline void updateFlags() noexcept {
-        ++replacementIndex_;
-        if (replacementIndex_ == NumberOfLines) {
-            replacementIndex_ = 0;
-        }
-    }
-    inline void clear() noexcept {
-        replacementIndex_ = 0;
-        for (auto& line : lines) {
-            line.clear();
-        }
-    }
-    private:
-        CacheLine lines[NumberOfLines];
-        byte replacementIndex_;
-};
-template<byte numberOfDataBytes = 4, byte numberOfLines = 8, byte numberOfSets = getNumberOfSets()>
-struct DataCache {
-    using Set = DataCacheSet<numberOfDataBytes, numberOfLines>;
-    using Line = typename Set::CacheLine;
-    static constexpr auto NumberOfSets = numberOfSets;
-    inline void clear() noexcept {
-        for (auto& set : cache) {
-            set.clear();
-        }
-    }
-    [[gnu::always_inline]] inline auto& find(SplitWord32 address) noexcept {
-        return cache[address.cacheAddress.tag].find(address);
-    }
-    inline void begin() noexcept {
-        for (auto& set : cache) {
-            set.begin();
-        }
-    }
-    [[nodiscard]] byte* asBuffer() noexcept {
-        return reinterpret_cast<byte*>(cache);
-    }
-    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
-        return sizeof(cache);
-    }
-    private:
-        Set cache[NumberOfSets];
-};
 
-using MemoryCache = DataCache<4, 8, getNumberOfSets()>;
-
-MemoryCache& getCache() noexcept;
-void setupCache() noexcept;
 
 class TransactionInterface {
     public:
@@ -460,4 +315,21 @@ inline TransactionInterface& getNullHandler() noexcept  {
     return temp;
 }
 
+#ifndef _BV
+#define _BV(value) (1 << value)
+#endif
+constexpr auto pow2(uint8_t value) noexcept {
+    return _BV(value);
+}
+static_assert(pow2(0) == 1);
+static_assert(pow2(1) == 2);
+static_assert(pow2(2) == 4);
+static_assert(pow2(3) == 8);
+static_assert(pow2(4) == 16);
+static_assert(pow2(5) == 32);
+static_assert(pow2(6) == 64);
+static_assert(pow2(7) == 128);
+static_assert(pow2(8) == 256);
+static_assert(pow2(9) == 512);
+static_assert(pow2(10) == 1024);
 #endif //SXCHIPSET_TYPE103_TYPES_H__

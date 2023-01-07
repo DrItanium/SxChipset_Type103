@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHIPSET_CACHE_H
 #include "Detect.h"
 #include "Types.h"
+constexpr bool EnableCacheDebugging = true;
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 
@@ -109,8 +110,8 @@ struct BasicDataCacheLine {
     inline void clear() noexcept {
         dest_.clear();
         flags_.reg = 0;
-        for (int i = 0; i < NumberOfDataBytes; ++i) {
-            words[i].full = 0;
+        for (auto& word : words) {
+            word.full = 0;
         }
     }
     inline bool matches(CacheAddress other) const noexcept {
@@ -129,12 +130,28 @@ struct BasicDataCacheLine {
         dest_ = newAddress;
         dest_.setOffset(0);
         memoryRead(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
+        if constexpr (EnableCacheDebugging) {
+            Serial.println(F("\tSwapped in the following words: "));
+            for (byte i = 0; i < NumberOfWords; ++i) {
+                Serial.print(F("\t\t"));
+                Serial.print(i);
+                Serial.print(F(": 0x"));
+                Serial.println(words[i].full, HEX);
+            }
+        }
     }
     void begin() noexcept {
         clear();
     }
     inline uint16_t getWord(byte offset) const noexcept {
-        return words[offset].getWholeValue();
+        auto result = words[offset].getWholeValue();
+        if constexpr (EnableCacheDebugging) {
+            Serial.print(F("getWord("));
+            Serial.print(offset);
+            Serial.print(F("): 0x"));
+            Serial.println(result, HEX);
+        }
+        return result;
     }
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
         flags_.dirty_ = true;
@@ -388,6 +405,10 @@ struct BasicDataCache {
         return cache[address.getTag()];
     }
     [[gnu::always_inline]] inline auto& find(CacheAddress address) noexcept {
+        if constexpr (EnableCacheDebugging) {
+            Serial.print(F("\tTag: 0x"));
+            Serial.println(address.getTag(), HEX);
+        }
         return cache[address.getTag()].find(address);
     }
     inline void begin() noexcept {

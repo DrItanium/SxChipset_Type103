@@ -225,13 +225,17 @@ struct TreatAsCacheAccess final { };
 template<bool isReadOperation, bool inlineSPIOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
-    auto& line = getCache().find(addr);
+    auto &line = getCache().find(addr);
     if constexpr (inlineSPIOperation) {
         Platform::startInlineSPIOperation();
     }
     // the compiler seems to barf on for loops at -Ofast
     // so instead, we want to unpack it to make sure
     auto offset = MemoryCache::CacheAddress{addr}.getOffset();
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("\tStarting offset: 0x"));
+        Serial.println(offset, HEX);
+    }
     while (true) {
         singleCycleDelay();
         // read it twice, otherwise we lose our minds

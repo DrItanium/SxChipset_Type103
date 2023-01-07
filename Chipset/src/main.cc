@@ -165,37 +165,6 @@ waitForDataState() noexcept {
     singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
 }
-class CacheOperationHandler : public AddressTracker {
-public:
-    //~CacheOperationHandler() override = default;
-    void
-    startTransaction(const SplitWord32& addr) noexcept {
-        recordAddress(addr);
-        if (line_ && currentAddress_.matches(addr)) {
-            return;
-        }
-        currentAddress_ = addr;
-        line_ = &getCache().find(addr);
-    }
-    uint16_t
-    read(const Channel0Value&) const noexcept {
-        return line_->getWord(getOffset());
-    }
-    void
-    write(const Channel0Value& m0, uint16_t value) noexcept {
-        line_->setWord(getOffset(), value, m0.getByteEnable());
-    }
-    void
-    endTransaction() noexcept {
-        // @todo this will get strange if bank switching is allowed
-    }
-    void next() noexcept {
-        advanceOffset();
-    }
-private:
-    MemoryCache::CacheAddress currentAddress_{0};
-    MemoryCache ::DataCacheLine* line_;
-};
 template<bool isReadOperation, bool inlineSPIOperation, typename T>
 void
 talkToi960(const SplitWord32& addr, T& handler) noexcept;
@@ -295,8 +264,61 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
     }
     handler.endTransaction();
 }
-CacheOperationHandler cacheHandler;
-inline void 
+
+struct TreatAsCacheAccess final { };
+
+template<bool isReadOperation, bool inlineSPIOperation>
+void
+talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
+    auto line = getCache().find(addr);
+    if constexpr (inlineSPIOperation) {
+        Platform::startInlineSPIOperation();
+    }
+    for (auto offset = addr.getAddressOffset(); ; ++offset) {
+        singleCycleDelay();
+        // read it twice, otherwise we lose our minds
+        auto c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out
+            auto value = line.getWord(offset);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            if constexpr (inlineSPIOperation) {
+                Platform::setDataLines(value, InlineSPI{});
+            } else {
+                Platform::setDataLines(value, NoInlineSPI{});
+            }
+        } else {
+            uint16_t value;
+            if constexpr (inlineSPIOperation) {
+                value = Platform::getDataLines(c0, InlineSPI{});
+            } else {
+                value = Platform::getDataLines(c0, NoInlineSPI{});
+            }
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            line.setWord(offset, value, c0.getByteEnable());
+        }
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+    }
+    if constexpr (inlineSPIOperation) {
+        Platform::endInlineSPIOperation();
+    }
+}
+inline void
 handleTransaction() noexcept {
     Platform::startAddressTransaction();
     Platform::collectAddress();
@@ -334,9 +356,9 @@ handleTransaction() noexcept {
 #endif
     } else {
         if (Platform::isReadOperation()) {
-            talkToi960<true, true>(addr, cacheHandler);
+            talkToi960<true, true>(addr, TreatAsCacheAccess{});
         } else {
-            talkToi960<false, true>(addr, cacheHandler);
+            talkToi960<false, true>(addr, TreatAsCacheAccess{});
         }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay

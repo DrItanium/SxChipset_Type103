@@ -250,7 +250,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 2;
     inline void begin() noexcept {
-        mostRecentlyUsed_ = true;
+        replacementTarget_ = 0;
         for (auto& line : lines) {
             line.begin();
         }
@@ -269,20 +269,20 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
         return target;
     }
     [[nodiscard]] inline byte getTargetLine() const noexcept {
-        return mostRecentlyUsed_ ? 0 : 1;
+        return replacementTarget_;
     }
     inline void updateFlags(int index) noexcept {
-        mostRecentlyUsed_ = (index == 1);
+        replacementTarget_ = index == 1 ? 0 : 1;
     }
     inline void clear() noexcept {
-        mostRecentlyUsed_ = true;
+        replacementTarget_ = 0;
         for (auto& line : lines) {
             line.clear();
         }
     }
 private:
     DataCacheLine lines[NumberOfLines];
-    bool mostRecentlyUsed_ = true;
+    byte replacementTarget_ : 1;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>

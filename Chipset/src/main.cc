@@ -231,7 +231,7 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     }
     // the compiler seems to barf on for loops at -Ofast
     // so instead, we want to unpack it to make sure
-    auto offset = MemoryCache::CacheAddress{addr}.getOffset();
+    auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
     if constexpr (EnableDebugMode) {
         Serial.print(F("\tStarting offset: 0x"));
         Serial.println(offset, HEX);

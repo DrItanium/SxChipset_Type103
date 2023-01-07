@@ -38,6 +38,7 @@ template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 union BasicCacheAddress {
     using Self = BasicCacheAddress<offsetBits, tagBits, bankBits>;
     static constexpr auto OffsetBitsCount = offsetBits;
+    static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
     static constexpr auto TagBitsCount = tagBits;
     static constexpr auto BankBitsCount = bankBits;
     static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
@@ -54,6 +55,7 @@ union BasicCacheAddress {
     void setKey(uint32_t value) noexcept { key = value; }
     bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
     inline void clear() noexcept { backingStore_.clear(); }
+    constexpr auto getWordOffset() const noexcept { return wordView.offset; }
 private:
     SplitWord32 backingStore_;
     struct {
@@ -66,12 +68,18 @@ private:
         uint32_t offset : OffsetBitsCount;
         uint32_t check : (TagBitsCount + KeyBitsCount + BankBitsCount);
     } compare;
+    struct {
+        uint32_t a0 : 1;
+        uint32_t offset : OffsetWordBitsCount;
+        uint32_t rest : (TagBitsCount + KeyBitsCount + BankBitsCount);
+    } wordView;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits>
 union BasicCacheAddress<offsetBits, tagBits, 0> {
     using Self = BasicCacheAddress<offsetBits, tagBits, 0>;
     static constexpr auto OffsetBitsCount = offsetBits;
+    static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
     static constexpr auto TagBitsCount = tagBits;
     static constexpr auto BankBitsCount = 0;
     static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
@@ -84,6 +92,7 @@ union BasicCacheAddress<offsetBits, tagBits, 0> {
     constexpr auto getTag() const noexcept { return tag; }
     constexpr auto getKey() const noexcept { return key; }
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
+    constexpr auto getWordOffset() const noexcept { return wordView.offset; }
     void setOffset(uint32_t value) noexcept { offset = value; }
     void setKey(uint32_t value) noexcept { key = value; }
     bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
@@ -99,6 +108,11 @@ private:
        uint32_t offset : OffsetBitsCount;
        uint32_t check : (TagBitsCount + KeyBitsCount);
     } compare;
+    struct {
+        uint32_t a0 : 1;
+        uint32_t offset : OffsetWordBitsCount;
+        uint32_t rest : (TagBitsCount + KeyBitsCount + BankBitsCount);
+    } wordView;
 };
 
 

@@ -65,27 +65,27 @@ extern SplitWord16 previousValue;
 extern uint16_t currentDataLinesValue;
 
 template<typename T>
-class DynamicValue : public OperationHandler {
+class DynamicValue : public OperationHandler<DynamicValue<T>> {
     public:
         static_assert(sizeof(T) <= 16, "Type is larger than 16-bytes! Use a different class!");
         DynamicValue(T value) noexcept : words_{} {
             // have to set it up this way
             value_ = value;
         }
-        uint16_t read(const Channel0Value& m0) const noexcept override {
-            return words_[getOffset()].getWholeValue(); 
+        uint16_t performRead(const Channel0Value& m0) const noexcept {
+            return words_[this->getOffset()].getWholeValue();
         }
-        void write(const Channel0Value& m0, uint16_t value) noexcept override {
+        void performWrite(const Channel0Value& m0, uint16_t value) noexcept {
             SplitWord16 tmp(value);
             switch (m0.getByteEnable()) {
                 case EnableStyle::Full16:
-                    words_[getOffset()] = tmp;
+                    words_[this->getOffset()] = tmp;
                     break;
                 case EnableStyle::Lower8:
-                    words_[getOffset()].bytes[0] = tmp.bytes[0];
+                    words_[this->getOffset()].bytes[0] = tmp.bytes[0];
                     break;
                 case EnableStyle::Upper8:
-                    words_[getOffset()].bytes[1] = tmp.bytes[1];
+                    words_[this->getOffset()].bytes[1] = tmp.bytes[1];
                     break;
                 default:
                     break;
@@ -101,13 +101,13 @@ class DynamicValue : public OperationHandler {
 };
 
 template<>
-class DynamicValue<uint32_t> : public OperationHandler {
+class DynamicValue<uint32_t> : public OperationHandler<DynamicValue<uint32_t>> {
     public:
         DynamicValue(uint32_t value) noexcept : value_{value} { }
-        uint16_t read(const Channel0Value& m0) const noexcept override { 
+        uint16_t performRead(const Channel0Value& m0) const noexcept {
             return value_.halves[getOffset() & 0b1]; 
         }
-        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+        void performWrite(const Channel0Value& m0, uint16_t value) noexcept {
             SplitWord16 tmp(value);
             switch (m0.getByteEnable()) {
                 case EnableStyle::Full16:
@@ -129,13 +129,13 @@ class DynamicValue<uint32_t> : public OperationHandler {
 };
 
 template<>
-class DynamicValue<uint16_t> : public OperationHandler {
+class DynamicValue<uint16_t> : public OperationHandler<DynamicValue<uint16_t>> {
     public:
         DynamicValue(uint16_t value) noexcept : value_{value} { }
-        uint16_t read(const Channel0Value& m0) const noexcept override { 
+        uint16_t performRead(const Channel0Value& m0) const noexcept {
             return value_.getWholeValue();
         }
-        void write(const Channel0Value& m0, uint16_t value) noexcept override { 
+        void performWrite(const Channel0Value& m0, uint16_t value) noexcept {
             SplitWord16 tmp(value);
             switch (m0.getByteEnable()) {
                 case EnableStyle::Full16:
@@ -193,12 +193,6 @@ uint16_t
 exposeBooleanValue(const SplitWord32&, const Channel0Value&, byte) noexcept {
     return value ? 0xFFFF : 0;
 }
-class Peripheral : public OperationHandler {
-    public:
-        using Parent = OperationHandler;
-        ~Peripheral() override = default;
-        bool begin() noexcept { return true; }
-};
 template<typename E, typename T>
 class OperatorPeripheral : public AddressTracker {
 public:

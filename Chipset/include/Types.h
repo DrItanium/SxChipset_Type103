@@ -265,15 +265,6 @@ union SplitWord32 {
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 
 
-class TransactionInterface {
-    public:
-        virtual ~TransactionInterface() = default;
-        virtual void startTransaction(const SplitWord32& addr) noexcept { };
-        virtual uint16_t read(const Channel0Value& m0) const noexcept = 0;
-        virtual void write(const Channel0Value& m0, uint16_t value) noexcept = 0;
-        virtual void next() noexcept { }
-        virtual void endTransaction() noexcept { };
-};
 class AddressTracker {
 public:
     void recordAddress(const SplitWord32& addr) noexcept {
@@ -296,16 +287,21 @@ private:
 /**
  * @brief Communication primitive for talking to the i960 or other devices,
  */
-class OperationHandler : public TransactionInterface, public AddressTracker {
-    public:
-        virtual ~OperationHandler() = default;
-        void startTransaction(const SplitWord32& addr) noexcept override {
-            recordAddress(addr);
-        }
-        void next() noexcept override {
-            advanceOffset();
-        }
-        void endTransaction() noexcept override { }
+template<typename T>
+class OperationHandler : public AddressTracker {
+public:
+    using Child = T;
+    void startTransaction(const SplitWord32& addr) noexcept {
+        recordAddress(addr);
+    }
+    void next() noexcept {
+        advanceOffset();
+    }
+    void endTransaction() noexcept {
+
+    }
+    uint16_t read(const Channel0Value& m0) const noexcept { return static_cast<const Child*>(this)->performRead(m0); }
+    void write(const Channel0Value& m0, uint16_t value) noexcept { static_cast<Child*>(this)->performWrite(m0, value); }
 };
 
 /**

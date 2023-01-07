@@ -231,7 +231,7 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     }
     // the compiler seems to barf on for loops at -Ofast
     // so instead, we want to unpack it to make sure
-    auto offset = addr.getAddressOffset();
+    auto offset = MemoryCache::CacheAddress{addr}.getOffset();
     while (true) {
         singleCycleDelay();
         // read it twice, otherwise we lose our minds

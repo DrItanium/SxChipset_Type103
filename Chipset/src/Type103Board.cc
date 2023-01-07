@@ -143,19 +143,45 @@ Platform::endAddressTransaction() noexcept {
 void
 Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
-    address_.bytes[0] = m2.getWholeValue();
-    address_.address.a0 = 0;
-    triggerClock();
-    address_.bytes[1] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    address_.bytes[2] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    address_.bytes[3] = readInputChannelAs<uint8_t>();
     isReadOperation_ = m2.isReadOperation();
-    auto direction = isReadOperation_ ? MCP23S17::AllOutput16 : MCP23S17::AllInput16;
-    if (direction != dataLinesDirection_) {
+    if (auto direction = isReadOperation_ ? MCP23S17::AllOutput16 : MCP23S17::AllInput16; direction != dataLinesDirection_) {
+        digitalWrite<Pin::GPIOSelect, LOW>();
+        SPDR = MCP23S17::WriteOpcode_v<DataLines>;
+        asm volatile ("nop");
         dataLinesDirection_ = direction;
-        MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_);
+        // inline updating the direction while getting the address bits
+        address_.bytes[0] = m2.getWholeValue();
+        address_.address.a0 = 0;
+        triggerClock();
+        auto opcode = static_cast<byte>(MCP23S17::Registers::IODIR);
+        while (!(SPDR & _BV(SPIF)));
+        SPDR = opcode;
+        asm volatile ("nop");
+        address_.bytes[1] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        auto first = static_cast<byte>(dataLinesDirection_);
+        while (!(SPDR & _BV(SPIF)));
+        SPDR = first;
+        asm volatile ("nop");
+        address_.bytes[2] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        auto second = static_cast<byte>(dataLinesDirection_ >> 8);
+        while (!(SPDR & _BV(SPIF)));
+        SPDR = second ;
+        asm volatile ("nop") ;
+        address_.bytes[3] = readInputChannelAs<uint8_t>();
+        while (!(SPDR & _BV(SPIF)));
+        digitalWrite<Pin::GPIOSelect, HIGH>();
+        //MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_);
+    } else {
+        address_.bytes[0] = m2.getWholeValue();
+        address_.address.a0 = 0;
+        triggerClock();
+        address_.bytes[1] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        address_.bytes[2] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        address_.bytes[3] = readInputChannelAs<uint8_t>();
     }
 }
 

@@ -196,6 +196,8 @@ Platform::startInlineSPIOperation() noexcept {
     digitalWrite<Pin::GPIOSelect, LOW>();
     auto TargetAction = isReadOperation_ ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
     auto TargetRegister = static_cast<byte>(isReadOperation_ ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
+    // starting a new transaction so reset the starting index to 0
+    lastSPIOffsetIndex_ = 0;
 #ifdef AVR_SPI_AVAILABLE
     SPDR = TargetAction;
     asm volatile ("nop");
@@ -250,10 +252,10 @@ Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
         SPDR = previousValue_.bytes[0];
         asm volatile ("nop");
         auto next = previousValue_.bytes[1];
-        while (!(SPSR & _BV(SPIF))) ; // wait
+        while (!(SPSR & _BV(SPIF))); // wait
         SPDR = next;
         asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
+        while (!(SPSR & _BV(SPIF))); // wait
 #else
         SPI.transfer(previousValue_.bytes[0]);
         SPI.transfer(previousValue_.bytes[1]);

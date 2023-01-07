@@ -71,6 +71,7 @@ class Platform final {
         static inline bool initialized_ = false;
         static inline uint16_t dataLinesDirection_ = 0;
         static inline SplitWord16 previousValue_{0};
+        static inline byte lastSPIOffsetIndex_ = 0;
 };
 
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

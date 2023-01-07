@@ -222,13 +222,11 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 
 struct TreatAsCacheAccess final { };
 
-template<bool isReadOperation, bool inlineSPIOperation>
+template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     auto &line = getCache().find(addr);
-    if constexpr (inlineSPIOperation) {
-        Platform::startInlineSPIOperation();
-    }
+    Platform::startInlineSPIOperation();
     // the compiler seems to barf on for loops at -Ofast
     // so instead, we want to unpack it to make sure
     auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
@@ -251,18 +249,9 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            if constexpr (inlineSPIOperation) {
-                Platform::setDataLines(value, InlineSPI{});
-            } else {
-                Platform::setDataLines(value, NoInlineSPI{});
-            }
+            Platform::setDataLines(value, InlineSPI{});
         } else {
-            uint16_t value;
-            if constexpr (inlineSPIOperation) {
-                value = Platform::getDataLines(c0, InlineSPI{});
-            } else {
-                value = Platform::getDataLines(c0, NoInlineSPI{});
-            }
+            uint16_t value = Platform::getDataLines(c0, InlineSPI{});
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
@@ -280,9 +269,7 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
             ++offset;
         }
     }
-    if constexpr (inlineSPIOperation) {
-        Platform::endInlineSPIOperation();
-    }
+    Platform::endInlineSPIOperation();
 }
 template<bool isReadOperation>
 void
@@ -356,9 +343,9 @@ handleTransaction() noexcept {
         }
     } else {
         if (Platform::isReadOperation()) {
-            talkToi960<true, true>(addr, TreatAsCacheAccess{});
+            talkToi960<true>(addr, TreatAsCacheAccess{});
         } else {
-            talkToi960<false, true>(addr, TreatAsCacheAccess{});
+            talkToi960<false>(addr, TreatAsCacheAccess{});
         }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay

@@ -368,6 +368,12 @@ handleTransaction() noexcept {
 void
 bootCPU() noexcept {
     pullCPUOutOfReset();
+    // I used to keep track of the boot process but I realized that we don't actually need to do this
+    // It just increases overhead and can slow down the boot process. A checksum fail will still halt the CPU
+    // as expected. We just sit there waiting for something that will never continue. This is fine.
+
+    // The boot process is left here just incase we need to reactivate it
+
 #if 0
     while (digitalRead<Pin::FAIL>() == LOW) {
         if (digitalRead<Pin::DEN>() == LOW) {

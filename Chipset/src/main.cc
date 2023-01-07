@@ -222,6 +222,9 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 
 struct TreatAsCacheAccess final { };
 
+struct WriteRequest {
+
+};
 template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
@@ -246,8 +249,8 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
             // okay it is a read operation, so... pull a cache line out
             Platform::setDataLines(line.getWord(offset), InlineSPI{});
         } else {
-                // so we are writing to the cache
-                line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
+            // so we are writing to the cache
+            line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
         }
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();

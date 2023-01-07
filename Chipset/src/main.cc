@@ -244,22 +244,10 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out
-            auto value = line.getWord(offset);
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tGot Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            Platform::setDataLines(value, InlineSPI{});
+            Platform::setDataLines(line.getWord(offset), InlineSPI{});
         } else {
-            uint16_t value = Platform::getDataLines(c0, InlineSPI{});
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tWrite Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            {
                 // so we are writing to the cache
-                line.setWord(offset, value, c0.getByteEnable());
-            }
+                line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
         }
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();

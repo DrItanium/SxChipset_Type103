@@ -451,7 +451,7 @@ private:
     DataCacheSet cache[NumberOfSets];
 };
 
-using MemoryCache = BasicDataCache<5, 6, 0, 4>;
+using MemoryCache = BasicDataCache<6, 5, 0, 4>;
 
 MemoryCache& getCache() noexcept;
 void setupCache() noexcept;

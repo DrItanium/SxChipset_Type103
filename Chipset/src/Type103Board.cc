@@ -114,7 +114,7 @@ Platform::begin() noexcept {
         MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0x0000); // no
                                                                                        // interrupts
         // make sure that we clear out any interrupts
-        (void)MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
+        //(void)MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
         dataLinesDirection_ = MCP23S17::AllInput16;
         previousValue_.setWholeValue(0);
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);

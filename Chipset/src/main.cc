@@ -384,6 +384,7 @@ bootCPU() noexcept {
     handleTransaction();
     waitForDataState();
     handleTransaction();
+    singleCycleDelay();
     if (digitalRead<Pin::FAIL>() == HIGH) {
         Serial.println(F("CHECKSUM FAILURE!"));
     } else {
@@ -444,7 +445,7 @@ setup() {
 
 void 
 loop() {
-    //singleCycleDelay();
+    singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
     handleTransaction();
 }

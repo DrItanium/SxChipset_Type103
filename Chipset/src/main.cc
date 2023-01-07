@@ -166,52 +166,7 @@ waitForDataState() noexcept {
     while (digitalRead<Pin::DEN>() == HIGH);
 }
 template<bool isReadOperation, bool inlineSPIOperation, typename T>
-void
-talkToi960(const SplitWord32& addr, T& handler) noexcept;
-template<bool isReadOperation>
-void
-//inline TransactionInterface&
-getPeripheralDevice(const SplitWord32& addr) noexcept {
-    switch (addr.getIODevice<TargetPeripheral>()) {
-        case TargetPeripheral::Info:
-            talkToi960<isReadOperation, false>(addr, infoDevice);
-            break;
-        case TargetPeripheral::Serial:
-            talkToi960<isReadOperation, false>(addr, theSerial);
-            break;
-        case TargetPeripheral::RTC:
-            talkToi960<isReadOperation, false>(addr, timerInterface);
-            break;
-        default:
-            talkToi960<isReadOperation, false>(addr, getNullHandler());
-            break;
-    }
-}
-
-template<bool isReadOperation>
-void
-//inline TransactionInterface&
-handleIOOperation(const SplitWord32& addr) noexcept {
-    // When we are in io space, we are treating the address as an opcode which
-    // we can decompose while getting the pieces from the io expanders. Thus we
-    // can overlay the act of decoding while getting the next part
-    // 
-    // The W/~R pin is used to figure out if this is a read or write operation
-    //
-    // This system does not care about the size but it does care about where
-    // one starts when performing a write operation
-    switch (addr.getIOGroup()) {
-        case IOGroup::Peripherals:
-            getPeripheralDevice<isReadOperation>(addr);
-            break;
-        default:
-            talkToi960<isReadOperation, false>(addr, getNullHandler());
-            break;
-    }
-}
-
-template<bool isReadOperation, bool inlineSPIOperation, typename T>
-void
+inline void
 talkToi960(const SplitWord32& addr, T& handler) noexcept {
     handler.startTransaction(addr);
     if constexpr (inlineSPIOperation) {
@@ -268,7 +223,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 struct TreatAsCacheAccess final { };
 
 template<bool isReadOperation, bool inlineSPIOperation>
-void
+inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     auto& line = getCache().find(addr);
     if constexpr (inlineSPIOperation) {
@@ -325,6 +280,48 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         Platform::endInlineSPIOperation();
     }
 }
+template<bool isReadOperation>
+void
+//inline TransactionInterface&
+getPeripheralDevice(const SplitWord32& addr) noexcept {
+    switch (addr.getIODevice<TargetPeripheral>()) {
+        case TargetPeripheral::Info:
+            talkToi960<isReadOperation, false>(addr, infoDevice);
+            break;
+        case TargetPeripheral::Serial:
+            talkToi960<isReadOperation, false>(addr, theSerial);
+            break;
+        case TargetPeripheral::RTC:
+            talkToi960<isReadOperation, false>(addr, timerInterface);
+            break;
+        default:
+            talkToi960<isReadOperation, false>(addr, getNullHandler());
+            break;
+    }
+}
+
+template<bool isReadOperation>
+void
+//inline TransactionInterface&
+handleIOOperation(const SplitWord32& addr) noexcept {
+    // When we are in io space, we are treating the address as an opcode which
+    // we can decompose while getting the pieces from the io expanders. Thus we
+    // can overlay the act of decoding while getting the next part
+    // 
+    // The W/~R pin is used to figure out if this is a read or write operation
+    //
+    // This system does not care about the size but it does care about where
+    // one starts when performing a write operation
+    switch (addr.getIOGroup()) {
+        case IOGroup::Peripherals:
+            getPeripheralDevice<isReadOperation>(addr);
+            break;
+        default:
+            talkToi960<isReadOperation, false>(addr, getNullHandler());
+            break;
+    }
+}
+
 inline void
 handleTransaction() noexcept {
     Platform::startAddressTransaction();
@@ -348,19 +345,11 @@ handleTransaction() noexcept {
         Serial.println(addr.getWholeValue(), HEX);
     }
     if (addr.isIOInstruction()) {
-#if 0
-        if (auto& device = handleIOOperation(addr); Platform::isReadOperation()) {
-            talkToi960<true, false>(addr, device);
-        } else {
-            talkToi960<false, false>(addr, device);
-        }
-#else
         if (Platform::isReadOperation()) {
             handleIOOperation<true>(addr);
         } else {
             handleIOOperation<false>(addr);
         }
-#endif
     } else {
         if (Platform::isReadOperation()) {
             talkToi960<true, true>(addr, TreatAsCacheAccess{});

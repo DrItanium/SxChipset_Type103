@@ -52,6 +52,7 @@ union BasicCacheAddress {
     void setOffset(uint32_t value) noexcept { offset = value; }
     void setKey(uint32_t value) noexcept { key = value; }
     bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
+    inline void clear() noexcept { backingStore_.clear(); }
 private:
     SplitWord32 backingStore_;
     struct {
@@ -85,6 +86,7 @@ union BasicCacheAddress<offsetBits, tagBits, 0> {
     void setOffset(uint32_t value) noexcept { offset = value; }
     void setKey(uint32_t value) noexcept { key = value; }
     bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
+    inline void clear() noexcept { backingStore_.clear(); }
 private:
     SplitWord32 backingStore_;
     struct {
@@ -105,26 +107,28 @@ struct BasicDataCacheLine {
     static constexpr auto NumberOfDataBytes = pow2(offsetBits);
     static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
     inline void clear() noexcept {
-        key_ = 0;
+        dest_.clear();
         flags_.reg = 0;
         for (int i = 0; i < NumberOfDataBytes; ++i) {
             words[i].full = 0;
         }
     }
     inline bool matches(CacheAddress other) const noexcept {
-        return flags_.valid_ && (other.getKey() == key_);
+        return flags_.valid_ && (other.getKey() == dest_.getKey());
+    }
+    inline void sync() noexcept {
+        if (flags_.valid_ && flags_.dirty_) {
+            memoryWrite(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
+            flags_.dirty_ = false;
+        }
     }
     inline void reset(CacheAddress newAddress) noexcept {
-        newAddress.setOffset(0);
-        if (flags_.valid_ && flags_.dirty_) {
-            auto copy = newAddress;
-            copy.setKey(key_);
-            memoryWrite(copy.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
-        }
+        sync();
         flags_.valid_ = true;
         flags_.dirty_ = false;
-        key_ = newAddress.getKey();
-        memoryRead(newAddress.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
+        dest_ = newAddress;
+        dest_.setOffset(0);
+        memoryRead(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
     }
     void begin() noexcept {
         clear();
@@ -149,7 +153,7 @@ struct BasicDataCacheLine {
         }
     }
 private:
-    uint32_t key_ : CacheAddress::KeyBitsCount;
+    CacheAddress dest_{0};
     union {
         uint8_t reg;
         struct {
@@ -223,6 +227,9 @@ struct BasicDataCache {
         for (auto& set : cache) {
             set.clear();
         }
+    }
+    [[gnu::always_inline]] inline auto& findSet(CacheAddress address) noexcept {
+        return cache[address.getTag()];
     }
     [[gnu::always_inline]] inline auto& find(CacheAddress address) noexcept {
         return cache[address.getTag()].find(address);

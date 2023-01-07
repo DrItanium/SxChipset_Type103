@@ -205,38 +205,44 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
+    // use MRU instead of round robin
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 2;
     inline void begin() noexcept {
-        replacementIndex_ = 0;
+        mostRecentlyUsed_ = true;
         for (auto& line : lines) {
             line.begin();
         }
     }
     inline auto& find(CacheAddress address) noexcept {
-        for (auto& line : lines) {
-            if (line.matches(address)) {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            if (auto& line = lines[i]; line.matches(address)) {
+                updateFlags(i);
                 return line;
             }
         }
-        auto& target = lines[replacementIndex_];
-        updateFlags();
+        auto index = getTargetLine();
+        auto& target = lines[index];
+        updateFlags(index);
         target.reset(address);
         return target;
     }
-    inline void updateFlags() noexcept {
-        ++replacementIndex_;
+    inline byte getTargetLine() const noexcept {
+        return mostRecentlyUsed_ ? 0 : 1;
+    }
+    inline void updateFlags(int index) noexcept {
+        mostRecentlyUsed_ = (index == 1);
     }
     inline void clear() noexcept {
-        replacementIndex_ = 0;
+        mostRecentlyUsed_ = true;
         for (auto& line : lines) {
             line.clear();
         }
     }
 private:
     DataCacheLine lines[NumberOfLines];
-    byte replacementIndex_ : 1;
+    bool mostRecentlyUsed_ = true;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
@@ -399,7 +405,7 @@ private:
     DataCacheSet cache[NumberOfSets];
 };
 
-using MemoryCache = BasicDataCache<4, 5, 0, 16>;
+using MemoryCache = BasicDataCache<4, 8, 0, 2>;
 
 MemoryCache& getCache() noexcept;
 void setupCache() noexcept;

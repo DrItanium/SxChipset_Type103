@@ -361,11 +361,6 @@ handleTransaction() noexcept {
     // shift back to input channel 0
     singleCycleDelay();
 }
-[[gnu::always_inline]] inline void 
-handleTransactionCycle() noexcept {
-    waitForDataState();
-    handleTransaction();
-}
 void
 bootCPU() noexcept {
     pullCPUOutOfReset();
@@ -381,8 +376,10 @@ bootCPU() noexcept {
     }
     Serial.println(F("STARTUP COMPLETE! BOOTING..."));
     // okay so we got past this, just start performing actions
-    handleTransactionCycle();
-    handleTransactionCycle();
+    waitForDataState();
+    handleTransaction();
+    waitForDataState();
+    handleTransaction();
     if (digitalRead<Pin::FAIL>() == HIGH) {
         Serial.println(F("CHECKSUM FAILURE!"));
     } else {
@@ -414,6 +411,7 @@ setup() {
     testCoprocessor();
     setupRTC();
     SPI.begin();
+    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // setup the IO Expanders
     Platform::begin();
 #ifdef TYPE103_BOARD
@@ -442,21 +440,19 @@ setup() {
 
 void 
 loop() {
-    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    for (;;) {
-        handleTransactionCycle();
-    }
-    SPI.endTransaction();
+    //singleCycleDelay();
+    while (digitalRead<Pin::DEN>() == HIGH);
+    handleTransaction();
 }
 
 void sdCsInit(SdCsPin_t pin) {
     pinMode(pin, OUTPUT);
-    delay(1);
+    //delay(1);
 }
 
 void sdCsWrite(SdCsPin_t pin, bool level) {
     digitalWrite(pin, level);
-    delay(1);
+    //delay(1);
 }
 
 

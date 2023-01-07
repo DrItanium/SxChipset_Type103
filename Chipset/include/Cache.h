@@ -240,6 +240,78 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 4> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 4;
+    inline void begin() noexcept {
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    inline auto& find(CacheAddress address) noexcept {
+        for (auto& line : lines) {
+            if (line.matches(address)) {
+                return line;
+            }
+        }
+        auto& target = lines[replacementIndex_];
+        updateFlags();
+        target.reset(address);
+        return target;
+    }
+    inline void updateFlags() noexcept {
+        ++replacementIndex_;
+    }
+    inline void clear() noexcept {
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    byte replacementIndex_ : 2;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 8> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 8;
+    inline void begin() noexcept {
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    inline auto& find(CacheAddress address) noexcept {
+        for (auto& line : lines) {
+            if (line.matches(address)) {
+                return line;
+            }
+        }
+        auto& target = lines[replacementIndex_];
+        updateFlags();
+        target.reset(address);
+        return target;
+    }
+    inline void updateFlags() noexcept {
+        ++replacementIndex_;
+    }
+    inline void clear() noexcept {
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    byte replacementIndex_ : 3;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 1> {
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;

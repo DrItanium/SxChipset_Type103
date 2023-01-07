@@ -146,6 +146,7 @@ Platform::collectAddress() noexcept {
     isReadOperation_ = m2.isReadOperation();
     if (auto direction = isReadOperation_ ? MCP23S17::AllOutput16 : MCP23S17::AllInput16; direction != dataLinesDirection_) {
         digitalWrite<Pin::GPIOSelect, LOW>();
+
         SPDR = MCP23S17::WriteOpcode_v<DataLines>;
         asm volatile ("nop");
         dataLinesDirection_ = direction;
@@ -154,23 +155,27 @@ Platform::collectAddress() noexcept {
         address_.address.a0 = 0;
         triggerClock();
         auto opcode = static_cast<byte>(MCP23S17::Registers::IODIR);
-        while (!(SPDR & _BV(SPIF)));
+        while (!(SPSR & _BV(SPIF)));
+
         SPDR = opcode;
         asm volatile ("nop");
         address_.bytes[1] = readInputChannelAs<uint8_t>();
         triggerClock();
         auto first = static_cast<byte>(dataLinesDirection_);
-        while (!(SPDR & _BV(SPIF)));
+        while (!(SPSR & _BV(SPIF)));
+
         SPDR = first;
         asm volatile ("nop");
         address_.bytes[2] = readInputChannelAs<uint8_t>();
         triggerClock();
         auto second = static_cast<byte>(dataLinesDirection_ >> 8);
-        while (!(SPDR & _BV(SPIF)));
+        while (!(SPSR & _BV(SPIF)));
+
         SPDR = second ;
         asm volatile ("nop") ;
         address_.bytes[3] = readInputChannelAs<uint8_t>();
-        while (!(SPDR & _BV(SPIF)));
+        while (!(SPSR & _BV(SPIF)));
+
         digitalWrite<Pin::GPIOSelect, HIGH>();
         //MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_);
     } else {

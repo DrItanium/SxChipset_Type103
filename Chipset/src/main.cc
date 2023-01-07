@@ -274,8 +274,10 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     if constexpr (inlineSPIOperation) {
         Platform::startInlineSPIOperation();
     }
+    // the compiler seems to barf on for loops at -Ofast
+    // so instead, we want to unpack it to make sure
     auto offset = addr.getAddressOffset();
-    while (auto offset = addr.getAddressOffset(); ;++offset) {
+    while (true) {
         singleCycleDelay();
         // read it twice, otherwise we lose our minds
         auto c0 = readInputChannelAs<Channel0Value, true>();
@@ -306,13 +308,17 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
             }
+            {
                 // so we are writing to the cache
                 line.setWord(offset, value, c0.getByteEnable());
+            }
         }
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
             break;
+        } else {
+            ++offset;
         }
     }
     if constexpr (inlineSPIOperation) {

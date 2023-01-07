@@ -111,7 +111,7 @@ private:
     struct {
         uint32_t a0 : 1;
         uint32_t offset : OffsetWordBitsCount;
-        uint32_t rest : (TagBitsCount + KeyBitsCount + BankBitsCount);
+        uint32_t rest : (TagBitsCount + KeyBitsCount);
     } wordView;
 };
 
@@ -168,6 +168,15 @@ struct BasicDataCacheLine {
         return result;
     }
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
+        if constexpr (EnableCacheDebugging) {
+            Serial.print(F("setWord("));
+            Serial.print(offset);
+            Serial.print(F(", 0x"));
+            Serial.print(value, HEX);
+            Serial.print(F(", 0x"));
+            Serial.print(static_cast<byte>(style), HEX);
+            Serial.println(F(")"));
+        }
         flags_.dirty_ = true;
         switch (style) {
             case EnableStyle::Full16:
@@ -246,7 +255,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
             line.begin();
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
         for (int i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
@@ -259,7 +268,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
         target.reset(address);
         return target;
     }
-    inline byte getTargetLine() const noexcept {
+    [[nodiscard]] inline byte getTargetLine() const noexcept {
         return mostRecentlyUsed_ ? 0 : 1;
     }
     inline void updateFlags(int index) noexcept {
@@ -287,7 +296,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 4> {
             line.begin();
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
         for (auto& line : lines) {
             if (line.matches(address)) {
                 return line;
@@ -323,7 +332,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 8> {
             line.begin();
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
         for (auto& line : lines) {
             if (line.matches(address)) {
                 return line;
@@ -392,7 +401,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 1> {
     inline void begin() noexcept {
         line.begin();
     }
-    inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
         if (!line.matches(address)){
             line.reset(address);
         }
@@ -415,11 +424,13 @@ struct BasicDataCache {
             set.clear();
         }
     }
-    [[gnu::always_inline]] inline auto& findSet(CacheAddress address) noexcept {
+    inline auto& findSet(CacheAddress address) noexcept {
         return cache[address.getTag()];
     }
-    [[gnu::always_inline]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
         if constexpr (EnableCacheDebugging) {
+            Serial.print(F("Address: 0x"));
+            Serial.println(address.getBackingStore().getWholeValue(), HEX);
             Serial.print(F("\tTag: 0x"));
             Serial.println(address.getTag(), HEX);
         }
@@ -440,7 +451,7 @@ private:
     DataCacheSet cache[NumberOfSets];
 };
 
-using MemoryCache = BasicDataCache<5, 7, 0, 2>;
+using MemoryCache = BasicDataCache<5, 7, 0, 3>;
 
 MemoryCache& getCache() noexcept;
 void setupCache() noexcept;

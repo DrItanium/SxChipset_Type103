@@ -175,25 +175,10 @@ struct BasicDataCacheSet {
             line.begin();
         }
     }
-    template<bool useMostRecentlyUsedCheck = false>
     inline auto& find(CacheAddress address) noexcept {
-        if constexpr (useMostRecentlyUsedCheck) {
-            for (int i = 0; i < NumberOfLines; ++i) {
-                auto& line = lines[i];
-                if (line.matches(address)) {
-                    // shift ahead by one to make sure we don't swap the current
-                    // line out on next miss. It is a form of most recently used
-                    if (i == replacementIndex_) {
-                        updateFlags();
-                    }
-                    return line;
-                }
-            }
-        } else {
-            for (auto& line : lines) {
-                if (line.matches(address)) {
-                    return line;
-                }
+        for (auto& line : lines) {
+            if (line.matches(address)) {
+                return line;
             }
         }
         auto& target = lines[replacementIndex_];
@@ -249,7 +234,7 @@ private:
     DataCacheSet cache[NumberOfSets];
 };
 
-using MemoryCache = BasicDataCache<4, 6, 0, 8>;
+using MemoryCache = BasicDataCache<4, 8, 0, 2>;
 
 MemoryCache& getCache() noexcept;
 void setupCache() noexcept;

@@ -270,11 +270,12 @@ struct TreatAsCacheAccess final { };
 template<bool isReadOperation, bool inlineSPIOperation>
 void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
-    auto line = getCache().find(addr);
+    auto& line = getCache().find(addr);
     if constexpr (inlineSPIOperation) {
         Platform::startInlineSPIOperation();
     }
-    for (auto offset = addr.getAddressOffset(); ; ++offset) {
+    auto offset = addr.getAddressOffset();
+    while (true) {
         singleCycleDelay();
         // read it twice, otherwise we lose our minds
         auto c0 = readInputChannelAs<Channel0Value, true>();
@@ -305,13 +306,17 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
             }
-            // so we are writing to the cache
-            line.setWord(offset, value, c0.getByteEnable());
+            {
+                // so we are writing to the cache
+                line.setWord(offset, value, c0.getByteEnable());
+            }
         }
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
             break;
+        } else{
+            ++offset;
         }
     }
     if constexpr (inlineSPIOperation) {

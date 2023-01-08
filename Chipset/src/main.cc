@@ -223,44 +223,70 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 struct TreatAsCacheAccess final { };
 
 struct WriteRequest {
-
+    uint8_t offset = 0;
+    SplitWord16 value{0};
+    EnableStyle style = EnableStyle::Undefined;
+    bool valid() const noexcept { return style != EnableStyle::Undefined; }
 };
-template<bool isReadOperation>
-inline void
-talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
-    auto &line = getCache().find(addr);
+void
+performWriteCacheRequest(const SplitWord32& addr) noexcept {
+    WriteRequest requests[8];
+    byte count = 0;
     Platform::startInlineSPIOperation();
     // the compiler seems to barf on for loops at -Ofast
     // so instead, we want to unpack it to make sure
     auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("\tStarting offset: 0x"));
-        Serial.println(offset, HEX);
-    }
     while (true) {
         singleCycleDelay();
         // read it twice, otherwise we lose our minds
         auto c0 = readInputChannelAs<Channel0Value, true>();
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-        }
-        if constexpr (isReadOperation) {
-            // okay it is a read operation, so... pull a cache line out
-            Platform::setDataLines(line.getWord(offset), InlineSPI{});
-        } else {
-            // so we are writing to the cache
-            line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
-        }
+        // so we are writing to the cache
+        requests[count].offset = offset;
+        requests[count].value.full = Platform::getDataLines(c0, InlineSPI{});
+        requests[count].style = c0.getByteEnable();
+
+        //line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
             break;
         } else {
             ++offset;
+            ++count;
         }
     }
     Platform::endInlineSPIOperation();
+    auto &line = getCache().find(addr);
+    for (byte i = 0; i < count; ++i) {
+        auto& request = requests[i];
+        line.setWord(request.offset, request.value.full, request.style);
+    }
+}
+template<bool isReadOperation>
+inline void
+talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
+    if constexpr (isReadOperation) {
+        auto &line = getCache().find(addr);
+        Platform::startInlineSPIOperation();
+        // the compiler seems to barf on for loops at -Ofast
+        // so instead, we want to unpack it to make sure
+        auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
+        while (true) {
+            singleCycleDelay();
+            // okay it is a read operation, so... pull a cache line out
+            Platform::setDataLines(line.getWord(offset), InlineSPI{});
+            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            } else {
+                ++offset;
+            }
+        }
+        Platform::endInlineSPIOperation();
+    } else {
+        performWriteCacheRequest(addr);
+    }
 }
 template<bool isReadOperation>
 void

@@ -257,7 +257,7 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
     }
     Platform::endInlineSPIOperation();
     auto &line = getCache().find(addr);
-    for (byte i = 0; i < count; ++i) {
+    for (byte i = 0; i <= count; ++i) {
         auto& request = requests[i];
         line.setWord(request.offset, request.value.full, request.style);
     }

@@ -134,4 +134,33 @@ struct SystemAddressTable {
     SysProcTable* traceTable;
     uint32_t magicNumber3;
 } __attribute((packed));
+constexpr uint32_t computeCS1(uint32_t sat, uint32_t prcb, uint32_t first_ip) noexcept {
+    return -(sat + prcb + first_ip);
+}
+struct [[gnu::packed]] CoreInitializationBlock {
+    explicit constexpr CoreInitializationBlock(uint32_t satBase, uint32_t prcbPointer, uint32_t checkWord, uint32_t firstIP) :
+            sat_(satBase),
+            prcb_(prcbPointer),
+            check_(checkWord),
+            firstIP_(firstIP),
+            cs1_(computeCS1(sat_, prcb_, firstIP)),
+            reserved_{0,0,0xFFFF'FFFF} {
+
+    }
+    constexpr auto getSAT() const noexcept { return sat_; }
+    constexpr auto getPRCB() const noexcept { return prcb_; }
+    constexpr auto getCheckWord() const noexcept { return check_; }
+    constexpr auto getFirstIP() const noexcept { return firstIP_; }
+    constexpr auto getCS1() const noexcept { return cs1_; }
+    constexpr auto getReserved(int index) const noexcept { return reserved_[index % 3]; }
+    uint32_t sat_;
+    uint32_t prcb_;
+    uint32_t check_;
+    uint32_t firstIP_;
+    uint32_t cs1_;
+    uint32_t reserved_[3];
+};
+
+constexpr CoreInitializationBlock cib(0, 0xb0, 0, 0x6ec);
+static_assert(cib.getCS1() == 0xffff'f864, "Incorrect PRCB check word value computation");
 #endif //CHIPSET_BOOT960_H

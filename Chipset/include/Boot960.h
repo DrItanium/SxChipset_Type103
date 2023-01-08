@@ -29,99 +29,114 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CHIPSET_BOOT960_H
 #define CHIPSET_BOOT960_H
 #include <stdint.h>
-
-struct FaultRecord {
-    uint32_t pc;
-    uint32_t ac;
-    uint32_t type;
-    uint32_t addr;
-} __attribute((packed));
-struct FaultTableEntry {
-    uint32_t handlerRaw;
-    int32_t magicNumber;
-} __attribute((packed));
-struct FaultTable {
-    FaultTableEntry entries[32];
-} __attribute((packed));
-struct InterruptTable {
-    uint32_t pendingPriorities;
-    uint32_t pendingInterrupts[8];
-    uint32_t interruptProcedures[248];
-} __attribute((packed));
-struct InterruptRecord {
-    uint32_t pc;
-    uint32_t ac;
-    uint8_t vectorNumber;
-} __attribute((packed));
-struct SysProcTable {
-    uint32_t reserved[3];
-    uint32_t supervisorStack;
-    uint32_t preserved[8];
-    uint32_t entries[260];
-} __attribute((packed));
-struct PRCB {
-    uint32_t reserved0;
-    uint32_t magicNumber;
-    uint32_t reserved1[3];
-    uint32_t theInterruptTable;
-    uint32_t interruptStack;
-    uint32_t reserved2;
-    uint32_t magicNumber1;
-    uint32_t magicNumber2;
-    uint32_t theFaultTable;
-    uint32_t reserved3[32];
-} __attribute((packed));
-struct [[gnu::packed]] SystemAddressTable {
-    uint32_t satPtr;
-    uint32_t thePRCB;
-    uint32_t checkWord;
-    uint32_t firstInstruction;
-    uint32_t checkWords[4];
-    uint32_t preserved0[22];
-    uint32_t theProcTable0;
-    uint32_t magicNumber0;
-    uint32_t preserved1[2];
-    uint32_t offset0;
-    uint32_t magicNumber1;
-    uint32_t preserved2[2];
-    uint32_t theProcTable1;
-    uint32_t magicNumber2;
-    uint32_t preserved3[2];
-    uint32_t traceTable;
-    uint32_t magicNumber3;
-};
-static_assert(sizeof(SystemAddressTable) == (32 + 88 + 16 + 16 + 16 + 8));
-constexpr uint32_t computeCS1(uint32_t sat, uint32_t prcb, uint32_t first_ip) noexcept {
-    return -(sat + prcb + first_ip);
-}
+#include "Types.h"
+namespace i960
+{
+    struct FaultRecord
+    {
+        uint32_t pc;
+        uint32_t ac;
+        uint32_t type;
+        uint32_t addr;
+    } __attribute((packed));
+    struct FaultTableEntry
+    {
+        uint32_t handlerRaw;
+        int32_t magicNumber;
+    } __attribute((packed));
+    struct FaultTable
+    {
+        FaultTableEntry entries[32];
+    } __attribute((packed));
+    struct InterruptTable
+    {
+        uint32_t pendingPriorities;
+        uint32_t pendingInterrupts[8];
+        uint32_t interruptProcedures[248];
+    } __attribute((packed));
+    struct InterruptRecord
+    {
+        uint32_t pc;
+        uint32_t ac;
+        uint8_t vectorNumber;
+    } __attribute((packed));
+    struct SysProcTable
+    {
+        uint32_t reserved[3];
+        uint32_t supervisorStack;
+        uint32_t preserved[8];
+        uint32_t entries[260];
+    } __attribute((packed));
+    struct PRCB
+    {
+        uint32_t reserved0;
+        uint32_t magicNumber;
+        uint32_t reserved1[3];
+        uint32_t theInterruptTable;
+        uint32_t interruptStack;
+        uint32_t reserved2;
+        uint32_t magicNumber1;
+        uint32_t magicNumber2;
+        uint32_t theFaultTable;
+        uint32_t reserved3[32];
+    } __attribute((packed));
+    struct [[gnu::packed]] SystemAddressTable
+    {
+        uint32_t satPtr;
+        uint32_t thePRCB;
+        uint32_t checkWord;
+        uint32_t firstInstruction;
+        uint32_t checkWords[4];
+        uint32_t preserved0[22];
+        uint32_t theProcTable0;
+        uint32_t magicNumber0;
+        uint32_t preserved1[2];
+        uint32_t offset0;
+        uint32_t magicNumber1;
+        uint32_t preserved2[2];
+        uint32_t theProcTable1;
+        uint32_t magicNumber2;
+        uint32_t preserved3[2];
+        uint32_t traceTable;
+        uint32_t magicNumber3;
+    };
+    static_assert(sizeof(SystemAddressTable) == (32 + 88 + 16 + 16 + 16 + 8));
+    constexpr uint32_t
+    computeCS1(uint32_t sat, uint32_t prcb, uint32_t first_ip) noexcept {
+        return -(sat + prcb + first_ip);
+    }
 
 /**
  * @brief Describes an i960Sx boot structure that can be embedded into flash
  */
-struct [[gnu::packed]] CoreInitializationBlock {
-    explicit constexpr CoreInitializationBlock(uint32_t satBase, uint32_t prcbPointer, uint32_t checkWord, uint32_t firstIP) :
-            sat_(satBase),
-            prcb_(prcbPointer),
-            check_(checkWord),
-            firstIP_(firstIP),
-            cs1_(computeCS1(sat_, prcb_, firstIP)),
-            reserved_{0,0,0xFFFF'FFFF} {
+    struct [[gnu::packed]] CoreInitializationBlock
+    {
+        explicit constexpr CoreInitializationBlock(uint32_t satBase, uint32_t prcbPointer, uint32_t checkWord, uint32_t firstIP) :
+                sat_(satBase),
+                prcb_(prcbPointer),
+                check_(checkWord),
+                firstIP_(firstIP),
+                cs1_(computeCS1(sat_, prcb_, firstIP)),
+                reserved_{0, 0, 0xFFFF'FFFF} {
 
-    }
-    constexpr auto getSAT() const noexcept { return sat_; }
-    constexpr auto getPRCB() const noexcept { return prcb_; }
-    constexpr auto getCheckWord() const noexcept { return check_; }
-    constexpr auto getFirstIP() const noexcept { return firstIP_; }
-    constexpr auto getCS1() const noexcept { return cs1_; }
-    constexpr auto getReserved(int index) const noexcept { return reserved_[index % 3]; }
-    uint32_t sat_;
-    uint32_t prcb_;
-    uint32_t check_;
-    uint32_t firstIP_;
-    uint32_t cs1_;
-    uint32_t reserved_[3];
-};
+        }
+        constexpr auto getSAT() const noexcept { return sat_; }
+        constexpr auto getPRCB() const noexcept { return prcb_; }
+        constexpr auto getCheckWord() const noexcept { return check_; }
+        constexpr auto getFirstIP() const noexcept { return firstIP_; }
+        constexpr auto getCS1() const noexcept { return cs1_; }
+        constexpr auto getReserved(int index) const noexcept { return reserved_[index % 3]; }
+        uint32_t sat_;
+        uint32_t prcb_;
+        uint32_t check_;
+        uint32_t firstIP_;
+        uint32_t cs1_;
+        uint32_t reserved_[3];
+    };
 
-constexpr CoreInitializationBlock cib(0, 0xb0, 0, 0x6ec);
-static_assert(cib.getCS1() == 0xffff'f864, "Incorrect PRCB check word value computation");
+    constexpr CoreInitializationBlock cib(0, 0xb0, 0, 0x6ec);
+    static_assert(cib.getCS1() == 0xffff'f864, "Incorrect PRCB check word value computation");
+    uint16_t readBootStructures(SplitWord32 address);
+    void writeBootStructures(SplitWord32 address, uint16_t value, EnableStyle style);
+}
 #endif //CHIPSET_BOOT960_H

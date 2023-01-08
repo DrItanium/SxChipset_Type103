@@ -56,6 +56,6 @@ i960::begin() noexcept {
     for (size_t i = 0; i < l0WordCount; ++i) {
         Serial.print(i);
         Serial.print(F(": 0x"));
-        Serial.println(pgm_read_dword_far(pgm_get_far_address(l0Program) + i), HEX);
+        Serial.println(pgm_read_dword_far(pgm_get_far_address(l0Program) + (i * sizeof(uint32_t))), HEX);
     }
 }

@@ -213,19 +213,27 @@ struct BasicDataCacheSet {
     static constexpr auto NumberOfLines = numberOfLines;
     inline void begin() noexcept {
         replacementIndex_ = 0;
+        lastMatch_ = 0;
         for (auto& line : lines) {
             line.begin();
         }
     }
     inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
-        for (auto& line : lines) {
-            if (line.matches(address, doNotLoadFromMemoryOnMiss)) {
+        for (byte i = lastMatch_, j = 0; j < NumberOfLines; ++j, ++i) {
+            if (i == NumberOfLines) {
+                // we've overflowed so clear it since our match was somewhere in the middle or such
+                i = 0;
+            }
+            auto& line = lines[i];
+            if (line.matches(address) ) {
+                lastMatch_ = i;
                 return line;
             }
         }
         auto& target = lines[replacementIndex_];
+        lastMatch_ = replacementIndex_;
         updateFlags();
-        target.reset(address);
+        target.reset(address, doNotLoadFromMemoryOnMiss);
         return target;
     }
     inline void updateFlags() noexcept {
@@ -236,6 +244,7 @@ struct BasicDataCacheSet {
     }
     inline void clear() noexcept {
         replacementIndex_ = 0;
+        lastMatch_ = 0;
         for (auto& line : lines) {
             line.clear();
         }
@@ -243,6 +252,7 @@ struct BasicDataCacheSet {
 private:
     DataCacheLine lines[NumberOfLines];
     byte replacementIndex_;
+    byte lastMatch_ = 0;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
@@ -286,79 +296,6 @@ private:
     DataCacheLine lines[NumberOfLines];
     byte replacementTarget_ : 1;
 };
-
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 4> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
-    using CacheAddress = typename DataCacheLine::CacheAddress;
-    static constexpr auto NumberOfLines = 4;
-    inline void begin() noexcept {
-        replacementIndex_ = 0;
-        for (auto& line : lines) {
-            line.begin();
-        }
-    }
-    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
-        for (auto& line : lines) {
-            if (line.matches(address)) {
-                return line;
-            }
-        }
-        auto& target = lines[replacementIndex_];
-        updateFlags();
-        target.reset(address, dontLoadOnMiss);
-        return target;
-    }
-    inline void updateFlags() noexcept {
-        ++replacementIndex_;
-    }
-    inline void clear() noexcept {
-        replacementIndex_ = 0;
-        for (auto& line : lines) {
-            line.clear();
-        }
-    }
-private:
-    DataCacheLine lines[NumberOfLines];
-    byte replacementIndex_ : 2;
-};
-
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 8> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
-    using CacheAddress = typename DataCacheLine::CacheAddress;
-    static constexpr auto NumberOfLines = 8;
-    inline void begin() noexcept {
-        replacementIndex_ = 0;
-        for (auto& line : lines) {
-            line.begin();
-        }
-    }
-    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
-        for (auto& line : lines) {
-            if (line.matches(address)) {
-                return line;
-            }
-        }
-        auto& target = lines[replacementIndex_];
-        updateFlags();
-        target.reset(address, dontLoadOnMiss);
-        return target;
-    }
-    inline void updateFlags() noexcept {
-        ++replacementIndex_;
-    }
-    inline void clear() noexcept {
-        replacementIndex_ = 0;
-        for (auto& line : lines) {
-            line.clear();
-        }
-    }
-private:
-    DataCacheLine lines[NumberOfLines];
-    byte replacementIndex_ : 3;
-};
-
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 1> {

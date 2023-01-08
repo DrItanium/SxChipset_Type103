@@ -228,7 +228,7 @@ struct WriteRequest {
     EnableStyle style = EnableStyle::Undefined;
     bool valid() const noexcept { return style != EnableStyle::Undefined; }
 };
-void
+inline void
 performWriteCacheRequest(const SplitWord32& addr) noexcept {
     WriteRequest requests[8];
     byte count = 0;
@@ -255,9 +255,10 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
             ++count;
         }
     }
+    ++count; // make sure that we have a proper count
     Platform::endInlineSPIOperation();
-    auto &line = getCache().find(addr);
-    for (byte i = 0; i <= count; ++i) {
+    auto &line = getCache().find(addr, count == 8 && MemoryCache::CacheAddress ::OffsetBitsCount == 4);
+    for (byte i = 0; i < count; ++i) {
         auto& request = requests[i];
         line.setWord(request.offset, request.value.full, request.style);
     }

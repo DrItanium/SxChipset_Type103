@@ -137,20 +137,22 @@ struct BasicDataCacheLine {
             flags_.dirty_ = false;
         }
     }
-    inline void reset(CacheAddress newAddress) noexcept {
+    inline void reset(CacheAddress newAddress, bool doNotLoadFromMemoryOnMiss) noexcept {
         sync();
         flags_.valid_ = true;
         flags_.dirty_ = false;
         dest_ = newAddress;
         dest_.setOffset(0);
-        memoryRead(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
-        if constexpr (EnableCacheDebugging) {
-            Serial.println(F("\tSwapped in the following words: "));
-            for (byte i = 0; i < NumberOfWords; ++i) {
-                Serial.print(F("\t\t"));
-                Serial.print(i);
-                Serial.print(F(": 0x"));
-                Serial.println(words[i].full, HEX);
+        if (!doNotLoadFromMemoryOnMiss) {
+            memoryRead(dest_.getBackingStore(), reinterpret_cast<uint8_t *>(words), NumberOfDataBytes);
+            if constexpr (EnableCacheDebugging) {
+                Serial.println(F("\tSwapped in the following words: "));
+                for (byte i = 0; i < NumberOfWords; ++i) {
+                    Serial.print(F("\t\t"));
+                    Serial.print(i);
+                    Serial.print(F(": 0x"));
+                    Serial.println(words[i].full, HEX);
+                }
             }
         }
     }
@@ -215,9 +217,9 @@ struct BasicDataCacheSet {
             line.begin();
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
         for (auto& line : lines) {
-            if (line.matches(address)) {
+            if (line.matches(address, doNotLoadFromMemoryOnMiss)) {
                 return line;
             }
         }
@@ -255,7 +257,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
         for (int i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
@@ -265,7 +267,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
         auto index = getTargetLine();
         auto& target = lines[index];
         updateFlags(index);
-        target.reset(address);
+        target.reset(address, dontLoadOnMiss);
         return target;
     }
     [[nodiscard]] inline byte getTargetLine() const noexcept {
@@ -296,7 +298,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 4> {
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
         for (auto& line : lines) {
             if (line.matches(address)) {
                 return line;
@@ -304,7 +306,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 4> {
         }
         auto& target = lines[replacementIndex_];
         updateFlags();
-        target.reset(address);
+        target.reset(address, dontLoadOnMiss);
         return target;
     }
     inline void updateFlags() noexcept {
@@ -332,7 +334,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 8> {
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
         for (auto& line : lines) {
             if (line.matches(address)) {
                 return line;
@@ -340,7 +342,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 8> {
         }
         auto& target = lines[replacementIndex_];
         updateFlags();
-        target.reset(address);
+        target.reset(address, dontLoadOnMiss);
         return target;
     }
     inline void updateFlags() noexcept {
@@ -357,41 +359,6 @@ private:
     byte replacementIndex_ : 3;
 };
 
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 16> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
-    using CacheAddress = typename DataCacheLine::CacheAddress;
-    static constexpr auto NumberOfLines = 16;
-    inline void begin() noexcept {
-        replacementIndex_ = 0;
-        for (auto& line : lines) {
-            line.begin();
-        }
-    }
-    inline auto& find(CacheAddress address) noexcept {
-        for (auto& line : lines) {
-            if (line.matches(address)) {
-                return line;
-            }
-        }
-        auto& target = lines[replacementIndex_];
-        updateFlags();
-        target.reset(address);
-        return target;
-    }
-    inline void updateFlags() noexcept {
-        ++replacementIndex_;
-    }
-    inline void clear() noexcept {
-        replacementIndex_ = 0;
-        for (auto& line : lines) {
-            line.clear();
-        }
-    }
-private:
-    DataCacheLine lines[NumberOfLines];
-    byte replacementIndex_ : 4;
-};
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 1> {
@@ -401,9 +368,9 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 1> {
     inline void begin() noexcept {
         line.begin();
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss) noexcept {
         if (!line.matches(address)){
-            line.reset(address);
+            line.reset(address, doNotLoadFromMemoryOnMiss);
         }
         return line;
     }
@@ -427,14 +394,14 @@ struct BasicDataCache {
     inline auto& findSet(CacheAddress address) noexcept {
         return cache[address.getTag()];
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
         if constexpr (EnableCacheDebugging) {
             Serial.print(F("Address: 0x"));
             Serial.println(address.getBackingStore().getWholeValue(), HEX);
             Serial.print(F("\tTag: 0x"));
             Serial.println(address.getTag(), HEX);
         }
-        return cache[address.getTag()].find(address);
+        return cache[address.getTag()].find(address, doNotLoadFromMemoryOnMiss);
     }
     inline void begin() noexcept {
         for (auto& set : cache) {

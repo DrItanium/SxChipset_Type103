@@ -197,7 +197,6 @@ Platform::startInlineSPIOperation() noexcept {
     auto TargetAction = isReadOperation_ ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
     auto TargetRegister = static_cast<byte>(isReadOperation_ ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
     // starting a new transaction so reset the starting index to 0
-    lastSPIOffsetIndex_ = 0;
 #ifdef AVR_SPI_AVAILABLE
     SPDR = TargetAction;
     asm volatile ("nop");

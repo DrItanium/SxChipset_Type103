@@ -206,7 +206,7 @@ private:
     } flags_;
     SplitWord16 words[NumberOfWords];
 };
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines = 4>
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct BasicDataCacheSet {
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
@@ -418,7 +418,7 @@ private:
     DataCacheSet cache[NumberOfSets];
 };
 
-using MemoryCache = BasicDataCache<4, 8, 0, 4>;
+using MemoryCache = BasicDataCache<4, 7, 0, 4>;
 
 MemoryCache& getCache() noexcept;
 void setupCache() noexcept;

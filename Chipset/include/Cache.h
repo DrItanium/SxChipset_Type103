@@ -331,9 +331,6 @@ struct BasicDataCache {
             set.clear();
         }
     }
-    inline auto& findSet(CacheAddress address) noexcept {
-        return cache[address.getTag()];
-    }
     [[nodiscard]] inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
         if constexpr (EnableCacheDebugging) {
             Serial.print(F("Address: 0x"));
@@ -358,7 +355,40 @@ private:
     DataCacheSet cache[NumberOfSets];
 };
 
-using MemoryCache = BasicDataCache<4, 6, 0, 8>;
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCache<offsetBits, tagBits, bankBits, 1> {
+    using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, 1>;
+    using DataCacheLine = typename DataCacheSet::DataCacheLine;
+    using CacheAddress = typename DataCacheSet::CacheAddress;
+    static constexpr auto NumberOfSets = pow2(tagBits);
+    inline void clear() noexcept {
+        for (auto& set : cache) {
+            set.clear();
+        }
+    }
+    [[nodiscard]] inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
+        auto& line = cache[address.getTag()];
+        if (!line.matches(address)){
+            line.reset(address, doNotLoadFromMemoryOnMiss);
+        }
+        return line;
+    }
+    inline void begin() noexcept {
+        for (auto& set : cache) {
+            set.begin();
+        }
+    }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return reinterpret_cast<byte*>(cache);
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return sizeof(cache);
+    }
+private:
+    DataCacheLine cache[NumberOfSets];
+};
+
+using MemoryCache = BasicDataCache<5, 8, 0, 1>;
 
 MemoryCache& getCache() noexcept;
 void setupCache() noexcept;

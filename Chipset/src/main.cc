@@ -537,11 +537,7 @@ namespace {
         SPDR = baseAddress.bytes[0];
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
-        for (size_t i = 0; i < count; ++i) {
-            SPDR = bytes[i]; 
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-        }
+        SPI.transfer(bytes, count);
 #else
         SPI.transfer(0x02);
         SPI.transfer(baseAddress.bytes[2]);
@@ -570,12 +566,7 @@ namespace {
         SPDR = baseAddress.bytes[0];
         asm volatile ("nop");
         while (!(SPSR & _BV(SPIF))) ; // wait
-        for (size_t i = 0; i < count; ++i) {
-            SPDR = 0; 
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            bytes[i] = SPDR;
-        }
+        SPI.transfer(bytes, count);
 #else
         SPI.transfer(0x03);
         SPI.transfer(baseAddress.bytes[2]);

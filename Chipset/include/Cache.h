@@ -140,7 +140,7 @@ struct BasicDataCacheLine {
     inline void reset(CacheAddress newAddress, bool doNotLoadFromMemoryOnMiss) noexcept {
         sync();
         flags_.valid_ = true;
-        flags_.dirty_ = false;
+        flags_.dirty_ = false; // mark it implicitly as dirty
         dest_ = newAddress;
         dest_.setOffset(0);
         if (!doNotLoadFromMemoryOnMiss) {
@@ -158,6 +158,9 @@ struct BasicDataCacheLine {
     }
     void begin() noexcept {
         clear();
+    }
+    [[nodiscard]] const SplitWord16* getData() const noexcept {
+        return words;
     }
     inline uint16_t getWord(byte offset) const noexcept {
         auto result = words[offset].getWholeValue();

@@ -138,5 +138,6 @@ namespace i960
     static_assert(cib.getCS1() == 0xffff'f864, "Incorrect PRCB check word value computation");
     uint16_t readBootStructures(SplitWord32 address);
     void writeBootStructures(SplitWord32 address, uint16_t value, EnableStyle style);
+    void begin() noexcept;
 }
 #endif //CHIPSET_BOOT960_H

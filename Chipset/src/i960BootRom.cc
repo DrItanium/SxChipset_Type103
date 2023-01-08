@@ -26,5 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Created by jwscoggins on 1/7/23.
 //
-
+#include "Types.h"
 #include "Boot960.h"
+
+namespace
+{
+    const i960::CoreInitializationBlock cib PROGMEM1 = i960::CoreInitializationBlock(0, 0xb0, 0, 0x6ec);
+}
+
+void
+i960::begin() noexcept {
+    uint8_t bytes[sizeof(i960::CoreInitializationBlock)];
+    for (size_t i = 0; i < sizeof(cib); ++i) {
+        bytes[i] = pgm_read_byte_far(pgm_get_far_address(cib) + i);
+    }
+    auto* ptr = reinterpret_cast<i960::CoreInitializationBlock*>(bytes);
+    Serial.print(F("SAT Address: 0x")) ;
+    Serial.println(ptr->getSAT(), HEX);
+}

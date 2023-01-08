@@ -444,6 +444,7 @@ setup() {
     bringUpSDCard();
     queryPSRAM<false>();
 #endif
+    i960::begin();
     setupCache();
     theAddressTranslator.begin();
     delay(1000);

@@ -80,25 +80,18 @@ namespace i960
         uint32_t theFaultTable;
         uint32_t reserved3[32];
     } __attribute((packed));
+    struct [[gnu::packed]] SegmentDescriptor {
+        uint32_t reserved0 = 0;
+        uint32_t reserved1 = 0;
+        uint32_t address = 0;
+        uint32_t flags = 0;
+    };
     struct [[gnu::packed]] SystemAddressTable
     {
-        uint32_t satPtr;
-        uint32_t thePRCB;
-        uint32_t checkWord;
-        uint32_t firstInstruction;
-        uint32_t checkWords[4];
-        uint32_t preserved0[22];
-        uint32_t theProcTable0;
-        uint32_t magicNumber0;
-        uint32_t preserved1[2];
-        uint32_t offset0;
-        uint32_t magicNumber1;
-        uint32_t preserved2[2];
-        uint32_t theProcTable1;
-        uint32_t magicNumber2;
-        uint32_t preserved3[2];
-        uint32_t traceTable;
-        uint32_t magicNumber3;
+        // this merger of the check words and SAT is Intel exploiting the fact that the segment descriptor table is actually ignored
+        // in the Sx and Kx variants. You can place the SAT on 16-byte aligned boundaries anywhere in memory. I am going to be moving this
+        // to be on the safe side.
+        SegmentDescriptor entries[11];
     };
     static_assert(sizeof(SystemAddressTable) == (32 + 88 + 16 + 16 + 16 + 8));
     constexpr uint32_t

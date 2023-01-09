@@ -93,7 +93,7 @@ namespace i960
         // to be on the safe side.
         SegmentDescriptor entries[11];
     };
-    static_assert(sizeof(SystemAddressTable) == (32 + 88 + 16 + 16 + 16 + 8));
+    static_assert(sizeof(SystemAddressTable) == 176);
     constexpr uint32_t
     computeCS1(uint32_t sat, uint32_t prcb, uint32_t first_ip) noexcept {
         return -(sat + prcb + first_ip);

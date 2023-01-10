@@ -394,7 +394,7 @@ fix_stack:
 
 
 # reserved entries
-def_system_call 7, _sys_unlink
+#def_system_call 7, _sys_unlink
 #def_system_call 8, _sys_getpid
 #def_system_call 9, _sys_kill
 #def_system_call 10, _sys_fstat
@@ -406,5 +406,5 @@ def_system_call 7, _sys_unlink
 #def_system_call 16, _sys_chmod
 #def_system_call 17, _sys_utime
 #def_system_call 18, _sys_time
-def_system_call 19, _sys_gettimeofday
-def_system_call 20, _sys_setitimer
+#def_system_call 19, _sys_gettimeofday
+#def_system_call 20, _sys_setitimer

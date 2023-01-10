@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Initial interrupt table
  * in my board, there is only one interrupt routine so they will all map to the same ISR
  */
-
         .global     intr_table
         .align      6
 intr_table:
@@ -279,3 +278,4 @@ intr_table:
         .word _user_intr;           # interrupt table entry 253
         .word _user_intr;           # interrupt table entry 254
         .word _user_intr;           # interrupt table entry 255
+

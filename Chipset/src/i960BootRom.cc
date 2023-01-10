@@ -28,11 +28,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 #include "Types.h"
 #include "Boot960.h"
-#include "incbin.h"
 
 namespace
 {
-
+    constexpr uint32_t SystemAddressTableBase = 0x1000;
+    constexpr uint32_t PRCBBase = 0x2000;
+    constexpr uint32_t SystemProcedureTableBase = 0x3000;
+    constexpr uint32_t FaultProcedureTableBase = 0x4000;
+    constexpr uint32_t StartIPBase = 0x5000;
+    [[gnu::used]] constexpr PROGMEM i960::InitialBootRecord ibr {SystemAddressTableBase, PRCBBase, 0, StartIPBase};
+    [[gnu::used]] constexpr PROGMEM i960::SystemAddressTable sat {
+        i960::SegmentDescriptor{}, // 0
+        i960::SegmentDescriptor{}, // 1
+        i960::SegmentDescriptor{}, // 2
+        i960::SegmentDescriptor{}, // 3
+        i960::SegmentDescriptor{}, // 4
+        i960::SegmentDescriptor{}, // 5
+        i960::SegmentDescriptor{}, // 6
+        i960::SegmentDescriptor{SystemProcedureTableBase, 0x304000fb}, // 7
+        i960::SegmentDescriptor{SystemAddressTableBase, 0x00fc00fb}, // 8
+        i960::SegmentDescriptor{SystemProcedureTableBase, 0x304000fb}, // 9
+        i960::SegmentDescriptor{FaultProcedureTableBase, 0x304000fb}, // 10
+    };
 }
 
 void

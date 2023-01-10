@@ -81,10 +81,12 @@ namespace i960
         uint32_t reserved3[32];
     } __attribute((packed));
     struct [[gnu::packed]] SegmentDescriptor {
+        constexpr SegmentDescriptor() noexcept = default;
+        constexpr SegmentDescriptor(uint32_t addr, uint32_t flags) noexcept : address_(addr), flags_(flags){ }
         uint32_t reserved0 = 0;
         uint32_t reserved1 = 0;
-        uint32_t address = 0;
-        uint32_t flags = 0;
+        uint32_t address_ = 0;
+        uint32_t flags_ = 0;
     };
     struct [[gnu::packed]] SystemAddressTable
     {
@@ -102,9 +104,9 @@ namespace i960
 /**
  * @brief Describes an i960Sx boot structure that can be embedded into flash
  */
-    struct [[gnu::packed]] CoreInitializationBlock
+    struct [[gnu::packed]] InitialBootRecord
     {
-        explicit constexpr CoreInitializationBlock(uint32_t satBase, uint32_t prcbPointer, uint32_t checkWord, uint32_t firstIP) :
+        explicit constexpr InitialBootRecord(uint32_t satBase, uint32_t prcbPointer, uint32_t checkWord, uint32_t firstIP) :
                 sat_(satBase),
                 prcb_(prcbPointer),
                 check_(checkWord),
@@ -127,7 +129,7 @@ namespace i960
         uint32_t reserved_[3];
     };
 
-    constexpr CoreInitializationBlock cib(0, 0xb0, 0, 0x6ec);
+    constexpr InitialBootRecord cib(0, 0xb0, 0, 0x6ec);
     static_assert(cib.getCS1() == 0xffff'f864, "Incorrect PRCB check word value computation");
     uint16_t readBootStructures(SplitWord32 address);
     void writeBootStructures(SplitWord32 address, uint16_t value, EnableStyle style);

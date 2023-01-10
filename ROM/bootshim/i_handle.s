@@ -24,27 +24,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 .text
 .include "macros.s"
-.global _system_counter_intr
-_system_counter_intr:
-        save_globals
-        c_call _SystemCounterISR
-/* restore the registers before we return */
-        restore_globals
-        ret
 .global _user_intr
 _user_intr:
         save_globals
 /* -- Interrupt handler to go here */
         c_call _ISR0
-/* restore the registers before we return */
-        restore_globals
-        ret
-
-.global _NMI_intr
-_NMI_intr:
-        save_globals
-/* -- Interrupt handler to go here */
-        c_call _ISR_NMI
 /* restore the registers before we return */
         restore_globals
         ret

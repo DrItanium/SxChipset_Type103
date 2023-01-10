@@ -78,3 +78,7 @@ ret
 .macro FaultTableEntry_TraceTableEntry code
 	FaultTableEntry (\code << 2),0x2,0x2bf # use the special segment of 0x2bf
 .endm
+
+.macro InterruptEntry function
+	.word \function
+.endm

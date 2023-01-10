@@ -271,11 +271,11 @@ intr_table:
         .word _user_intr;           # Reserved
         .word _user_intr;           # Reserved
         .word _user_intr;           # Reserved
-        .word _NMI_intr;            # NMI Interrupt
+        .word _user_intr;           # Reserved 
         .word _user_intr;           # Reserved
         .word _user_intr;           # Reserved
         .word _user_intr;           # Reserved
         .word _user_intr;           # interrupt table entry 252
         .word _user_intr;           # interrupt table entry 253
         .word _user_intr;           # interrupt table entry 254
-        .word _system_counter_intr ;           # interrupt table entry 255
+        .word _user_intr;           # interrupt table entry 255

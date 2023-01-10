@@ -63,3 +63,18 @@ lda \index, g13
 calls g13
 ret
 .endm
+
+.macro FaultTableEntry address,kind,segment
+	.word (\address & 0xFFFFFFFC) | \kind
+	.word \segment
+.endm
+
+.macro FaultTableEntry_Local address
+	FaultTableEntry \address,0,0
+.endm
+.macro FaultTableEntry_SystemProcedureTable code
+	FaultTableEntry (\code << 2),0x2,0x27f # use the default segment of 0x27f
+.endm
+.macro FaultTableEntry_TraceTableEntry code
+	FaultTableEntry (\code << 2),0x2,0x2bf # use the special segment of 0x2bf
+.endm

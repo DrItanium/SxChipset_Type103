@@ -1,6 +1,6 @@
 /*
-i960SxChipset
-Copyright (c) 2020-2021, Joshua Scoggins
+i960SxChipset_Type103
+Copyright (c) 2020-2023, Joshua Scoggins
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -25,68 +25,44 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
  * Fault handler routines
  */
-#include "../cortex/IODevice.h"
-#include "../cortex/Faults.h"
-#include <string>
+
+extern "C"
 void
-basicDisplay(const std::string& kind, cortex::FaultData* record) {
-    cortex::ChipsetBasicFunctions::Console::write(kind.c_str());
-    cortex::ChipsetBasicFunctions::Console::writeLine(" FAULT RAISED!");
-    record->display();
-}
-inline void
-basicOperation(const std::string& kind, cortex::FaultData* record, cortex::FaultHandler handler) {
-    if (handler)  {
-        handler(record);
-    } else {
-        basicDisplay(kind, record);
-    }
+user_reserved() {
+
 }
 
 extern "C"
 void
-user_reserved(cortex::FaultData* record) {
-    basicOperation("USER RESERVED", record, cortex::getUserReservedFaultHandler());
+user_trace() {
+
 }
 
 extern "C"
 void
-user_trace(cortex::FaultData* record) {
-    basicOperation("USER TRACE", record, cortex::getUserTraceFaultHandler());
-}
-
-extern "C"
-void
-user_operation(cortex::FaultData* record) {
-    basicOperation("USER OPERATION", record, cortex::getUserOperationFaultHandler());
+user_operation() {
 }
 extern "C"
 void
-user_arithmetic(cortex::FaultData* record) {
-    basicOperation("USER ARITHMETIC", record, cortex::getUserArithmeticFaultHandler());
+user_arithmetic() {
 }
 extern "C"
 void
-user_real_arithmetic(cortex::FaultData* record) {
-    basicOperation("USER REAL ARITHMETIC", record, cortex::getUserRealArithmeticFaultHandler());
+user_real_arithmetic() {
 }
 extern "C"
 void
-user_constraint(cortex::FaultData* record) {
-    basicOperation("USER CONSTRAINT", record, cortex::getUserConstraintFaultHandler());
+user_constraint() {
 }
 extern "C"
 void
-user_protection(cortex::FaultData* record) {
-    basicOperation("USER PROTECTION", record, cortex::getUserProtectionFaultHandler());
+user_protection() {
 }
 extern "C"
 void
-user_machine(cortex::FaultData* record) {
-    basicOperation("USER MACHINE", record, cortex::getUserMachineFaultHandler());
+user_machine() {
 }
 extern "C"
 void
-user_type(cortex::FaultData* record) {
-    basicOperation("USER TYPE", record, cortex::getUserTypeFaultHandler());
+user_type() {
 }

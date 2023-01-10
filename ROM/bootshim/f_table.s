@@ -1,6 +1,6 @@
 /*
-i960SxChipset
-Copyright (c) 2020-2021, Joshua Scoggins
+i960SxChipset_Type103
+Copyright (c) 2020-2023, Joshua Scoggins
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -23,70 +23,62 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 /* fault table */
+	.include "macros.s"
     .globl  fault_table
     .align  8
+.macro ReservedFaultEntry 
+	FaultTableEntry_TraceTableEntry 0
+.endm
 fault_table:
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (1 << 2) | 0x2
-    .word   0x2bf               # Trace fault           entry 1 => _user_trace
-    .word   (2 << 2) | 0x2
-    .word   0x2bf               # Operation fault       entry 2 => _user_operation
-    .word   (3 << 2) | 0x2
-    .word   0x2bf               # Arithmetic fault      entry 3 => _user_arithmetic
-    .word   (4 << 2) | 0x2
-    .word   0x2bf               # Floating Point fault  entry 4 => _user_real_arithmetic
-    .word   (5 << 2) | 0x2
-    .word   0x2bf               # Constraint fault      entry 5 => _user_constraint
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (6 << 2) | 0x2
-    .word   0x2bf               # Protection fault      entry 6 => _user_protection
-    .word   (7 << 2) | 0x2
-    .word   0x2bf               # Machine fault         entry 7 => _user_machine
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (8 << 2) | 0x2
-    .word   0x2bf               # Type fault            entry 8 => _user_type
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
-    .word   (0 << 2) | 0x2
-    .word   0x2bf               # Reserved fault        entry 0 => _user_reserved
+	ReservedFaultEntry # reserved fault
+	FaultTableEntry_TraceTableEntry 1 # trace fault
+	FaultTableEntry_TraceTableEntry 2 # operation fault
+	FaultTableEntry_TraceTableEntry 3 # arithmetic fault
+	FaultTableEntry_TraceTableEntry 4 # floating point fault
+	FaultTableEntry_TraceTableEntry 5 # constraint fault
+	ReservedFaultEntry 
+	FaultTableEntry_TraceTableEntry 6 # protection fault
+	FaultTableEntry_TraceTableEntry 7 # machine fault
+	ReservedFaultEntry
+	FaultTableEntry_TraceTableEntry 8 # type fault
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry
+	ReservedFaultEntry

@@ -28,34 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 #include "Types.h"
 #include "Boot960.h"
+#include "incbin.h"
 
 namespace
 {
-    constexpr uint32_t l0Program[] PROGMEM1{
-        0,
-        0xb0,
-        0,
-        0x6ec,
-        i960::computeCS1(0, 0xb0, 0x6ec),
-        0,
-        0,
-        0xFFFF'FFFF,
-    };
-    constexpr size_t l0ProgramSize PROGMEM1 = sizeof(l0Program);
+
 }
 
 void
 i960::begin() noexcept {
-    size_t l0ByteCount = pgm_read_word_far(pgm_get_far_address(l0ProgramSize));
-    size_t l0WordCount = l0ByteCount / sizeof(uint32_t);
-    Serial.print(F("L0 Program Size (bytes): 0x"));
-    Serial.println(l0ByteCount, HEX);
-    Serial.print(F("L0 Program Size (32-bit words): 0x"));
-    Serial.println(l0WordCount, HEX);
-    Serial.println(F("Boot ROM Words: "));
-    for (size_t i = 0; i < l0WordCount; ++i) {
-        Serial.print(i);
-        Serial.print(F(": 0x"));
-        Serial.println(pgm_read_dword_far(pgm_get_far_address(l0Program) + (i * sizeof(uint32_t))), HEX);
-    }
 }

@@ -28,41 +28,41 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern "C"
 void
-user_reserved() {
+user_reserved(void*) {
 
 }
 
 extern "C"
 void
-user_trace() {
+user_trace(void*) {
 
 }
 
 extern "C"
 void
-user_operation() {
+user_operation(void*) {
 }
 extern "C"
 void
-user_arithmetic() {
+user_arithmetic(void*) {
 }
 extern "C"
 void
-user_real_arithmetic() {
+user_real_arithmetic(void*) {
 }
 extern "C"
 void
-user_constraint() {
+user_constraint(void*) {
 }
 extern "C"
 void
-user_protection() {
+user_protection(void*) {
 }
 extern "C"
 void
-user_machine() {
+user_machine(void*) {
 }
 extern "C"
 void
-user_type() {
+user_type(void*) {
 }

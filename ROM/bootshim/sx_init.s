@@ -80,7 +80,7 @@ system_address_table:
 # initial PRCB
 # this is our startup PRCB. After initialization.
 # this will be copied to RAM
-
+.align 6
 prcb_ptr:
     .word 0x0 # 0 - reserved
     .word 0xc # 4 - initialize to 0xc
@@ -117,22 +117,11 @@ sys_proc_table:
 # up to 260 entries!
     # example entry
 	.word 0, 0, 0, 0 # 0-3
-	.word 0, 0, 0    # 4-6
-	DefTableEntry _hitagi_unlink
-	ReservedTableEntry # _hitagi_getpid
-	ReservedTableEntry # _hitagi_kill
-	ReservedTableEntry # _hitagi_fstat
-	ReservedTableEntry # sbrk
-	ReservedTableEntry #_hitagi_argvlen
-	ReservedTableEntry # _hitagi_argv
-	ReservedTableEntry # _hitagi_chdir
-	ReservedTableEntry # _hitagi_stat
-    ReservedTableEntry # _hitagi_chmod
-    ReservedTableEntry # _hitagi_utime
-    ReservedTableEntry # _hitagi_time
-    DefTableEntry _hitagi_gettimeofday
-    DefTableEntry _hitagi_setitimer
-	.word 0, 0, 0 # 21-23
+	.word 0, 0, 0, 0 # 4-6
+	.word 0, 0, 0, 0
+	.word 0, 0, 0, 0
+	.word 0, 0, 0, 0
+	.word 0, 0, 0, 0
 	.word 0, 0, 0, 0 # 24-27
 	.word 0, 0, 0, 0 # 28-31
 	.word 0, 0, 0, 0 # 32-35
@@ -184,23 +173,14 @@ sys_proc_table:
 	.word 0, 0, 0, 0 # 4-7
 	.word 0, 0, 0, 0 # 4-7
 	.word 0, 0, 0, 0 # 4-7
-	# mon960 registrations
-	.word 0, 0
-	DefTableEntry _hitagi_open
-	DefTableEntry _hitagi_read
-	DefTableEntry _hitagi_write
-	DefTableEntry _hitagi_lseek
-	DefTableEntry _hitagi_close
-	.word 0
+	.word 0, 0, 0, 0
+	.word 0, 0, 0, 0
 	.word 0, 0, 0, 0 # 236-239
 	.word 0, 0, 0, 0 # 240-243
 	.word 0, 0, 0, 0 # 244-247
 	.word 0, 0, 0, 0 # 248-251
 	.word 0, 0, 0, 0 # 252-255
-	.word 0
-	DefTableEntry _hitagi_exit
-	.word 0, 0 # 256-259
-	#.word	(_console_io + 0x2)	# Calls 0 - console I/O routines
+	.word 0, 0, 0, 0
 # up to a total of 260 entries
 
 # below is the fault table for calls to the fault handler.
@@ -317,22 +297,9 @@ DefFaultDispatcher type
  *    If any IO needs to be set up, you should do it here before your
  *    call to main. No opens have been done for STDIN, STDOUT, or STDERR
  */
-.ifdef __i960SB__
-    callx _init_fp
-.endif
     callx setupInterruptHandler
     #callx _activate_read_write_transactions
     c_callx _main # assume a main for startup
-
-.ifdef __i960SB__
-_init_fp:
-    # initialize the floating point registers
-    cvtir   0, fp0
-    movre   fp0, fp1
-    movre   fp1, fp2
-    movre   fp2, fp3
-    ret
-.endif
 
 setupInterruptHandler:
     # setup the interrupt handlers to work correctly
@@ -393,18 +360,3 @@ fix_stack:
     ret
 
 
-# reserved entries
-#def_system_call 7, _sys_unlink
-#def_system_call 8, _sys_getpid
-#def_system_call 9, _sys_kill
-#def_system_call 10, _sys_fstat
-#def_system_call 11, _sys_sbrk
-#def_system_call 12, _sys_argvlen
-#def_system_call 13, _sys_argv
-#def_system_call 14, _sys_chdir
-#def_system_call 15, _sys_stat
-#def_system_call 16, _sys_chmod
-#def_system_call 17, _sys_utime
-#def_system_call 18, _sys_time
-#def_system_call 19, _sys_gettimeofday
-#def_system_call 20, _sys_setitimer

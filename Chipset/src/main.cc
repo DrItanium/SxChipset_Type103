@@ -214,6 +214,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         } else {
             handler.next();
         }
+        singleCycleDelay(); // put this in to make sure we never over run anything
     }
     if constexpr (inlineSPIOperation) {
         Platform::endInlineSPIOperation();
@@ -251,18 +252,16 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
         requests[count].offset = offset;
         requests[count].value.full = Platform::getDataLines(c0, InlineSPI{});
         requests[count].style = c0.getByteEnable();
-
-        //line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
+        ++count;
+        if (digitalRead<Pin::BLAST_>() == LOW) {
+            signalReady();
             break;
-        } else {
-            ++offset;
-            ++count;
         }
+        signalReady();
+        ++offset;
+        // make sure that we have enough time as the chip is pipelined
+        singleCycleDelay();
     }
-    ++count; // make sure that we have a proper count
     Platform::endInlineSPIOperation();
     auto skipLoadingFromMainMemory = count == 8 && MemoryCache ::CacheAddress ::OffsetBitsCount == 4;
     auto &line = getCache().find(addr, skipLoadingFromMainMemory);

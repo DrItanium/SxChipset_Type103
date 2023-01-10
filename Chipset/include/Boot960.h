@@ -60,7 +60,7 @@ namespace i960
         uint32_t ac;
         uint8_t vectorNumber;
     } __attribute((packed));
-    struct SysProcTable
+    struct SystemProcedureTable
     {
         uint32_t reserved[3];
         uint32_t supervisorStack;
@@ -82,7 +82,8 @@ namespace i960
     } __attribute((packed));
     struct [[gnu::packed]] SegmentDescriptor {
         constexpr SegmentDescriptor() noexcept = default;
-        constexpr SegmentDescriptor(uint32_t addr, uint32_t flags) noexcept : address_(addr), flags_(flags){ }
+        constexpr SegmentDescriptor(uint32_t r0, uint32_t r1, uint32_t addr, uint32_t flags) noexcept : reserved0(r0), reserved1(r1), address_(addr), flags_(flags){ }
+        constexpr SegmentDescriptor(uint32_t addr, uint32_t flags) noexcept : SegmentDescriptor(0, 0, addr, flags) { }
         uint32_t reserved0 = 0;
         uint32_t reserved1 = 0;
         uint32_t address_ = 0;
@@ -134,5 +135,23 @@ namespace i960
     uint16_t readBootStructures(SplitWord32 address);
     void writeBootStructures(SplitWord32 address, uint16_t value, EnableStyle style);
     void begin() noexcept;
+    constexpr uint32_t SALIGN = 4;
+    constexpr uint32_t CAlignment = 16 * SALIGN - 1;
+    constexpr uint32_t NotCAlignment = ~CAlignment;
+    constexpr uint32_t ALIGN8 = 16;
+    constexpr uint32_t CAlign8 = 16 * ALIGN8 - 1;
+    static_assert(CAlign8 == 255);
+    constexpr uint32_t NotCAlign8 = ~CAlign8;
+    constexpr uint32_t alignTo256ByteBoundaries(uint32_t input) noexcept {
+        return (input + CAlign8) & NotCAlign8;
+    }
+    static_assert(alignTo256ByteBoundaries(0) == 0);
+    static_assert(alignTo256ByteBoundaries(1) == 0x100);
+    constexpr uint32_t alignToSALIGNBoundaries(uint32_t input) noexcept {
+        return (input + CAlignment) & NotCAlignment;
+    }
+    static_assert(alignToSALIGNBoundaries(0) == 0);
+    static_assert(alignToSALIGNBoundaries(1) == 64);
+
 }
 #endif //CHIPSET_BOOT960_H

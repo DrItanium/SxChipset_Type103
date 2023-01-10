@@ -31,20 +31,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
-    constexpr uint32_t SystemAddressTableBase = 0x1000;
-    constexpr uint32_t PRCBBase = 0x2000;
-    constexpr uint32_t SystemProcedureTableBase = 0x3000;
-    constexpr uint32_t FaultProcedureTableBase = 0x4000;
-    constexpr uint32_t InterruptTableAddress = 0x5000;
-    constexpr uint32_t StartIPBase = 0x6000;
-    constexpr uint32_t InterruptTableRAM = 0x1'0000;
-    constexpr uint32_t InterruptStackBaseAddress = 0x2'0000;
-    constexpr uint32_t UserStackBaseAddress = 0x3'0000;
-    constexpr uint32_t SupervisorStackBaseAddress = 0x4'0000;
-    [[gnu::used]] constexpr PROGMEM1 i960::InitialBootRecord ibr {SystemAddressTableBase, PRCBBase, 0, StartIPBase};
+    template<typename T>
+    constexpr uint32_t computeNextBaseAddress_SALIGN(uint32_t baseAddress) noexcept {
+        return i960::alignToSALIGNBoundaries(baseAddress + sizeof(T));
+    }
+    template<typename T>
+    constexpr uint32_t computeNextBaseAddress_Align8(uint32_t baseAddress) noexcept {
+        return i960::alignTo256ByteBoundaries(baseAddress + sizeof(T));
+    }
+    constexpr uint32_t AddressTable[] {
+        0,
+    };
+    constexpr uint32_t SystemAddressTableBase = 0;
+    // PRCB must be aligned to 64byte boundaries for the Sx processor
+    constexpr uint32_t PRCBBase = computeNextBaseAddress_SALIGN<i960::SystemAddressTable>(SystemAddressTableBase);
+    constexpr uint32_t SystemProcedureTableBase = computeNextBaseAddress_SALIGN<i960::PRCB>(PRCBBase);
+    constexpr uint32_t FaultProcedureTableBase = computeNextBaseAddress_SALIGN<i960::SystemProcedureTable>(SystemProcedureTableBase);
+    constexpr uint32_t FaultTableBase = computeNextBaseAddress_Align8<i960::SystemProcedureTable>(FaultProcedureTableBase);
+    constexpr uint32_t InterruptTableAddress = computeNextBaseAddress_SALIGN<i960::FaultTable>(FaultTableBase);
+    constexpr uint32_t StartIPBase = computeNextBaseAddress_Align8<i960::InterruptTable>(InterruptTableAddress);
+    constexpr uint32_t RAMStartAddress = i960::alignToSALIGNBoundaries(2l * 1024l * 1024l);
+    constexpr uint32_t InterruptTableCopyStart = RAMStartAddress; // start at the beginning of RAM
+    constexpr uint32_t InterruptStackStartPosition = computeNextBaseAddress_SALIGN<>()
+            i960::alignToSALIGNBoundaries(2l*1024l*1024l); // start at the beginning of RAM
+    // put the SAT and IBR together to save on alignment and space
     [[gnu::used]] constexpr PROGMEM1 i960::SystemAddressTable sat {
-        i960::SegmentDescriptor{}, // 0
-        i960::SegmentDescriptor{}, // 1
+        i960::SegmentDescriptor{SystemAddressTableBase, PRCBBase, 0, StartIPBase }, // 0
+        i960::SegmentDescriptor{i960::computeCS1(SystemAddressTableBase, PRCBBase, StartIPBase), 0, 0, 0xffff'ffff}, // 1
         i960::SegmentDescriptor{}, // 2
         i960::SegmentDescriptor{}, // 3
         i960::SegmentDescriptor{}, // 4
@@ -54,6 +67,14 @@ namespace
         i960::SegmentDescriptor{SystemAddressTableBase, 0x00fc00fb}, // 8
         i960::SegmentDescriptor{SystemProcedureTableBase, 0x304000fb}, // 9
         i960::SegmentDescriptor{FaultProcedureTableBase, 0x304000fb}, // 10
+    };
+    [[gnu::used]] constexpr PROGMEM1 i960::PRCB prcb {
+            0,
+            0xc,
+            { 0 },
+            InterruptTableAddress,
+
+
     };
 }
 

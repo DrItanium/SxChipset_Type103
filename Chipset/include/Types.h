@@ -37,20 +37,6 @@ template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 extern SdFat SD;
 constexpr auto OffsetSize = 4; // 16-byte line
-constexpr auto getTagSize() noexcept {
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
-    return 7;
-#elif defined(TYPE200_BOARD) || defined(TYPE203_BOARD)
-    return 6;
-#else
-# error "Unknown tag size!"
-    return 0;
-#endif
-}
-constexpr auto TagSize = getTagSize(); // 8192 bytes divided into 16-byte
-                                       // lines with 4 lines per set
-                                       // (4-way)
-constexpr auto KeySize = 32 - (OffsetSize + TagSize);
 enum class IOGroup : byte{
     Peripherals,
     Undefined,
@@ -81,7 +67,7 @@ union Word8 {
         uint8_t blast : 1;
         uint8_t den : 1;
         uint8_t fail : 1;
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
         uint8_t dataInt : 1;
 #else
         uint8_t wr : 1;
@@ -112,7 +98,7 @@ union Word8 {
         uint8_t rest : 6;
     } xioPortADir;
     [[nodiscard]] constexpr bool isReadOperation() const noexcept { 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
         return lowestAddr.a0 == 0; 
 #else
         return channel0.wr == 0;
@@ -123,7 +109,7 @@ union Word8 {
     }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
     [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
         return channel0.dataInt == 0; 
 #else
         return true;
@@ -133,7 +119,7 @@ union Word8 {
         return lowestAddr.addr;
     }
     [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
         return getAddressBits1_7() << 1; 
 #else
         return value_;

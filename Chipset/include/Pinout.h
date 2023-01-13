@@ -93,7 +93,7 @@ Count = NUM_DIGITAL_PINS,
     Digital28 = PortA4,
     Digital29 = PortA5,
     Digital30 = PortA6,
-    Digital31 = PortA7,
+    Digital31 = PortA7, || defined(TYPE203_BOARD)
 #elif defined(TYPE203_BOARD)
     Digital0 = PortE2,
     Digital1 = PortE7,

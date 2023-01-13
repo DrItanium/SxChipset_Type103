@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Detect.h"
 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
 #include "Setup.h"
 #include "Types.h"
 #include "Pinout.h"

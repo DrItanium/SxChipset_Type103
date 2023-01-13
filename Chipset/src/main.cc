@@ -439,7 +439,7 @@ setup() {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // setup the IO Expanders
     Platform::begin();
-#ifdef TYPE103_BOARD
+#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
     bringUpSDCard();
     queryPSRAM<false>();
 #endif
@@ -447,7 +447,7 @@ setup() {
     setupCache();
     theAddressTranslator.begin();
     delay(1000);
-#ifdef TYPE103_BOARD
+#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
     installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card
     SD.end();

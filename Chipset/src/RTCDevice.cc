@@ -41,7 +41,7 @@ TimerDevice::init() noexcept {
     }
     // make sure that INT0 is enabled as an output. Make it high
     pinMode<Pin::INT0_960_>(OUTPUT);
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) 
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
     // enable toggle mode
     bitSet(TCCR2A, COM2A0);
     bitClear(TCCR2A, COM2A1);
@@ -54,7 +54,6 @@ TimerDevice::init() noexcept {
     bitClear(TCCR2B, CS21);
     bitClear(TCCR2B, CS22);
     TCNT2 = 0;
-#elif defined(TYPE200_BOARD)
 #endif
     digitalWrite<Pin::INT0_960_, HIGH>();
     return available_;
@@ -68,11 +67,11 @@ TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
         case TimerDeviceOperations::UnixTime:
             return unixtimeCopy_.retrieveHalf(getOffset());
         case TimerDeviceOperations::SystemTimerPrescalar:
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) 
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)  || defined(TYPE203_BOARD)
             return static_cast<uint16_t>(TCCR2B & 0b111);
 #endif
         case TimerDeviceOperations::SystemTimerComparisonValue:
-#ifdef TYPE103_BOARD
+#if defined(TYPE103_BOARD) ||  defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
             return static_cast<uint16_t>(OCR2A);
 #endif
         default:
@@ -84,7 +83,7 @@ TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
     // do nothing
     switch (getCurrentOpcode()) {
         case TimerDeviceOperations::SystemTimerPrescalar: 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) 
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)  || defined(TYPE203_BOARD)
             {
                 uint8_t result = TCCR2B & 0b1111'1000;
                 result |= static_cast<uint8_t>(value & 0b111);
@@ -93,7 +92,7 @@ TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
             }
 #endif
         case TimerDeviceOperations::SystemTimerComparisonValue:
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) 
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)  || defined(TYPE203_BOARD)
             OCR2A = static_cast<uint8_t>(value);
             break;
 #endif

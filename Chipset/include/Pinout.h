@@ -222,6 +222,8 @@ enum class Port : byte {
 #endif
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
     Capture = A,
+#elif defined(TYPE203_BOARD)
+    Capture = K,
 #endif
 };
 constexpr auto numberOfAvailablePins() noexcept {

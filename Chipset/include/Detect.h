@@ -90,6 +90,8 @@ constexpr auto getXMEMEnd() noexcept {
 #    define TYPE104_BOARD
 #  elif BOARD_TYPE == 200
 #    define TYPE200_BOARD
+#  elif BOARD_TYPE == 203
+#    define TYPE203_BOARD
 #  else
 #    error "Unknown Board type defined!"
 #  endif

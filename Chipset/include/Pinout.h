@@ -207,7 +207,11 @@ Count = NUM_DIGITAL_PINS,
     ShieldA4 = PortC1,
     ShieldA5 = PortC0,
     PSRAM0 = ShieldD2,
+#ifdef TYPE203_BOARD
+    SD_EN = PortE3,
+#else
     SD_EN = ShieldD10,
+#endif
 };
 enum class Port : byte {
     // stop at mega2560 tier

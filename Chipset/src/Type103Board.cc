@@ -92,6 +92,13 @@ Platform::begin() noexcept {
         digitalWrite<Pin::Enable, HIGH>();
         // do an initial clear of the clock signal
         pulse<Pin::CLKSignal, LOW, HIGH>();
+#ifdef TYPE203_BOARD
+        pinMode<Pin::PortH5>(OUTPUT);
+        pinMode<Pin::PortH7>(OUTPUT);
+        digitalWrite<Pin::PortH5, HIGH>();
+        digitalWrite<Pin::PortH7, HIGH>();
+#endif
+
         MCP23S17::IOCON reg;
         reg.mirrorInterruptPins();
         reg.treatDeviceAsOne16BitPort();

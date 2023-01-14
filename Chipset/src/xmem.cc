@@ -29,42 +29,38 @@
 
 #include <avr/io.h>
 #include "xmem.h"
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#include <Arduino.h>
+#ifdef TYPE203_BOARD
 #include "BankSelection.h"
 #endif
 
-#if defined(ARDUINO) && ARDUINO >= 100
-#include <Arduino.h>
-#else
-#include <WProgram.h>
-#endif
 
 
 namespace xmem {
     namespace {
 
         constexpr auto getNumberOfBankHeapStates() noexcept {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
         return 16 + 64;
 #else
         return 0;
 #endif
     }
     constexpr auto getLastAddress() noexcept {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
     return RAMEND + 0x8000;
 #else
     return 0;
 #endif
 }
 constexpr auto getFirstAddress() noexcept {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
 return RAMEND + 1;
 #else
 return 0;
 #endif
 }
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
 static_assert(getLastAddress() == 0xA1FF);
 
         /**
@@ -85,7 +81,7 @@ static_assert(getLastAddress() == 0xA1FF);
 
 void begin(bool heapInXmem_) {
 
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
     // initialise the heap states
 
         // set up the xmem registers
@@ -124,7 +120,7 @@ void begin(bool heapInXmem_) {
  */
 
 void setMemoryBank(uint8_t bank_,bool switchHeap_) {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
     // check
         //Serial.print(F("Switching to bank: "));
         //Serial.println(bank_);
@@ -159,7 +155,7 @@ void setMemoryBank(uint8_t bank_,bool switchHeap_) {
  */
 
 void saveHeap(uint8_t bank_) {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
     bankHeapStates[bank_].__malloc_heap_start=__malloc_heap_start;
 		bankHeapStates[bank_].__malloc_heap_end=__malloc_heap_end;
 		bankHeapStates[bank_].__brkval=__brkval;
@@ -172,7 +168,7 @@ void saveHeap(uint8_t bank_) {
  */
 
 void restoreHeap(uint8_t bank_) {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
     __malloc_heap_start=bankHeapStates[bank_].__malloc_heap_start;
 		__malloc_heap_end=bankHeapStates[bank_].__malloc_heap_end;
 		__brkval=bankHeapStates[bank_].__brkval;
@@ -188,7 +184,7 @@ SelfTestResults selfTest() {
 
     // write an ascending sequence of 1..237 running through
     // all memory banks
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
     auto getStart = [](uint8_t bank) { return getLastAddress(); };
         auto getEnd = [](uint8_t bank) { return getFirstAddress(); };
 		volatile uint8_t *ptr;
@@ -237,7 +233,7 @@ SelfTestResults selfTest() {
 
 uint8_t
 getCurrentMemoryBank() noexcept {
-#ifdef I960_MEGA_MEMORY_CONTROLLER
+#ifdef TYPE203_BOARD
 return currentBank;
 #else
 return 0;

@@ -32,6 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "MCP23S17.h"
 #include "Peripheral.h"
+#ifdef TYPE203_BOARD
+#include "xmem.h"
+#endif
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 /**
@@ -140,6 +143,7 @@ Platform::begin() noexcept {
         digitalWrite<Pin::InternalBank3, LOW>();
         digitalWrite<Pin::FakeA15, LOW>();
         digitalWrite<Pin::RealA15, LOW>();
+        xmem::begin(true);
 #endif
     }
 }

@@ -505,7 +505,7 @@ struct CachePool<offsetBits, tagBits, 0, numberOfLines> {
     using CacheAddress = typename CacheReference::CacheAddress;
     using CacheLine = typename CacheReference::DataCacheLine;
     static constexpr auto NumberOfBanks = pow2(0);
-    void begin() noexcept {
+    void begin(byte = 0) noexcept {
         if (!initialized_) {
             initialized_ = true;
             pool_.begin();
@@ -536,7 +536,8 @@ using Pool12WayBanked = CachePool<4, 7, 4, 12>; // 32512 bytes per bank
 using Pool6WayBanked = CachePool<4, 8, 4, 6>; // 32768 bytes per bank used (will generate an error!)
 using Pool5WayBanked = CachePool<4, 8, 4, 5>; // 27392 bytes per bank used
 using Pool2WayBanked = CachePool<4, 9, 4, 2>; //
-using MemoryCache = Pool2WayBanked;
+//using MemoryCache = Pool2WayBanked;
+using MemoryCache = CachePool<4, 6, 0, 2>;
 //using MemoryCache = BasicDataCache<4, 7, 0, 2>;
 #else
 #error "Please correctly define internal cache size for target board"

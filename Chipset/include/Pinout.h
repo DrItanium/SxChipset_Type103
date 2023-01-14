@@ -93,7 +93,7 @@ Count = NUM_DIGITAL_PINS,
     Digital28 = PortA4,
     Digital29 = PortA5,
     Digital30 = PortA6,
-    Digital31 = PortA7, || defined(TYPE203_BOARD)
+    Digital31 = PortA7,
 #elif defined(TYPE203_BOARD)
     Digital0 = PortE2,
     Digital1 = PortE7,
@@ -127,6 +127,15 @@ Count = NUM_DIGITAL_PINS,
     Digital29 = PortK5,
     Digital30 = PortK6,
     Digital31 = PortK7,
+
+    InternalBank0 = PortL4,
+    InternalBank1 = PortL5,
+    InternalBank2 = PortL6,
+    InternalBank3 = PortL7,
+    FakeA15 = PortJ5,
+    RealA15 = PortC7,
+    Shield2Breakout_D0 = PortE0,
+    Shield2Breakout_D1 = PortE1,
 #else
 #   error "Unknown board type defined!"
 #endif

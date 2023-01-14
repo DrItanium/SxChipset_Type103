@@ -125,6 +125,22 @@ Platform::begin() noexcept {
         dataLinesDirection_ = MCP23S17::AllInput16;
         previousValue_.setWholeValue(0);
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
+#ifdef TYPE203_BOARD
+        XMCRB = 0b00000'001; // need 32k, one pin released
+        XMCRA = 0b1'100'00'00; // put in one cycle wait states
+        pinMode<Pin::InternalBank0>(OUTPUT);
+        pinMode<Pin::InternalBank1>(OUTPUT);
+        pinMode<Pin::InternalBank2>(OUTPUT);
+        pinMode<Pin::InternalBank3>(OUTPUT);
+        pinMode<Pin::FakeA15>(OUTPUT);
+        pinMode<Pin::RealA15>(OUTPUT);
+        digitalWrite<Pin::InternalBank0, LOW>();
+        digitalWrite<Pin::InternalBank1, LOW>();
+        digitalWrite<Pin::InternalBank2, LOW>();
+        digitalWrite<Pin::InternalBank3, LOW>();
+        digitalWrite<Pin::FakeA15, LOW>();
+        digitalWrite<Pin::RealA15, LOW>();
+#endif
     }
 }
 

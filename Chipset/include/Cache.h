@@ -535,7 +535,7 @@ private:
 //using MemoryCache = BasicDataCache<4, 8, 0, 2>;
 using MemoryCache = CachePool<4, 8, 0, 2>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-using MemoryCache = CachePool<4, 10, 4, 1>;
+using MemoryCache = CachePool<4, 7, 4, 8>;
 //using MemoryCache = BasicDataCache<4, 7, 0, 2>;
 #else
 #error "Please correctly define internal cache size for target board"

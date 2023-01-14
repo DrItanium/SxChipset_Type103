@@ -535,7 +535,10 @@ private:
 //using MemoryCache = BasicDataCache<4, 8, 0, 2>;
 using MemoryCache = CachePool<4, 8, 0, 2>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-using MemoryCache = CachePool<4, 6, 4, 12>;
+using Pool12WayBanked = CachePool<4, 7, 4, 12>; // 32512 bytes per bank
+using Pool6WayBanked = CachePool<4, 8, 4, 6>; // 32768 bytes per bank used (will generate an error!)
+using Pool5WayBanked = CachePool<4, 8, 4, 5>; // 27392 bytes per bank used
+using MemoryCache = Pool5WayBanked;
 //using MemoryCache = BasicDataCache<4, 7, 0, 2>;
 #else
 #error "Please correctly define internal cache size for target board"

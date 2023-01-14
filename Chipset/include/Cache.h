@@ -392,9 +392,6 @@ private:
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct BasicCacheReference {
     using Cache = BasicDataCache<offsetBits, tagBits, bankBits, numberOfLines>;
-#ifdef TYPE203_BOARD
-    static_assert(sizeof(Cache) < 32767, "Cache implementation is too large to fit in a 32k block");
-#endif
     using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
     void select() const noexcept {

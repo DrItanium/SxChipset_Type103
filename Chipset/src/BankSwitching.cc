@@ -31,6 +31,7 @@
 namespace External328Bus {
     void setBank(uint8_t bank) noexcept {
         // the 328 Bus is messed up on the 203 board so only use the internal 512k sram
+        // I put a hole in PORTK which prevents the offsets into the banks from being properly defined
 #if 0
         // set the upper
         digitalWrite<Pin::FakeA15>(bank & 0b1 ? HIGH : LOW);
@@ -41,7 +42,7 @@ namespace External328Bus {
     }
     void begin() noexcept {
 #if 0
-        static constexpr auto PinList[] {
+        static constexpr Pin PinList[] {
             Pin::PortF0,
             Pin::PortF1,
             Pin::PortF2,

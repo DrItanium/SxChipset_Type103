@@ -41,11 +41,12 @@ namespace xmem {
 
         constexpr auto getNumberOfBankHeapStates() noexcept {
 #ifdef TYPE203_BOARD
-        return 16 + 64;
+        return 16;
 #else
         return 0;
 #endif
     }
+
     constexpr auto getLastAddress() noexcept {
 #ifdef TYPE203_BOARD
     return RAMEND + 0x8000;
@@ -87,7 +88,7 @@ void begin(bool heapInXmem_) {
         // set up the xmem registers
         XMCRB=0b00000'001; // need 32k. one pin released
         XMCRA=0b1'100'00'00; // put in one cycle wait states
-        pinMode(RealA15, OUTPUT);
+        pinMode<Pin::RealA15>(OUTPUT);
         InternalBus::begin();
         External328Bus::begin();
         InternalBus::select();

@@ -39,6 +39,10 @@ getCache() noexcept {
 }
 void 
 setupCache() noexcept {
+#ifdef TYPE203_BOARD
+    cache.begin(0);
+#else
     cache.begin();
+#endif
     cache.clear();
 }

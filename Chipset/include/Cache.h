@@ -346,6 +346,12 @@ struct BasicDataCache {
             set.begin();
         }
     }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return reinterpret_cast<byte*>(cache);
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return sizeof(cache);
+    }
 private:
     DataCacheSet cache[NumberOfSets];
 };
@@ -373,6 +379,12 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, 1> {
             set.begin();
         }
     }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return reinterpret_cast<byte*>(cache);
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return sizeof(cache);
+    }
 private:
     DataCacheLine cache[NumberOfSets];
 };
@@ -385,7 +397,7 @@ struct BasicCacheReference {
 #endif
     using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
-    void select() {
+    void select() const noexcept {
         if (initialized_) {
             xmem::setMemoryBank(index_);
         }
@@ -409,6 +421,14 @@ struct BasicCacheReference {
     void clear() noexcept {
         select();
         ptr_->clear();
+    }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        select();
+        return ptr_->asBuffer();
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        select();
+        return ptr_->sizeOfBuffer();
     }
 private:
     bool initialized_ = false;
@@ -435,6 +455,12 @@ struct BasicCacheReference<offsetBits, tagBits, 0, numberOfLines> {
     }
     void clear() noexcept {
         ptr_.clear();
+    }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return ptr_.asBuffer();
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return ptr_.sizeOfBuffer();
     }
 private:
     bool initialized_ = false;
@@ -464,6 +490,12 @@ struct CachePool {
             pool_[i].clear();
         }
     }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return pool_[0].asBuffer();
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return pool_[0].sizeOfBuffer();
+    }
 private:
     bool initialized_ = false;
     byte bankOffset_ = 0;
@@ -489,6 +521,12 @@ struct CachePool<offsetBits, tagBits, 0, numberOfLines> {
     void clear()  {
         pool_.clear();
     }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return pool_.asBuffer();
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return pool_.sizeOfBuffer();
+    }
 private:
     bool initialized_ = false;
     CacheReference pool_;
@@ -497,7 +535,8 @@ private:
 //using MemoryCache = BasicDataCache<4, 8, 0, 2>;
 using MemoryCache = CachePool<4, 8, 0, 2>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-using MemoryCache = BasicDataCache<4, 7, 0, 2>;
+using MemoryCache = CachePool<4, 8, 4, 2>;
+//using MemoryCache = BasicDataCache<4, 7, 0, 2>;
 #else
 #error "Please correctly define internal cache size for target board"
 #endif

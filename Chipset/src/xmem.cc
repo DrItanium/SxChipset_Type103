@@ -87,7 +87,8 @@ void begin(bool heapInXmem_) {
 
         // set up the xmem registers
         XMCRB=0b00000'001; // need 32k. one pin released
-        XMCRA=0b1'100'00'00; // put in one cycle wait states
+        //XMCRA=0b1'100'00'00; // put in one cycle wait states
+        XMCRA=0b1'000'00'00; // put in zero cycle wait states
         pinMode<Pin::RealA15>(OUTPUT);
         InternalBus::begin();
         External328Bus::begin();

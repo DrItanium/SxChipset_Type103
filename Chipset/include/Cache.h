@@ -395,20 +395,15 @@ struct BasicCacheReference {
     using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
     void select() const noexcept {
-        if (initialized_) {
-            xmem::setMemoryBank(index_);
-        }
+        xmem::setMemoryBank(index_);
     }
     void begin(byte index) noexcept {
-        if (!initialized_) {
-            Serial.print(F("Sizeof cache = "));
-            Serial.println(sizeof(Cache));
-            initialized_ = true;
-            index_ = index;
-            select();
-            ptr_ = new Cache();
-            ptr_->begin();
-        }
+        Serial.print(F("Sizeof cache = "));
+        Serial.println(sizeof(Cache));
+        index_ = index;
+        select();
+        ptr_ = new Cache();
+        ptr_->begin();
     }
     auto& find(CacheAddress addr, bool skipLoadingFromMainMemory = false) noexcept {
         // make sure we select this bank before we jump to the pointer
@@ -428,7 +423,6 @@ struct BasicCacheReference {
         return ptr_->sizeOfBuffer();
     }
 private:
-    bool initialized_ = false;
     byte index_ = 0;
     Cache* ptr_ = nullptr;
 };
@@ -439,12 +433,9 @@ struct BasicCacheReference<offsetBits, tagBits, 0, numberOfLines> {
     using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
     void begin() noexcept {
-        if (!initialized_) {
-            Serial.print(F("Sizeof cache = "));
-            Serial.println(sizeof(Cache));
-            initialized_ = true;
-            ptr_.begin();
-        }
+        Serial.print(F("Sizeof cache = "));
+        Serial.println(sizeof(Cache));
+        ptr_.begin();
     }
     inline auto& find(CacheAddress addr, bool skipLoadingFromMainMemory = false) noexcept {
         // make sure we select this bank before we jump to the pointer
@@ -460,7 +451,6 @@ struct BasicCacheReference<offsetBits, tagBits, 0, numberOfLines> {
         return ptr_.sizeOfBuffer();
     }
 private:
-    bool initialized_ = false;
     Cache ptr_;
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
@@ -470,12 +460,9 @@ struct CachePool {
     using CacheLine = typename CacheReference::DataCacheLine;
     static constexpr auto NumberOfBanks = pow2(bankBits);
     void begin(byte bankOffset) noexcept {
-        if (!initialized_) {
-            initialized_ = true;
-            bankOffset_ = bankOffset;
-            for (int i = 0, j = bankOffset_; i < NumberOfBanks; ++i, ++j) {
-                pool_[i].begin(j);
-            }
+        bankOffset_ = bankOffset;
+        for (int i = 0, j = bankOffset_; i < NumberOfBanks; ++i, ++j) {
+            pool_[i].begin(j);
         }
     }
     inline auto& find(const SplitWord32& address, bool skipLoadingFromMainMemory = false) noexcept {
@@ -494,7 +481,6 @@ struct CachePool {
         return pool_[0].sizeOfBuffer();
     }
 private:
-    bool initialized_ = false;
     byte bankOffset_ = 0;
     CacheReference pool_[NumberOfBanks];
 };
@@ -506,10 +492,7 @@ struct CachePool<offsetBits, tagBits, 0, numberOfLines> {
     using CacheLine = typename CacheReference::DataCacheLine;
     static constexpr auto NumberOfBanks = pow2(0);
     void begin(byte = 0) noexcept {
-        if (!initialized_) {
-            initialized_ = true;
-            pool_.begin();
-        }
+        pool_.begin();
     }
     inline auto& find(const SplitWord32& address, bool skipLoadingFromMainMemory = false) noexcept {
         CacheAddress addr(address);
@@ -525,20 +508,23 @@ struct CachePool<offsetBits, tagBits, 0, numberOfLines> {
         return pool_.sizeOfBuffer();
     }
 private:
-    bool initialized_ = false;
     CacheReference pool_;
 };
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
 //using MemoryCache = BasicDataCache<4, 8, 0, 2>;
 using MemoryCache = CachePool<4, 8, 0, 2>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-using Pool12WayBanked = CachePool<4, 7, 4, 12>; // 32512 bytes per bank
-using Pool6WayBanked = CachePool<4, 8, 4, 6>; // 32768 bytes per bank used (will generate an error!)
-using Pool5WayBanked = CachePool<4, 8, 4, 5>; // 27392 bytes per bank used
-using Pool2WayBanked = CachePool<4, 9, 4, 2>; //
-//using MemoryCache = Pool2WayBanked;
-using MemoryCache = CachePool<4, 6, 0, 2>;
-//using MemoryCache = BasicDataCache<4, 7, 0, 2>;
+constexpr auto NumberOfBankBits = 3;
+template<uint8_t bankBitCount>
+using Pool12WayBanked = CachePool<4, 7, bankBitCount, 12>; // 32512 bytes per bank
+template<uint8_t bankBitCount>
+using Pool6WayBanked = CachePool<4, 8, bankBitCount, 6>; // 32768 bytes per bank used (will generate an error!)
+template<uint8_t bankBitCount>
+using Pool5WayBanked = CachePool<4, 8, bankBitCount, 5>; // 27392 bytes per bank used
+template<uint8_t bankBitCount>
+using Pool2WayBanked = CachePool<4, 9, bankBitCount, 2>; //
+
+using MemoryCache = Pool12WayBanked<NumberOfBankBits>;
 #else
 #error "Please correctly define internal cache size for target board"
 #endif

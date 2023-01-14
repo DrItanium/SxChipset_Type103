@@ -124,31 +124,22 @@ void begin(bool heapInXmem_) {
 void setMemoryBank(uint8_t bank_,bool switchHeap_) {
 #ifdef TYPE203_BOARD
     // check
-        //Serial.print(F("Switching to bank: "));
-        //Serial.println(bank_);
-		if(bank_==currentBank)
-			return;
+		if(bank_!=currentBank) {
+            // save heap state if requested
 
-		// save heap state if requested
-
-		if(switchHeap_)
-			saveHeap(currentBank);
-
-		// switch in the new bank
-
-        if (bank_ < 16) {
+            if (switchHeap_) {
+                saveHeap(currentBank);
+            }
+            // switch in the new bank
             InternalBus::setBank(bank_);
             InternalBus::select();
-        } else {
-            External328Bus::setBank(bank_ - 16);
-            External328Bus::select();
+            // save state and restore the malloc settings for this bank
+            currentBank = bank_;
+
+            if (switchHeap_) {
+                restoreHeap(currentBank);
+            }
         }
-		// save state and restore the malloc settings for this bank
-
-		currentBank=bank_;
-
-		if(switchHeap_)
-			restoreHeap(currentBank);
 #endif
 }
 
@@ -158,10 +149,10 @@ void setMemoryBank(uint8_t bank_,bool switchHeap_) {
 
 void saveHeap(uint8_t bank_) {
 #ifdef TYPE203_BOARD
-    bankHeapStates[bank_].__malloc_heap_start=__malloc_heap_start;
-		bankHeapStates[bank_].__malloc_heap_end=__malloc_heap_end;
-		bankHeapStates[bank_].__brkval=__brkval;
-		bankHeapStates[bank_].__flp=__flp;
+        bankHeapStates[bank_].__malloc_heap_start=__malloc_heap_start;
+        bankHeapStates[bank_].__malloc_heap_end=__malloc_heap_end;
+        bankHeapStates[bank_].__brkval=__brkval;
+        bankHeapStates[bank_].__flp=__flp;
 #endif
 }
 
@@ -171,10 +162,10 @@ void saveHeap(uint8_t bank_) {
 
 void restoreHeap(uint8_t bank_) {
 #ifdef TYPE203_BOARD
-    __malloc_heap_start=bankHeapStates[bank_].__malloc_heap_start;
-		__malloc_heap_end=bankHeapStates[bank_].__malloc_heap_end;
-		__brkval=bankHeapStates[bank_].__brkval;
-		__flp=bankHeapStates[bank_].__flp;
+        __malloc_heap_start=bankHeapStates[bank_].__malloc_heap_start;
+        __malloc_heap_end=bankHeapStates[bank_].__malloc_heap_end;
+        __brkval=bankHeapStates[bank_].__brkval;
+        __flp=bankHeapStates[bank_].__flp;
 #endif
 }
 /*

@@ -153,25 +153,9 @@ struct BasicDataCacheLine {
         return words;
     }
     inline uint16_t getWord(byte offset) const noexcept {
-        auto result = words[offset].getWholeValue();
-        if constexpr (EnableCacheDebugging) {
-            Serial.print(F("getWord("));
-            Serial.print(offset);
-            Serial.print(F("): 0x"));
-            Serial.println(result, HEX);
-        }
-        return result;
+        return words[offset].getWholeValue();
     }
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
-        if constexpr (EnableCacheDebugging) {
-            Serial.print(F("setWord("));
-            Serial.print(offset);
-            Serial.print(F(", 0x"));
-            Serial.print(value, HEX);
-            Serial.print(F(", 0x"));
-            Serial.print(static_cast<byte>(style), HEX);
-            Serial.println(F(")"));
-        }
         flags_.dirty_ = true;
         switch (style) {
             case EnableStyle::Full16:

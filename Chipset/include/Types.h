@@ -39,6 +39,7 @@ extern SdFat SD;
 constexpr auto OffsetSize = 4; // 16-byte line
 enum class IOGroup : byte{
     Peripherals,
+    InternalStorage,
     Undefined,
 };
 static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");

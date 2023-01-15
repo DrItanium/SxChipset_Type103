@@ -469,6 +469,77 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWayBitPLRU> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 4;
+    inline void begin() noexcept {
+        bits_ = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+        for (byte i = 0; i < NumberOfLines; ++i) {
+            if (auto& line = lines[i]; line.matches(address)) {
+                updateFlags(i);
+                return line;
+            }
+        }
+        auto index = getTargetLine();
+        auto& target = lines[index];
+        updateFlags(index);
+        target.reset(address, dontLoadOnMiss);
+        return target;
+    }
+    inline uint8_t getTargetLine() const noexcept {
+        // return the left most line whose flag bit is zero
+        static constexpr uint8_t IndexTable[16] {
+            3, // 0b0000
+            3, // 0b0001
+            3, // 0b0010
+            3, // 0b0011
+            3, // 0b0100
+            3, // 0b0101
+            3, // 0b0110
+            3, // 0b0111
+            2, // 0b1000
+            2, // 0b1001
+            2, // 0b1010
+            2, // 0b1011
+            1, // 0b1100
+            1, // 0b1101
+            0, // 0b1110
+            0, // 0b1111
+        };
+        return IndexTable[bits_];
+    }
+    inline void updateFlags(uint8_t index) noexcept {
+        // set the node flags to denote the direction that is opposite to the direction taken
+        static constexpr uint8_t MaskTable[] {
+                _BV(0),
+                _BV(1),
+                _BV(2),
+                _BV(3),
+        };
+        auto targetBits = MaskTable[index & 0b11];
+        bits_ |= targetBits;
+        if (bits_ == 0b1111) {
+            bits_ = targetBits;
+        }
+    }
+    inline void clear() noexcept {
+        bits_ = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    uint8_t bits_ : 4;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightWayTreePLRU> {
     // use MRU instead of round robin
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
@@ -982,7 +1053,7 @@ using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 8;
-constexpr auto OffChipSetConfiguration = SetConfiguration::FourWayTreePLRU;
+constexpr auto OffChipSetConfiguration = SetConfiguration::FourWayBitPLRU;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
 constexpr auto OnChipTagBits = 7;

@@ -841,8 +841,8 @@ using Pool1WayBanked = CachePool<4, 10, bankBitCount, SetConfiguration::DirectMa
 
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 7;
-constexpr auto NumberOfWays = SetConfiguration::FourWayTreePLRU;
+constexpr auto NumberOfTagBits = 8;
+constexpr auto NumberOfWays = SetConfiguration::RandomReplacement4;
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 using MemoryCache = ConfigurableMemoryCache;
 #else

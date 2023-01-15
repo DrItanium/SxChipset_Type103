@@ -212,6 +212,7 @@ private:
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
 struct BasicDataCacheSet {
+    static_assert(numberOfLines < 0x80, "Too many lines defined!");
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = numberOfLines;
@@ -252,6 +253,8 @@ private:
 enum class SpecialSetConfigurations : uint8_t {
     TwoWayLRU = 0x80,
     TwoWayMRU,
+    FourWayTreePLRU,
+    FourWayBitPLRU,
 };
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, static_cast<uint8_t>(SpecialSetConfigurations::TwoWayLRU)> {
@@ -335,6 +338,89 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, static_cast<uint8_t>(Spe
 private:
     DataCacheLine lines[NumberOfLines];
     byte replacementTarget_ : 1;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, static_cast<uint8_t>(SpecialSetConfigurations::FourWayTreePLRU)> {
+    // use MRU instead of round robin
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 4;
+    // translate from a bit pattern to a target address to access and then choose the opposite of
+    // the target
+    static constexpr byte TranslationTable[] {
+        0, // 0b0 x 0 (go left and choose left)
+        1, // 0b0 x 1 (go right and choose right)
+        0, // 0b0 x 0 (go left and choose left)
+        1, // 0b0 x 1 (go right and choose right)
+
+        2, // 0b1 0 x (go right and choose left)
+        2, // 0b1 0 x (go right and choose left )
+        3, // 0b1 1 x (go right and choose right)
+        3, // 0b1 1 x (go right and choose right)
+    };
+    inline void begin() noexcept {
+        flags_.reg = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            if (auto& line = lines[i]; line.matches(address)) {
+                updateFlags(i);
+                return line;
+            }
+        }
+        auto index = getTargetLine();
+        auto& target = lines[index];
+        updateFlags(index);
+        target.reset(address, dontLoadOnMiss);
+        return target;
+    }
+    inline uint8_t getTargetLine() const noexcept {
+        return TranslationTable[flags_.code];
+    }
+    inline void updateFlags(uint8_t index) noexcept {
+        // set the node flags to denote the direction that is opposite to the direction taken
+        switch (index & 0b11) {
+            case 0: // 0b00
+                flags_.top = 1;
+                flags_.left = 1;
+                break;
+            case 1: // 0b01
+                flags_.top = 1;
+                flags_.left = 0;
+                break;
+            case 2: // 0b10
+                flags_.top = 0;
+                flags_.right = 1;
+                break;
+            case 3: // 0b11
+                flags_.top = 0;
+                flags_.right = 0;
+                break;
+        }
+    }
+    inline void clear() noexcept {
+        flags_.reg = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    union {
+        uint8_t reg;
+        struct {
+            uint8_t left : 1;
+            uint8_t right : 1;
+            uint8_t top : 1;
+        };
+        struct {
+            uint8_t code : 3;
+        };
+    } flags_;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
@@ -563,8 +649,8 @@ using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
 
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 9;
-constexpr auto NumberOfWays = SpecialSetConfigurations::TwoWayMRU; // hack to enable 2 way MRU
+constexpr auto NumberOfTagBits = 8;
+constexpr auto NumberOfWays = SpecialSetConfigurations::FourWayTreePLRU;
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, static_cast<uint8_t>(NumberOfWays)>;
 using MemoryCache = ConfigurableMemoryCache;
 #else

@@ -599,22 +599,22 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
         // return the left most line whose flag bit is zero
         static constexpr uint8_t IndexTable[256] {
 #define X(base) \
-                computeTargetBit((8 * base) + 0 ),  \
-                computeTargetBit((8 * base) + 1 ), \
-                computeTargetBit((8 * base) + 2 ), \
-                computeTargetBit((8 * base) + 3 ), \
-                computeTargetBit((8 * base) + 4 ), \
-                computeTargetBit((8 * base) + 5 ), \
-                computeTargetBit((8 * base) + 6 ), \
-                computeTargetBit((8 * base) + 7 ), \
-                computeTargetBit((8 * base) + 8 ),  \
-                computeTargetBit((8 * base) + 9 ), \
-                computeTargetBit((8 * base) + 10 ), \
-                computeTargetBit((8 * base) + 11 ), \
-                computeTargetBit((8 * base) + 12 ), \
-                computeTargetBit((8 * base) + 13 ), \
-                computeTargetBit((8 * base) + 14 ), \
-                computeTargetBit((8 * base) + 15 )
+                computeTargetBit((16 * base) + 0 ),  \
+                computeTargetBit((16 * base) + 1 ), \
+                computeTargetBit((16 * base) + 2 ), \
+                computeTargetBit((16 * base) + 3 ), \
+                computeTargetBit((16 * base) + 4 ), \
+                computeTargetBit((16 * base) + 5 ), \
+                computeTargetBit((16 * base) + 6 ), \
+                computeTargetBit((16 * base) + 7 ), \
+                computeTargetBit((16 * base) + 8 ),  \
+                computeTargetBit((16 * base) + 9 ), \
+                computeTargetBit((16 * base) + 10 ), \
+                computeTargetBit((16 * base) + 11 ), \
+                computeTargetBit((16 * base) + 12 ), \
+                computeTargetBit((16 * base) + 13 ), \
+                computeTargetBit((16 * base) + 14 ), \
+                computeTargetBit((16 * base) + 15 )
             X(0),
             X(1),
             X(2),
@@ -1179,8 +1179,8 @@ private:
 using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 4;
-constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 8;
+constexpr auto NumberOfOffsetBits = 6;
+constexpr auto NumberOfTagBits = 6;
 constexpr auto OffChipSetConfiguration = SetConfiguration::FourWayBitPLRU;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;

@@ -122,8 +122,10 @@ Platform::begin() noexcept {
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
         xmem::begin(true);
 #ifdef TYPE203_BOARD
-    pinMode<Pin::SearchLengthDetect>(OUTPUT);
-    digitalWrite<Pin::SearchLengthDetect, HIGH>();
+        pinMode<Pin::SearchLengthDetect>(OUTPUT);
+        digitalWrite<Pin::SearchLengthDetect, HIGH>();
+        pinMode<Pin::InCacheAccess>(OUTPUT);
+        digitalWrite<Pin::InCacheAccess, HIGH>();
 #endif
     }
 }

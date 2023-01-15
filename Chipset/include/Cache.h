@@ -982,9 +982,13 @@ using MemoryCache = CachePool<4, 8, 0, SetConfiguration::TwoWayLRU>;
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 7;
-constexpr auto NumberOfWays = SetConfiguration::RandomReplacement4;
-using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
-using MemoryCache = ConfigurableMemoryCache;
+constexpr auto OffChipSetConfiguration = SetConfiguration::RandomReplacement4;
+using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
+constexpr auto OnChipOffsetBits = 4;
+constexpr auto OnChipTagBits = 6;
+constexpr auto OnChipSetConfiguration = SetConfiguration::FourWayTreePLRU;
+using OnChipMemoryCache = CachePool<OnChipOffsetBits, OnChipTagBits, 0, OnChipSetConfiguration>;
+using MemoryCache = OnChipMemoryCache;
 #else
 #error "Please correctly define internal cache size for target board"
 #endif

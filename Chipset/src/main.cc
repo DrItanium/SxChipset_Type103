@@ -456,7 +456,7 @@ setup() {
 void 
 loop() {
     while (true) {
-        singleCycleDelay();
+        //singleCycleDelay();
         while (digitalRead<Pin::DEN>() == HIGH);
 #ifdef TYPE203_BOARD
         digitalWrite<Pin::InCacheAccess, LOW>();

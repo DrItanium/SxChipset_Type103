@@ -174,7 +174,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         Platform::startInlineSPIOperation();
     }
     while (true) {
-        singleCycleDelay();
+        //singleCycleDelay();
         // read it twice, otherwise we lose our minds
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
@@ -271,7 +271,6 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         const SplitWord16* ptr = line.getData();
         ptr += offset;
         while (true) {
-            singleCycleDelay();
             // okay it is a read operation, so... pull a cache line out
             Platform::setDataLines(ptr->getWholeValue(), InlineSPI{});
             if (digitalRead<Pin::BLAST_>() == LOW) {
@@ -280,6 +279,7 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
             }
             signalReady();
             ++ptr;
+            singleCycleDelay();
         }
         Platform::endInlineSPIOperation();
     } else {

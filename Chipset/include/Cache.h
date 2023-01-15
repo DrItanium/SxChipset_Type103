@@ -231,6 +231,7 @@ enum class SetConfiguration : uint8_t {
     TwoWayMRU,
     FourWayTreePLRU,
     FourWayBitPLRU,
+    EightWayTreePLRU,
 };
 constexpr bool requiresCustomImplementation(SetConfiguration cfg) noexcept {
     auto val = static_cast<uint8_t>(cfg);
@@ -368,12 +369,11 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWa
     static constexpr auto NumberOfLines = 4;
     // translate from a bit pattern to a target address to access and then choose the opposite of
     // the target
-    static constexpr byte TranslationTable[] {
+    static constexpr byte TranslationTable[8] {
         0, // 0b0 x 0 (go left and choose left)
         1, // 0b0 x 1 (go right and choose right)
         0, // 0b0 x 0 (go left and choose left)
         1, // 0b0 x 1 (go right and choose right)
-
         2, // 0b1 0 x (go right and choose left)
         2, // 0b1 0 x (go right and choose left )
         3, // 0b1 1 x (go right and choose right)
@@ -439,6 +439,254 @@ private:
         };
         struct {
             uint8_t code : 3;
+        };
+    } flags_;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightWayTreePLRU> {
+    // use MRU instead of round robin
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 8;
+    // translate from a bit pattern to a target address to access and then choose the opposite of
+    // the target
+    static constexpr byte TranslationTable[128] {
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            2, // 0b0 xxx 1 0 x (go right and choose left)
+            2, // 0b0 xxx 1 0 x (go right and choose left )
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            2, // 0b0 xxx 1 0 x (go right and choose left)
+            2, // 0b0 xxx 1 0 x (go right and choose left )
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            2, // 0b0 xxx 1 0 x (go right and choose left)
+            2, // 0b0 xxx 1 0 x (go right and choose left )
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            2, // 0b0 xxx 1 0 x (go right and choose left)
+            2, // 0b0 xxx 1 0 x (go right and choose left )
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            2, // 0b0 xxx 1 0 x (go right and choose left)
+            2, // 0b0 xxx 1 0 x (go right and choose left )
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            2, // 0b0 xxx 1 0 x (go right and choose left)
+            2, // 0b0 xxx 1 0 x (go right and choose left )
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            2, // 0b0 xxx 1 0 x (go right and choose left)
+            2, // 0b0 xxx 1 0 x (go right and choose left )
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            0, // 0b0 xxx 0 x 0 (go left and choose left)
+            1, // 0b0 xxx 0 x 1 (go right and choose right)
+            2, // 0b0 xxx 1 0 x (go right and choose left)
+            2, // 0b0 xxx 1 0 x (go right and choose left )
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+            3, // 0b0 xxx 1 1 x (go right and choose right)
+
+            // we added a second group of elements so lets get that setup as well
+
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            6, // 0b1 1 0 x xxx (go right and choose left)
+            6, // 0b1 1 0 x xxx (go right and choose left )
+            7, // 0b1 1 1 x xxx (go right and choose right)
+            7, // 0b1 1 1 x xxx (go right and choose right)
+
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            6, // 0b1 1 0 x xxx (go right and choose left)
+            6, // 0b1 1 0 x xxx (go right and choose left )
+            7, // 0b1 1 1 x xxx (go right and choose right)
+            7, // 0b1 1 1 x xxx (go right and choose right)
+
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            6, // 0b1 1 0 x xxx (go right and choose left)
+            6, // 0b1 1 0 x xxx (go right and choose left )
+            7, // 0b1 1 1 x xxx (go right and choose right)
+            7, // 0b1 1 1 x xxx (go right and choose right)
+
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            6, // 0b1 1 0 x xxx (go right and choose left)
+            6, // 0b1 1 0 x xxx (go right and choose left )
+            7, // 0b1 1 1 x xxx (go right and choose right)
+            7, // 0b1 1 1 x xxx (go right and choose right)
+
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            6, // 0b1 1 0 x xxx (go right and choose left)
+            6, // 0b1 1 0 x xxx (go right and choose left )
+            7, // 0b1 1 1 x xxx (go right and choose right)
+            7, // 0b1 1 1 x xxx (go right and choose right)
+
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            6, // 0b1 1 0 x xxx (go right and choose left)
+            6, // 0b1 1 0 x xxx (go right and choose left )
+            7, // 0b1 1 1 x xxx (go right and choose right)
+            7, // 0b1 1 1 x xxx (go right and choose right)
+
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            6, // 0b1 1 0 x xxx (go right and choose left)
+            6, // 0b1 1 0 x xxx (go right and choose left )
+            7, // 0b1 1 1 x xxx (go right and choose right)
+            7, // 0b1 1 1 x xxx (go right and choose right)
+
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            4, // 0b1 0 x 0 xxx (go left and choose left)
+            5, // 0b1 0 x 1 xxx (go right and choose right)
+            6, // 0b1 1 0 x xxx (go right and choose left)
+            6, // 0b1 1 0 x xxx (go right and choose left )
+            7, // 0b1 1 1 x xxx (go right and choose right)
+            7, // 0b1 1 1 x xxx (go right and choose right)
+
+    };
+    inline void begin() noexcept {
+        flags_.reg = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            if (auto& line = lines[i]; line.matches(address)) {
+                updateFlags(i);
+                return line;
+            }
+        }
+        auto index = getTargetLine();
+        auto& target = lines[index];
+        updateFlags(index);
+        target.reset(address, dontLoadOnMiss);
+        return target;
+    }
+    inline uint8_t getTargetLine() const noexcept {
+        return TranslationTable[flags_.code];
+    }
+    inline void updateFlags(uint8_t index) noexcept {
+        // set the node flags to denote the direction that is opposite to the direction taken
+        switch (index & 0b111) {
+            case 0: // 0b000
+                flags_.top0 = 1;
+                flags_.left0 = 1;
+                flags_.start = 1;
+                break;
+            case 1: // 0b001
+                flags_.top0 = 1;
+                flags_.left0 = 0;
+                flags_.start = 1;
+                break;
+            case 2: // 0b010
+                flags_.top0 = 0;
+                flags_.right0 = 1;
+                flags_.start = 1;
+                break;
+            case 3: // 0b011
+                flags_.top0 = 0;
+                flags_.right0 = 0;
+                flags_.start = 1;
+                break;
+            case 4: // 0b100
+                flags_.top1 = 1;
+                flags_.left1 = 1;
+                flags_.start = 0;
+                break;
+            case 5: // 0b101
+                flags_.top1 = 1;
+                flags_.left1 = 0;
+                flags_.start = 0;
+                break;
+            case 6: // 0b110
+                flags_.top1 = 0;
+                flags_.right1 = 1;
+                flags_.start = 0;
+                break;
+            case 7: // 0b111
+                flags_.top1 = 0;
+                flags_.right1 = 0;
+                flags_.start = 0;
+                break;
+        }
+    }
+    inline void clear() noexcept {
+        flags_.reg = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    union {
+        uint8_t reg;
+        struct {
+            uint8_t left0 : 1;
+            uint8_t right0 : 1;
+            uint8_t top0 : 1;
+            uint8_t left1 : 1;
+            uint8_t right1 : 1;
+            uint8_t top1 : 1;
+            uint8_t start : 1;
+        };
+        struct {
+            uint8_t code : 7;
         };
     } flags_;
 };
@@ -668,8 +916,8 @@ using Pool1WayBanked = CachePool<4, 10, bankBitCount, SetConfiguration::DirectMa
 
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 8;
-constexpr auto NumberOfWays = SetConfiguration::FourWayTreePLRU;
+constexpr auto NumberOfTagBits = 7;
+constexpr auto NumberOfWays = SetConfiguration::EightWayTreePLRU;
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 using MemoryCache = ConfigurableMemoryCache;
 #else

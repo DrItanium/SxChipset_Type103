@@ -505,7 +505,6 @@ private:
 //using MemoryCache = BasicDataCache<4, 8, 0, 2>;
 using MemoryCache = CachePool<4, 8, 0, 2>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-constexpr auto NumberOfBankBits = 3;
 template<uint8_t bankBitCount>
 using Pool12WayBanked = CachePool<4, 7, bankBitCount, 12>; // 322 bytes per bank
 template<uint8_t bankBitCount>
@@ -517,7 +516,15 @@ using Pool2WayBanked = CachePool<4, 9, bankBitCount, 2>; //
 template<uint8_t bankBitCount>
 using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
 
-using MemoryCache = Pool2WayBanked<NumberOfBankBits>;
+constexpr auto NumberOfBankBits = 2;
+constexpr auto NumberOfOffsetBits = 5;
+constexpr auto NumberOfTagBits = 7;
+constexpr auto NumberOfWays = 8;
+using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
+
+using OnChipMemoryCache = CachePool<4, 8, 0, 1>;
+
+using MemoryCache = ConfigurableMemoryCache;
 #else
 #error "Please correctly define internal cache size for target board"
 #endif

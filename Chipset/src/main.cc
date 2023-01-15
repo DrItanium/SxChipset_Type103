@@ -207,11 +207,12 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             // so we are writing to the cache
             handler.write(c0, value);
         }
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
+        //auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        if (digitalRead<Pin::BLAST_>() == LOW) {
+            signalReady();
             break;
         } else {
+            signalReady();
             handler.next();
         }
         singleCycleDelay(); // put this in to make sure we never over run anything

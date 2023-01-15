@@ -517,7 +517,7 @@ using Pool2WayBanked = CachePool<4, 9, bankBitCount, 2>; //
 template<uint8_t bankBitCount>
 using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
 
-using MemoryCache = Pool12WayBanked<NumberOfBankBits>;
+using MemoryCache = Pool2WayBanked<NumberOfBankBits>;
 #else
 #error "Please correctly define internal cache size for target board"
 #endif

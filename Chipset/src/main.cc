@@ -332,7 +332,13 @@ handleIOOperation(const SplitWord32& addr) noexcept {
 inline void
 handleTransaction() noexcept {
     Platform::startAddressTransaction();
+#ifdef TYPE203_BOARD
+    digitalWrite<Pin::InCacheAccess, LOW>();
+#endif
     Platform::collectAddress();
+#ifdef TYPE203_BOARD
+    digitalWrite<Pin::InCacheAccess, HIGH>();
+#endif
     Platform::endAddressTransaction();
     auto virtualAddress = Platform::getAddress();
     auto addr = theAddressTranslator.translate(virtualAddress);
@@ -358,17 +364,11 @@ handleTransaction() noexcept {
             handleIOOperation<false>(addr);
         }
     } else {
-#ifdef TYPE203_BOARD
-        digitalWrite<Pin::InCacheAccess, LOW>();
-#endif
         if (Platform::isReadOperation()) {
             talkToi960<true>(addr, TreatAsCacheAccess{});
         } else {
             talkToi960<false>(addr, TreatAsCacheAccess{});
         }
-#ifdef TYPE203_BOARD
-        digitalWrite<Pin::InCacheAccess, HIGH>();
-#endif
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0

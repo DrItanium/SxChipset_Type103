@@ -448,153 +448,25 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
     static constexpr auto NumberOfLines = 8;
     // translate from a bit pattern to a target address to access and then choose the opposite of
     // the target
-    static constexpr byte TranslationTable[128] {
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            2, // 0b0 xxx 1 0 x (go right and choose left)
-            2, // 0b0 xxx 1 0 x (go right and choose left )
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            2, // 0b0 xxx 1 0 x (go right and choose left)
-            2, // 0b0 xxx 1 0 x (go right and choose left )
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            2, // 0b0 xxx 1 0 x (go right and choose left)
-            2, // 0b0 xxx 1 0 x (go right and choose left )
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            2, // 0b0 xxx 1 0 x (go right and choose left)
-            2, // 0b0 xxx 1 0 x (go right and choose left )
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            2, // 0b0 xxx 1 0 x (go right and choose left)
-            2, // 0b0 xxx 1 0 x (go right and choose left )
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            2, // 0b0 xxx 1 0 x (go right and choose left)
-            2, // 0b0 xxx 1 0 x (go right and choose left )
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            2, // 0b0 xxx 1 0 x (go right and choose left)
-            2, // 0b0 xxx 1 0 x (go right and choose left )
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            0, // 0b0 xxx 0 x 0 (go left and choose left)
-            1, // 0b0 xxx 0 x 1 (go right and choose right)
-            2, // 0b0 xxx 1 0 x (go right and choose left)
-            2, // 0b0 xxx 1 0 x (go right and choose left )
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-            3, // 0b0 xxx 1 1 x (go right and choose right)
-
-            // we added a second group of elements so lets get that setup as well
-
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            6, // 0b1 1 0 x xxx (go right and choose left)
-            6, // 0b1 1 0 x xxx (go right and choose left )
-            7, // 0b1 1 1 x xxx (go right and choose right)
-            7, // 0b1 1 1 x xxx (go right and choose right)
-
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            6, // 0b1 1 0 x xxx (go right and choose left)
-            6, // 0b1 1 0 x xxx (go right and choose left )
-            7, // 0b1 1 1 x xxx (go right and choose right)
-            7, // 0b1 1 1 x xxx (go right and choose right)
-
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            6, // 0b1 1 0 x xxx (go right and choose left)
-            6, // 0b1 1 0 x xxx (go right and choose left )
-            7, // 0b1 1 1 x xxx (go right and choose right)
-            7, // 0b1 1 1 x xxx (go right and choose right)
-
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            6, // 0b1 1 0 x xxx (go right and choose left)
-            6, // 0b1 1 0 x xxx (go right and choose left )
-            7, // 0b1 1 1 x xxx (go right and choose right)
-            7, // 0b1 1 1 x xxx (go right and choose right)
-
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            6, // 0b1 1 0 x xxx (go right and choose left)
-            6, // 0b1 1 0 x xxx (go right and choose left )
-            7, // 0b1 1 1 x xxx (go right and choose right)
-            7, // 0b1 1 1 x xxx (go right and choose right)
-
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            6, // 0b1 1 0 x xxx (go right and choose left)
-            6, // 0b1 1 0 x xxx (go right and choose left )
-            7, // 0b1 1 1 x xxx (go right and choose right)
-            7, // 0b1 1 1 x xxx (go right and choose right)
-
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            6, // 0b1 1 0 x xxx (go right and choose left)
-            6, // 0b1 1 0 x xxx (go right and choose left )
-            7, // 0b1 1 1 x xxx (go right and choose right)
-            7, // 0b1 1 1 x xxx (go right and choose right)
-
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            4, // 0b1 0 x 0 xxx (go left and choose left)
-            5, // 0b1 0 x 1 xxx (go right and choose right)
-            6, // 0b1 1 0 x xxx (go right and choose left)
-            6, // 0b1 1 0 x xxx (go right and choose left )
-            7, // 0b1 1 1 x xxx (go right and choose right)
-            7, // 0b1 1 1 x xxx (go right and choose right)
-
+    static constexpr byte TranslationTableReduced[8] {
+            0, // 0b0 x 0 (go left and choose left)
+            1, // 0b0 x 1 (go right and choose right)
+            0, // 0b0 x 0 (go left and choose left)
+            1, // 0b0 x 1 (go right and choose right)
+            2, // 0b1 0 x (go right and choose left)
+            2, // 0b1 0 x (go right and choose left )
+            3, // 0b1 1 x (go right and choose right)
+            3, // 0b1 1 x (go right and choose right)
+    };
+    static constexpr byte TranslationTableReduced2[8] {
+            4, // 0b0 x 0 (go left and choose left)
+            5, // 0b0 x 1 (go right and choose right)
+            4, // 0b0 x 0 (go left and choose left)
+            5, // 0b0 x 1 (go right and choose right)
+            6, // 0b1 0 x (go right and choose left)
+            6, // 0b1 0 x (go right and choose left )
+            7, // 0b1 1 x (go right and choose right)
+            7, // 0b1 1 x (go right and choose right)
     };
     inline void begin() noexcept {
         reg = 0;
@@ -616,7 +488,11 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
         return target;
     }
     [[nodiscard]] constexpr inline uint8_t getTargetLine() const noexcept {
-        return TranslationTable[reg];
+        if (start == 0) {
+            return TranslationTableReduced[group0];
+        } else {
+            return TranslationTableReduced2[group1];
+        }
     }
     inline void updateFlags(uint8_t index) noexcept {
         // set the node flags to denote the direction that is opposite to the direction taken
@@ -681,6 +557,10 @@ private:
             uint8_t right1 : 1;
             uint8_t top1 : 1;
             uint8_t start : 1;
+        };
+        struct {
+            uint8_t group0 : 3;
+            uint8_t group1 : 3;
         };
     } ;
 };

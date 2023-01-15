@@ -238,7 +238,7 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
     // so instead, we want to unpack it to make sure
     auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
     while (true) {
-        singleCycleDelay();
+        //singleCycleDelay();
         // read it twice, otherwise we lose our minds
         auto c0 = readInputChannelAs<Channel0Value, true>();
         line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());

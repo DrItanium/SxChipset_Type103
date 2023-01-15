@@ -249,8 +249,12 @@ private:
     DataCacheLine lines[NumberOfLines];
     byte replacementIndex_;
 };
+enum class SpecialSetConfigurations : uint8_t {
+    TwoWayLRU = 0x80,
+    TwoWayMRU,
+};
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, static_cast<uint8_t>(SpecialSetConfigurations::TwoWayLRU)> {
     // use LRU instead of round robin
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
@@ -292,7 +296,7 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 0x80> {
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, static_cast<uint8_t>(SpecialSetConfigurations::TwoWayMRU)> {
     // use MRU instead of round robin
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;

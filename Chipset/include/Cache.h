@@ -232,6 +232,7 @@ enum class SetConfiguration : uint8_t {
     FourWayTreePLRU,
     FourWayBitPLRU,
     EightWayTreePLRU,
+    RandomReplacement4,
 };
 constexpr bool requiresCustomImplementation(SetConfiguration cfg) noexcept {
     auto val = static_cast<uint8_t>(cfg);
@@ -566,6 +567,56 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement4> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 4;
+private:
+    static inline byte RandomTable[256] { 0 };
+    [[nodiscard]] byte getReplacementIndex() noexcept {
+        auto ind = replacementIndex_;
+        ++replacementIndex_;
+        return RandomTable[ind];
+    }
+public:
+    inline void begin() noexcept {
+        static bool cacheSetup = false;
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+        if (!cacheSetup) {
+            cacheSetup = true;
+            for (int i = 0; i < 256; ++i) {
+                RandomTable[i] = random() % NumberOfLines;
+            }
+        }
+    }
+    inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
+        for (byte i = 0; i < NumberOfLines; ++i) {
+            auto& line = lines[i];
+            if (line.matches(address) ) {
+                return line;
+            }
+        }
+        auto& target = lines[getReplacementIndex()];
+        updateFlags();
+        target.reset(address, doNotLoadFromMemoryOnMiss);
+        return target;
+    }
+    inline void updateFlags() noexcept { }
+    inline void clear() noexcept {
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    byte replacementIndex_;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped> {
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
@@ -790,7 +841,7 @@ using Pool1WayBanked = CachePool<4, 10, bankBitCount, SetConfiguration::DirectMa
 
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 8;
+constexpr auto NumberOfTagBits = 7;
 constexpr auto NumberOfWays = SetConfiguration::FourWayTreePLRU;
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 using MemoryCache = ConfigurableMemoryCache;

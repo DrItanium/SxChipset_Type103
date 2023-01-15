@@ -981,14 +981,14 @@ using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 7;
-constexpr auto OffChipSetConfiguration = SetConfiguration::RandomReplacement4;
+constexpr auto NumberOfTagBits = 8;
+constexpr auto OffChipSetConfiguration = SetConfiguration::FourWayTreePLRU;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
 constexpr auto OnChipTagBits = 7;
 constexpr auto OnChipSetConfiguration = SetConfiguration::TwoWayLRU;
 using OnChipMemoryCache = BasicDataCache<OnChipOffsetBits, OnChipTagBits, 0, OnChipSetConfiguration>;
-using MemoryCache = OnChipMemoryCache;
+using MemoryCache = OffChipMemoryCache;
 #else
 #error "Please correctly define internal cache size for target board"
 #endif

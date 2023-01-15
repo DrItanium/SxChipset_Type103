@@ -516,10 +516,10 @@ using Pool2WayBanked = CachePool<4, 9, bankBitCount, 2>; //
 template<uint8_t bankBitCount>
 using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
 
-constexpr auto NumberOfBankBits = 2;
-constexpr auto NumberOfOffsetBits = 5;
-constexpr auto NumberOfTagBits = 6;
-constexpr auto NumberOfWays = 8;
+constexpr auto NumberOfBankBits = 4;
+constexpr auto NumberOfOffsetBits = 4;
+constexpr auto NumberOfTagBits = 9;
+constexpr auto NumberOfWays = 2;
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 
 using OnChipMemoryCache = CachePool<4, 8, 0, 1>;

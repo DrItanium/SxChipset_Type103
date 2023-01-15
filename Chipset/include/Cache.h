@@ -217,25 +217,18 @@ struct BasicDataCacheSet {
     static constexpr auto NumberOfLines = numberOfLines;
     inline void begin() noexcept {
         replacementIndex_ = 0;
-        lastMatch_ = 0;
         for (auto& line : lines) {
             line.begin();
         }
     }
     inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
-        for (byte i = lastMatch_, j = 0; j < NumberOfLines; ++j, ++i) {
-            if (i == NumberOfLines) {
-                // we've overflowed so clear it since our match was somewhere in the middle or such
-                i = 0;
-            }
+        for (byte i = 0; i < NumberOfLines; ++i) {
             auto& line = lines[i];
             if (line.matches(address) ) {
-                lastMatch_ = i;
                 return line;
             }
         }
         auto& target = lines[replacementIndex_];
-        lastMatch_ = replacementIndex_;
         updateFlags();
         target.reset(address, doNotLoadFromMemoryOnMiss);
         return target;
@@ -248,7 +241,6 @@ struct BasicDataCacheSet {
     }
     inline void clear() noexcept {
         replacementIndex_ = 0;
-        lastMatch_ = 0;
         for (auto& line : lines) {
             line.clear();
         }
@@ -256,7 +248,6 @@ struct BasicDataCacheSet {
 private:
     DataCacheLine lines[NumberOfLines];
     byte replacementIndex_;
-    byte lastMatch_ = 0;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
@@ -518,13 +509,15 @@ constexpr auto NumberOfBankBits = 3;
 template<uint8_t bankBitCount>
 using Pool12WayBanked = CachePool<4, 7, bankBitCount, 12>; // 32512 bytes per bank
 template<uint8_t bankBitCount>
-using Pool6WayBanked = CachePool<4, 8, bankBitCount, 6>; // 32768 bytes per bank used (will generate an error!)
-template<uint8_t bankBitCount>
 using Pool5WayBanked = CachePool<4, 8, bankBitCount, 5>; // 27392 bytes per bank used
 template<uint8_t bankBitCount>
+using Pool6WayBanked = CachePool<4, 8, bankBitCount, 6>; // 27392 bytes per bank used
+template<uint8_t bankBitCount>
 using Pool2WayBanked = CachePool<4, 9, bankBitCount, 2>; //
+template<uint8_t bankBitCount>
+using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
 
-using MemoryCache = Pool12WayBanked<NumberOfBankBits>;
+using MemoryCache = Pool6WayBanked<NumberOfBankBits>;
 #else
 #error "Please correctly define internal cache size for target board"
 #endif

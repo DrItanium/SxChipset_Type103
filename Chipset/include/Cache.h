@@ -399,7 +399,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWa
         return target;
     }
     inline uint8_t getTargetLine() const noexcept {
-        return TranslationTable[flags_.code];
+        return TranslationTable[flags_.reg];
     }
     inline void updateFlags(uint8_t index) noexcept {
         // set the node flags to denote the direction that is opposite to the direction taken
@@ -436,9 +436,6 @@ private:
             uint8_t left : 1;
             uint8_t right : 1;
             uint8_t top : 1;
-        };
-        struct {
-            uint8_t code : 3;
         };
     } flags_;
 };
@@ -913,8 +910,8 @@ using Pool1WayBanked = CachePool<4, 10, bankBitCount, SetConfiguration::DirectMa
 
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 7;
-constexpr auto NumberOfWays = SetConfiguration::EightWayTreePLRU;
+constexpr auto NumberOfTagBits = 8;
+constexpr auto NumberOfWays = SetConfiguration::FourWayTreePLRU;
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 using MemoryCache = ConfigurableMemoryCache;
 #else

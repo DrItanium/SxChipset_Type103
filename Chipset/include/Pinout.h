@@ -134,8 +134,8 @@ Count = NUM_DIGITAL_PINS,
     InternalBank3 = PortL7,
     FakeA15 = PortJ5,
     RealA15 = PortC7,
-    Shield2Breakout_D0 = PortE0,
-    Shield2Breakout_D1 = PortE1,
+    SearchLengthDetect = PortH4,
+
 #else
 #   error "Unknown board type defined!"
 #endif

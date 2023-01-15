@@ -264,7 +264,13 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
     }
     Platform::endInlineSPIOperation();
     auto skipLoadingFromMainMemory = count == 8 && MemoryCache ::CacheAddress ::OffsetBitsCount == 4;
+#ifdef TYPE203_BOARD
+    digitalWrite<Pin::SearchLengthDetect, LOW>();
+#endif
     auto &line = getCache().find(addr, skipLoadingFromMainMemory);
+#ifdef TYPE203_BOARD
+    digitalWrite<Pin::SearchLengthDetect, HIGH>();
+#endif
     for (byte i = 0; i < count; ++i) {
         requests[i].apply(line);
     }
@@ -273,7 +279,13 @@ template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     if constexpr (isReadOperation) {
+#ifdef TYPE203_BOARD
+        digitalWrite<Pin::SearchLengthDetect, LOW>();
+#endif
         auto &line = getCache().find(addr);
+#ifdef TYPE203_BOARD
+        digitalWrite<Pin::SearchLengthDetect, HIGH>();
+#endif
         Platform::startInlineSPIOperation();
         // the compiler seems to barf on for loops at -Ofast
         // so instead, we want to unpack it to make sure

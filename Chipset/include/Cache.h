@@ -507,17 +507,17 @@ using MemoryCache = CachePool<4, 8, 0, 2>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 3;
 template<uint8_t bankBitCount>
-using Pool12WayBanked = CachePool<4, 7, bankBitCount, 12>; // 32512 bytes per bank
-template<uint8_t bankBitCount>
-using Pool5WayBanked = CachePool<4, 8, bankBitCount, 5>; // 27392 bytes per bank used
+using Pool12WayBanked = CachePool<4, 7, bankBitCount, 12>; // 322 bytes per bank
 template<uint8_t bankBitCount>
 using Pool6WayBanked = CachePool<4, 8, bankBitCount, 6>; // 27392 bytes per bank used
+template<uint8_t bankBitCount>
+using Pool8WayBanked = CachePool<4, 7, bankBitCount, 8>; // 27392 bytes per bank used
 template<uint8_t bankBitCount>
 using Pool2WayBanked = CachePool<4, 9, bankBitCount, 2>; //
 template<uint8_t bankBitCount>
 using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
 
-using MemoryCache = Pool6WayBanked<NumberOfBankBits>;
+using MemoryCache = Pool12WayBanked<NumberOfBankBits>;
 #else
 #error "Please correctly define internal cache size for target board"
 #endif

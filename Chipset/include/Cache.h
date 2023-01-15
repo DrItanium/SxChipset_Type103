@@ -124,24 +124,33 @@ struct BasicDataCacheLine {
     static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
     inline void clear() noexcept {
         dest_.clear();
-        flags_.reg = 0;
+        //flags_.reg = 0;
+        valid_ = false;
+        dirty_ = false;
         for (auto& word : words) {
             word.full = 0;
         }
     }
     inline bool matches(const CacheAddress& other) const noexcept {
-        return flags_.valid_ && (other.getKey() == dest_.getKey());
+        return valid_ && (other.getKey() == dest_.getKey());
+        //return flags_.valid_ && (other.getKey() == dest_.getKey());
     }
     inline void sync() noexcept {
-        if (flags_.valid_ && flags_.dirty_) {
+        //if (flags_.valid_ && flags_.dirty_) {
+            //memoryWrite(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
+            //flags_.dirty_ = false;
+        //}
+        if (valid_ && dirty_) {
             memoryWrite(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
-            flags_.dirty_ = false;
+            dirty_ = false;
         }
     }
     inline void reset(const CacheAddress& newAddress) noexcept {
         sync();
-        flags_.valid_ = true;
-        flags_.dirty_ = false; // mark it implicitly as dirty
+        valid_ = true;
+        dirty_ = false;
+        //flags_.valid_ = true;
+        //flags_.dirty_ = false; // mark it implicitly as dirty
         dest_ = newAddress;
         dest_.setOffset(0);
         memoryRead(dest_.getBackingStore(), reinterpret_cast<uint8_t *>(words), NumberOfDataBytes);
@@ -156,7 +165,8 @@ struct BasicDataCacheLine {
         return words[offset].getWholeValue();
     }
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
-        flags_.dirty_ = true;
+        //flags_.dirty_ = true;
+        dirty_ = true;
         switch (style) {
             case EnableStyle::Full16:
                 words[offset].full = value;
@@ -173,14 +183,15 @@ struct BasicDataCacheLine {
     }
 private:
     CacheAddress dest_{0};
-    union {
-        uint8_t reg;
-        struct {
-            uint8_t dirty_ : 1;
-            uint8_t valid_ : 1;
-        };
-
-    } flags_;
+    //struct {
+    //    uint8_t reg;
+    //    struct {
+    //        uint8_t dirty_ : 1;
+    //        uint8_t valid_ : 1;
+    //    };
+    //} flags_;
+    bool dirty_ = false;
+    bool valid_ = false;
     SplitWord16 words[NumberOfWords];
 };
 enum class SetConfiguration : uint8_t {
@@ -1098,8 +1109,7 @@ struct CachePool {
     using CacheLine = typename CacheReference::DataCacheLine;
     static constexpr auto NumberOfBanks = pow2(bankBits);
     void begin(byte bankOffset) noexcept {
-        bankOffset_ = bankOffset;
-        for (int i = 0, j = bankOffset_; i < NumberOfBanks; ++i, ++j) {
+        for (int i = 0, j = bankOffset; i < NumberOfBanks; ++i, ++j) {
             pool_[i].begin(j);
         }
     }
@@ -1119,7 +1129,6 @@ struct CachePool {
         return pool_[0].sizeOfBuffer();
     }
 private:
-    byte bankOffset_ = 0;
     CacheReference pool_[NumberOfBanks];
 };
 

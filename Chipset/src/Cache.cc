@@ -23,10 +23,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <Arduino.h>
-#include "SPI.h"
 #include "Types.h"
-#include "Pinout.h"
 #include "Cache.h"
 
 namespace {

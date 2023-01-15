@@ -129,7 +129,7 @@ struct BasicDataCacheLine {
             word.full = 0;
         }
     }
-    inline bool matches(CacheAddress other) const noexcept {
+    inline bool matches(const CacheAddress& other) const noexcept {
         return flags_.valid_ && (other.getKey() == dest_.getKey());
     }
     inline void sync() noexcept {
@@ -138,7 +138,7 @@ struct BasicDataCacheLine {
             flags_.dirty_ = false;
         }
     }
-    inline void reset(CacheAddress newAddress) noexcept {
+    inline void reset(const CacheAddress& newAddress) noexcept {
         sync();
         flags_.valid_ = true;
         flags_.dirty_ = false; // mark it implicitly as dirty
@@ -267,7 +267,7 @@ struct BasicDataCacheSet {
             line.begin();
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             auto& line = lines[i];
             if (line.matches(address) ) {
@@ -307,7 +307,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::TwoWay
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
@@ -349,7 +349,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::TwoWay
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         for (int i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
@@ -359,7 +359,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::TwoWay
         auto index = getTargetLine();
         auto& target = lines[index];
         updateFlags(index);
-        target.reset(address, dontLoadOnMiss);
+        target.reset(address);
         return target;
     }
     [[nodiscard]] inline byte getTargetLine() const noexcept {
@@ -403,7 +403,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWa
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
@@ -413,7 +413,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWa
         auto index = getTargetLine();
         auto& target = lines[index];
         updateFlags(index);
-        target.reset(address, dontLoadOnMiss);
+        target.reset(address);
         return target;
     }
     inline uint8_t getTargetLine() const noexcept {
@@ -469,7 +469,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWa
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
@@ -479,7 +479,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWa
         auto index = getTargetLine();
         auto& target = lines[index];
         updateFlags(index);
-        target.reset(address, dontLoadOnMiss);
+        target.reset(address);
         return target;
     }
     inline uint8_t getTargetLine() const noexcept {
@@ -540,7 +540,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
@@ -550,7 +550,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
         auto index = getTargetLine();
         auto& target = lines[index];
         updateFlags(index);
-        target.reset(address, dontLoadOnMiss);
+        target.reset(address);
         return target;
     }
     static constexpr byte computeTargetBit(uint8_t value) noexcept {
@@ -690,7 +690,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
             line.begin();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
@@ -700,7 +700,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
         auto index = getTargetLine();
         auto& target = lines[index];
         updateFlags(index);
-        target.reset(address, dontLoadOnMiss);
+        target.reset(address);
         return target;
     }
     [[nodiscard]] constexpr inline uint8_t getTargetLine() const noexcept {
@@ -807,7 +807,7 @@ public:
             }
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             auto& line = lines[i];
             if (line.matches(address) ) {
@@ -846,7 +846,7 @@ public:
             line.begin();
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             auto& line = lines[i];
             if (line.matches(address) ) {
@@ -894,7 +894,7 @@ public:
             }
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             auto& line = lines[i];
             if (line.matches(address) ) {
@@ -933,7 +933,7 @@ public:
             line.begin();
         }
     }
-    inline auto& find(CacheAddress address) noexcept {
+    inline auto& find(const CacheAddress& address) noexcept {
         for (byte i = 0; i < NumberOfLines; ++i) {
             auto& line = lines[i];
             if (line.matches(address) ) {
@@ -963,7 +963,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::Direct
     inline void begin() noexcept {
         line.begin();
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         if (!line.matches(address)){
             line.reset(address);
         }
@@ -986,7 +986,7 @@ struct BasicDataCache {
             set.clear();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         if constexpr (EnableCacheDebugging) {
             Serial.print(F("Address: 0x"));
             Serial.println(address.getBackingStore().getWholeValue(), HEX);
@@ -1021,7 +1021,7 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
             set.clear();
         }
     }
-    [[nodiscard]] inline auto& find(CacheAddress address) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         auto& line = cache[address.getTag()];
         if (!line.matches(address)){
             line.reset(address);
@@ -1059,7 +1059,7 @@ struct BasicCacheReference {
         ptr_ = new Cache();
         ptr_->begin();
     }
-    auto& find(CacheAddress addr) noexcept {
+    auto& find(const CacheAddress& addr) noexcept {
         // make sure we select this bank before we jump to the pointer
         select();
         return ptr_->find(addr);
@@ -1091,7 +1091,7 @@ struct BasicCacheReference<offsetBits, tagBits, 0, cfg> {
         Serial.println(sizeof(Cache));
         ptr_.begin();
     }
-    inline auto& find(CacheAddress addr) noexcept {
+    inline auto& find(const CacheAddress& addr) noexcept {
         // make sure we select this bank before we jump to the pointer
         return ptr_.find(addr);
     }

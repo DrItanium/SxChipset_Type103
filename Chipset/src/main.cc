@@ -30,7 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Wire.h"
 #include "Peripheral.h"
 #include "Setup.h"
-#include "AddressTranslation.h"
 #include "SerialDevice.h"
 #include "RTCDevice.h"
 #include "InfoDevice.h"
@@ -42,7 +41,6 @@ SdFat SD;
 SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
-AddressTranslationDevice theAddressTranslator;
 #ifdef TYPE104_BOARD
 inline byte memoryControllerStatus() noexcept {
     Wire.requestFrom(9, 17);
@@ -312,10 +310,11 @@ handleTransaction() noexcept {
     Platform::startAddressTransaction();
     Platform::collectAddress();
     Platform::endAddressTransaction();
-    auto virtualAddress = Platform::getAddress();
-    auto addr = theAddressTranslator.translate(virtualAddress);
+    // don't do virtual address translation here
+    // for our purposes, we want to make sure that this code is a simple as possible
+    auto addr = Platform::getAddress();
     if constexpr (EnableDebugMode) {
-        Serial.print(F("Virtual address: 0x"));
+        Serial.print(F("Address: 0x"));
         Serial.print(addr.getWholeValue(), HEX);
         Serial.print(F(" (0b"));
         Serial.print(addr.getWholeValue(), BIN);
@@ -326,8 +325,6 @@ handleTransaction() noexcept {
         } else {
             Serial.println(F("Write!"));
         }
-        Serial.print(F("Physical Address: 0x"));
-        Serial.println(addr.getWholeValue(), HEX);
     }
     if (addr.isIOInstruction()) {
         if (Platform::isReadOperation()) {
@@ -413,7 +410,6 @@ setup() {
 #endif
     i960::begin();
     setupCache();
-    theAddressTranslator.begin();
     delay(1000);
 #if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
     installMemoryImage();

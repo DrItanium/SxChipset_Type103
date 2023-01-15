@@ -252,6 +252,14 @@ enum class SetConfiguration : uint8_t {
      * @brief 4-way Random Replacement algorithm which uses the micros routine to choose the index to replace
      */
     RandomReplacement4_Micros,
+    /**
+     * @brief 8-way Random Replacement algorithm which uses a doom style random table to make it as speedy as possible; Relatively fast
+     */
+    RandomReplacement8,
+    /**
+     * @brief 8-way Random Replacement algorithm which uses the micros routine to choose the index to replace
+     */
+    RandomReplacement8_Micros,
 };
 constexpr bool requiresCustomImplementation(SetConfiguration cfg) noexcept {
     auto val = static_cast<uint8_t>(cfg);
@@ -673,6 +681,93 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement8> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 8;
+private:
+    static inline byte RandomTable[256] { 0 };
+    [[nodiscard]] byte getReplacementIndex() noexcept {
+        auto ind = replacementIndex_;
+        ++replacementIndex_;
+        return RandomTable[ind];
+    }
+public:
+    inline void begin() noexcept {
+        static bool cacheSetup = false;
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+        if (!cacheSetup) {
+            cacheSetup = true;
+            for (int i = 0; i < 256; ++i) {
+                RandomTable[i] = random() % NumberOfLines;
+            }
+        }
+    }
+    inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
+        for (byte i = 0; i < NumberOfLines; ++i) {
+            auto& line = lines[i];
+            if (line.matches(address) ) {
+                return line;
+            }
+        }
+        auto& target = lines[getReplacementIndex()];
+        updateFlags();
+        target.reset(address, doNotLoadFromMemoryOnMiss);
+        return target;
+    }
+    inline void updateFlags() noexcept { }
+    inline void clear() noexcept {
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    byte replacementIndex_;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement8_Micros> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 8;
+private:
+    [[nodiscard]] byte getReplacementIndex() noexcept {
+        return micros() & 0b111;
+    }
+public:
+    inline void begin() noexcept {
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
+        for (byte i = 0; i < NumberOfLines; ++i) {
+            auto& line = lines[i];
+            if (line.matches(address) ) {
+                return line;
+            }
+        }
+        auto& target = lines[getReplacementIndex()];
+        updateFlags();
+        target.reset(address, doNotLoadFromMemoryOnMiss);
+        return target;
+    }
+    inline void updateFlags() noexcept { }
+    inline void clear() noexcept {
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped> {
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
@@ -882,12 +977,12 @@ private:
     CacheReference pool_;
 };
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
-using MemoryCache = CachePool<4, 8, 0, NumberOfWays>;
+using MemoryCache = CachePool<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 8;
-constexpr auto NumberOfWays = SetConfiguration::RandomReplacement4_Micros;
+constexpr auto NumberOfTagBits = 7;
+constexpr auto NumberOfWays = SetConfiguration::RandomReplacement4;
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 using MemoryCache = ConfigurableMemoryCache;
 #else

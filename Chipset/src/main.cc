@@ -224,22 +224,15 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 
 struct TreatAsCacheAccess final { };
 
-struct WriteRequest {
-    uint8_t offset = 0;
-    SplitWord16 value{0};
-    EnableStyle style = EnableStyle::Undefined;
-    bool valid() const noexcept { return style != EnableStyle::Undefined; }
-    template<typename T>
-    void apply(T& line) noexcept {
-        if (valid()) {
-            line.setWord(offset, value.full, style);
-        }
-    }
-};
 inline void
 performWriteCacheRequest(const SplitWord32& addr) noexcept {
-    WriteRequest requests[8];
-    byte count = 0;
+#ifdef TYPE203_BOARD
+    digitalWrite<Pin::SearchLengthDetect, LOW>();
+#endif
+    auto &line = getCache().find(addr);
+#ifdef TYPE203_BOARD
+    digitalWrite<Pin::SearchLengthDetect, HIGH>();
+#endif
     Platform::startInlineSPIOperation();
     // the compiler seems to barf on for loops at -Ofast
     // so instead, we want to unpack it to make sure
@@ -248,11 +241,7 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
         singleCycleDelay();
         // read it twice, otherwise we lose our minds
         auto c0 = readInputChannelAs<Channel0Value, true>();
-        // so we are writing to the cache
-        requests[count].offset = offset;
-        requests[count].value.full = Platform::getDataLines(c0, InlineSPI{});
-        requests[count].style = c0.getByteEnable();
-        ++count;
+        line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
         if (digitalRead<Pin::BLAST_>() == LOW) {
             signalReady();
             break;
@@ -263,17 +252,6 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
         singleCycleDelay();
     }
     Platform::endInlineSPIOperation();
-    auto skipLoadingFromMainMemory = count == 8 && MemoryCache ::CacheAddress ::OffsetBitsCount == 4;
-#ifdef TYPE203_BOARD
-    digitalWrite<Pin::SearchLengthDetect, LOW>();
-#endif
-    auto &line = getCache().find(addr, skipLoadingFromMainMemory);
-#ifdef TYPE203_BOARD
-    digitalWrite<Pin::SearchLengthDetect, HIGH>();
-#endif
-    for (byte i = 0; i < count; ++i) {
-        requests[i].apply(line);
-    }
 }
 template<bool isReadOperation>
 inline void

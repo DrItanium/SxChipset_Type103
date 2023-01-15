@@ -455,15 +455,17 @@ setup() {
 
 void 
 loop() {
-    singleCycleDelay();
-    while (digitalRead<Pin::DEN>() == HIGH);
+    while (true) {
+        singleCycleDelay();
+        while (digitalRead<Pin::DEN>() == HIGH);
 #ifdef TYPE203_BOARD
-    digitalWrite<Pin::InCacheAccess, LOW>();
+        digitalWrite<Pin::InCacheAccess, LOW>();
 #endif
-    handleTransaction();
+        handleTransaction();
 #ifdef TYPE203_BOARD
-    digitalWrite<Pin::InCacheAccess, HIGH>();
+        digitalWrite<Pin::InCacheAccess, HIGH>();
 #endif
+    }
 }
 
 void sdCsInit(SdCsPin_t pin) {

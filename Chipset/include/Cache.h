@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Detect.h"
 #include "Types.h"
 #include "xmem.h"
-constexpr bool EnableCacheDebugging = false;
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 
@@ -982,12 +981,6 @@ struct BasicDataCache {
         }
     }
     [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
-        if constexpr (EnableCacheDebugging) {
-            Serial.print(F("Address: 0x"));
-            Serial.println(address.getBackingStore().getWholeValue(), HEX);
-            Serial.print(F("\tTag: 0x"));
-            Serial.println(address.getTag(), HEX);
-        }
         return cache[address.getTag()].find(address);
     }
     inline void begin(byte = 0) noexcept {
@@ -1118,8 +1111,8 @@ struct CachePool {
         return pool_[addr.getBankIndex()].find(addr);
     }
     void clear()  {
-        for (int i = 0; i < NumberOfBanks; ++i) {
-            pool_[i].clear();
+        for (auto& bank : pool_) {
+            bank.clear();
         }
     }
     [[nodiscard]] byte* asBuffer() noexcept {

@@ -274,13 +274,12 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
             singleCycleDelay();
             // okay it is a read operation, so... pull a cache line out
             Platform::setDataLines(ptr->getWholeValue(), InlineSPI{});
-            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
+            if (digitalRead<Pin::BLAST_>() == LOW) {
+                signalReady();
                 break;
-            } else {
-                ++ptr;
             }
+            signalReady();
+            ++ptr;
         }
         Platform::endInlineSPIOperation();
     } else {
@@ -332,13 +331,7 @@ handleIOOperation(const SplitWord32& addr) noexcept {
 inline void
 handleTransaction() noexcept {
     Platform::startAddressTransaction();
-#ifdef TYPE203_BOARD
-    digitalWrite<Pin::InCacheAccess, LOW>();
-#endif
     Platform::collectAddress();
-#ifdef TYPE203_BOARD
-    digitalWrite<Pin::InCacheAccess, HIGH>();
-#endif
     Platform::endAddressTransaction();
     auto virtualAddress = Platform::getAddress();
     auto addr = theAddressTranslator.translate(virtualAddress);
@@ -464,7 +457,13 @@ void
 loop() {
     singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
+#ifdef TYPE203_BOARD
+    digitalWrite<Pin::InCacheAccess, LOW>();
+#endif
     handleTransaction();
+#ifdef TYPE203_BOARD
+    digitalWrite<Pin::InCacheAccess, HIGH>();
+#endif
 }
 
 void sdCsInit(SdCsPin_t pin) {

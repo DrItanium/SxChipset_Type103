@@ -178,7 +178,7 @@ Platform::collectAddress() noexcept {
         asm volatile ("nop");
         address_.bytes[2] = readInputChannelAs<uint8_t>();
         triggerClock();
-        auto second = static_cast<byte>(dataLinesDirection_ >> 8);
+        auto second = static_cast<byte>(dataLinesDirection_);
         while (!(SPSR & _BV(SPIF)));
 
         SPDR = second ;

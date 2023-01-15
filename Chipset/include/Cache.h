@@ -386,7 +386,7 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWa
         }
     }
     [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
-        for (int i = 0; i < NumberOfLines; ++i) {
+        for (byte i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
                 return line;
@@ -600,13 +600,13 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
 
     };
     inline void begin() noexcept {
-        flags_.reg = 0;
+        reg = 0;
         for (auto& line : lines) {
             line.begin();
         }
     }
     [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
-        for (int i = 0; i < NumberOfLines; ++i) {
+        for (byte i = 0; i < NumberOfLines; ++i) {
             if (auto& line = lines[i]; line.matches(address)) {
                 updateFlags(i);
                 return line;
@@ -618,56 +618,56 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightW
         target.reset(address, dontLoadOnMiss);
         return target;
     }
-    inline uint8_t getTargetLine() const noexcept {
-        return TranslationTable[flags_.code];
+    [[nodiscard]] constexpr inline uint8_t getTargetLine() const noexcept {
+        return TranslationTable[reg];
     }
     inline void updateFlags(uint8_t index) noexcept {
         // set the node flags to denote the direction that is opposite to the direction taken
         switch (index & 0b111) {
             case 0: // 0b000
-                flags_.top0 = 1;
-                flags_.left0 = 1;
-                flags_.start = 1;
+                top0 = 1;
+                left0 = 1;
+                start = 1;
                 break;
             case 1: // 0b001
-                flags_.top0 = 1;
-                flags_.left0 = 0;
-                flags_.start = 1;
+                top0 = 1;
+                left0 = 0;
+                start = 1;
                 break;
             case 2: // 0b010
-                flags_.top0 = 0;
-                flags_.right0 = 1;
-                flags_.start = 1;
+                top0 = 0;
+                right0 = 1;
+                start = 1;
                 break;
             case 3: // 0b011
-                flags_.top0 = 0;
-                flags_.right0 = 0;
-                flags_.start = 1;
+                top0 = 0;
+                right0 = 0;
+                start = 1;
                 break;
             case 4: // 0b100
-                flags_.top1 = 1;
-                flags_.left1 = 1;
-                flags_.start = 0;
+                top1 = 1;
+                left1 = 1;
+                start = 0;
                 break;
             case 5: // 0b101
-                flags_.top1 = 1;
-                flags_.left1 = 0;
-                flags_.start = 0;
+                top1 = 1;
+                left1 = 0;
+                start = 0;
                 break;
             case 6: // 0b110
-                flags_.top1 = 0;
-                flags_.right1 = 1;
-                flags_.start = 0;
+                top1 = 0;
+                right1 = 1;
+                start = 0;
                 break;
             case 7: // 0b111
-                flags_.top1 = 0;
-                flags_.right1 = 0;
-                flags_.start = 0;
+                top1 = 0;
+                right1 = 0;
+                start = 0;
                 break;
         }
     }
     inline void clear() noexcept {
-        flags_.reg = 0;
+        reg = 0;
         for (auto& line : lines) {
             line.clear();
         }
@@ -685,10 +685,7 @@ private:
             uint8_t top1 : 1;
             uint8_t start : 1;
         };
-        struct {
-            uint8_t code : 7;
-        };
-    } flags_;
+    } ;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>

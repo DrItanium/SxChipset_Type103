@@ -210,12 +210,38 @@ private:
     } flags_;
     SplitWord16 words[NumberOfWords];
 };
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
+enum class SetConfiguration : uint8_t {
+    DirectMapped = 1,
+    TwoWayRoundRobin = 2,
+    ThreeWayRoundRobin = 3,
+    FourWayRoundRobin = 4,
+    FiveWayRoundRobin = 5,
+    SixWayRoundRobin = 6,
+    SevenWayRoundRobin = 7,
+    EightWayRoundRobin = 8,
+    NineWayRoundRobin = 9,
+    TenWayRoundRobin = 10,
+    ElevenWayRoundRobin = 11,
+    TwelveWayRoundRobin = 12,
+    ThirteenWayRoundRobin = 13,
+    FourteenWayRoundRobin = 14,
+    FifteenWayRoundRobin = 15,
+    SixteenWayRoundRobin = 16,
+    TwoWayLRU = 0x80,
+    TwoWayMRU,
+    FourWayTreePLRU,
+    FourWayBitPLRU,
+};
+constexpr bool requiresCustomImplementation(SetConfiguration cfg) noexcept {
+    auto val = static_cast<uint8_t>(cfg);
+    return val < 2 || val > 16;
+}
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration numberOfLines>
 struct BasicDataCacheSet {
-    static_assert(numberOfLines < 0x80, "Too many lines defined!");
+    static_assert(!requiresCustomImplementation(numberOfLines), "A custom implementation must be defined for this configuration!");
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
-    static constexpr auto NumberOfLines = numberOfLines;
+    static constexpr auto NumberOfLines = static_cast<uint8_t>(numberOfLines);
     inline void begin() noexcept {
         replacementIndex_ = 0;
         for (auto& line : lines) {
@@ -250,14 +276,8 @@ private:
     DataCacheLine lines[NumberOfLines];
     byte replacementIndex_;
 };
-enum class SpecialSetConfigurations : uint8_t {
-    TwoWayLRU = 0x80,
-    TwoWayMRU,
-    FourWayTreePLRU,
-    FourWayBitPLRU,
-};
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, static_cast<uint8_t>(SpecialSetConfigurations::TwoWayLRU)> {
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::TwoWayLRU> {
     // use LRU instead of round robin
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
@@ -299,7 +319,7 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, static_cast<uint8_t>(SpecialSetConfigurations::TwoWayMRU)> {
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::TwoWayMRU> {
     // use MRU instead of round robin
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
@@ -341,7 +361,7 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, static_cast<uint8_t>(SpecialSetConfigurations::FourWayTreePLRU)> {
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWayTreePLRU> {
     // use MRU instead of round robin
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
@@ -424,7 +444,7 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 1> {
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped> {
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 1;
@@ -443,9 +463,9 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 1> {
 private:
     DataCacheLine line;
 };
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration cfg>
 struct BasicDataCache {
-    using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, numberOfLines>;
+    using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, cfg>;
     using DataCacheLine = typename DataCacheSet::DataCacheLine;
     using CacheAddress = typename DataCacheSet::CacheAddress;
     static constexpr auto NumberOfSets = pow2(tagBits);
@@ -479,8 +499,8 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCache<offsetBits, tagBits, bankBits, 1> {
-    using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, 1>;
+struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped> {
+    using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped>;
     using DataCacheLine = typename DataCacheSet::DataCacheLine;
     using CacheAddress = typename DataCacheSet::CacheAddress;
     static constexpr auto NumberOfSets = pow2(tagBits);
@@ -511,9 +531,9 @@ private:
     DataCacheLine cache[NumberOfSets];
 };
 
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration cfg>
 struct BasicCacheReference {
-    using Cache = BasicDataCache<offsetBits, tagBits, bankBits, numberOfLines>;
+    using Cache = BasicDataCache<offsetBits, tagBits, bankBits, cfg>;
     using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
     void select() const noexcept {
@@ -549,9 +569,9 @@ private:
     Cache* ptr_ = nullptr;
 };
 
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t numberOfLines>
-struct BasicCacheReference<offsetBits, tagBits, 0, numberOfLines> {
-    using Cache = BasicDataCache<offsetBits, tagBits, 0, numberOfLines>;
+template<uint8_t offsetBits, uint8_t tagBits, SetConfiguration cfg>
+struct BasicCacheReference<offsetBits, tagBits, 0, cfg> {
+    using Cache = BasicDataCache<offsetBits, tagBits, 0, cfg>;
     using DataCacheLine = typename Cache::DataCacheLine;
     using CacheAddress = typename Cache::CacheAddress;
     void begin() noexcept {
@@ -575,9 +595,9 @@ struct BasicCacheReference<offsetBits, tagBits, 0, numberOfLines> {
 private:
     Cache ptr_;
 };
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, uint8_t numberOfLines>
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration cfg>
 struct CachePool {
-    using CacheReference = BasicCacheReference<offsetBits, tagBits, bankBits, numberOfLines>;
+    using CacheReference = BasicCacheReference<offsetBits, tagBits, bankBits, cfg>;
     using CacheAddress = typename CacheReference::CacheAddress;
     using CacheLine = typename CacheReference::DataCacheLine;
     static constexpr auto NumberOfBanks = pow2(bankBits);
@@ -607,9 +627,9 @@ private:
     CacheReference pool_[NumberOfBanks];
 };
 
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t numberOfLines>
-struct CachePool<offsetBits, tagBits, 0, numberOfLines> {
-    using CacheReference = BasicCacheReference<offsetBits, tagBits, 0, numberOfLines>;
+template<uint8_t offsetBits, uint8_t tagBits, SetConfiguration cfg>
+struct CachePool<offsetBits, tagBits, 0, cfg> {
+    using CacheReference = BasicCacheReference<offsetBits, tagBits, 0, cfg>;
     using CacheAddress = typename CacheReference::CacheAddress;
     using CacheLine = typename CacheReference::DataCacheLine;
     static constexpr auto NumberOfBanks = pow2(0);
@@ -633,25 +653,24 @@ private:
     CacheReference pool_;
 };
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
-//using MemoryCache = BasicDataCache<4, 8, 0, 2>;
-using MemoryCache = CachePool<4, 8, 0, 2>;
+using MemoryCache = CachePool<4, 8, 0, NumberOfWays>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 template<uint8_t bankBitCount>
-using Pool12WayBanked = CachePool<4, 7, bankBitCount, 12>; // 322 bytes per bank
+using Pool12WayBanked = CachePool<4, 7, bankBitCount, SetConfiguration::TwelveWayRoundRobin>; // 322 bytes per bank
 template<uint8_t bankBitCount>
-using Pool6WayBanked = CachePool<4, 8, bankBitCount, 6>; // 27392 bytes per bank used
+using Pool6WayBanked = CachePool<4, 8, bankBitCount, SetConfiguration::SixWayRoundRobin>; // 27392 bytes per bank used
 template<uint8_t bankBitCount>
-using Pool8WayBanked = CachePool<4, 7, bankBitCount, 8>; // 27392 bytes per bank used
+using Pool8WayBanked = CachePool<4, 7, bankBitCount, SetConfiguration::EightWayRoundRobin>; // 27392 bytes per bank used
 template<uint8_t bankBitCount>
-using Pool2WayBanked = CachePool<4, 9, bankBitCount, 2>; //
+using Pool2WayBanked = CachePool<4, 9, bankBitCount, SetConfiguration::TwoWayLRU>; //
 template<uint8_t bankBitCount>
-using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
+using Pool1WayBanked = CachePool<4, 10, bankBitCount, SetConfiguration::DirectMapped>; //
 
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 8;
-constexpr auto NumberOfWays = SpecialSetConfigurations::FourWayTreePLRU;
-using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, static_cast<uint8_t>(NumberOfWays)>;
+constexpr auto NumberOfWays = SetConfiguration::FourWayTreePLRU;
+using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 using MemoryCache = ConfigurableMemoryCache;
 #else
 #error "Please correctly define internal cache size for target board"

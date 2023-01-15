@@ -227,12 +227,31 @@ enum class SetConfiguration : uint8_t {
     FourteenWayRoundRobin = 14,
     FifteenWayRoundRobin = 15,
     SixteenWayRoundRobin = 16,
+    /**
+     * @brief Two way most recently used algorithm; Seems speedy enough
+     */
     TwoWayLRU = 0x80,
+    /**
+     * @brief Two way most recently used algorithm; Seems speedy enough
+     */
     TwoWayMRU,
+    /**
+     * @brief 4-way tree PLRU algorithm which is relatively speedy
+     */
     FourWayTreePLRU,
     FourWayBitPLRU,
+    /**
+     * @brief Implement Tree PLRU for an 8-way design, pretty slow
+     */
     EightWayTreePLRU,
+    /**
+     * @brief 4-way Random Replacement algorithm which uses a doom style random table to make it as speedy as possible; Relatively fast
+     */
     RandomReplacement4,
+    /**
+     * @brief 4-way Random Replacement algorithm which uses the micros routine to choose the index to replace
+     */
+    RandomReplacement4_Micros,
 };
 constexpr bool requiresCustomImplementation(SetConfiguration cfg) noexcept {
     auto val = static_cast<uint8_t>(cfg);
@@ -617,6 +636,43 @@ private:
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement4_Micros> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 4;
+private:
+    [[nodiscard]] byte getReplacementIndex() noexcept {
+        return micros() & 0b11;
+    }
+public:
+    inline void begin() noexcept {
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    inline auto& find(CacheAddress address, bool doNotLoadFromMemoryOnMiss = false) noexcept {
+        for (byte i = 0; i < NumberOfLines; ++i) {
+            auto& line = lines[i];
+            if (line.matches(address) ) {
+                return line;
+            }
+        }
+        auto& target = lines[getReplacementIndex()];
+        updateFlags();
+        target.reset(address, doNotLoadFromMemoryOnMiss);
+        return target;
+    }
+    inline void updateFlags() noexcept { }
+    inline void clear() noexcept {
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped> {
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
@@ -842,7 +898,7 @@ using Pool1WayBanked = CachePool<4, 10, bankBitCount, SetConfiguration::DirectMa
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 8;
-constexpr auto NumberOfWays = SetConfiguration::RandomReplacement4;
+constexpr auto NumberOfWays = SetConfiguration::RandomReplacement4_Micros;
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 using MemoryCache = ConfigurableMemoryCache;
 #else

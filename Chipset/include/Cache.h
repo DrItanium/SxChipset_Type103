@@ -249,10 +249,9 @@ private:
     DataCacheLine lines[NumberOfLines];
     byte replacementIndex_;
 };
-
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
-    // use MRU instead of round robin
+    // use LRU instead of round robin
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 2;
@@ -280,6 +279,48 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 2> {
     }
     inline void updateFlags(int index) noexcept {
         replacementTarget_ = index == 1 ? 0 : 1;
+    }
+    inline void clear() noexcept {
+        replacementTarget_ = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    byte replacementTarget_ : 1;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, 0x80> {
+    // use MRU instead of round robin
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 2;
+    inline void begin() noexcept {
+        replacementTarget_ = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+        for (int i = 0; i < NumberOfLines; ++i) {
+            if (auto& line = lines[i]; line.matches(address)) {
+                updateFlags(i);
+                return line;
+            }
+        }
+        auto index = getTargetLine();
+        auto& target = lines[index];
+        updateFlags(index);
+        target.reset(address, dontLoadOnMiss);
+        return target;
+    }
+    [[nodiscard]] inline byte getTargetLine() const noexcept {
+        return replacementTarget_;
+    }
+    inline void updateFlags(int index) noexcept {
+        replacementTarget_ = index;
     }
     inline void clear() noexcept {
         replacementTarget_ = 0;
@@ -519,7 +560,8 @@ using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 9;
-constexpr auto NumberOfWays = 2;
+//constexpr auto NumberOfWays = 2;
+constexpr auto NumberOfWays = 0x80; // hack to enable 2 way MRU
 using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
 
 using OnChipMemoryCache = CachePool<4, 8, 0, 1>;

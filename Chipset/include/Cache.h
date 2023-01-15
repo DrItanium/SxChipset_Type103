@@ -884,17 +884,6 @@ private:
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
 using MemoryCache = CachePool<4, 8, 0, NumberOfWays>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-template<uint8_t bankBitCount>
-using Pool12WayBanked = CachePool<4, 7, bankBitCount, SetConfiguration::TwelveWayRoundRobin>; // 322 bytes per bank
-template<uint8_t bankBitCount>
-using Pool6WayBanked = CachePool<4, 8, bankBitCount, SetConfiguration::SixWayRoundRobin>; // 27392 bytes per bank used
-template<uint8_t bankBitCount>
-using Pool8WayBanked = CachePool<4, 7, bankBitCount, SetConfiguration::EightWayRoundRobin>; // 27392 bytes per bank used
-template<uint8_t bankBitCount>
-using Pool2WayBanked = CachePool<4, 9, bankBitCount, SetConfiguration::TwoWayLRU>; //
-template<uint8_t bankBitCount>
-using Pool1WayBanked = CachePool<4, 10, bankBitCount, SetConfiguration::DirectMapped>; //
-
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 8;

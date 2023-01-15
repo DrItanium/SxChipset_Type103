@@ -117,9 +117,10 @@ Platform::begin() noexcept {
                                                                                        // interrupts
         // make sure that we clear out any interrupts
         //(void)MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
-        dataLinesDirection_ = MCP23S17::AllInput16;
+        dataLinesDirection_ = MCP23S17::AllInput8;
         previousValue_.setWholeValue(0);
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
+        MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_, dataLinesDirection_);
         xmem::begin(true);
 #ifdef TYPE203_BOARD
         pinMode<Pin::SearchLengthDetect>(OUTPUT);
@@ -154,7 +155,7 @@ void
 Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
     isReadOperation_ = m2.isReadOperation();
-    if (auto direction = isReadOperation_ ? MCP23S17::AllOutput16 : MCP23S17::AllInput16; direction != dataLinesDirection_) {
+    if (auto direction = isReadOperation_ ? MCP23S17::AllOutput8 : MCP23S17::AllInput8 ; direction != dataLinesDirection_) {
         digitalWrite<Pin::GPIOSelect, LOW>();
 
         SPDR = MCP23S17::WriteOpcode_v<DataLines>;
@@ -171,17 +172,15 @@ Platform::collectAddress() noexcept {
         asm volatile ("nop");
         address_.bytes[1] = readInputChannelAs<uint8_t>();
         triggerClock();
-        auto first = static_cast<byte>(dataLinesDirection_);
         while (!(SPSR & _BV(SPIF)));
 
-        SPDR = first;
+        SPDR = dataLinesDirection_;
         asm volatile ("nop");
         address_.bytes[2] = readInputChannelAs<uint8_t>();
         triggerClock();
-        auto second = static_cast<byte>(dataLinesDirection_);
         while (!(SPSR & _BV(SPIF)));
 
-        SPDR = second ;
+        SPDR = dataLinesDirection_;
         asm volatile ("nop") ;
         address_.bytes[3] = readInputChannelAs<uint8_t>();
         while (!(SPSR & _BV(SPIF)));

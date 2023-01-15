@@ -69,7 +69,7 @@ class Platform final {
         static inline bool isReadOperation_ = false;
         static inline SplitWord32 address_{0};
         static inline bool initialized_ = false;
-        static inline uint16_t dataLinesDirection_ = 0;
+        static inline uint8_t dataLinesDirection_ = 0;
         static inline SplitWord16 previousValue_{0};
 };
 

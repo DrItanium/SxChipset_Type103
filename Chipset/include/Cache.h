@@ -244,6 +244,7 @@ enum class SetConfiguration : uint8_t {
      * @brief Implement Tree PLRU for an 8-way design, pretty slow
      */
     EightWayTreePLRU,
+    EightWayBitPLRU,
     /**
      * @brief 4-way Random Replacement algorithm which uses a doom style random table to make it as speedy as possible; Relatively fast
      */
@@ -537,6 +538,133 @@ struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWa
 private:
     DataCacheLine lines[NumberOfLines];
     uint8_t bits_ : 4;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightWayBitPLRU> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 8;
+    inline void begin() noexcept {
+        bits_ = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    [[nodiscard]] inline auto& find(CacheAddress address, bool dontLoadOnMiss) noexcept {
+        for (byte i = 0; i < NumberOfLines; ++i) {
+            if (auto& line = lines[i]; line.matches(address)) {
+                updateFlags(i);
+                return line;
+            }
+        }
+        auto index = getTargetLine();
+        auto& target = lines[index];
+        updateFlags(index);
+        target.reset(address, dontLoadOnMiss);
+        return target;
+    }
+    static constexpr byte computeTargetBit(uint8_t value) noexcept {
+        if (value & _BV(7)) {
+            if (value & _BV(6)) {
+                if (value & _BV(5)) {
+                    if (value & _BV(4))  {
+                        if (value & _BV(3))  {
+                            if (value & _BV(2)) {
+                                if (value & _BV(1)) {
+                                    return 0;
+                                } else {
+                                    return 1;
+                                }
+                            }  else {
+                                return 2;
+                            }
+                        } else {
+                            return 3;
+                        }
+                    } else {
+                        return 4;
+                    }
+                } else {
+                    return 5;
+                }
+            } else {
+                return 6;
+            }
+        } else {
+            return 7;
+        }
+    }
+    inline uint8_t getTargetLine() const noexcept {
+        // return the left most line whose flag bit is zero
+        static constexpr uint8_t IndexTable[256] {
+#define X(base) \
+                computeTargetBit((8 * base) + 0 ),  \
+                computeTargetBit((8 * base) + 1 ), \
+                computeTargetBit((8 * base) + 2 ), \
+                computeTargetBit((8 * base) + 3 ), \
+                computeTargetBit((8 * base) + 4 ), \
+                computeTargetBit((8 * base) + 5 ), \
+                computeTargetBit((8 * base) + 6 ), \
+                computeTargetBit((8 * base) + 7 ), \
+                computeTargetBit((8 * base) + 8 ),  \
+                computeTargetBit((8 * base) + 9 ), \
+                computeTargetBit((8 * base) + 10 ), \
+                computeTargetBit((8 * base) + 11 ), \
+                computeTargetBit((8 * base) + 12 ), \
+                computeTargetBit((8 * base) + 13 ), \
+                computeTargetBit((8 * base) + 14 ), \
+                computeTargetBit((8 * base) + 15 )
+            X(0),
+            X(1),
+            X(2),
+            X(3),
+            X(4),
+            X(5),
+            X(6),
+            X(7),
+            X(8),
+            X(9),
+            X(10),
+            X(11),
+            X(12),
+            X(13),
+            X(14),
+            X(15),
+#undef X
+        };
+        static_assert(IndexTable[0xFF] == 0);
+        static_assert(IndexTable[0xFE] == 0);
+        static_assert(IndexTable[0xFD] == 1);
+        return IndexTable[bits_];
+    }
+    inline void updateFlags(uint8_t index) noexcept {
+        // set the node flags to denote the direction that is opposite to the direction taken
+        static constexpr uint8_t MaskTable[] {
+                _BV(0),
+                _BV(1),
+                _BV(2),
+                _BV(3),
+                _BV(4),
+                _BV(5),
+                _BV(6),
+                _BV(7),
+        };
+        auto targetBits = MaskTable[index & 0b111];
+        bits_ |= targetBits;
+        if (bits_ == 0b1111'1111) {
+            bits_ = targetBits;
+        }
+    }
+    inline void clear() noexcept {
+        bits_ = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    uint8_t bits_;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>

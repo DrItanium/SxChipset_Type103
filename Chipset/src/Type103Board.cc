@@ -32,9 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "MCP23S17.h"
 #include "Peripheral.h"
-#ifdef TYPE203_BOARD
 #include "xmem.h"
-#endif
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 /**
@@ -95,12 +93,6 @@ Platform::begin() noexcept {
         digitalWrite<Pin::Enable, HIGH>();
         // do an initial clear of the clock signal
         pulse<Pin::CLKSignal, LOW, HIGH>();
-#ifdef TYPE203_BOARD
-        pinMode<Pin::PortH5>(OUTPUT);
-        pinMode<Pin::PortH7>(OUTPUT);
-        digitalWrite<Pin::PortH5, HIGH>();
-        digitalWrite<Pin::PortH7, HIGH>();
-#endif
 
         MCP23S17::IOCON reg;
         reg.mirrorInterruptPins();
@@ -128,12 +120,7 @@ Platform::begin() noexcept {
         dataLinesDirection_ = MCP23S17::AllInput16;
         previousValue_.setWholeValue(0);
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
-#ifdef TYPE203_BOARD
-        pinMode<Pin::RealA15>(OUTPUT);
-        digitalWrite<Pin::FakeA15, LOW>();
-        digitalWrite<Pin::RealA15, LOW>();
         xmem::begin(true);
-#endif
     }
 }
 

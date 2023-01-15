@@ -1069,32 +1069,6 @@ private:
     Cache* ptr_ = nullptr;
 };
 
-template<uint8_t offsetBits, uint8_t tagBits, SetConfiguration cfg>
-struct BasicCacheReference<offsetBits, tagBits, 0, cfg> {
-    using Cache = BasicDataCache<offsetBits, tagBits, 0, cfg>;
-    using DataCacheLine = typename Cache::DataCacheLine;
-    using CacheAddress = typename Cache::CacheAddress;
-    void begin() noexcept {
-        Serial.print(F("Sizeof cache = "));
-        Serial.println(sizeof(Cache));
-        ptr_.begin();
-    }
-    inline auto& find(const CacheAddress& addr) noexcept {
-        // make sure we select this bank before we jump to the pointer
-        return ptr_.find(addr);
-    }
-    void clear() noexcept {
-        ptr_.clear();
-    }
-    [[nodiscard]] byte* asBuffer() noexcept {
-        return ptr_.asBuffer();
-    }
-    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
-        return ptr_.sizeOfBuffer();
-    }
-private:
-    Cache ptr_;
-};
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration cfg>
 struct CachePool {
     using CacheReference = BasicCacheReference<offsetBits, tagBits, bankBits, cfg>;
@@ -1125,35 +1099,10 @@ private:
     CacheReference pool_[NumberOfBanks];
 };
 
-template<uint8_t offsetBits, uint8_t tagBits, SetConfiguration cfg>
-struct CachePool<offsetBits, tagBits, 0, cfg> {
-    using CacheReference = BasicCacheReference<offsetBits, tagBits, 0, cfg>;
-    using CacheAddress = typename CacheReference::CacheAddress;
-    using CacheLine = typename CacheReference::DataCacheLine;
-    static constexpr auto NumberOfBanks = pow2(0);
-    void begin(byte = 0) noexcept {
-        pool_.begin();
-    }
-    inline auto& find(const SplitWord32& address) noexcept {
-        CacheAddress addr(address);
-        return pool_.find(addr);
-    }
-    void clear()  {
-        pool_.clear();
-    }
-    [[nodiscard]] byte* asBuffer() noexcept {
-        return pool_.asBuffer();
-    }
-    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
-        return pool_.sizeOfBuffer();
-    }
-private:
-    CacheReference pool_;
-};
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
 using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-constexpr auto NumberOfBankBits = 3;
+constexpr auto NumberOfBankBits = 0;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 9;
 constexpr auto OffChipSetConfiguration = SetConfiguration::TwoWayLRU;

@@ -249,7 +249,7 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
         signalReady();
         ++offset;
         // make sure that we have enough time as the chip is pipelined
-        //singleCycleDelay();
+        singleCycleDelay();
     }
     Platform::endInlineSPIOperation();
 }

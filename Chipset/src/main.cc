@@ -207,14 +207,12 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             // so we are writing to the cache
             handler.write(c0, value);
         }
-        //auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        if (digitalRead<Pin::BLAST_>() == LOW) {
-            signalReady();
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
             break;
-        } else {
-            signalReady();
-            handler.next();
         }
+        handler.next();
         singleCycleDelay(); // put this in to make sure we never over run anything
     }
     if constexpr (inlineSPIOperation) {
@@ -243,11 +241,11 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
         // read it twice, otherwise we lose our minds
         auto c0 = readInputChannelAs<Channel0Value, true>();
         line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
-        if (digitalRead<Pin::BLAST_>() == LOW) {
-            signalReady();
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
             break;
         }
-        signalReady();
         ++offset;
         // make sure that we have enough time as the chip is pipelined
         singleCycleDelay();
@@ -274,11 +272,11 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         while (true) {
             // okay it is a read operation, so... pull a cache line out
             Platform::setDataLines(ptr->getWholeValue(), InlineSPI{});
-            if (digitalRead<Pin::BLAST_>() == LOW) {
-                signalReady();
+            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
                 break;
             }
-            signalReady();
             ++ptr;
             singleCycleDelay();
         }

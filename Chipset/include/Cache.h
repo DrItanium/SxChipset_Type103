@@ -564,12 +564,8 @@ using Pool1WayBanked = CachePool<4, 10, bankBitCount, 1>; //
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 9;
-//constexpr auto NumberOfWays = 2;
-constexpr auto NumberOfWays = 0x80; // hack to enable 2 way MRU
-using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, NumberOfWays>;
-
-using OnChipMemoryCache = CachePool<4, 8, 0, 1>;
-
+constexpr auto NumberOfWays = SpecialSetConfigurations::TwoWayMRU; // hack to enable 2 way MRU
+using ConfigurableMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, static_cast<uint8_t>(NumberOfWays)>;
 using MemoryCache = ConfigurableMemoryCache;
 #else
 #error "Please correctly define internal cache size for target board"

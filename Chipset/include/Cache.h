@@ -59,18 +59,18 @@ union BasicCacheAddress {
 private:
     SplitWord32 backingStore_;
     struct {
-        uint32_t offset : OffsetBitsCount;
+        uint8_t offset : OffsetBitsCount;
         uint32_t tag : TagBitsCount;
         uint32_t bank : BankBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {
-        uint32_t offset : OffsetBitsCount;
+        uint8_t offset : OffsetBitsCount;
         uint32_t check : (TagBitsCount + KeyBitsCount + BankBitsCount);
     } compare;
     struct {
-        uint32_t a0 : 1;
-        uint32_t offset : OffsetWordBitsCount;
+        uint8_t a0 : 1;
+        uint8_t offset : OffsetWordBitsCount;
         uint32_t rest : (TagBitsCount + KeyBitsCount + BankBitsCount);
     } wordView;
 };
@@ -100,17 +100,17 @@ union BasicCacheAddress<offsetBits, tagBits, 0> {
 private:
     SplitWord32 backingStore_;
     struct {
-        uint32_t offset : OffsetBitsCount;
+        uint8_t offset : OffsetBitsCount;
         uint32_t tag : TagBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {
-       uint32_t offset : OffsetBitsCount;
+       uint8_t offset : OffsetBitsCount;
        uint32_t check : (TagBitsCount + KeyBitsCount);
     } compare;
     struct {
-        uint32_t a0 : 1;
-        uint32_t offset : OffsetWordBitsCount;
+        uint8_t a0 : 1;
+        uint8_t offset : OffsetWordBitsCount;
         uint32_t rest : (TagBitsCount + KeyBitsCount);
     } wordView;
 };

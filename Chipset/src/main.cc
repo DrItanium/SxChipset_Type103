@@ -173,9 +173,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
     if constexpr (inlineSPIOperation) {
         Platform::startInlineSPIOperation();
     }
-    while (true) {
-        //singleCycleDelay();
-        // read it twice, otherwise we lose our minds
+    do {
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
@@ -214,7 +212,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         }
         handler.next();
         singleCycleDelay(); // put this in to make sure we never over run anything
-    }
+    } while(true);
     if constexpr (inlineSPIOperation) {
         Platform::endInlineSPIOperation();
     }
@@ -223,8 +221,9 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 
 struct TreatAsCacheAccess final { };
 
+template<bool isReadOperation>
 inline void
-performWriteCacheRequest(const SplitWord32& addr) noexcept {
+talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
 #ifdef TYPE203_BOARD
     digitalWrite<Pin::SearchLengthDetect, LOW>();
 #endif
@@ -233,57 +232,38 @@ performWriteCacheRequest(const SplitWord32& addr) noexcept {
     digitalWrite<Pin::SearchLengthDetect, HIGH>();
 #endif
     Platform::startInlineSPIOperation();
-    // the compiler seems to barf on for loops at -Ofast
-    // so instead, we want to unpack it to make sure
-    auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
-    while (true) {
-        //singleCycleDelay();
-        // read it twice, otherwise we lose our minds
-        auto c0 = readInputChannelAs<Channel0Value, true>();
-        line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++offset;
-        // make sure that we have enough time as the chip is pipelined
-        singleCycleDelay();
-    }
-    Platform::endInlineSPIOperation();
-}
-template<bool isReadOperation>
-inline void
-talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     if constexpr (isReadOperation) {
-#ifdef TYPE203_BOARD
-        digitalWrite<Pin::SearchLengthDetect, LOW>();
-#endif
-        auto &line = getCache().find(addr);
-#ifdef TYPE203_BOARD
-        digitalWrite<Pin::SearchLengthDetect, HIGH>();
-#endif
-        Platform::startInlineSPIOperation();
         // the compiler seems to barf on for loops at -Ofast
         // so instead, we want to unpack it to make sure
-        auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
-        const SplitWord16* ptr = line.getData();
-        ptr += offset;
-        while (true) {
+        for (auto offset = static_cast<uint8_t>(MemoryCache::CacheAddress{addr}.getWordOffset()); ; ++offset){
             // okay it is a read operation, so... pull a cache line out
-            Platform::setDataLines(ptr->getWholeValue(), InlineSPI{});
+            Platform::setDataLines(line.getWord(offset), InlineSPI{});
             auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
             signalReady();
             if (isBurstLast) {
                 break;
             }
-            ++ptr;
             singleCycleDelay();
         }
-        Platform::endInlineSPIOperation();
     } else {
-        performWriteCacheRequest(addr);
+        // the compiler seems to barf on for loops at -Ofast
+        // so instead, we want to unpack it to make sure
+        //auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
+        for (auto offset = static_cast<uint8_t>(MemoryCache::CacheAddress{addr}.getWordOffset()); ; ++offset){
+            //singleCycleDelay();
+            // read it twice, otherwise we lose our minds
+            auto c0 = readInputChannelAs<Channel0Value, true>();
+            line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
+            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            // make sure that we have enough time as the chip is pipelined
+            singleCycleDelay();
+        }
     }
+    Platform::endInlineSPIOperation();
 }
 template<bool isReadOperation>
 void

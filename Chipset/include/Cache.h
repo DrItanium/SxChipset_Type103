@@ -807,7 +807,7 @@ struct BasicDataCache {
         }
         return cache[address.getTag()].find(address, doNotLoadFromMemoryOnMiss);
     }
-    inline void begin() noexcept {
+    inline void begin(byte = 0) noexcept {
         for (auto& set : cache) {
             set.begin();
         }
@@ -840,7 +840,7 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
         }
         return line;
     }
-    inline void begin() noexcept {
+    inline void begin(byte = 0) noexcept {
         for (auto& set : cache) {
             set.begin();
         }
@@ -977,7 +977,7 @@ private:
     CacheReference pool_;
 };
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
-using MemoryCache = CachePool<4, 8, 0, SetConfiguration::TwoWayLRU>;
+using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 4;
 constexpr auto NumberOfOffsetBits = 4;
@@ -985,9 +985,9 @@ constexpr auto NumberOfTagBits = 7;
 constexpr auto OffChipSetConfiguration = SetConfiguration::RandomReplacement4;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
-constexpr auto OnChipTagBits = 6;
-constexpr auto OnChipSetConfiguration = SetConfiguration::FourWayTreePLRU;
-using OnChipMemoryCache = CachePool<OnChipOffsetBits, OnChipTagBits, 0, OnChipSetConfiguration>;
+constexpr auto OnChipTagBits = 7;
+constexpr auto OnChipSetConfiguration = SetConfiguration::TwoWayLRU;
+using OnChipMemoryCache = BasicDataCache<OnChipOffsetBits, OnChipTagBits, 0, OnChipSetConfiguration>;
 using MemoryCache = OnChipMemoryCache;
 #else
 #error "Please correctly define internal cache size for target board"

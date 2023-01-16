@@ -1252,10 +1252,10 @@ private:
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
 using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-constexpr auto NumberOfBankBits = 0;
+constexpr auto NumberOfBankBits = 3;
 constexpr auto NumberOfOffsetBits = 6;
-constexpr auto NumberOfTagBits = 6;
-constexpr auto OffChipSetConfiguration = SetConfiguration::FourWayRoundRobin;
+constexpr auto NumberOfTagBits = 7;
+constexpr auto OffChipSetConfiguration = SetConfiguration::ThreeWayRoundRobin;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
 constexpr auto OnChipTagBits = 7;

@@ -84,8 +84,14 @@ enum class SetConfiguration : uint8_t {
      * @brief 8-way Random Replacement algorithm which uses the micros routine to choose the index to replace
      */
     RandomReplacement8_Micros,
+    /**
+     * @brief Update flags is called on a match and reset; If the index is same as the replacement target then increment the replacement target
+     */
     ModifiedEightWayRoundRobin,
-    DirectMapped8_Associative,
+    /**
+     * @brief A direct mapped implementation which holds onto direct mapped internal parts
+     */
+    DoubleDirectMapped4,
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration config>
@@ -166,6 +172,93 @@ private:
         uint32_t a0 : 1;
         uint32_t offset : OffsetWordBitsCount;
         uint32_t rest : (TagBitsCount + KeyBitsCount);
+    } wordView;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+union BasicCacheAddress<offsetBits, tagBits, bankBits, SetConfiguration::DoubleDirectMapped4> {
+    using Self = BasicCacheAddress<offsetBits, tagBits, bankBits, SetConfiguration::DoubleDirectMapped4>;
+    static constexpr auto OffsetBitsCount = offsetBits;
+    static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
+    static constexpr auto SubElementBits = 2;
+    static constexpr auto TagBitsCount = tagBits;
+    static constexpr auto BankBitsCount = bankBits;
+    static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount + SubElementBits;
+    static_assert(KeyDifferential < 32, "Number of tag bits is too high");
+    static constexpr auto KeyBitsCount = (32 - KeyDifferential);
+    BasicCacheAddress(uint32_t address) : backingStore_(address) { }
+    BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    constexpr auto getBankIndex() const noexcept { return bank; }
+    constexpr auto getOffset() const noexcept { return offset; }
+    constexpr auto getTag() const noexcept { return tag; }
+    constexpr auto getKey() const noexcept { return key; }
+    constexpr auto getBackingStore() const noexcept { return backingStore_; }
+    void setOffset(uint32_t value) noexcept { offset = value; }
+    void setKey(uint32_t value) noexcept { key = value; }
+    bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
+    inline void clear() noexcept { backingStore_.clear(); }
+    constexpr auto getWordOffset() const noexcept { return wordView.offset; }
+    constexpr auto getSubElement() const noexcept { return subElement; }
+private:
+    SplitWord32 backingStore_;
+    struct {
+        uint32_t offset : OffsetBitsCount;
+        uint32_t subElement : SubElementBits;
+        uint32_t tag : TagBitsCount;
+        uint32_t bank : BankBitsCount;
+        uint32_t key : KeyBitsCount;
+    };
+    struct {
+        uint32_t offset : OffsetBitsCount;
+        uint32_t check : (SubElementBits + TagBitsCount + KeyBitsCount + BankBitsCount);
+    } compare;
+    struct {
+        uint32_t a0 : 1;
+        uint32_t offset : OffsetWordBitsCount;
+        uint32_t rest : (SubElementBits + TagBitsCount + KeyBitsCount + BankBitsCount);
+    } wordView;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits>
+union BasicCacheAddress<offsetBits, tagBits, 0, SetConfiguration::DoubleDirectMapped4> {
+    using Self = BasicCacheAddress<offsetBits, tagBits, 0, SetConfiguration::DoubleDirectMapped4>;
+    static constexpr auto OffsetBitsCount = offsetBits;
+    static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
+    static constexpr auto TagBitsCount = tagBits;
+    static constexpr auto SubElementBits = 2;
+    static constexpr auto BankBitsCount = 0;
+    static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount + SubElementBits;
+    static_assert(KeyDifferential < 32, "Number of tag bits is too high");
+    static constexpr auto KeyBitsCount = (32 - KeyDifferential);
+    BasicCacheAddress(uint32_t address) : backingStore_(address) { }
+    BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    constexpr auto getBankIndex() const noexcept { return 0; }
+    constexpr auto getOffset() const noexcept { return offset; }
+    constexpr auto getTag() const noexcept { return tag; }
+    constexpr auto getKey() const noexcept { return key; }
+    constexpr auto getBackingStore() const noexcept { return backingStore_; }
+    constexpr auto getWordOffset() const noexcept { return wordView.offset; }
+    constexpr auto getSubElement() const noexcept { return subElement; }
+    void setOffset(uint32_t value) noexcept { offset = value; }
+    void setKey(uint32_t value) noexcept { key = value; }
+    bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
+    inline void clear() noexcept { backingStore_.clear(); }
+private:
+    SplitWord32 backingStore_;
+    struct {
+        uint32_t offset : OffsetBitsCount;
+        uint32_t subElement : SubElementBits;
+        uint32_t tag : TagBitsCount;
+        uint32_t key : KeyBitsCount;
+    };
+    struct {
+        uint32_t offset : OffsetBitsCount;
+        uint32_t check : (SubElementBits + TagBitsCount + KeyBitsCount);
+    } compare;
+    struct {
+        uint32_t a0 : 1;
+        uint32_t offset : OffsetWordBitsCount;
+        uint32_t rest : (SubElementBits + TagBitsCount + KeyBitsCount);
     } wordView;
 };
 
@@ -290,6 +383,32 @@ struct BasicDataCacheSet {
 private:
     DataCacheLine lines[NumberOfLines];
     byte replacementIndex_;
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DoubleDirectMapped4> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::DoubleDirectMapped4>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = 4;
+    inline void begin() noexcept {
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
+        auto& line = lines[address.getSubElement()];
+        if (!line.matches(address)){
+            line.reset(address);
+        }
+        return line;
+    }
+    inline void clear() noexcept {
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>

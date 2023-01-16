@@ -1162,9 +1162,9 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped> {
-    using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped>;
-    using DataCacheLine = typename DataCacheSet::DataCacheLine;
-    using CacheAddress = typename DataCacheSet::CacheAddress;
+    //using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfSets = pow2(tagBits);
     inline void clear() noexcept {
         for (auto& set : cache) {
@@ -1266,8 +1266,8 @@ using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 0;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 9;
-constexpr auto OffChipSetConfiguration = SetConfiguration::TwoWayLRU;
+constexpr auto NumberOfTagBits = 10;
+constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMapped;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
 constexpr auto OnChipTagBits = 7;

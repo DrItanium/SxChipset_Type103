@@ -322,6 +322,9 @@ struct BasicDataCacheLine {
                 break;
         }
     }
+    inline bool victimCacheMatches(const CacheAddress& address) const noexcept {
+        return flags_.valid_ && dest_.matches(address);
+    }
 private:
     CacheAddress dest_{0};
     struct {
@@ -1206,21 +1209,21 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
             // okay so we have a miss, look through the victim cache to see if we can find a match
             if (auto index = findInVictimCache(address); index != -1) {
                 // okay so we found a match in the victim cache, do the swap and
-                line = installToVictimCache(line, index);
-                cache[address.getTag()] = line; // install the new line into the cache proper
-                return *line;
+                auto* newLine = installToVictimCache(line, index);
+                cache[address.getTag()] = newLine; // install the new line into the cache proper
+                return *newLine;
             } else {
                 // okay so we have a double miss, get a line and swap it with this one
-                line = installToVictimCache(line);
-                cache[address.getTag()] = line; // install the new line into the cache proper
-                line->reset(address);
+                auto* newLine = installToVictimCache(line);
+                cache[address.getTag()] = newLine; // install the new line into the cache proper
+                newLine->reset(address);
+                return *newLine;
             }
             // do the reset as normal
         }
         return *line;
     }
     inline void begin(byte = 0) noexcept {
-        internalBuffer = new uint8_t[CacheBufferSize];
         for (int i = 0; i < NumberOfSets; ++i) {
             cache[i] = new DataCacheLine();
             cache[i]->begin();
@@ -1244,7 +1247,7 @@ private:
      */
     [[nodiscard]] int findInVictimCache(const CacheAddress& address) noexcept {
         for (int i = 0; i < NumberOfVictimCacheEntries; ++i) {
-            if (auto* line = victimCache[i]; line->matches(address)) {
+            if (auto* line = victimCache[i]; line->victimCacheMatches(address)) {
                 return i;
             }
         }
@@ -1278,7 +1281,7 @@ private:
         return result;
     }
 private:
-    uint8_t* internalBuffer = nullptr;
+    uint8_t internalBuffer[2048];
     DataCacheLine* cache[NumberOfSets];
     DataCacheLine* victimCache[NumberOfVictimCacheEntries];
     uint8_t currentReplacementIndex_ = 0;

@@ -1295,8 +1295,10 @@ struct BasicCacheReference {
         xmem::setMemoryBank(index_);
     }
     void begin(byte index) noexcept {
-        Serial.print(F("Sizeof cache = "));
-        Serial.println(sizeOfBuffer());
+        if (sizeOfBuffer() > 0) {
+            Serial.print(F("Sizeof cache = "));
+            Serial.println(sizeOfBuffer());
+        }
         index_ = index;
         select();
         ptr_ = new Cache();

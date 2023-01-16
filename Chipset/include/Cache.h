@@ -92,6 +92,11 @@ enum class SetConfiguration : uint8_t {
      * @brief A direct mapped implementation which holds onto direct mapped internal parts
      */
     DoubleDirectMapped4,
+
+    /**
+     * @brief The Direct Mapped implementation with a small 4 entry victim cache that is fully associative
+     */
+    DirectMappedWithVictimCache,
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration config>
@@ -1150,7 +1155,6 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped> {
-    //using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped>;
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfSets = pow2(tagBits);
@@ -1179,6 +1183,93 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
     }
 private:
     DataCacheLine cache[NumberOfSets];
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWithVictimCache> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWithVictimCache>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfSets = pow2(tagBits);
+    static constexpr auto CacheBufferSize = 2048;
+    static constexpr auto NumberOfVictimCacheEntries = 4;
+    inline void clear() noexcept {
+        for (auto& set : cache) {
+            set->clear();
+        }
+        for (auto& set : victimCache) {
+            set->clear();
+        }
+    }
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
+        auto& line = cache[address.getTag()];
+        if (!line->matches(address)){
+            line->reset(address);
+        }
+        return *line;
+    }
+    inline void begin(byte = 0) noexcept {
+        internalBuffer = new uint8_t[CacheBufferSize];
+        for (int i = 0; i < NumberOfSets; ++i) {
+            cache[i] = new DataCacheLine();
+            cache[i]->begin();
+        }
+        for (int i  = 0; i < NumberOfVictimCacheEntries; ++i) {
+            victimCache[i] = new DataCacheLine();
+            victimCache[i]->begin();
+        }
+    }
+    [[nodiscard]] byte* asBuffer() noexcept {
+        return internalBuffer;
+    }
+    [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
+        return CacheBufferSize;
+    }
+private:
+    /**
+     * @brief See if the given cache address can be found in the victim cache via a linear scan
+     * @param address The cache address to look for
+     * @return The index in the victim cache of the line (-1 if not found)
+     */
+    [[nodiscard]] int findInVictimCache(const CacheAddress& address) noexcept {
+        for (int i = 0; i < NumberOfVictimCacheEntries; ++i) {
+            if (auto* line = victimCache[i]; line->matches(address)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    /**
+     * @brief Installs the given line to the victim cache at the specified address (found from doing a linear search)
+     * @param line The line to install
+     * @param index The position to install to
+     * @return The old cache line found at that position (note, it could be an invalid cache line or have data in it!)
+     */
+    [[nodiscard]] DataCacheLine* installToVictimCache(DataCacheLine* line, int index) noexcept {
+        auto* current = victimCache[index];
+        victimCache[index] = line;
+        return current;
+    }
+
+    /**
+     * @brief Use an internal replacement counter to select a line from the victim cache and do the normal swap.
+     * This version is far more useful when you have encountered a double miss and need to do the replacement.
+     * The selection algorithm is round robin.
+     * @param line The line to be saved into the victim cache
+     * @return The old cache line
+     */
+    [[nodiscard]] DataCacheLine* installToVictimCache(DataCacheLine* line) noexcept {
+        auto* result = installToVictimCache(line, currentReplacementIndex_);
+        ++currentReplacementIndex_;
+        if (currentReplacementIndex_ == NumberOfVictimCacheEntries) {
+            currentReplacementIndex_ = 0;
+        }
+        return result;
+    }
+private:
+    uint8_t* internalBuffer = nullptr;
+    DataCacheLine* cache[NumberOfSets];
+    DataCacheLine* victimCache[NumberOfVictimCacheEntries];
+    uint8_t currentReplacementIndex_ = 0;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration cfg>

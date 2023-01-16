@@ -1201,9 +1201,21 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
         }
     }
     [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
-        auto& line = cache[address.getTag()];
+        auto* line = cache[address.getTag()];
         if (!line->matches(address)){
-            line->reset(address);
+            // okay so we have a miss, look through the victim cache to see if we can find a match
+            if (auto index = findInVictimCache(address); index != -1) {
+                // okay so we found a match in the victim cache, do the swap and
+                line = installToVictimCache(line, index);
+                cache[address.getTag()] = line; // install the new line into the cache proper
+                return *line;
+            } else {
+                // okay so we have a double miss, get a line and swap it with this one
+                line = installToVictimCache(line);
+                cache[address.getTag()] = line; // install the new line into the cache proper
+                line->reset(address);
+            }
+            // do the reset as normal
         }
         return *line;
     }
@@ -1282,7 +1294,7 @@ struct BasicCacheReference {
     }
     void begin(byte index) noexcept {
         Serial.print(F("Sizeof cache = "));
-        Serial.println(sizeof(Cache));
+        Serial.println(sizeOfBuffer());
         index_ = index;
         select();
         ptr_ = new Cache();
@@ -1345,8 +1357,8 @@ using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 3;
 constexpr auto NumberOfOffsetBits = 6;
-constexpr auto NumberOfTagBits = 7;
-constexpr auto OffChipSetConfiguration = SetConfiguration::ThreeWayRoundRobin;
+constexpr auto NumberOfTagBits = 8;
+constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
 constexpr auto OnChipTagBits = 7;

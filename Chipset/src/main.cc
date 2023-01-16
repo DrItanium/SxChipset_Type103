@@ -470,7 +470,9 @@ installMemoryImage() noexcept {
         auto BufferSize = getCache().sizeOfBuffer();
         bool deleteBuffer = false;
         if (!buffer || BufferSize == 0) {
-            BufferSize = 2048;
+            xmem::setMemoryBank(15);
+            // allocate a 32k block of memory in bank 15
+            BufferSize = 16384;
             deleteBuffer = true;
             buffer = new byte[BufferSize];
         }

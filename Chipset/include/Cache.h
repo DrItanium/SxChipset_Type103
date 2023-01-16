@@ -33,10 +33,64 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "xmem.h"
 size_t memoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
 size_t memoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept;
+enum class SetConfiguration : uint8_t {
+    DirectMapped = 1,
+    TwoWayRoundRobin = 2,
+    ThreeWayRoundRobin = 3,
+    FourWayRoundRobin = 4,
+    FiveWayRoundRobin = 5,
+    SixWayRoundRobin = 6,
+    SevenWayRoundRobin = 7,
+    EightWayRoundRobin = 8,
+    NineWayRoundRobin = 9,
+    TenWayRoundRobin = 10,
+    ElevenWayRoundRobin = 11,
+    TwelveWayRoundRobin = 12,
+    ThirteenWayRoundRobin = 13,
+    FourteenWayRoundRobin = 14,
+    FifteenWayRoundRobin = 15,
+    SixteenWayRoundRobin = 16,
+    /**
+     * @brief Two way most recently used algorithm; Seems speedy enough
+     */
+    TwoWayLRU = 0x80,
+    /**
+     * @brief Two way most recently used algorithm; Seems speedy enough
+     */
+    TwoWayMRU,
+    /**
+     * @brief 4-way tree PLRU algorithm which is relatively speedy
+     */
+    FourWayTreePLRU,
+    FourWayBitPLRU,
+    /**
+     * @brief Implement Tree PLRU for an 8-way design, pretty slow
+     */
+    EightWayTreePLRU,
+    EightWayBitPLRU,
+    /**
+     * @brief 4-way Random Replacement algorithm which uses a doom style random table to make it as speedy as possible; Relatively fast
+     */
+    RandomReplacement4,
+    /**
+     * @brief 4-way Random Replacement algorithm which uses the micros routine to choose the index to replace
+     */
+    RandomReplacement4_Micros,
+    /**
+     * @brief 8-way Random Replacement algorithm which uses a doom style random table to make it as speedy as possible; Relatively fast
+     */
+    RandomReplacement8,
+    /**
+     * @brief 8-way Random Replacement algorithm which uses the micros routine to choose the index to replace
+     */
+    RandomReplacement8_Micros,
+    ModifiedEightWayRoundRobin,
+    DirectMapped8_Associative,
+};
 
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration config>
 union BasicCacheAddress {
-    using Self = BasicCacheAddress<offsetBits, tagBits, bankBits>;
+    using Self = BasicCacheAddress<offsetBits, tagBits, bankBits, config>;
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
     static constexpr auto TagBitsCount = tagBits;
@@ -59,25 +113,25 @@ union BasicCacheAddress {
 private:
     SplitWord32 backingStore_;
     struct {
-        uint8_t offset : OffsetBitsCount;
-        uint16_t tag : TagBitsCount;
-        uint8_t bank : BankBitsCount;
+        uint32_t offset : OffsetBitsCount;
+        uint32_t tag : TagBitsCount;
+        uint32_t bank : BankBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {
-        uint8_t offset : OffsetBitsCount;
+        uint32_t offset : OffsetBitsCount;
         uint32_t check : (TagBitsCount + KeyBitsCount + BankBitsCount);
     } compare;
     struct {
-        uint8_t a0 : 1;
-        uint8_t offset : OffsetWordBitsCount;
+        uint32_t a0 : 1;
+        uint32_t offset : OffsetWordBitsCount;
         uint32_t rest : (TagBitsCount + KeyBitsCount + BankBitsCount);
     } wordView;
 };
 
-template<uint8_t offsetBits, uint8_t tagBits>
-union BasicCacheAddress<offsetBits, tagBits, 0> {
-    using Self = BasicCacheAddress<offsetBits, tagBits, 0>;
+template<uint8_t offsetBits, uint8_t tagBits, SetConfiguration config>
+union BasicCacheAddress<offsetBits, tagBits, 0, config> {
+    using Self = BasicCacheAddress<offsetBits, tagBits, 0, config>;
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
     static constexpr auto TagBitsCount = tagBits;
@@ -100,25 +154,25 @@ union BasicCacheAddress<offsetBits, tagBits, 0> {
 private:
     SplitWord32 backingStore_;
     struct {
-        uint8_t offset : OffsetBitsCount;
-        uint16_t tag : TagBitsCount;
+        uint32_t offset : OffsetBitsCount;
+        uint32_t tag : TagBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {
-       uint8_t offset : OffsetBitsCount;
+       uint32_t offset : OffsetBitsCount;
        uint32_t check : (TagBitsCount + KeyBitsCount);
     } compare;
     struct {
-        uint8_t a0 : 1;
-        uint8_t offset : OffsetWordBitsCount;
+        uint32_t a0 : 1;
+        uint32_t offset : OffsetWordBitsCount;
         uint32_t rest : (TagBitsCount + KeyBitsCount);
     } wordView;
 };
 
 
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration config>
 struct BasicDataCacheLine {
-    using CacheAddress = BasicCacheAddress<offsetBits, tagBits, bankBits>;
+    using CacheAddress = BasicCacheAddress<offsetBits, tagBits, bankBits, config>;
     static constexpr auto NumberOfDataBytes = pow2(offsetBits);
     static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
     inline void clear() noexcept {
@@ -193,68 +247,16 @@ private:
     bool valid_ = false;
     SplitWord16 words[NumberOfWords];
 };
-enum class SetConfiguration : uint8_t {
-    DirectMapped = 1,
-    TwoWayRoundRobin = 2,
-    ThreeWayRoundRobin = 3,
-    FourWayRoundRobin = 4,
-    FiveWayRoundRobin = 5,
-    SixWayRoundRobin = 6,
-    SevenWayRoundRobin = 7,
-    EightWayRoundRobin = 8,
-    NineWayRoundRobin = 9,
-    TenWayRoundRobin = 10,
-    ElevenWayRoundRobin = 11,
-    TwelveWayRoundRobin = 12,
-    ThirteenWayRoundRobin = 13,
-    FourteenWayRoundRobin = 14,
-    FifteenWayRoundRobin = 15,
-    SixteenWayRoundRobin = 16,
-    /**
-     * @brief Two way most recently used algorithm; Seems speedy enough
-     */
-    TwoWayLRU = 0x80,
-    /**
-     * @brief Two way most recently used algorithm; Seems speedy enough
-     */
-    TwoWayMRU,
-    /**
-     * @brief 4-way tree PLRU algorithm which is relatively speedy
-     */
-    FourWayTreePLRU,
-    FourWayBitPLRU,
-    /**
-     * @brief Implement Tree PLRU for an 8-way design, pretty slow
-     */
-    EightWayTreePLRU,
-    EightWayBitPLRU,
-    /**
-     * @brief 4-way Random Replacement algorithm which uses a doom style random table to make it as speedy as possible; Relatively fast
-     */
-    RandomReplacement4,
-    /**
-     * @brief 4-way Random Replacement algorithm which uses the micros routine to choose the index to replace
-     */
-    RandomReplacement4_Micros,
-    /**
-     * @brief 8-way Random Replacement algorithm which uses a doom style random table to make it as speedy as possible; Relatively fast
-     */
-    RandomReplacement8,
-    /**
-     * @brief 8-way Random Replacement algorithm which uses the micros routine to choose the index to replace
-     */
-    RandomReplacement8_Micros,
-};
 constexpr bool requiresCustomImplementation(SetConfiguration cfg) noexcept {
     auto val = static_cast<uint8_t>(cfg);
     return val < 2 || val > 16;
 }
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration numberOfLines>
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration cfg>
 struct BasicDataCacheSet {
-    static_assert(!requiresCustomImplementation(numberOfLines), "A custom implementation must be defined for this configuration!");
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    static_assert(!requiresCustomImplementation(cfg), "A custom implementation must be defined for this configuration!");
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, cfg>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
-    static constexpr auto NumberOfLines = static_cast<uint8_t>(numberOfLines);
+    static constexpr auto NumberOfLines = static_cast<uint8_t>(cfg);
     inline void begin() noexcept {
         replacementIndex_ = 0;
         for (auto& line : lines) {
@@ -289,10 +291,51 @@ private:
     DataCacheLine lines[NumberOfLines];
     byte replacementIndex_;
 };
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::ModifiedEightWayRoundRobin> {
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::ModifiedEightWayRoundRobin>;
+    using CacheAddress = typename DataCacheLine::CacheAddress;
+    static constexpr auto NumberOfLines = static_cast<uint8_t>(8);
+    inline void begin() noexcept {
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.begin();
+        }
+    }
+    inline auto& find(const CacheAddress& address) noexcept {
+        for (byte i = 0; i < NumberOfLines; ++i) {
+            auto& line = lines[i];
+            if (line.matches(address) ) {
+                updateFlags(i);
+                return line;
+            }
+        }
+        auto index = replacementIndex_;
+        auto& target = lines[index];
+        updateFlags(index);
+        target.reset(address);
+        return target;
+    }
+    inline void updateFlags(byte index) noexcept {
+        if (replacementIndex_ == index) {
+            ++replacementIndex_;
+        }
+    }
+    inline void clear() noexcept {
+        replacementIndex_ = 0;
+        for (auto& line : lines) {
+            line.clear();
+        }
+    }
+private:
+    DataCacheLine lines[NumberOfLines];
+    byte replacementIndex_ : 3;
+};
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::TwoWayLRU> {
     // use LRU instead of round robin
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::TwoWayLRU>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 2;
     inline void begin() noexcept {
@@ -334,7 +377,7 @@ private:
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::TwoWayMRU> {
     // use MRU instead of round robin
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::TwoWayMRU>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 2;
     inline void begin() noexcept {
@@ -376,7 +419,7 @@ private:
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWayTreePLRU> {
     // use MRU instead of round robin
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::FourWayTreePLRU>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 4;
     // translate from a bit pattern to a target address to access and then choose the opposite of
@@ -454,7 +497,7 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::FourWayBitPLRU> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::FourWayBitPLRU>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 4;
     inline void begin() noexcept {
@@ -525,7 +568,7 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightWayBitPLRU> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::EightWayBitPLRU>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 8;
     inline void begin() noexcept {
@@ -653,7 +696,7 @@ private:
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::EightWayTreePLRU> {
     // use MRU instead of round robin
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::EightWayTreePLRU>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 8;
     // translate from a bit pattern to a target address to access and then choose the opposite of
@@ -777,7 +820,7 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement4> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement4>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 4;
 private:
@@ -827,7 +870,7 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement4_Micros> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement4_Micros>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 4;
 private:
@@ -864,7 +907,7 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement8> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement8>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 8;
 private:
@@ -914,7 +957,7 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement8_Micros> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::RandomReplacement8_Micros>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 8;
 private:
@@ -951,7 +994,7 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
 struct BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped> {
-    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits>;
+    using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::DirectMapped>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfLines = 1;
     inline void begin() noexcept {
@@ -1102,10 +1145,10 @@ private:
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
 using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-constexpr auto NumberOfBankBits = 2;
+constexpr auto NumberOfBankBits = 1;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 9;
-constexpr auto OffChipSetConfiguration = SetConfiguration::TwoWayLRU;
+constexpr auto NumberOfTagBits = 7;
+constexpr auto OffChipSetConfiguration = SetConfiguration::ModifiedEightWayRoundRobin;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
 constexpr auto OnChipTagBits = 7;

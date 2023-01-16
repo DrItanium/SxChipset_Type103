@@ -466,8 +466,14 @@ installMemoryImage() noexcept {
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
+        byte* buffer = getCache().asBuffer();
         auto BufferSize = getCache().sizeOfBuffer();
-        auto* buffer = getCache().asBuffer();
+        bool deleteBuffer = false;
+        if (!buffer || BufferSize == 0) {
+            BufferSize = 2048;
+            deleteBuffer = true;
+            buffer = new byte[BufferSize];
+        }
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             while (memoryImage.isBusy());
             SplitWord32 currentAddressLine(i);
@@ -483,6 +489,9 @@ installMemoryImage() noexcept {
         memoryImage.close();
         Serial.println();
         Serial.println(F("transfer complete!"));
+        if (deleteBuffer) {
+            delete[] buffer;
+        }
         getCache().clear();
     }
 }

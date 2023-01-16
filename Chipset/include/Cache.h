@@ -1194,7 +1194,7 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfSets = pow2(tagBits);
     static constexpr auto CacheBufferSize = 2048;
-    static constexpr auto NumberOfVictimCacheEntries = 4;
+    static constexpr auto NumberOfVictimCacheEntries = 8;
     inline void clear() noexcept {
         for (auto& set : cache) {
             set->clear();
@@ -1234,10 +1234,10 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
         }
     }
     [[nodiscard]] byte* asBuffer() noexcept {
-        return internalBuffer;
+        return nullptr;
     }
     [[nodiscard]] constexpr size_t sizeOfBuffer() const noexcept {
-        return CacheBufferSize;
+        return 0;
     }
 private:
     /**
@@ -1281,7 +1281,6 @@ private:
         return result;
     }
 private:
-    uint8_t internalBuffer[2048];
     DataCacheLine* cache[NumberOfSets];
     DataCacheLine* victimCache[NumberOfVictimCacheEntries];
     uint8_t currentReplacementIndex_ = 0;
@@ -1360,7 +1359,7 @@ using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 3;
 constexpr auto NumberOfOffsetBits = 6;
-constexpr auto NumberOfTagBits = 8;
+constexpr auto NumberOfTagBits = 7;
 constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;

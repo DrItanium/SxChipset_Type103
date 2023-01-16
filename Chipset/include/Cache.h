@@ -1266,7 +1266,7 @@ using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
 constexpr auto NumberOfBankBits = 1;
 constexpr auto NumberOfOffsetBits = 4;
-constexpr auto NumberOfTagBits = 7;
+constexpr auto NumberOfTagBits = 8;
 constexpr auto OffChipSetConfiguration = SetConfiguration::DoubleDirectMapped4;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;

@@ -60,8 +60,8 @@ private:
     SplitWord32 backingStore_;
     struct {
         uint8_t offset : OffsetBitsCount;
-        uint32_t tag : TagBitsCount;
-        uint32_t bank : BankBitsCount;
+        uint16_t tag : TagBitsCount;
+        uint8_t bank : BankBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {
@@ -101,7 +101,7 @@ private:
     SplitWord32 backingStore_;
     struct {
         uint8_t offset : OffsetBitsCount;
-        uint32_t tag : TagBitsCount;
+        uint16_t tag : TagBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {
@@ -1102,7 +1102,7 @@ private:
 #if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
 using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
 #elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
-constexpr auto NumberOfBankBits = 0;
+constexpr auto NumberOfBankBits = 2;
 constexpr auto NumberOfOffsetBits = 4;
 constexpr auto NumberOfTagBits = 9;
 constexpr auto OffChipSetConfiguration = SetConfiguration::TwoWayLRU;

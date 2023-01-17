@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "InfoDevice.h"
 #include "Cache.h"
 #include "Boot960.h"
-
+#include "InternalStorageIO.h"
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;

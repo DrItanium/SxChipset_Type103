@@ -288,7 +288,7 @@ void
 Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
     isReadOperation_ = m2.isReadOperation();
-    dataLinesDirection_ = isReadOperation_ ? 0xFF : 0x00;
+    auto tmp = isReadOperation_ ? 0xFF : 0x00;
     address_.bytes[0] = m2.getWholeValue();
     address_.address.a0 = 0;
     triggerClock();
@@ -297,8 +297,8 @@ Platform::collectAddress() noexcept {
     address_.bytes[2] = readInputChannelAs<uint8_t>();
     triggerClock();
     address_.bytes[3] = readInputChannelAs<uint8_t>();
-    getDirectionRegister<Port::DataLower>() = dataLinesDirection_;
-    getDirectionRegister<Port::DataUpper>() = dataLinesDirection_;
+    getDirectionRegister<Port::DataLower>() = tmp;
+    getDirectionRegister<Port::DataUpper>() = tmp;
 }
 uint16_t
 Platform::getDataLines(const Channel0Value&, InlineSPI) noexcept {

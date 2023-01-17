@@ -36,7 +36,7 @@ constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 extern SdFat SD;
-constexpr auto OffsetSize = 4; // 16-byte line
+constexpr auto TransactionOffsetSize = 4; // 16-byte line
 enum class IOGroup : byte{
     Peripherals,
     InternalStorage,
@@ -44,13 +44,7 @@ enum class IOGroup : byte{
 };
 static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");
 constexpr IOGroup getGroup(uint8_t value) noexcept {
-    switch (static_cast<IOGroup>(value & 0b1111)) {
-        case IOGroup::Peripherals:
-        case IOGroup::InternalStorage:
-            return static_cast<IOGroup>(value);
-        default:
-            return IOGroup::Undefined;
-    }
+    return value < static_cast<byte>(IOGroup::Undefined) ? static_cast<IOGroup>(value) : IOGroup::Undefined;
 }
 
 enum class EnableStyle : byte {
@@ -169,8 +163,8 @@ union SplitWord32 {
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
     struct {
         uint32_t a0 : 1;
-        uint32_t offset : (OffsetSize - 1);
-        uint32_t rest : (32 - OffsetSize);
+        uint32_t offset : (TransactionOffsetSize - 1);
+        uint32_t rest : (32 - TransactionOffsetSize);
     } address;
     struct {
         uint8_t subfunction;

@@ -134,8 +134,8 @@ Count = NUM_DIGITAL_PINS,
     InternalBank3 = PortL7,
     FakeA15 = PortJ5,
     RealA15 = PortC7,
-    SearchLengthDetect = PortH4,
-    InCacheAccess = PortH3,
+    SearchLengthDetect = PortJ6,
+    InCacheAccess = PortJ7,
 
 #else
 #   error "Unknown board type defined!"

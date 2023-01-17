@@ -1356,9 +1356,9 @@ private:
     CacheReference pool_[NumberOfBanks];
 };
 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
+#if defined(TYPE103_BOARD)
 using MemoryCache = BasicDataCache<4, 8, 0, SetConfiguration::TwoWayLRU>;
-#elif defined(TYPE203_BOARD) || defined(TYPE200_BOARD)
+#elif defined(TYPE203_BOARD)
 constexpr auto NumberOfBankBits = 3;
 constexpr auto NumberOfOffsetBits = 6;
 constexpr auto NumberOfTagBits = 7;

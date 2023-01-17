@@ -41,7 +41,7 @@ TimerDevice::init() noexcept {
     }
     // make sure that INT0 is enabled as an output. Make it high
     pinMode<Pin::INT0_960_>(OUTPUT);
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
     // enable CTC (OCR2A) mode
     bitClear(TCCR2A, WGM20);
     bitSet(TCCR2A, WGM21);
@@ -64,11 +64,11 @@ TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
         case TimerDeviceOperations::UnixTime:
             return unixtimeCopy_.retrieveHalf(getOffset());
         case TimerDeviceOperations::SystemTimerPrescalar:
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)  || defined(TYPE203_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
             return static_cast<uint16_t>(TCCR2B & 0b111);
 #endif
         case TimerDeviceOperations::SystemTimerComparisonValue:
-#if defined(TYPE103_BOARD) ||  defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
+#if defined(TYPE103_BOARD) ||  defined(TYPE203_BOARD)
             return static_cast<uint16_t>(OCR2A);
 #endif
         default:
@@ -80,7 +80,7 @@ TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
     // do nothing
     switch (getCurrentOpcode()) {
         case TimerDeviceOperations::SystemTimerPrescalar: 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)  || defined(TYPE203_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
             {
                 // enable toggle mode
                 auto maskedValue = value & 0b111;
@@ -98,7 +98,7 @@ TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
             }
 #endif
         case TimerDeviceOperations::SystemTimerComparisonValue:
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)  || defined(TYPE203_BOARD)
+#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
             OCR2A = static_cast<uint8_t>(value);
             break;
 #endif

@@ -86,10 +86,6 @@ constexpr auto getXMEMEnd() noexcept {
 #ifdef BOARD_TYPE
 #  if BOARD_TYPE == 103
 #    define TYPE103_BOARD
-#  elif BOARD_TYPE == 104
-#    define TYPE104_BOARD
-#  elif BOARD_TYPE == 200
-#    define TYPE200_BOARD
 #  elif BOARD_TYPE == 203
 #    define TYPE203_BOARD
 #  else

@@ -61,7 +61,7 @@ Count = NUM_DIGITAL_PINS,
     SPI_MISO = PIN_SPI_MISO,
 #endif
     // aliases
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
+#if defined(TYPE103_BOARD)
     Digital0 = PortB0,
     Digital1 = PortB1,
     Digital2 = PortB2,
@@ -245,7 +245,7 @@ enum class Port : byte {
     DataUpper = F,
     Capture = J,
 #endif
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
+#if defined(TYPE103_BOARD)
     Capture = A,
 #elif defined(TYPE203_BOARD)
     Capture = K,

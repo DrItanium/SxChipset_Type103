@@ -40,31 +40,6 @@ SdFat SD;
 SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
-#ifdef TYPE104_BOARD
-inline byte memoryControllerStatus() noexcept {
-    Wire.requestFrom(9, 17);
-    return Wire.read();
-}
-inline bool memoryControllerBooting() noexcept {
-    return memoryControllerStatus() == 0xFF;
-}
-inline void waitForMemoryControllerToBeIdle() noexcept {
-    while (true) {
-        switch (memoryControllerStatus()) {
-            case 0x55:
-            case 0xFD:
-                return;
-            default:
-                break;
-        }
-    }
-}
-inline void
-waitForSuccessfulCacheLineRead() noexcept {
-    while (memoryControllerStatus() != 0x55);
-}
-#endif
-
 
 void 
 putCPUInReset() noexcept {
@@ -483,26 +458,15 @@ setup() {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // setup the IO Expanders
     Platform::begin();
-#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
     bringUpSDCard();
     queryPSRAM<false>();
-#endif
     i960::begin();
     setupCache();
     delay(1000);
-#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
     installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card
     SD.end();
-#endif
     // now we wait for the memory controller to come up!
-#ifdef TYPE104_BOARD
-    while (memoryControllerBooting()) {
-        // wait one second in between requests to make sure that we don't flood
-        // the memory controller with requests
-        delay(1000);
-    }
-#endif
     bootCPU();
 }
 
@@ -624,68 +588,16 @@ namespace {
         return count;
     }
 
-#ifdef TYPE104_BOARD
-    size_t 
-    memoryControllerWrite(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-        waitForMemoryControllerToBeIdle();
-        /// @todo add support for carving up transmission blocks into multiples
-        /// of 16 automatically
-        ///
-        // right now, we just transmit everything as is!
-        Wire.beginTransmission(9);
-        Wire.write(1);
-        Wire.write(address.bytes, 4);
-        Wire.write(bytes, 16);
-        //Wire.write(count);
-        Wire.endTransmission();
-        return 16;
-    }
-    size_t
-    memoryControllerRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-        // we are now sending data over i2c to the external memory controller
-        waitForMemoryControllerToBeIdle();
-        /// @todo add support for carving up transmission blocks into multiples
-        /// of 16 automatically
-        ///
-        // right now, we just transmit everything as is!
-        Wire.beginTransmission(9);
-        Wire.write(0);
-        Wire.write(address.bytes, 4);
-        // don't send bytes
-        //Wire.write(bytes, 16);
-        //Wire.write(count);
-        Wire.endTransmission();
-        waitForSuccessfulCacheLineRead();
-        // okay, we got a packet back that we like :)
-        // load it into our buffer and return
-        size_t i = 0;
-        //Serial.print(F("\t\tNumber of available bytes: "));
-        //Serial.println(Wire.available());
-        while (Wire.available()) {
-            bytes[i] = Wire.read();
-            ++i;
-        }
-        return i;
-    }
-#endif
 }
 
 size_t
 memoryWrite(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-#ifdef TYPE104_BOARD
-    return memoryControllerWrite(address, bytes, count);
-#else 
     return psramMemoryWrite<Pin::PSRAM0>(address, bytes, count);
-#endif
 
 }
 size_t
 memoryRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-#ifdef TYPE104_BOARD
-    return memoryControllerRead(address, bytes, count);
-#else
     return psramMemoryRead<Pin::PSRAM0>(address, bytes, count);
-#endif
 }
 
 

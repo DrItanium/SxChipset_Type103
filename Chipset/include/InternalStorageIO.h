@@ -46,5 +46,4 @@ private:
     byte baseBankOffset_ = 0;
     bool validMemory_ = false;
 };
-
 #endif //CHIPSET_INTERNALSTORAGEIO_H

@@ -41,6 +41,7 @@ SdFat SD;
 SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
+MemoryHandler ebi;
 #ifdef TYPE104_BOARD
 inline byte memoryControllerStatus() noexcept {
     Wire.requestFrom(9, 17);
@@ -299,6 +300,9 @@ handleIOOperation(const SplitWord32& addr) noexcept {
         case IOGroup::Peripherals:
             getPeripheralDevice<isReadOperation>(addr);
             break;
+        case IOGroup::InternalStorage:
+            talkToi960<isReadOperation, true>(addr, ebi);
+            break;
         default:
             talkToi960<isReadOperation, false>(addr, getNullHandler());
             break;
@@ -395,6 +399,7 @@ bringUpSDCard() noexcept {
 }
 void 
 setup() {
+    ebi.begin(8); // use the upper half
     theSerial.begin();
     infoDevice.begin();
     Wire.begin();

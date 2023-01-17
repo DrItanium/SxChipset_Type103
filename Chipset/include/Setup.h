@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Detect.h"
 #include "Types.h"
 
-constexpr bool EnableDebugMode = true;
+constexpr bool EnableDebugMode = false;
 
 [[gnu::always_inline]]
 inline void

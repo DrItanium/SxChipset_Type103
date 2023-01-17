@@ -154,12 +154,12 @@ Platform::endAddressTransaction() noexcept {
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
 }
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
 void
 Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
     isReadOperation_ = m2.isReadOperation();
     if (auto direction = isReadOperation_ ? MCP23S17::AllOutput8 : MCP23S17::AllInput8 ; direction != dataLinesDirection_) {
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
         digitalWrite<Pin::GPIOSelect, LOW>();
 
         SPDR = MCP23S17::WriteOpcode_v<DataLines>;
@@ -191,18 +191,6 @@ Platform::collectAddress() noexcept {
 
         digitalWrite<Pin::GPIOSelect, HIGH>();
         //MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_);
-#elif defined(TYPE203_BOARD)
-        address_.bytes[0] = m2.getWholeValue();
-        address_.address.a0 = 0;
-        triggerClock();
-        address_.bytes[1] = readInputChannelAs<uint8_t>();
-        triggerClock();
-        address_.bytes[2] = readInputChannelAs<uint8_t>();
-        triggerClock();
-        address_.bytes[3] = readInputChannelAs<uint8_t>();
-#else
-#error "Please define data direction setup actions"
-#endif
     } else {
         address_.bytes[0] = m2.getWholeValue();
         address_.address.a0 = 0;
@@ -238,9 +226,7 @@ void
 Platform::endInlineSPIOperation() noexcept {
     digitalWrite<Pin::GPIOSelect, HIGH>();
 }
-
-
-uint16_t 
+uint16_t
 Platform::getDataLines(const Channel0Value& c1, InlineSPI) noexcept {
     if (c1.dataInterruptTriggered()) {
 #ifdef AVR_SPI_AVAILABLE
@@ -260,14 +246,14 @@ Platform::getDataLines(const Channel0Value& c1, InlineSPI) noexcept {
     }
     return previousValue.full;
 }
-uint16_t 
+uint16_t
 Platform::getDataLines(const Channel0Value& c1, NoInlineSPI) noexcept {
     if (c1.dataInterruptTriggered()) {
         previousValue_.full = MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
     }
     return previousValue_.full;
 }
-void 
+void
 Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
     if (previousValue_ != value) {
         previousValue_.full = value;
@@ -285,11 +271,62 @@ Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
 #endif
     }
 }
-void 
+void
 Platform::setDataLines(uint16_t value, NoInlineSPI) noexcept {
     if (previousValue_ != value) {
         previousValue_.full = value;
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
     }
 }
+#endif
+
+#ifdef TYPE203_BOARD
+void Platform::startInlineSPIOperation() noexcept { }
+void Platform::endInlineSPIOperation() noexcept { }
+
+void
+Platform::collectAddress() noexcept {
+    auto m2 = readInputChannelAs<Channel2Value>();
+    isReadOperation_ = m2.isReadOperation();
+    address_.bytes[0] = m2.getWholeValue();
+    address_.address.a0 = 0;
+    triggerClock();
+    address_.bytes[1] = readInputChannelAs<uint8_t>();
+    triggerClock();
+    address_.bytes[2] = readInputChannelAs<uint8_t>();
+    triggerClock();
+    address_.bytes[3] = readInputChannelAs<uint8_t>();
+    /// @todo implement setting the direction bits when dealing with type203
+    if (isReadOperation_) {
+        getDirectionRegister<Port::DataLower>() = 0xFF;
+        getDirectionRegister<Port::DataUpper>() = 0xFF;
+    } else {
+        getDirectionRegister<Port::DataLower>() = 0;
+        getDirectionRegister<Port::DataUpper>() = 0;
+    }
+}
+uint16_t
+Platform::getDataLines(const Channel0Value&, InlineSPI) noexcept {
+    return SplitWord16(getInputRegister<Port::DataLower>(), getInputRegister<Port::DataUpper>()).getWholeValue();
+}
+uint16_t
+Platform::getDataLines(const Channel0Value& c1, NoInlineSPI) noexcept {
+    return SplitWord16(getInputRegister<Port::DataLower>(), getInputRegister<Port::DataUpper>()).getWholeValue();
+}
+void
+Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
+    SplitWord16 result{value};
+    getOutputRegister<Port::DataLower>() = result.bytes[0];
+    getOutputRegister<Port::DataUpper>() = result.bytes[1];
+}
+void
+Platform::setDataLines(uint16_t value, NoInlineSPI) noexcept {
+    SplitWord16 result{value};
+    getOutputRegister<Port::DataLower>() = result.bytes[0];
+    getOutputRegister<Port::DataUpper>() = result.bytes[1];
+}
+#endif
+
+
+
 #endif

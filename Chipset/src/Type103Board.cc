@@ -127,6 +127,9 @@ Platform::begin() noexcept {
         digitalWrite<Pin::SearchLengthDetect, HIGH>();
         pinMode<Pin::InCacheAccess>(OUTPUT);
         digitalWrite<Pin::InCacheAccess, HIGH>();
+        // setup the direct data lines work
+        getDirectionRegister<Port::DataLower>() = 0b1111'1111;
+        getDirectionRegister<Port::DataUpper>() = 0b1111'1111;
 #endif
     }
 }
@@ -156,6 +159,7 @@ Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
     isReadOperation_ = m2.isReadOperation();
     if (auto direction = isReadOperation_ ? MCP23S17::AllOutput8 : MCP23S17::AllInput8 ; direction != dataLinesDirection_) {
+#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD)
         digitalWrite<Pin::GPIOSelect, LOW>();
 
         SPDR = MCP23S17::WriteOpcode_v<DataLines>;
@@ -187,6 +191,18 @@ Platform::collectAddress() noexcept {
 
         digitalWrite<Pin::GPIOSelect, HIGH>();
         //MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_);
+#elif defined(TYPE203_BOARD)
+        address_.bytes[0] = m2.getWholeValue();
+        address_.address.a0 = 0;
+        triggerClock();
+        address_.bytes[1] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        address_.bytes[2] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        address_.bytes[3] = readInputChannelAs<uint8_t>();
+#else
+#error "Please define data direction setup actions"
+#endif
     } else {
         address_.bytes[0] = m2.getWholeValue();
         address_.address.a0 = 0;

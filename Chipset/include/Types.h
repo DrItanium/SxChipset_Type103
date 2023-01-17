@@ -69,11 +69,7 @@ union Word8 {
         uint8_t blast : 1;
         uint8_t den : 1;
         uint8_t fail : 1;
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
         uint8_t dataInt : 1;
-#else
-        uint8_t wr : 1;
-#endif
     } channel0;
     /**
      * @brief Address bits [A1, A7] + W/~{R} in place of A0
@@ -100,32 +96,20 @@ union Word8 {
         uint8_t rest : 6;
     } xioPortADir;
     [[nodiscard]] constexpr bool isReadOperation() const noexcept { 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
-        return lowestAddr.a0 == 0; 
-#else
-        return channel0.wr == 0;
-#endif
+        return lowestAddr.a0 == 0;
     }
     [[nodiscard]] constexpr bool isWriteOperation() const noexcept { 
         return !isReadOperation();
     }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
     [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
-        return channel0.dataInt == 0; 
-#else
-        return true;
-#endif
+        return channel0.dataInt == 0;
     }
     [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { 
         return lowestAddr.addr;
     }
     [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { 
-#if defined(TYPE103_BOARD) || defined(TYPE104_BOARD) || defined(TYPE203_BOARD)
-        return getAddressBits1_7() << 1; 
-#else
-        return value_;
-#endif
+        return getAddressBits1_7() << 1;
     }
     [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }
     [[nodiscard]] constexpr auto getAddressBits16_23() const noexcept { return upperAddr; }

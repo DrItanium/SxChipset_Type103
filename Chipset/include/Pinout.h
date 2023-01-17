@@ -249,6 +249,8 @@ enum class Port : byte {
     Capture = A,
 #elif defined(TYPE203_BOARD)
     Capture = K,
+    DataLower = H,
+    DataUpper = F,
 #endif
 };
 constexpr auto numberOfAvailablePins() noexcept {

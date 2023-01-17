@@ -35,13 +35,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "InfoDevice.h"
 #include "Cache.h"
 #include "Boot960.h"
-#include "InternalStorageIO.h"
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
-MemoryHandler ebi;
 #ifdef TYPE104_BOARD
 inline byte memoryControllerStatus() noexcept {
     Wire.requestFrom(9, 17);
@@ -477,7 +475,6 @@ bringUpSDCard() noexcept {
 void 
 setup() {
     theSerial.begin();
-    ebi.begin(8); // use the upper half
     infoDevice.begin();
     Wire.begin();
     testCoprocessor();

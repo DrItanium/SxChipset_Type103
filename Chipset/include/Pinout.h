@@ -136,7 +136,22 @@ Count = NUM_DIGITAL_PINS,
     RealA15 = PortC7,
     SearchLengthDetect = PortJ6,
     InCacheAccess = PortJ7,
-
+    Data0 = PortH0,
+    Data1 = PortH1,
+    Data2 = PortH2,
+    Data3 = PortH3,
+    Data4 = PortH4,
+    Data5 = PortH5,
+    Data6 = PortH6,
+    Data7 = PortH7,
+    Data8 = PortF0,
+    Data9 = PortF1,
+    Data10 = PortF2,
+    Data11 = PortF3,
+    Data12 = PortF4,
+    Data13 = PortF5,
+    Data14 = PortF6,
+    Data15 = PortF7,
 #else
 #   error "Unknown board type defined!"
 #endif

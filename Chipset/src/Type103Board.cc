@@ -127,9 +127,9 @@ Platform::begin() noexcept {
         digitalWrite<Pin::SearchLengthDetect, HIGH>();
         pinMode<Pin::InCacheAccess>(OUTPUT);
         digitalWrite<Pin::InCacheAccess, HIGH>();
-        // setup the direct data lines work
-        getDirectionRegister<Port::DataLower>() = 0b1111'1111;
-        getDirectionRegister<Port::DataUpper>() = 0b1111'1111;
+        // setup the direct data lines to be input
+        getDirectionRegister<Port::DataLower>() = 0;
+        getDirectionRegister<Port::DataUpper>() = 0;
 #endif
     }
 }
@@ -288,6 +288,7 @@ void
 Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
     isReadOperation_ = m2.isReadOperation();
+    dataLinesDirection_ = isReadOperation_ ? 0xFF : 0x00;
     address_.bytes[0] = m2.getWholeValue();
     address_.address.a0 = 0;
     triggerClock();
@@ -296,21 +297,15 @@ Platform::collectAddress() noexcept {
     address_.bytes[2] = readInputChannelAs<uint8_t>();
     triggerClock();
     address_.bytes[3] = readInputChannelAs<uint8_t>();
-    /// @todo implement setting the direction bits when dealing with type203
-    if (isReadOperation_) {
-        getDirectionRegister<Port::DataLower>() = 0xFF;
-        getDirectionRegister<Port::DataUpper>() = 0xFF;
-    } else {
-        getDirectionRegister<Port::DataLower>() = 0;
-        getDirectionRegister<Port::DataUpper>() = 0;
-    }
+    getDirectionRegister<Port::DataLower>() = dataLinesDirection_;
+    getDirectionRegister<Port::DataUpper>() = dataLinesDirection_;
 }
 uint16_t
 Platform::getDataLines(const Channel0Value&, InlineSPI) noexcept {
     return SplitWord16(getInputRegister<Port::DataLower>(), getInputRegister<Port::DataUpper>()).getWholeValue();
 }
 uint16_t
-Platform::getDataLines(const Channel0Value& c1, NoInlineSPI) noexcept {
+Platform::getDataLines(const Channel0Value&, NoInlineSPI) noexcept {
     return SplitWord16(getInputRegister<Port::DataLower>(), getInputRegister<Port::DataUpper>()).getWholeValue();
 }
 void

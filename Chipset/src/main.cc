@@ -378,7 +378,7 @@ handleIOOperation(const SplitWord32& addr) noexcept {
             getPeripheralDevice<isReadOperation>(addr);
             break;
         case IOGroup::InternalStorage:
-            talkToi960<isReadOperation, true>(addr, ebi);
+            talkToi960<isReadOperation>(addr, TreatAsOnChipAccess{});
             break;
         default:
             talkToi960<isReadOperation, false>(addr, getNullHandler());
@@ -408,18 +408,10 @@ handleTransaction() noexcept {
         }
     }
     if (addr.isIOInstruction()) {
-        if (addr.getIOGroup() == IOGroup::InternalStorage) {
-            if (Platform::isReadOperation()) {
-                talkToi960<true>(addr, TreatAsOnChipAccess{});
-            } else {
-                talkToi960<false>(addr, TreatAsOnChipAccess{});
-            }
+        if (Platform::isReadOperation()) {
+            handleIOOperation<true>(addr);
         } else {
-            if (Platform::isReadOperation()) {
-                handleIOOperation<true>(addr);
-            } else {
-                handleIOOperation<false>(addr);
-            }
+            handleIOOperation<false>(addr);
         }
     } else {
         if (Platform::isReadOperation()) {
@@ -520,27 +512,22 @@ setup() {
 
 void 
 loop() {
-    while (true) {
-        //singleCycleDelay();
-        while (digitalRead<Pin::DEN>() == HIGH);
+    while (digitalRead<Pin::DEN>() == HIGH);
 #ifdef TYPE203_BOARD
-        digitalWrite<Pin::InCacheAccess, LOW>();
+    digitalWrite<Pin::InCacheAccess, LOW>();
 #endif
-        handleTransaction();
+    handleTransaction();
 #ifdef TYPE203_BOARD
-        digitalWrite<Pin::InCacheAccess, HIGH>();
+    digitalWrite<Pin::InCacheAccess, HIGH>();
 #endif
-    }
 }
 
 void sdCsInit(SdCsPin_t pin) {
     pinMode(pin, OUTPUT);
-    //delay(1);
 }
 
 void sdCsWrite(SdCsPin_t pin, bool level) {
     digitalWrite(pin, level);
-    //delay(1);
 }
 
 
@@ -577,7 +564,6 @@ installMemoryImage() noexcept {
     }
 }
 
-SplitWord16 previousValue{0};
 
 
 

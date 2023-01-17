@@ -292,7 +292,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     if (auto theIndex = addr.onBoardMemoryAddress.bank + 8; xmem::validBank(theIndex)) {
         xmem::setMemoryBank(theIndex);
         Platform::startInlineSPIOperation();
-        volatile SplitWord16* ptr = adjustedMemory<volatile SplitWord16*>(addr.onBoardMemoryAddress.offset);
+        volatile SplitWord16* ptr = reinterpret_cast<volatile SplitWord16*>((RAMEND + 1) + addr.onBoardMemoryAddress.offset);
         do {
             auto c0 = readInputChannelAs<Channel0Value, true>();
             if constexpr (EnableDebugMode) {

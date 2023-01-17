@@ -288,10 +288,11 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
 
 template<bool isReadOperation>
 inline void
-talkToi960(SplitWord32 addr, TreatAsOnChipAccess) noexcept {
+talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     if (auto theIndex = addr.onBoardMemoryAddress.bank + 8; xmem::validBank(theIndex)) {
         xmem::setMemoryBank(theIndex);
         Platform::startInlineSPIOperation();
+        volatile SplitWord16* ptr = adjustedMemory<volatile SplitWord16*>(addr.onBoardMemoryAddress.offset);
         do {
             auto c0 = readInputChannelAs<Channel0Value, true>();
             if constexpr (EnableDebugMode) {
@@ -300,7 +301,7 @@ talkToi960(SplitWord32 addr, TreatAsOnChipAccess) noexcept {
             }
             if constexpr (isReadOperation) {
                 // okay it is a read operation, so... pull a cache line out
-                auto value = adjustedMemory<uint16_t>(addr.onBoardMemoryAddress.offset);
+                auto value = ptr->full;
                 if constexpr (EnableDebugMode) {
                     Serial.print(F("\t\tGot Value: 0x"));
                     Serial.println(value, HEX);
@@ -314,13 +315,13 @@ talkToi960(SplitWord32 addr, TreatAsOnChipAccess) noexcept {
                 }
                 switch (c0.getByteEnable()) {
                     case EnableStyle::Full16:
-                        adjustedMemory<uint16_t>(addr.onBoardMemoryAddress.offset) = value;
+                        ptr->full = value;
                         break;
                     case EnableStyle::Lower8:
-                        adjustedMemory<uint8_t>(addr.onBoardMemoryAddress.offset) = static_cast<uint8_t>(value);
+                        ptr->bytes[0] = static_cast<uint8_t>(value);
                         break;
                     case EnableStyle::Upper8:
-                        adjustedMemory<uint8_t>(addr.onBoardMemoryAddress.offset + 1) = static_cast<uint8_t>(value >> 8);
+                        ptr->bytes[1] = static_cast<uint8_t>(value >> 8);
                         break;
                     default:
                         break;
@@ -331,7 +332,7 @@ talkToi960(SplitWord32 addr, TreatAsOnChipAccess) noexcept {
             if (isBurstLast) {
                 break;
             }
-            addr.full += 2;
+            ++ptr;
             singleCycleDelay(); // put this in to make sure we never over run anything
         } while (true);
         Platform::endInlineSPIOperation();

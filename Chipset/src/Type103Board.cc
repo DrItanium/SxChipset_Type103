@@ -302,23 +302,21 @@ Platform::collectAddress() noexcept {
 }
 uint16_t
 Platform::getDataLines(const Channel0Value&, InlineSPI) noexcept {
-    return SplitWord16(getInputRegister<Port::DataLower>(), getInputRegister<Port::DataUpper>()).getWholeValue();
+    return makeWord(getInputRegister<Port::DataUpper>(), getInputRegister<Port::DataLower>());
 }
 uint16_t
 Platform::getDataLines(const Channel0Value&, NoInlineSPI) noexcept {
-    return SplitWord16(getInputRegister<Port::DataLower>(), getInputRegister<Port::DataUpper>()).getWholeValue();
+    return makeWord(getInputRegister<Port::DataUpper>(), getInputRegister<Port::DataLower>());
 }
 void
 Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
-    SplitWord16 result{value};
-    getOutputRegister<Port::DataLower>() = result.bytes[0];
-    getOutputRegister<Port::DataUpper>() = result.bytes[1];
+    getOutputRegister<Port::DataLower>() = lowByte(value);
+    getOutputRegister<Port::DataUpper>() = highByte(value);
 }
 void
 Platform::setDataLines(uint16_t value, NoInlineSPI) noexcept {
-    SplitWord16 result{value};
-    getOutputRegister<Port::DataLower>() = result.bytes[0];
-    getOutputRegister<Port::DataUpper>() = result.bytes[1];
+    getOutputRegister<Port::DataLower>() = lowByte(value);
+    getOutputRegister<Port::DataUpper>() = highByte(value);
 }
 #endif
 

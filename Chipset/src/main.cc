@@ -236,7 +236,17 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         // so instead, we want to unpack it to make sure
         for (auto offset = static_cast<uint8_t>(MemoryCache::CacheAddress{addr}.getWordOffset()); ; ++offset){
             // okay it is a read operation, so... pull a cache line out
-            Platform::setDataLines(line.getWord(offset), InlineSPI{});
+            if constexpr (EnableDebugMode) {
+                auto c0 = readInputChannelAs<Channel0Value, true>();
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            auto value = line.getWord(offset);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tRead Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            Platform::setDataLines(value, InlineSPI{});
             auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
             signalReady();
             if (isBurstLast) {
@@ -252,7 +262,17 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
             //singleCycleDelay();
             // read it twice, otherwise we lose our minds
             auto c0 = readInputChannelAs<Channel0Value, true>();
-            line.setWord(offset, Platform::getDataLines(c0, InlineSPI{}), c0.getByteEnable());
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            auto value = Platform::getDataLines(c0, InlineSPI{});
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+
+            line.setWord(offset, value, c0.getByteEnable());
             auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
             signalReady();
             if (isBurstLast) {

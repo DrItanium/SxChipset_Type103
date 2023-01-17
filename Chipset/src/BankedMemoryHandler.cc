@@ -32,8 +32,6 @@ MemoryHandler::startTransaction(const SplitWord32 & baseAddress) noexcept {
     auto theIndex = baseAddress_.onBoardMemoryAddress.bank + baseBankOffset_;
     xmem::setMemoryBank(theIndex);
     validMemory_ = xmem::validBank(theIndex);
-    Serial.print(F("Bank Index: 0x"));
-    Serial.println(theIndex, HEX);
 }
 
 void
@@ -81,5 +79,4 @@ MemoryHandler::write(const Channel0Value & flags, uint16_t value) noexcept {
 void
 MemoryHandler::begin(byte baseOffset) noexcept {
     baseBankOffset_ = baseOffset;
-    Serial.println(F("Banked Memory Exposure Enabled!"));
 }

@@ -219,6 +219,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 }
 
 struct TreatAsCacheAccess final { };
+struct TreatAsOnChipAccess final { };
 
 template<bool isReadOperation>
 inline void
@@ -283,6 +284,61 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         }
     }
     Platform::endInlineSPIOperation();
+}
+
+template<bool isReadOperation>
+inline void
+talkToi960(SplitWord32 addr, TreatAsOnChipAccess) noexcept {
+    if (auto theIndex = addr.onBoardMemoryAddress.bank + 8; xmem::validBank(theIndex)) {
+        xmem::setMemoryBank(theIndex);
+        Platform::startInlineSPIOperation();
+        do {
+            auto c0 = readInputChannelAs<Channel0Value, true>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            if constexpr (isReadOperation) {
+                // okay it is a read operation, so... pull a cache line out
+                auto value = adjustedMemory<uint16_t>(addr.onBoardMemoryAddress.offset);
+                if constexpr (EnableDebugMode) {
+                    Serial.print(F("\t\tGot Value: 0x"));
+                    Serial.println(value, HEX);
+                }
+                Platform::setDataLines(value, InlineSPI{});
+            } else {
+                uint16_t value = Platform::getDataLines(c0, InlineSPI{});
+                if constexpr (EnableDebugMode) {
+                    Serial.print(F("\t\tWrite Value: 0x"));
+                    Serial.println(value, HEX);
+                }
+                switch (c0.getByteEnable()) {
+                    case EnableStyle::Full16:
+                        adjustedMemory<uint16_t>(addr.onBoardMemoryAddress.offset) = value;
+                        break;
+                    case EnableStyle::Lower8:
+                        adjustedMemory<uint8_t>(addr.onBoardMemoryAddress.offset) = static_cast<uint8_t>(value);
+                        break;
+                    case EnableStyle::Upper8:
+                        adjustedMemory<uint8_t>(addr.onBoardMemoryAddress.offset + 1) = static_cast<uint8_t>(value >> 8);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            addr.full += 2;
+            singleCycleDelay(); // put this in to make sure we never over run anything
+        } while (true);
+        Platform::endInlineSPIOperation();
+    } else {
+        // if they are not valid addresses then use the null handler
+        talkToi960<isReadOperation, false>(addr, getNullHandler());
+    }
 }
 template<bool isReadOperation>
 void
@@ -351,10 +407,18 @@ handleTransaction() noexcept {
         }
     }
     if (addr.isIOInstruction()) {
-        if (Platform::isReadOperation()) {
-            handleIOOperation<true>(addr);
+        if (addr.getIOGroup() == IOGroup::InternalStorage) {
+            if (Platform::isReadOperation()) {
+                talkToi960<true>(addr, TreatAsOnChipAccess{});
+            } else {
+                talkToi960<false>(addr, TreatAsOnChipAccess{});
+            }
         } else {
-            handleIOOperation<false>(addr);
+            if (Platform::isReadOperation()) {
+                handleIOOperation<true>(addr);
+            } else {
+                handleIOOperation<false>(addr);
+            }
         }
     } else {
         if (Platform::isReadOperation()) {

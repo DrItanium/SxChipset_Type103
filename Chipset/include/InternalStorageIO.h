@@ -30,13 +30,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 
+/**
+ * @brief Exposes banked memory to the i960 within io space; bypasses the cache, allows up to 16 megabytes to be mapped here
+ */
 class MemoryHandler final {
 public:
+    void begin(byte baseOffset) noexcept;
     void startTransaction(const SplitWord32&) noexcept;
     uint16_t read(const Channel0Value&) const noexcept;
     void write(const Channel0Value&, uint16_t ) noexcept;
     void endTransaction() noexcept;
     void next() noexcept;
+private:
+    SplitWord32 baseAddress_{0};
+    byte baseBankOffset_ = 0;
+    bool validMemory_ = false;
 };
 
 #endif //CHIPSET_INTERNALSTORAGEIO_H

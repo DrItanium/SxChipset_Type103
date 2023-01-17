@@ -252,4 +252,10 @@ uintptr_t
 getEndAddress(uint8_t) noexcept {
 return getLastAddress();
 }
+
+bool
+validBank(uint8_t bank) noexcept {
+    // right now we only support a single internal memory block
+    return bank < 16;
+}
 }

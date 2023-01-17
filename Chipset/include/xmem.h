@@ -54,6 +54,7 @@ namespace xmem {
     void restoreHeap(uint8_t bank_);
     uintptr_t getStartAddress(uint8_t bank) noexcept;
     uintptr_t getEndAddress(uint8_t bank) noexcept;
+    bool validBank(uint8_t bank) noexcept;
 }
 
 /*

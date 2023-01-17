@@ -99,5 +99,15 @@ constexpr auto getXMEMEnd() noexcept {
 #  error "No Board Type defined!"
 #endif
 
+template<typename T>
+inline volatile T& memory(size_t address) noexcept {
+    return *reinterpret_cast<volatile T*>(address) ;
+}
+
+template<typename T>
+inline volatile T& adjustedMemory(size_t address) noexcept {
+    return memory<T>(address + (getRAMEnd() + 1));
+}
+
 
 #endif // end SXCHIPSET_TYPE103_DETECT_H__

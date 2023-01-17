@@ -318,14 +318,11 @@ handleIOOperation(const SplitWord32& addr) noexcept {
     //
     // This system does not care about the size but it does care about where
     // one starts when performing a write operation
-    Serial.print(F("IOGROUP INDEX: 0x"));
-    Serial.println(static_cast<uint8_t>(addr.getIOGroup()), HEX);
     switch (addr.getIOGroup()) {
         case IOGroup::Peripherals:
             getPeripheralDevice<isReadOperation>(addr);
             break;
         case IOGroup::InternalStorage:
-            Serial.println(F("ACCESSING INTERNAL STORAGE!"));
             talkToi960<isReadOperation, true>(addr, ebi);
             break;
         default:
@@ -424,8 +421,8 @@ bringUpSDCard() noexcept {
 }
 void 
 setup() {
-    ebi.begin(8); // use the upper half
     theSerial.begin();
+    ebi.begin(8); // use the upper half
     infoDevice.begin();
     Wire.begin();
     testCoprocessor();

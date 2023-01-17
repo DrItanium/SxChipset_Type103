@@ -46,6 +46,7 @@ static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups d
 constexpr IOGroup getGroup(uint8_t value) noexcept {
     switch (static_cast<IOGroup>(value & 0b1111)) {
         case IOGroup::Peripherals:
+        case IOGroup::InternalStorage:
             return static_cast<IOGroup>(value);
         default:
             return IOGroup::Undefined;

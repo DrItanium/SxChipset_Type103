@@ -1257,7 +1257,7 @@ private:
     Cache* pool_ = nullptr;
 };
 
-constexpr auto NumberOfBankBits = 0;
+constexpr auto NumberOfBankBits = 1;
 constexpr auto NumberOfOffsetBits = 6;
 constexpr auto NumberOfTagBits = 7;
 constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;

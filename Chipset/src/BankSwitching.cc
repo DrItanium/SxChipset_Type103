@@ -69,14 +69,14 @@ namespace External328Bus {
 } // end namespace External328Bus
 namespace InternalBus {
     void setBank(uint8_t bank) noexcept {
+#if 0
         auto bankSelect = PORTL;
         bankSelect &= 0b00001111;
         bankSelect |= ((bank << 4) & 0b11110000);
         PORTL = bankSelect;
-        //digitalWrite<Pin::InternalBank0>( bank & 0b0001 ? HIGH : LOW);
-        //digitalWrite<Pin::InternalBank1>( bank & 0b0010 ? HIGH : LOW);
-        //digitalWrite<Pin::InternalBank2>( bank & 0b0100 ? HIGH : LOW);
-        //digitalWrite<Pin::InternalBank3>( bank & 0b1000 ? HIGH : LOW);
+#else
+        getOutputRegister<Port::L>() = ((bank << 4) & 0xF0);
+#endif
     }
     void begin() noexcept {
         pinMode<Pin::InternalBank0>(OUTPUT);

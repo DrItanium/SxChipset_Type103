@@ -255,9 +255,6 @@ public:
         advanceOffset();
     }
 protected:
-    //virtual void handleExtendedOperation(const SplitWord32& addr, OperationList value, OperationHandlerUser fn) noexcept = 0;
-    //virtual uint16_t extendedRead(const Channel0Value& m0) const noexcept = 0;
-    //virtual void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept = 0;
     [[nodiscard]] constexpr OperationList getCurrentOpcode() const noexcept { return currentOpcode_; }
 private:
     OperationList currentOpcode_ = OperationList::Count;
@@ -265,15 +262,5 @@ private:
 };
 
 #define BeginDeviceOperationsList(name) enum class name ## Operations : byte { Available, Size,
-
 #define EndDeviceOperationsList(name) Count, }; static_assert(static_cast<byte>( name ## Operations :: Count ) <= 256, "Too many " #name "Operations entries defined!");
-
-
-
-
-
-
-#if 0
-void sendToDazzler(uint8_t character) noexcept;
-#endif
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

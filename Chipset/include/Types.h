@@ -174,11 +174,6 @@ union SplitWord32 {
         uint8_t req : 4;
     } ioRequestAddress;
     struct {
-        uint32_t offset : 23;
-        uint32_t targetDevice : 3;
-        uint32_t rest : 6;
-    } psramAddress;
-    struct {
         uint32_t offset : 15; // 32k offset
         uint32_t bank : 3; // which of the available 8 banks to choose from
         uint32_t rest : 14; // upper portion

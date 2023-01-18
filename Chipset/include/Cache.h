@@ -1059,7 +1059,7 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
     using DataCacheLine = BasicDataCacheLine<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWithVictimCache>;
     using CacheAddress = typename DataCacheLine::CacheAddress;
     static constexpr auto NumberOfSets = pow2(tagBits);
-    static constexpr auto NumberOfVictimCacheEntries = 8;
+    static constexpr auto NumberOfVictimCacheEntries = 4;
     inline void clear() noexcept {
         for (auto& set : cache) {
             set->clear();

@@ -74,18 +74,12 @@ union Word8 {
     [[nodiscard]] constexpr bool isReadOperation() const noexcept {
         return lowestAddr.a0 == 0;
     }
-    [[nodiscard]] constexpr bool isWriteOperation() const noexcept { 
-        return !isReadOperation();
-    }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
     [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { 
         return channel0.dataInt == 0;
     }
     [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { 
         return lowestAddr.addr;
-    }
-    [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { 
-        return getAddressBits1_7() << 1;
     }
     void clear() noexcept {
         value_ = 0;
@@ -132,7 +126,7 @@ union SplitWord32 {
     ElementContainer<uint32_t, uint16_t> halves;
     ElementContainer<uint32_t, uint8_t> bytes;
     ElementContainer<uint32_t, SplitWord16> word16;
-    constexpr SplitWord32(uint32_t value) : full(value) { }
+    constexpr explicit SplitWord32(uint32_t value) : full(value) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
     struct {

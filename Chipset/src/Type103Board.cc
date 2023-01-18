@@ -123,10 +123,6 @@ Platform::begin() noexcept {
         MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_, dataLinesDirection_);
         xmem::begin(true);
 #ifdef TYPE203_BOARD
-        pinMode<Pin::SearchLengthDetect>(OUTPUT);
-        digitalWrite<Pin::SearchLengthDetect, HIGH>();
-        pinMode<Pin::InCacheAccess>(OUTPUT);
-        digitalWrite<Pin::InCacheAccess, HIGH>();
         // setup the direct data lines to be input
         getDirectionRegister<Port::DataLower>() = 0;
         getDirectionRegister<Port::DataUpper>() = 0;

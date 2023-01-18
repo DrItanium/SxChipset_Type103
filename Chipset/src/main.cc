@@ -197,13 +197,7 @@ struct TreatAsOnChipAccess final { };
 template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
-#ifdef TYPE203_BOARD
-    digitalWrite<Pin::SearchLengthDetect, LOW>();
-#endif
     auto &line = getCache().find(addr);
-#ifdef TYPE203_BOARD
-    digitalWrite<Pin::SearchLengthDetect, HIGH>();
-#endif
     Platform::startInlineSPIOperation();
     if constexpr (isReadOperation) {
         // the compiler seems to barf on for loops at -Ofast
@@ -474,13 +468,7 @@ setup() {
 void 
 loop() {
     while (digitalRead<Pin::DEN>() == HIGH);
-#ifdef TYPE203_BOARD
-    digitalWrite<Pin::InCacheAccess, LOW>();
-#endif
     handleTransaction();
-#ifdef TYPE203_BOARD
-    digitalWrite<Pin::InCacheAccess, HIGH>();
-#endif
 }
 
 void sdCsInit(SdCsPin_t pin) {

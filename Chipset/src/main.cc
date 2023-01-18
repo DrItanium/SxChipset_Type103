@@ -409,7 +409,7 @@ setup() {
 
 void 
 loop() {
-    while (digitalRead<Pin::DEN>() == HIGH);
+    waitForDataState();
     handleTransaction();
 }
 

@@ -112,10 +112,9 @@ Platform::begin() noexcept {
         MCP23S17::writeDirection<XIO, Pin::GPIOSelect>(0b1000'0100, 0b1111'1111);
         // setup the extra interrupts as well (hooked in through xio)
         MCP23S17::writeGPIO8_PORTA<XIO, Pin::GPIOSelect>(0b0010'0000); 
-        MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0x0000); // no
-                                                                                       // interrupts
-        // make sure that we clear out any interrupts
-        //(void)MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
+        MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0x0000); // no interrupts
+        // we need to deactivate the data lines io expander by setting all lines as inputs and leaving it alone after that point
+        // This code has to exist because I am retrofitting the old type103 design for this newer version with a mega2560
         dataLinesDirection_ = MCP23S17::AllInput8;
         previousValue_.setWholeValue(0);
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);

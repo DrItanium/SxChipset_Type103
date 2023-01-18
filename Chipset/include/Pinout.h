@@ -61,40 +61,6 @@ Count = NUM_DIGITAL_PINS,
     SPI_MISO = PIN_SPI_MISO,
 #endif
     // aliases
-#if defined(TYPE103_BOARD)
-    Digital0 = PortB0,
-    Digital1 = PortB1,
-    Digital2 = PortB2,
-    Digital3 = PortB3,
-    Digital4 = PortB4,
-    Digital5 = PortB5,
-    Digital6 = PortB6,
-    Digital7 = PortB7,
-    Digital8 =  PortD0,
-    Digital9 =  PortD1,
-    Digital10 = PortD2,
-    Digital11 = PortD3,
-    Digital12 = PortD4,
-    Digital13 = PortD5,
-    Digital14 = PortD6,
-    Digital15 = PortD7,
-    Digital16 = PortC0,
-    Digital17 = PortC1,
-    Digital18 = PortC2,
-    Digital19 = PortC3,
-    Digital20 = PortC4,
-    Digital21 = PortC5,
-    Digital22 = PortC6,
-    Digital23 = PortC7,
-    Digital24 = PortA0,
-    Digital25 = PortA1,
-    Digital26 = PortA2,
-    Digital27 = PortA3,
-    Digital28 = PortA4,
-    Digital29 = PortA5,
-    Digital30 = PortA6,
-    Digital31 = PortA7,
-#elif defined(TYPE203_BOARD)
     Digital0 = PortE2,
     Digital1 = PortE7,
     Digital2 = PortE6,
@@ -150,9 +116,6 @@ Count = NUM_DIGITAL_PINS,
     Data13 = PortF5,
     Data14 = PortF6,
     Data15 = PortF7,
-#else
-#   error "Unknown board type defined!"
-#endif
     Ready = Digital0,
     CLKO = Digital1,
     Enable = Digital2,
@@ -238,18 +201,9 @@ enum class Port : byte {
 #include "AVRPorts.def"
 #undef X
     None,
-#ifdef TYPE200_BOARD
-    DataLower = K,
-    DataUpper = F,
-    Capture = J,
-#endif
-#if defined(TYPE103_BOARD)
-    Capture = A,
-#elif defined(TYPE203_BOARD)
     Capture = K,
     DataLower = H,
     DataUpper = F,
-#endif
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

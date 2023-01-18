@@ -30,9 +30,7 @@
 #include <avr/io.h>
 #include "xmem.h"
 #include <Arduino.h>
-#ifdef TYPE203_BOARD
 #include "BankSelection.h"
-#endif
 
 
 
@@ -40,50 +38,35 @@ namespace xmem {
     namespace {
 
         constexpr auto getNumberOfBankHeapStates() noexcept {
-#ifdef TYPE203_BOARD
-        return 16;
-#else
-        return 0;
-#endif
-    }
+            return 16;
+        }
 
-    constexpr auto getLastAddress() noexcept {
-#ifdef TYPE203_BOARD
-    return RAMEND + 0x8000;
-#else
-    return 0;
-#endif
-}
-constexpr auto getFirstAddress() noexcept {
-#ifdef TYPE203_BOARD
-return RAMEND + 1;
-#else
-return 0;
-#endif
-}
-#ifdef TYPE203_BOARD
-static_assert(getLastAddress() == 0xA1FF);
+        constexpr auto getLastAddress() noexcept {
+            return RAMEND + 0x8000;
+        }
+        constexpr auto getFirstAddress() noexcept {
+            return RAMEND + 1;
+        }
+        static_assert(getLastAddress() == 0xA1FF);
 
         /**
          * @brief state for each bank
          */
-	    heapState bankHeapStates[getNumberOfBankHeapStates()];
+        heapState bankHeapStates[getNumberOfBankHeapStates()];
         /*
          * The currently selected bank
          */
         volatile uint8_t currentBank = 0;
-#endif
-}
+    }
 
 
 /*
  * Initial setup. You must call this once
  */
 
-void begin(bool heapInXmem_) {
+    void begin(bool heapInXmem_) {
 
-#ifdef TYPE203_BOARD
-    // initialise the heap states
+        // initialise the heap states
 
         // set up the xmem registers
         XMCRB=0b00000'001; // need 32k. one pin released
@@ -115,16 +98,14 @@ void begin(bool heapInXmem_) {
             saveHeap(i);
         }
         setMemoryBank(0);
-#endif
-}
+    }
 /*
  * Set the memory bank
  */
 
-void setMemoryBank(uint8_t bank_,bool switchHeap_) {
-#ifdef TYPE203_BOARD
-    // check
-		if(bank_!=currentBank) {
+    void setMemoryBank(uint8_t bank_,bool switchHeap_) {
+        // check
+        if(bank_!=currentBank) {
             // save heap state if requested
 
             if (switchHeap_) {
@@ -151,111 +132,100 @@ void setMemoryBank(uint8_t bank_,bool switchHeap_) {
             if (switchHeap_)
                 restoreHeap(currentBank);
         }
-#endif
-}
+    }
 
 /*
  * Save the heap variables
  */
 
-void saveHeap(uint8_t bank_) {
-#ifdef TYPE203_BOARD
-    bankHeapStates[bank_].__malloc_heap_start=__malloc_heap_start;
-		bankHeapStates[bank_].__malloc_heap_end=__malloc_heap_end;
-		bankHeapStates[bank_].__brkval=__brkval;
-		bankHeapStates[bank_].__flp=__flp;
-#endif
-}
+    void saveHeap(uint8_t bank_) {
+        bankHeapStates[bank_].__malloc_heap_start=__malloc_heap_start;
+        bankHeapStates[bank_].__malloc_heap_end=__malloc_heap_end;
+        bankHeapStates[bank_].__brkval=__brkval;
+        bankHeapStates[bank_].__flp=__flp;
+    }
 
 /*
  * Restore the heap variables
  */
 
-void restoreHeap(uint8_t bank_) {
-#ifdef TYPE203_BOARD
-    __malloc_heap_start=bankHeapStates[bank_].__malloc_heap_start;
-		__malloc_heap_end=bankHeapStates[bank_].__malloc_heap_end;
-		__brkval=bankHeapStates[bank_].__brkval;
-		__flp=bankHeapStates[bank_].__flp;
-#endif
-}
+    void restoreHeap(uint8_t bank_) {
+        __malloc_heap_start=bankHeapStates[bank_].__malloc_heap_start;
+        __malloc_heap_end=bankHeapStates[bank_].__malloc_heap_end;
+        __brkval=bankHeapStates[bank_].__brkval;
+        __flp=bankHeapStates[bank_].__flp;
+    }
 /*
  * Self test the memory. This will destroy the entire content of all
  * memory banks so don't use it except in a test scenario.
  */
-SelfTestResults selfTest() {
-    SelfTestResults results;
+    SelfTestResults selfTest() {
+        SelfTestResults results;
 
-    // write an ascending sequence of 1..237 running through
-    // all memory banks
-#ifdef TYPE203_BOARD
-    auto getStart = [](uint8_t bank) { return getLastAddress(); };
+        // write an ascending sequence of 1..237 running through
+        // all memory banks
+        auto getStart = [](uint8_t bank) { return getLastAddress(); };
         auto getEnd = [](uint8_t bank) { return getFirstAddress(); };
-		volatile uint8_t *ptr;
-		auto writeValue=1;
-		for(auto bank=0;bank<getNumberOfBankHeapStates();bank++) {
+        volatile uint8_t *ptr;
+        auto writeValue=1;
+        for(auto bank=0;bank<getNumberOfBankHeapStates();bank++) {
 
-			setMemoryBank(bank);
+            setMemoryBank(bank);
             auto startPtr = getStart(bank);
             auto stopPtr = getEnd(bank);
-			for(ptr=reinterpret_cast<uint8_t*>(startPtr); ptr >= reinterpret_cast<uint8_t*>(stopPtr); --ptr) {
-				*ptr=writeValue;
+            for(ptr=reinterpret_cast<uint8_t*>(startPtr); ptr >= reinterpret_cast<uint8_t*>(stopPtr); --ptr) {
+                *ptr=writeValue;
 
-				if(writeValue++==237)
-					writeValue=1;
-			}
-		}
+                if(writeValue++==237)
+                    writeValue=1;
+            }
+        }
 
-		// verify the writes
+        // verify the writes
 
-		writeValue=1;
-		for(auto bank=0;bank<getNumberOfBankHeapStates();bank++) {
+        writeValue=1;
+        for(auto bank=0;bank<getNumberOfBankHeapStates();bank++) {
 
-			setMemoryBank(bank);
+            setMemoryBank(bank);
             auto startPtr = getStart(bank);
             auto stopPtr = getEnd(bank);
-			for(ptr=reinterpret_cast<uint8_t*>(startPtr); ptr >= reinterpret_cast<uint8_t*>(stopPtr); --ptr) {
-				auto readValue=*ptr;
+            for(ptr=reinterpret_cast<uint8_t*>(startPtr); ptr >= reinterpret_cast<uint8_t*>(stopPtr); --ptr) {
+                auto readValue=*ptr;
 
-				if(readValue!=writeValue) {
-					results.succeeded=false;
-					results.failedAddress=ptr;
-					results.failedBank=bank;
+                if(readValue!=writeValue) {
+                    results.succeeded=false;
+                    results.failedAddress=ptr;
+                    results.failedBank=bank;
                     results.expectedValue = writeValue;
                     results.gotValue = readValue;
-					return results;
-				}
+                    return results;
+                }
 
-				if(writeValue++==237)
-					writeValue=1;
-			}
-		}
-#endif
-    results.succeeded=true;
-    return results;
-}
+                if(writeValue++==237)
+                    writeValue=1;
+            }
+        }
+        results.succeeded=true;
+        return results;
+    }
 
-uint8_t
-getCurrentMemoryBank() noexcept {
-#ifdef TYPE203_BOARD
-return currentBank;
-#else
-return 0;
-#endif
-}
+    uint8_t
+    getCurrentMemoryBank() noexcept {
+        return currentBank;
+    }
 
-uintptr_t
-getStartAddress(uint8_t) noexcept {
-return getFirstAddress();
-}
-uintptr_t
-getEndAddress(uint8_t) noexcept {
-return getLastAddress();
-}
+    uintptr_t
+    getStartAddress(uint8_t) noexcept {
+        return getFirstAddress();
+    }
+    uintptr_t
+    getEndAddress(uint8_t) noexcept {
+        return getLastAddress();
+    }
 
-bool
-validBank(uint8_t bank) noexcept {
-    // right now we only support a single internal memory block
-    return bank < 16;
-}
+    bool
+    validBank(uint8_t bank) noexcept {
+        // right now we only support a single internal memory block
+        return bank < 16;
+    }
 }

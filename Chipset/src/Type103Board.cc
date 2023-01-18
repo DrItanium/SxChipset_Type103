@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Detect.h"
 
-#if defined(TYPE103_BOARD) || defined(TYPE203_BOARD)
 #include "Setup.h"
 #include "Types.h"
 #include "Pinout.h"
@@ -122,11 +121,9 @@ Platform::begin() noexcept {
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
         MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_, dataLinesDirection_);
         xmem::begin(true);
-#ifdef TYPE203_BOARD
         // setup the direct data lines to be input
         getDirectionRegister<Port::DataLower>() = 0;
         getDirectionRegister<Port::DataUpper>() = 0;
-#endif
     }
 }
 
@@ -150,133 +147,6 @@ Platform::endAddressTransaction() noexcept {
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
 }
-#if defined(TYPE103_BOARD)
-void
-Platform::collectAddress() noexcept {
-    auto m2 = readInputChannelAs<Channel2Value>();
-    isReadOperation_ = m2.isReadOperation();
-    if (auto direction = isReadOperation_ ? MCP23S17::AllOutput8 : MCP23S17::AllInput8 ; direction != dataLinesDirection_) {
-        digitalWrite<Pin::GPIOSelect, LOW>();
-
-        SPDR = MCP23S17::WriteOpcode_v<DataLines>;
-        asm volatile ("nop");
-        dataLinesDirection_ = direction;
-        // inline updating the direction while getting the address bits
-        address_.bytes[0] = m2.getWholeValue();
-        address_.address.a0 = 0;
-        triggerClock();
-        auto opcode = static_cast<byte>(MCP23S17::Registers::IODIR);
-        while (!(SPSR & _BV(SPIF)));
-
-        SPDR = opcode;
-        asm volatile ("nop");
-        address_.bytes[1] = readInputChannelAs<uint8_t>();
-        triggerClock();
-        while (!(SPSR & _BV(SPIF)));
-
-        SPDR = dataLinesDirection_;
-        asm volatile ("nop");
-        address_.bytes[2] = readInputChannelAs<uint8_t>();
-        triggerClock();
-        while (!(SPSR & _BV(SPIF)));
-
-        SPDR = dataLinesDirection_;
-        asm volatile ("nop") ;
-        address_.bytes[3] = readInputChannelAs<uint8_t>();
-        while (!(SPSR & _BV(SPIF)));
-
-        digitalWrite<Pin::GPIOSelect, HIGH>();
-        //MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_);
-    } else {
-        address_.bytes[0] = m2.getWholeValue();
-        address_.address.a0 = 0;
-        triggerClock();
-        address_.bytes[1] = readInputChannelAs<uint8_t>();
-        triggerClock();
-        address_.bytes[2] = readInputChannelAs<uint8_t>();
-        triggerClock();
-        address_.bytes[3] = readInputChannelAs<uint8_t>();
-    }
-}
-
-void
-Platform::startInlineSPIOperation() noexcept {
-    digitalWrite<Pin::GPIOSelect, LOW>();
-    auto TargetAction = isReadOperation_ ? MCP23S17::WriteOpcode_v<DataLines> : MCP23S17::ReadOpcode_v<DataLines>;
-    auto TargetRegister = static_cast<byte>(isReadOperation_ ? MCP23S17::Registers::OLAT : MCP23S17::Registers::GPIO);
-    // starting a new transaction so reset the starting index to 0
-#ifdef AVR_SPI_AVAILABLE
-    SPDR = TargetAction;
-    asm volatile ("nop");
-    while (!(SPSR & _BV(SPIF))); 
-    SPDR = TargetRegister;
-    asm volatile ("nop");
-    while (!(SPSR & _BV(SPIF))); 
-#else
-    SPI.transfer(TargetAction);
-    SPI.transfer(TargetRegister);
-#endif
-}
-
-void
-Platform::endInlineSPIOperation() noexcept {
-    digitalWrite<Pin::GPIOSelect, HIGH>();
-}
-uint16_t
-Platform::getDataLines(const Channel0Value& c1, InlineSPI) noexcept {
-    if (c1.dataInterruptTriggered()) {
-#ifdef AVR_SPI_AVAILABLE
-            SPDR = 0;
-            asm volatile ("nop");
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            auto value = SPDR;
-            SPDR = 0;
-            asm volatile ("nop");
-            previousValue.bytes[0] = value;
-            while (!(SPSR & _BV(SPIF))) ; // wait
-            previousValue.bytes[1] = SPDR;
-#else
-            previousValue.bytes[0] = SPI.transfer(0);
-            previousValue.bytes[1] = SPI.transfer(0);
-#endif
-    }
-    return previousValue.full;
-}
-uint16_t
-Platform::getDataLines(const Channel0Value& c1, NoInlineSPI) noexcept {
-    if (c1.dataInterruptTriggered()) {
-        previousValue_.full = MCP23S17::readGPIO16<DataLines, Pin::GPIOSelect>();
-    }
-    return previousValue_.full;
-}
-void
-Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
-    if (previousValue_ != value) {
-        previousValue_.full = value;
-#ifdef AVR_SPI_AVAILABLE
-        SPDR = previousValue_.bytes[0];
-        asm volatile ("nop");
-        auto next = previousValue_.bytes[1];
-        while (!(SPSR & _BV(SPIF))); // wait
-        SPDR = next;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))); // wait
-#else
-        SPI.transfer(previousValue_.bytes[0]);
-        SPI.transfer(previousValue_.bytes[1]);
-#endif
-    }
-}
-void
-Platform::setDataLines(uint16_t value, NoInlineSPI) noexcept {
-    if (previousValue_ != value) {
-        previousValue_.full = value;
-        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
-    }
-}
-#endif
-
-#ifdef TYPE203_BOARD
 void Platform::startInlineSPIOperation() noexcept { }
 void Platform::endInlineSPIOperation() noexcept { }
 
@@ -314,8 +184,3 @@ Platform::setDataLines(uint16_t value, NoInlineSPI) noexcept {
     getOutputRegister<Port::DataLower>() = lowByte(value);
     getOutputRegister<Port::DataUpper>() = highByte(value);
 }
-#endif
-
-
-
-#endif

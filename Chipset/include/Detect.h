@@ -43,57 +43,9 @@ extern uint8_t GPIOR1;
 extern uint8_t GPIOR2;
 #endif
 
-constexpr uint32_t getCPUFrequency() noexcept {
-#ifdef F_CPU
-    return F_CPU;
-#else
-    return 0;
-#endif
-}
-
-constexpr auto getRAMStart() noexcept {
-#ifdef RAMSTART
-    return RAMSTART;
-#else
-    return 0;
-#endif
-}
-
 constexpr auto getRAMEnd() noexcept {
-#ifdef RAMEND
     return RAMEND;
-#else
-    return 0;
-#endif
 }
-
-constexpr auto getXMEMSize() noexcept {
-#ifdef XRAMSIZE
-    return XRAMSIZE;
-#else
-    return 0;
-#endif
-}
-
-constexpr auto getXMEMEnd() noexcept {
-#ifdef XRAMEND
-    return XRAMEND;
-#else
-        return 0;
-#endif
-}
-
-#ifdef BOARD_TYPE
-#  if BOARD_TYPE == 103
-#    define TYPE103_BOARD
-#  elif BOARD_TYPE == 203
-#    define TYPE203_BOARD
-#  else
-#    error "Unknown Board type defined!"
-#  endif
-#else
-#  error "No Board Type defined!"
-#endif
 
 template<typename T>
 inline volatile T& memory(size_t address) noexcept {

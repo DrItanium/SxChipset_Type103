@@ -27,7 +27,6 @@
  */
 #include "BankSelection.h"
 
-#ifdef TYPE203_BOARD
 namespace External328Bus {
     void setBank(uint8_t bank) noexcept {
         // the 328 Bus is messed up on the 203 board so only use the internal 512k sram
@@ -90,5 +89,4 @@ namespace InternalBus {
         digitalWrite<Pin::RealA15, LOW>();
     }
 } // end namespace InternalBus
-#endif
 

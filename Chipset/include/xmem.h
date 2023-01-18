@@ -17,7 +17,6 @@
 #include "Detect.h"
 
 namespace xmem {
-#ifdef TYPE203_BOARD
     /*
 	 * State variables used by the heap
 	 */
@@ -28,7 +27,6 @@ namespace xmem {
         void *__brkval;
         void *__flp;
 	};
-#endif
 
     /*
      * Results of a self-test run
@@ -60,11 +58,9 @@ namespace xmem {
 /*
  * References to the private heap variables
  */
-#ifdef TYPE203_BOARD
 extern "C" {
 	extern void *__flp;
 	extern void *__brkval;
 }
-#endif
 
 #endif

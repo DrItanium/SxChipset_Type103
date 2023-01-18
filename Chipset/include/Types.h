@@ -56,7 +56,6 @@ enum class EnableStyle : byte {
 
 union Word8 {
     explicit Word8(uint8_t value = 0) noexcept : value_(value) { }
-
     uint8_t value_;
     struct {
         uint8_t be : 2;
@@ -72,24 +71,7 @@ union Word8 {
         uint8_t a0 : 1;
         uint8_t addr : 7;
     } lowestAddr;
-    /**
-     * @brief Address bits [A8, A15]
-     */
-    uint8_t lowerAddr;
-    /**
-     * @brief Address bits [A16, A23]
-     */
-    uint8_t upperAddr;
-    struct {
-        uint8_t valid_ : 1;
-        uint8_t dirty_ : 1;
-    } lineFlags;
-    struct {
-        uint8_t rst : 1;
-        uint8_t hold : 1;
-        uint8_t rest : 6;
-    } xioPortADir;
-    [[nodiscard]] constexpr bool isReadOperation() const noexcept { 
+    [[nodiscard]] constexpr bool isReadOperation() const noexcept {
         return lowestAddr.a0 == 0;
     }
     [[nodiscard]] constexpr bool isWriteOperation() const noexcept { 
@@ -105,12 +87,6 @@ union Word8 {
     [[nodiscard]] constexpr auto getAddressBits0_7() const noexcept { 
         return getAddressBits1_7() << 1;
     }
-    [[nodiscard]] constexpr auto getAddressBits8_15() const noexcept { return lowerAddr; }
-    [[nodiscard]] constexpr auto getAddressBits16_23() const noexcept { return upperAddr; }
-    [[nodiscard]] constexpr auto isBurstLast() const noexcept { return channel0.blast == 0; }
-
-    [[nodiscard]] constexpr auto lineIsValid() const noexcept { return lineFlags.valid_; }
-    [[nodiscard]] constexpr auto lineIsDirty() const noexcept { return lineFlags.dirty_; }
     void clear() noexcept {
         value_ = 0;
     }
@@ -129,9 +105,7 @@ union Word8 {
     [[nodiscard]] constexpr bool operator>=(uint8_t other) const noexcept { return value_ >= other; }
 };
 using Channel0Value = Word8;
-using Channel1Value = Word8;
 using Channel2Value = Word8;
-using Channel3Value = Word8;
 
 union SplitWord16 {
     uint16_t full;

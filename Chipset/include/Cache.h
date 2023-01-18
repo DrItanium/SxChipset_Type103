@@ -1257,10 +1257,11 @@ private:
     Cache* pool_ = nullptr;
 };
 
-constexpr auto NumberOfBankBits = 1;
+constexpr auto NumberOfBankBits = 3;
 constexpr auto NumberOfOffsetBits = 6;
 constexpr auto NumberOfTagBits = 7;
-constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;
+//constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;
+constexpr auto OffChipSetConfiguration = SetConfiguration::ThreeWayRoundRobin;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
 constexpr auto OnChipTagBits = 7;

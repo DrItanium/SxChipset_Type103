@@ -137,13 +137,10 @@ waitForDataState() noexcept {
     singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
 }
-template<bool isReadOperation, bool inlineSPIOperation, typename T>
+template<bool isReadOperation, typename T>
 inline void
 talkToi960(const SplitWord32& addr, T& handler) noexcept {
     handler.startTransaction(addr);
-    if constexpr (inlineSPIOperation) {
-        Platform::startInlineSPIOperation();
-    }
     do {
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
@@ -157,18 +154,9 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            if constexpr (inlineSPIOperation) {
-                Platform::setDataLines(value, InlineSPI{});
-            } else {
-                Platform::setDataLines(value, NoInlineSPI{});
-            }
+            Platform::setDataLines(value);
         } else {
-            uint16_t value;
-            if constexpr (inlineSPIOperation) {
-                value = Platform::getDataLines(c0, InlineSPI{});
-            } else {
-                value = Platform::getDataLines(c0, NoInlineSPI{});
-            }
+            auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
@@ -184,9 +172,6 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         handler.next();
         singleCycleDelay(); // put this in to make sure we never over run anything
     } while(true);
-    if constexpr (inlineSPIOperation) {
-        Platform::endInlineSPIOperation();
-    }
     handler.endTransaction();
 }
 
@@ -197,7 +182,6 @@ template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     auto &line = getCache().find(addr);
-    Platform::startInlineSPIOperation();
     if constexpr (isReadOperation) {
         // the compiler seems to barf on for loops at -Ofast
         // so instead, we want to unpack it to make sure
@@ -213,7 +197,7 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
                 Serial.print(F("\t\tRead Value: 0x"));
                 Serial.println(value, HEX);
             }
-            Platform::setDataLines(value, InlineSPI{});
+            Platform::setDataLines(value);
             auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
             signalReady();
             if (isBurstLast) {
@@ -226,14 +210,13 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         // so instead, we want to unpack it to make sure
         //auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
         for (auto offset = static_cast<uint8_t>(MemoryCache::CacheAddress{addr}.getWordOffset()); ; ++offset){
-            //singleCycleDelay();
             // read it twice, otherwise we lose our minds
             auto c0 = readInputChannelAs<Channel0Value, true>();
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\tChannel0: 0b"));
                 Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
             }
-            auto value = Platform::getDataLines(c0, InlineSPI{});
+            auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
@@ -249,7 +232,6 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
             singleCycleDelay();
         }
     }
-    Platform::endInlineSPIOperation();
 }
 
 template<bool isReadOperation>
@@ -257,7 +239,6 @@ inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     if (auto theIndex = addr.onBoardMemoryAddress.bank + 8; xmem::validBank(theIndex)) {
         xmem::setMemoryBank(theIndex);
-        Platform::startInlineSPIOperation();
         volatile SplitWord16* ptr = reinterpret_cast<volatile SplitWord16*>((RAMEND + 1) + addr.onBoardMemoryAddress.offset);
         do {
             auto c0 = readInputChannelAs<Channel0Value, true>();
@@ -266,28 +247,19 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
                 Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
             }
             if constexpr (isReadOperation) {
-                // okay it is a read operation, so... pull a cache line out
-                auto value = ptr->full;
-                if constexpr (EnableDebugMode) {
-                    Serial.print(F("\t\tGot Value: 0x"));
-                    Serial.println(value, HEX);
-                }
-                Platform::setDataLines(value, InlineSPI{});
+                // keep setting the data lines and inform the i960
+                Platform::setDataLines(ptr->full);
             } else {
-                uint16_t value = Platform::getDataLines(c0, InlineSPI{});
-                if constexpr (EnableDebugMode) {
-                    Serial.print(F("\t\tWrite Value: 0x"));
-                    Serial.println(value, HEX);
-                }
                 switch (c0.getByteEnable()) {
                     case EnableStyle::Full16:
-                        ptr->full = value;
+                        ptr->full = Platform::getDataLines();
                         break;
                     case EnableStyle::Lower8:
-                        ptr->bytes[0] = static_cast<uint8_t>(value);
+                        // directly read from the ports to speed things up
+                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
                         break;
                     case EnableStyle::Upper8:
-                        ptr->bytes[1] = static_cast<uint8_t>(value >> 8);
+                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
                         break;
                     default:
                         break;
@@ -301,10 +273,9 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             ++ptr;
             singleCycleDelay(); // put this in to make sure we never over run anything
         } while (true);
-        Platform::endInlineSPIOperation();
     } else {
         // if they are not valid addresses then use the null handler
-        talkToi960<isReadOperation, false>(addr, getNullHandler());
+        talkToi960<isReadOperation>(addr, getNullHandler());
     }
 }
 template<bool isReadOperation>
@@ -313,16 +284,16 @@ void
 getPeripheralDevice(const SplitWord32& addr) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            talkToi960<isReadOperation, false>(addr, infoDevice);
+            talkToi960<isReadOperation>(addr, infoDevice);
             break;
         case TargetPeripheral::Serial:
-            talkToi960<isReadOperation, false>(addr, theSerial);
+            talkToi960<isReadOperation>(addr, theSerial);
             break;
         case TargetPeripheral::RTC:
-            talkToi960<isReadOperation, false>(addr, timerInterface);
+            talkToi960<isReadOperation>(addr, timerInterface);
             break;
         default:
-            talkToi960<isReadOperation, false>(addr, getNullHandler());
+            talkToi960<isReadOperation>(addr, getNullHandler());
             break;
     }
 }
@@ -347,7 +318,7 @@ handleIOOperation(const SplitWord32& addr) noexcept {
             talkToi960<isReadOperation>(addr, TreatAsOnChipAccess{});
             break;
         default:
-            talkToi960<isReadOperation, false>(addr, getNullHandler());
+            talkToi960<isReadOperation>(addr, getNullHandler());
             break;
     }
 }

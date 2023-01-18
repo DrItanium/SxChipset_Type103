@@ -38,9 +38,6 @@ singleCycleDelay() noexcept {
     asm volatile ("nop");
 }
 
-struct InlineSPI { };
-struct NoInlineSPI { };
-
 
 class Platform final {
     public:
@@ -57,12 +54,8 @@ class Platform final {
         static void endAddressTransaction() noexcept;
         static void doReset(decltype(LOW) value) noexcept;
         static void doHold(decltype(LOW) value) noexcept;
-        static uint16_t getDataLines(const Channel0Value&, InlineSPI) noexcept;
-        static uint16_t getDataLines(const Channel0Value&, NoInlineSPI) noexcept;
-        static void setDataLines(uint16_t, InlineSPI) noexcept;
-        static void setDataLines(uint16_t, NoInlineSPI) noexcept;
-        static void startInlineSPIOperation() noexcept;
-        static void endInlineSPIOperation() noexcept;
+        static uint16_t getDataLines() noexcept;
+        static void setDataLines(uint16_t) noexcept;
         static bool isReadOperation() noexcept { return isReadOperation_; }
         static SplitWord32 getAddress() noexcept { return address_; }
     private:

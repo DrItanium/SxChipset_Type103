@@ -147,9 +147,6 @@ Platform::endAddressTransaction() noexcept {
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
 }
-void Platform::startInlineSPIOperation() noexcept { }
-void Platform::endInlineSPIOperation() noexcept { }
-
 void
 Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
@@ -167,20 +164,11 @@ Platform::collectAddress() noexcept {
     getDirectionRegister<Port::DataUpper>() = tmp;
 }
 uint16_t
-Platform::getDataLines(const Channel0Value&, InlineSPI) noexcept {
-    return makeWord(getInputRegister<Port::DataUpper>(), getInputRegister<Port::DataLower>());
-}
-uint16_t
-Platform::getDataLines(const Channel0Value&, NoInlineSPI) noexcept {
+Platform::getDataLines() noexcept {
     return makeWord(getInputRegister<Port::DataUpper>(), getInputRegister<Port::DataLower>());
 }
 void
-Platform::setDataLines(uint16_t value, InlineSPI) noexcept {
-    getOutputRegister<Port::DataLower>() = lowByte(value);
-    getOutputRegister<Port::DataUpper>() = highByte(value);
-}
-void
-Platform::setDataLines(uint16_t value, NoInlineSPI) noexcept {
+Platform::setDataLines(uint16_t value) noexcept {
     getOutputRegister<Port::DataLower>() = lowByte(value);
     getOutputRegister<Port::DataUpper>() = highByte(value);
 }

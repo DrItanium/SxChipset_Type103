@@ -6,6 +6,8 @@
  *     Website: www.andybrown.me.uk
  *
  *  This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 Unported License.
+ *
+ *  Last modified by Joshua Scoggins to support type103/2560 board
  */
 
 

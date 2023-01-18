@@ -434,7 +434,7 @@ installMemoryImage() noexcept {
         // we will be successful in writing out to main memory
         memoryImage.seekSet(0);
         Serial.println(F("installing memory image from sd"));
-        constexpr auto BufferSize = 2048;
+        constexpr auto BufferSize = 4096;
         byte buffer[BufferSize] = { 0};
         for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
             while (memoryImage.isBusy());

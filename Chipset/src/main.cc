@@ -182,55 +182,37 @@ template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     auto &line = getCache().find(addr);
-    if constexpr (isReadOperation) {
-        // the compiler seems to barf on for loops at -Ofast
-        // so instead, we want to unpack it to make sure
-        for (auto offset = static_cast<uint8_t>(MemoryCache::CacheAddress{addr}.getWordOffset()); ; ++offset){
+    // the compiler seems to barf on for loops at -Ofast
+    // so instead, we want to unpack it to make sure
+    for (auto offset = static_cast<uint8_t>(MemoryCache::CacheAddress{addr}.getWordOffset()); ; ++offset) {
+        auto c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out
-            if constexpr (EnableDebugMode) {
-                auto c0 = readInputChannelAs<Channel0Value, true>();
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             auto value = line.getWord(offset);
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tRead Value: 0x"));
                 Serial.println(value, HEX);
             }
             Platform::setDataLines(value);
-            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
-            }
-            singleCycleDelay();
-        }
-    } else {
-        // the compiler seems to barf on for loops at -Ofast
-        // so instead, we want to unpack it to make sure
-        //auto offset = MemoryCache::CacheAddress{addr}.getWordOffset();
-        for (auto offset = static_cast<uint8_t>(MemoryCache::CacheAddress{addr}.getWordOffset()); ; ++offset){
-            // read it twice, otherwise we lose our minds
-            auto c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
+        } else {
             auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
                 Serial.print(F("\t\tWrite Value: 0x"));
                 Serial.println(value, HEX);
             }
-
             line.setWord(offset, value, c0.getByteEnable());
-            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
-            }
-            // make sure that we have enough time as the chip is pipelined
-            singleCycleDelay();
         }
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        // make sure that we have enough time as the chip is pipelined
+        singleCycleDelay();
     }
 }
 
@@ -361,6 +343,7 @@ handleTransaction() noexcept {
     // shift back to input channel 0
     singleCycleDelay();
 }
+template<bool TrackBootProcess = false>
 void
 bootCPU() noexcept {
     pullCPUOutOfReset();
@@ -369,41 +352,32 @@ bootCPU() noexcept {
     // as expected. We just sit there waiting for something that will never continue. This is fine.
 
     // The boot process is left here just incase we need to reactivate it
-
-#if 0
-    while (digitalRead<Pin::FAIL>() == LOW) {
-        if (digitalRead<Pin::DEN>() == LOW) {
-            break;
+    if constexpr (TrackBootProcess) {
+        while (digitalRead<Pin::FAIL>() == LOW) {
+            if (digitalRead<Pin::DEN>() == LOW) {
+                break;
+            }
+        }
+        while (digitalRead<Pin::FAIL>() == HIGH) {
+            if (digitalRead<Pin::DEN>() == LOW) {
+                break;
+            }
+        }
+        Serial.println(F("STARTUP COMPLETE! BOOTING..."));
+        // okay so we got past this, just start performing actions
+        waitForDataState();
+        handleTransaction();
+        waitForDataState();
+        handleTransaction();
+        if (digitalRead<Pin::FAIL>() == HIGH) {
+            Serial.println(F("CHECKSUM FAILURE!"));
+        } else {
+            Serial.println(F("BOOT SUCCESSFUL!"));
         }
     }
-    while (digitalRead<Pin::FAIL>() == HIGH) {
-        if (digitalRead<Pin::DEN>() == LOW) {
-            break;
-        }
-    }
-    Serial.println(F("STARTUP COMPLETE! BOOTING..."));
-    // okay so we got past this, just start performing actions
-    waitForDataState();
-    handleTransaction();
-    waitForDataState();
-    handleTransaction();
-    if (digitalRead<Pin::FAIL>() == HIGH) {
-        Serial.println(F("CHECKSUM FAILURE!"));
-    } else {
-        Serial.println(F("BOOT SUCCESSFUL!"));
-    }
-#endif
 }
 
 void
-testCoprocessor() noexcept {
-    Wire.beginTransmission(8);
-    Wire.write(0);
-    Wire.write("Donuts are tasty!");
-    Wire.write("\r\n");
-    Wire.endTransmission();
-}
-void 
 bringUpSDCard() noexcept {
     while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD FOUND...WAITING!"));
@@ -416,7 +390,6 @@ setup() {
     theSerial.begin();
     infoDevice.begin();
     Wire.begin();
-    testCoprocessor();
     setupRTC();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz

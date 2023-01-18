@@ -1180,6 +1180,7 @@ struct CachePool {
     using CacheLine = typename CacheReference::DataCacheLine;
     static constexpr auto NumberOfBanks = pow2(bankBits);
     void begin(byte bankOffset) noexcept {
+        baseIndex_ = bankOffset;
         for (int i = 0, j = bankOffset; i < NumberOfBanks; ++i, ++j) {
             pool_[i].begin(j);
         }
@@ -1194,7 +1195,38 @@ struct CachePool {
         }
     }
 private:
+    byte baseIndex_ = 0;
     CacheReference pool_[NumberOfBanks];
+};
+
+template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
+struct CachePool<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWithVictimCache> {
+    using Cache = BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWithVictimCache>;
+    //using CacheReference = BasicCacheReference<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWithVictimCache>;
+    using CacheAddress = typename Cache::CacheAddress;
+    using CacheLine = typename Cache::DataCacheLine;
+    static constexpr auto NumberOfBanks = pow2(bankBits);
+    void begin(byte bankOffset) noexcept {
+        baseIndex_ = bankOffset;
+        for (int i = 0, j = bankOffset; i < NumberOfBanks; ++i, ++j) {
+            xmem::setMemoryBank(i + baseIndex_);
+            pool_[i] = new Cache();
+            pool_[i]->begin(bankOffset);
+        }
+    }
+    inline auto& find(const SplitWord32& address) noexcept {
+        CacheAddress addr(address);
+        xmem::setMemoryBank(addr.getBankIndex() + baseIndex_);
+        return pool_[addr.getBankIndex()]->find(addr);
+    }
+    void clear()  {
+        for (auto* bank : pool_) {
+            bank->clear();
+        }
+    }
+private:
+    byte baseIndex_ = 0;
+    Cache* pool_[NumberOfBanks];
 };
 
 constexpr auto NumberOfBankBits = 3;

@@ -34,7 +34,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RTCDevice.h"
 #include "InfoDevice.h"
 #include "Cache.h"
-#include "Boot960.h"
 SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;
@@ -454,7 +453,6 @@ setup() {
     Platform::begin();
     bringUpSDCard();
     queryPSRAM<false>();
-    i960::begin();
     setupCache();
     delay(1000);
     installMemoryImage();

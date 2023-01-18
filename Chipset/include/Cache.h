@@ -104,15 +104,14 @@ union BasicCacheAddress {
     static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
-    BasicCacheAddress(uint32_t address) : backingStore_(address) { }
-    BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    constexpr explicit BasicCacheAddress(uint32_t address) : backingStore_(address) { }
+    constexpr explicit BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     constexpr auto getBankIndex() const noexcept { return bank; }
     constexpr auto getOffset() const noexcept { return offset; }
     constexpr auto getTag() const noexcept { return tag; }
     constexpr auto getKey() const noexcept { return key; }
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
-    void setKey(uint32_t value) noexcept { key = value; }
     bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
     inline void clear() noexcept { backingStore_.clear(); }
     constexpr auto getWordOffset() const noexcept { return wordView.offset; }
@@ -145,8 +144,8 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
     static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
-    BasicCacheAddress(uint32_t address) : backingStore_(address) { }
-    BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
+    constexpr explicit BasicCacheAddress(uint32_t address) : backingStore_(address) { }
+    constexpr explicit BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     constexpr auto getBankIndex() const noexcept { return 0; }
     constexpr auto getOffset() const noexcept { return offset; }
     constexpr auto getTag() const noexcept { return tag; }
@@ -154,7 +153,6 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
     constexpr auto getWordOffset() const noexcept { return wordView.offset; }
     void setOffset(uint32_t value) noexcept { offset = value; }
-    void setKey(uint32_t value) noexcept { key = value; }
     bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
     inline void clear() noexcept { backingStore_.clear(); }
 private:
@@ -210,7 +208,7 @@ struct BasicDataCacheLine {
     [[nodiscard]] const SplitWord16* getData() const noexcept {
         return words;
     }
-    inline uint16_t getWord(byte offset) const noexcept {
+    [[nodiscard]] inline uint16_t getWord(byte offset) const noexcept {
         return words[offset].getWholeValue();
     }
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {

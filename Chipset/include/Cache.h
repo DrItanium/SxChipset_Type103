@@ -1208,15 +1208,16 @@ struct CachePool<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWi
     static constexpr auto NumberOfBanks = pow2(bankBits);
     void begin(byte bankOffset) noexcept {
         baseIndex_ = bankOffset;
-        for (int i = 0, j = bankOffset; i < NumberOfBanks; ++i, ++j) {
-            xmem::setMemoryBank(i + baseIndex_);
+        for (int i = 0; i < NumberOfBanks; ++i) {
+            indicies_[i] = i + baseIndex_;
+            xmem::setMemoryBank(indicies_[i]);
             pool_[i] = new Cache();
-            pool_[i]->begin(bankOffset);
+            pool_[i]->begin(0);
         }
     }
     inline auto& find(const SplitWord32& address) noexcept {
         CacheAddress addr(address);
-        xmem::setMemoryBank(addr.getBankIndex() + baseIndex_);
+        xmem::setMemoryBank(indicies_[addr.getBankIndex()]);
         return pool_[addr.getBankIndex()]->find(addr);
     }
     void clear()  {
@@ -1226,10 +1227,37 @@ struct CachePool<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWi
     }
 private:
     byte baseIndex_ = 0;
+    byte indicies_[NumberOfBanks];
     Cache* pool_[NumberOfBanks];
 };
 
-constexpr auto NumberOfBankBits = 3;
+template<uint8_t offsetBits, uint8_t tagBits>
+struct CachePool<offsetBits, tagBits, 0, SetConfiguration::DirectMappedWithVictimCache> {
+    using Cache = BasicDataCache<offsetBits, tagBits, 0, SetConfiguration::DirectMappedWithVictimCache>;
+    //using CacheReference = BasicCacheReference<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWithVictimCache>;
+    using CacheAddress = typename Cache::CacheAddress;
+    using CacheLine = typename Cache::DataCacheLine;
+    static constexpr auto NumberOfBanks = pow2(0);
+    void begin(byte bankOffset) noexcept {
+        baseIndex_ = bankOffset;
+        xmem::setMemoryBank(0);
+        pool_ = new Cache();
+        pool_->begin(0);
+    }
+    inline auto& find(const SplitWord32& address) noexcept {
+        CacheAddress addr(address);
+        xmem::setMemoryBank(0);
+        return pool_->find(addr);
+    }
+    void clear()  {
+        pool_->clear();
+    }
+private:
+    byte baseIndex_ = 0;
+    Cache* pool_ = nullptr;
+};
+
+constexpr auto NumberOfBankBits = 0;
 constexpr auto NumberOfOffsetBits = 6;
 constexpr auto NumberOfTagBits = 7;
 constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;

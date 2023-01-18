@@ -1145,58 +1145,6 @@ private:
     uint8_t currentReplacementIndex_ = 0;
 };
 
-template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits>
-struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::ThreeWayRoundRobin> {
-    using DataCacheSet = BasicDataCacheSet<offsetBits, tagBits, bankBits, SetConfiguration::ThreeWayRoundRobin>;
-    using DataCacheLine = typename DataCacheSet::DataCacheLine;
-    using CacheAddress = typename DataCacheSet::CacheAddress;
-    static constexpr auto NumberOfSets = pow2(tagBits);
-    inline void clear() noexcept {
-        for (auto& set : cache) {
-            for (auto& line : set) {
-                line.clear();
-            }
-        }
-        for (auto& index : replacementIds) {
-            index = 0;
-        }
-    }
-    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
-        /// @todo implement
-        auto theTag = address.getTag();
-        auto& theSet = cache[theTag];
-        for (int i = 0; i < 3; ++i) {
-            if (auto& line = theSet[i]; line.matches(address)) {
-                return line;
-            }
-        }
-        // okay so we have a miss
-        auto& replacementIndex = replacementIds[theTag];
-        auto& targetLine = theSet[replacementIndex];
-        targetLine.reset(address);
-        ++replacementIndex;
-        if (replacementIndex == 3) {
-            replacementIndex = 0;
-        }
-        return targetLine;
-    }
-    inline void begin(byte = 0) noexcept {
-        Serial.print(F("Size of cache: "));
-        Serial.println((sizeof(cache) + sizeof(replacementIds)), HEX);
-        for (auto& set : cache) {
-            for (auto& line : set) {
-                line.begin();
-            }
-        }
-        for (auto& ind : replacementIds) {
-            ind = 0;
-        }
-    }
-private:
-    DataCacheLine cache[NumberOfSets][3];
-    byte replacementIds[NumberOfSets];
-};
-
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration cfg>
 struct BasicCacheReference {
     using Cache = BasicDataCache<offsetBits, tagBits, bankBits, cfg>;
@@ -1312,8 +1260,7 @@ private:
 constexpr auto NumberOfBankBits = 3;
 constexpr auto NumberOfOffsetBits = 6;
 constexpr auto NumberOfTagBits = 7;
-//constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;
-constexpr auto OffChipSetConfiguration = SetConfiguration::ThreeWayRoundRobin;
+constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
 constexpr auto OnChipOffsetBits = 4;
 constexpr auto OnChipTagBits = 7;

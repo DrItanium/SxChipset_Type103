@@ -111,18 +111,18 @@ union BasicCacheAddress {
     constexpr explicit BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     constexpr auto getBankIndex() const noexcept { return bank; }
     constexpr auto getOffset() const noexcept { return offset; }
-    constexpr auto getTag() const noexcept { return tag; }
+    [[gnu::noinline]] constexpr auto getTag() const noexcept { return tag; }
     constexpr auto getKey() const noexcept { return key; }
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
     constexpr auto getNonOffsetBits() const noexcept {
         return backingStore_.getWholeValue() >> OffsetBitsCount;
     }
-    [[gnu::noinline]] bool matches(const Self& other) const noexcept {
+    bool matches(const Self& other) const noexcept {
         return getNonOffsetBits() == other.getNonOffsetBits();
     }
     inline void clear() noexcept { backingStore_.clear(); }
-    [[gnu::noinline]] constexpr auto getWordOffset() const noexcept { return wordView.offset; }
+    constexpr auto getWordOffset() const noexcept { return wordView.offset; }
 private:
     SplitWord32 backingStore_;
     struct {

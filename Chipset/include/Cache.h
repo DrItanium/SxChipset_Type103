@@ -98,6 +98,8 @@ template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration
 union BasicCacheAddress {
     using Self = BasicCacheAddress<offsetBits, tagBits, bankBits, config>;
     static_assert(offsetBits <= 8, "Too many offset bits allocated, cannot effectively optimize!");
+    static_assert((offsetBits + tagBits) < 15, "Too many bits allocated for tag and offset, address will not fit in a single bank!");
+    static_assert(bankBits <= 8, "Too many bits allocated to banks!");
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
     static constexpr auto TagBitsCount = tagBits;
@@ -125,8 +127,8 @@ private:
     SplitWord32 backingStore_;
     struct {
         uint8_t offset : OffsetBitsCount;
-        uint32_t tag : TagBitsCount;
-        uint32_t bank : BankBitsCount;
+        uint16_t tag : TagBitsCount;
+        uint8_t bank : BankBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {
@@ -139,6 +141,7 @@ private:
 template<uint8_t offsetBits, uint8_t tagBits, SetConfiguration config>
 union BasicCacheAddress<offsetBits, tagBits, 0, config> {
     static_assert(offsetBits <= 8, "Too many offset bits allocated, cannot effectively optimize!");
+    static_assert((offsetBits + tagBits) < 15, "Too many bits allocated for tag and offset, cannot fit in a single bank!");
     using Self = BasicCacheAddress<offsetBits, tagBits, 0, config>;
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
@@ -167,7 +170,7 @@ private:
     SplitWord32 backingStore_;
     struct {
         uint8_t offset : OffsetBitsCount;
-        uint32_t tag : TagBitsCount;
+        uint16_t tag : TagBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {

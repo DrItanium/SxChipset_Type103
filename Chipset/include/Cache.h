@@ -124,7 +124,7 @@ union BasicCacheAddress {
 private:
     SplitWord32 backingStore_;
     struct {
-        uint32_t offset : OffsetBitsCount;
+        uint8_t offset : OffsetBitsCount;
         uint32_t tag : TagBitsCount;
         uint32_t bank : BankBitsCount;
         uint32_t key : KeyBitsCount;
@@ -138,6 +138,7 @@ private:
 
 template<uint8_t offsetBits, uint8_t tagBits, SetConfiguration config>
 union BasicCacheAddress<offsetBits, tagBits, 0, config> {
+    static_assert(offsetBits <= 8, "Too many offset bits allocated, cannot effectively optimize!");
     using Self = BasicCacheAddress<offsetBits, tagBits, 0, config>;
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
@@ -165,13 +166,13 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
 private:
     SplitWord32 backingStore_;
     struct {
-        uint32_t offset : OffsetBitsCount;
+        uint8_t offset : OffsetBitsCount;
         uint32_t tag : TagBitsCount;
         uint32_t key : KeyBitsCount;
     };
     struct {
-        uint32_t a0 : 1;
-        uint32_t offset : OffsetWordBitsCount;
+        uint8_t a0 : 1;
+        uint8_t offset : OffsetWordBitsCount;
         uint32_t rest : (TagBitsCount + KeyBitsCount);
     } wordView;
 };

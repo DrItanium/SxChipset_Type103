@@ -97,6 +97,7 @@ enum class SetConfiguration : uint8_t {
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration config>
 union BasicCacheAddress {
     using Self = BasicCacheAddress<offsetBits, tagBits, bankBits, config>;
+    static_assert(offsetBits <= 8, "Too many offset bits allocated, cannot effectively optimize!");
     static constexpr auto OffsetBitsCount = offsetBits;
     static constexpr auto OffsetWordBitsCount = OffsetBitsCount - 1;
     static constexpr auto TagBitsCount = tagBits;
@@ -112,9 +113,14 @@ union BasicCacheAddress {
     constexpr auto getKey() const noexcept { return key; }
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
-    bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
+    constexpr auto getNonOffsetBits() const noexcept {
+        return backingStore_.getWholeValue() >> OffsetBitsCount;
+    }
+    [[gnu::noinline]] bool matches(const Self& other) const noexcept {
+        return getNonOffsetBits() == other.getNonOffsetBits();
+    }
     inline void clear() noexcept { backingStore_.clear(); }
-    constexpr auto getWordOffset() const noexcept { return wordView.offset; }
+    [[gnu::noinline]] constexpr auto getWordOffset() const noexcept { return wordView.offset; }
 private:
     SplitWord32 backingStore_;
     struct {
@@ -124,12 +130,8 @@ private:
         uint32_t key : KeyBitsCount;
     };
     struct {
-        uint32_t offset : OffsetBitsCount;
-        uint32_t check : (TagBitsCount + KeyBitsCount + BankBitsCount);
-    } compare;
-    struct {
-        uint32_t a0 : 1;
-        uint32_t offset : OffsetWordBitsCount;
+        uint8_t a0 : 1;
+        uint8_t offset : OffsetWordBitsCount;
         uint32_t rest : (TagBitsCount + KeyBitsCount + BankBitsCount);
     } wordView;
 };
@@ -152,8 +154,13 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
     constexpr auto getKey() const noexcept { return key; }
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
     constexpr auto getWordOffset() const noexcept { return wordView.offset; }
+    constexpr auto getNonOffsetBits() const noexcept {
+        return backingStore_.getWholeValue() >> OffsetBitsCount;
+    }
+    [[gnu::noinline]] bool matches(const Self& other) const noexcept {
+        return getNonOffsetBits() == other.getNonOffsetBits();
+    }
     void setOffset(uint32_t value) noexcept { offset = value; }
-    bool matches(const Self& other) const noexcept { return compare.check == other.compare.check; }
     inline void clear() noexcept { backingStore_.clear(); }
 private:
     SplitWord32 backingStore_;
@@ -162,10 +169,6 @@ private:
         uint32_t tag : TagBitsCount;
         uint32_t key : KeyBitsCount;
     };
-    struct {
-       uint32_t offset : OffsetBitsCount;
-       uint32_t check : (TagBitsCount + KeyBitsCount);
-    } compare;
     struct {
         uint32_t a0 : 1;
         uint32_t offset : OffsetWordBitsCount;
@@ -185,7 +188,7 @@ struct BasicDataCacheLine {
             word.full = 0;
         }
     }
-    inline bool matches(const CacheAddress& other) const noexcept {
+    [[gnu::noinline]] inline bool matches(const CacheAddress& other) const noexcept {
         return flags_.valid_ && (other.getKey() == dest_.getKey());
     }
     inline void sync() noexcept {

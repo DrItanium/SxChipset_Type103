@@ -127,7 +127,7 @@ private:
     SplitWord32 backingStore_;
     struct {
         uint8_t offset : OffsetBitsCount;
-        uint16_t tag : TagBitsCount;
+        uint8_t tag : TagBitsCount; /// @todo implement compile time type detection routines
         uint8_t bank : BankBitsCount;
         uint32_t key : KeyBitsCount;
     };

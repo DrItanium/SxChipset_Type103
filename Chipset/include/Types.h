@@ -130,8 +130,8 @@ union SplitWord32 {
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
     struct {
-        uint32_t a0 : 1;
-        uint32_t offset : (TransactionOffsetSize - 1);
+        uint8_t a0 : 1;
+        uint8_t offset : (TransactionOffsetSize - 1);
         uint32_t rest : (32 - TransactionOffsetSize);
     } address;
     struct {
@@ -142,8 +142,8 @@ union SplitWord32 {
         uint8_t req : 4;
     } ioRequestAddress;
     struct {
-        uint32_t offset : 15; // 32k offset
-        uint32_t bank : 3; // which of the available 8 banks to choose from
+        uint16_t offset : 15; // 32k offset
+        uint8_t bank : 3; // which of the available 8 banks to choose from
         uint32_t rest : 14; // upper portion
     } onBoardMemoryAddress;
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }

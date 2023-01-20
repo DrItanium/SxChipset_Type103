@@ -172,26 +172,27 @@ struct BasicDataCacheLine {
     static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
     inline void clear() noexcept {
         dest_.clear();
-        flags_.reg = 0;
+        dirty_ = false;
+        valid_ = false;
         for (auto& word : words) {
             word.full = 0;
         }
     }
     inline bool matches(const CacheAddress& other) const noexcept {
-        return flags_.valid_ && (other.getKey() == dest_.getKey());
+        return isValid() && (other.getKey() == dest_.getKey());
     }
     inline void sync() noexcept {
-        if (flags_.valid_ && flags_.dirty_) {
+        if (isValid() && isDirty()) {
             memoryWrite(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
-            flags_.dirty_ = false;
+            dirty_ = false;
         }
     }
     inline void reset(const CacheAddress& newAddress) noexcept {
         sync();
-        flags_.valid_ = true;
-        flags_.dirty_ = false; // mark it implicitly as dirty
+        valid_ = true;
+        dirty_ = false; // mark it implicitly as dirty
         dest_ = newAddress;
-        dest_.setOffset(0);
+        //dest_.setOffset(0);
         memoryRead(dest_.getBackingStore(), reinterpret_cast<uint8_t *>(words), NumberOfDataBytes);
     }
     void begin() noexcept {
@@ -203,34 +204,43 @@ struct BasicDataCacheLine {
     [[nodiscard]] inline uint16_t getWord(byte offset) const noexcept {
         return words[offset].getWholeValue();
     }
+    template<bool deferMarkingDirty = false>
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
-        flags_.dirty_ = true;
+        if constexpr (!deferMarkingDirty) {
+            markDirty();
+        }
+        auto& theWord = words[offset];
         switch (style) {
             case EnableStyle::Full16:
-                words[offset].full = value;
+                theWord.full = value;
                 break;
             case EnableStyle::Lower8:
-                words[offset].bytes[0] = static_cast<uint8_t>(value);
+                theWord.bytes[0] = static_cast<uint8_t>(value);
                 break;
             case EnableStyle::Upper8:
-                words[offset].bytes[1] = static_cast<uint8_t>(value >> 8);
+                theWord.bytes[1] = static_cast<uint8_t>(value >> 8);
                 break;
             default:
                 break;
         }
     }
     inline bool victimCacheMatches(const CacheAddress& address) const noexcept {
-        return flags_.valid_ && dest_.matches(address);
+        return isValid() && dest_.matches(address);
     }
+    constexpr bool isValid() const noexcept { return valid_; }
+    constexpr bool isDirty() const noexcept { return dirty_; }
+    void markDirty() noexcept { dirty_ = true; }
 private:
     CacheAddress dest_{0};
-    struct {
-        uint8_t reg;
-        struct {
-            uint8_t dirty_ : 1;
-            uint8_t valid_ : 1;
-        };
-    } flags_;
+    bool dirty_ = false;
+    bool valid_ = false;
+    //struct {
+    //    uint8_t reg;
+    //    struct {
+    //        uint8_t dirty_ : 1;
+    //        uint8_t valid_ : 1;
+    //    };
+    //} flags_;
     SplitWord16 words[NumberOfWords];
 };
 constexpr bool requiresCustomImplementation(SetConfiguration cfg) noexcept {

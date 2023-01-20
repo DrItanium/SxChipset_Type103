@@ -111,15 +111,12 @@ union BasicCacheAddress {
     constexpr explicit BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     constexpr auto getBankIndex() const noexcept { return bank; }
     constexpr auto getOffset() const noexcept { return offset; }
-    [[gnu::noinline]] constexpr auto getTag() const noexcept { return tag; }
+    constexpr auto getTag() const noexcept { return tag; }
     constexpr auto getKey() const noexcept { return key; }
-    constexpr auto getBackingStore() const noexcept { return backingStore_; }
+    constexpr const auto& getBackingStore() const noexcept { return backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
-    constexpr auto getNonOffsetBits() const noexcept {
-        return backingStore_.getWholeValue() >> OffsetBitsCount;
-    }
-    bool matches(const Self& other) const noexcept {
-        return getNonOffsetBits() == other.getNonOffsetBits();
+    [[gnu::noinline]] bool matches(const Self& other) const noexcept {
+        return backingStore_ == other.backingStore_;
     }
     inline void clear() noexcept { backingStore_.clear(); }
     constexpr auto getWordOffset() const noexcept { return wordView.offset; }
@@ -161,7 +158,7 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
     constexpr auto getNonOffsetBits() const noexcept {
         return backingStore_.getWholeValue() >> OffsetBitsCount;
     }
-    [[gnu::noinline]] bool matches(const Self& other) const noexcept {
+    bool matches(const Self& other) const noexcept {
         return getNonOffsetBits() == other.getNonOffsetBits();
     }
     void setOffset(uint32_t value) noexcept { offset = value; }
@@ -192,7 +189,7 @@ struct BasicDataCacheLine {
             word.full = 0;
         }
     }
-    [[gnu::noinline]] inline bool matches(const CacheAddress& other) const noexcept {
+    inline bool matches(const CacheAddress& other) const noexcept {
         return flags_.valid_ && (other.getKey() == dest_.getKey());
     }
     inline void sync() noexcept {
@@ -1075,7 +1072,7 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
             set->clear();
         }
     }
-    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
+    [[gnu::noinline]] [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         auto* line = cache[address.getTag()];
         if (!line->matches(address)){
             // okay so we have a miss, look through the victim cache to see if we can find a match
@@ -1224,6 +1221,7 @@ struct CachePool<offsetBits, tagBits, bankBits, SetConfiguration::DirectMappedWi
     }
     inline auto& find(const SplitWord32& address) noexcept {
         CacheAddress addr(address);
+        addr.setOffset(0);
         xmem::setMemoryBank(indicies_[addr.getBankIndex()]);
         return pool_[addr.getBankIndex()]->find(addr);
     }
@@ -1253,6 +1251,7 @@ struct CachePool<offsetBits, tagBits, 0, SetConfiguration::DirectMappedWithVicti
     }
     inline auto& find(const SplitWord32& address) noexcept {
         CacheAddress addr(address);
+        addr.setOffset(0);
         xmem::setMemoryBank(0);
         return pool_->find(addr);
     }

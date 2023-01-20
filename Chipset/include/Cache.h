@@ -174,7 +174,7 @@ struct BasicDataCacheLine {
             word.full = 0;
         }
     }
-    [[gnu::noinline]] inline bool matches(const CacheAddress& other) const noexcept {
+    inline bool matches(const CacheAddress& other) const noexcept {
         return flags_.valid_ && (other.getKey() == dest_.getKey());
     }
     inline void sync() noexcept {

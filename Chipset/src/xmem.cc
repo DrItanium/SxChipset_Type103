@@ -42,12 +42,12 @@ namespace xmem {
         }
 
         constexpr auto getLastAddress() noexcept {
-            return RAMEND + 0x8000;
+            return 0xFFFF;
         }
         constexpr auto getFirstAddress() noexcept {
-            return RAMEND + 1;
+            return 0x8000;
         }
-        static_assert(getLastAddress() == 0xA1FF);
+        static_assert(getLastAddress() == 0xFFFF);
 
         /**
          * @brief state for each bank

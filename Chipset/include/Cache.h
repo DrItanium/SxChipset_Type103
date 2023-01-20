@@ -124,7 +124,7 @@ private:
         uint8_t offset : OffsetBitsCount;
         uint8_t tag : TagBitsCount; /// @todo implement compile time type detection routines
         uint8_t bank : BankBitsCount;
-        uint32_t key : KeyBitsCount;
+        uint24_t key : KeyBitsCount;
     };
     struct {
         uint8_t a0 : 1;
@@ -161,7 +161,7 @@ private:
     struct {
         uint8_t offset : OffsetBitsCount;
         uint16_t tag : TagBitsCount;
-        uint32_t key : KeyBitsCount;
+        uint24_t key : KeyBitsCount;
     };
     struct {
         uint8_t a0 : 1;
@@ -182,9 +182,7 @@ struct BasicDataCacheLine {
             word.full = 0;
         }
     }
-    inline bool matches(const CacheAddress& other) const noexcept {
-        return flags_.valid_ && (other.getKey() == dest_.getKey());
-    }
+    inline bool matches(const CacheAddress& other) const noexcept { return flags_.valid_ && (other.getKey() == dest_.getKey()); }
     inline void sync() noexcept {
         if (flags_.valid_ && flags_.dirty_) {
             memoryWrite(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
@@ -1065,7 +1063,7 @@ struct BasicDataCache<offsetBits, tagBits, bankBits, SetConfiguration::DirectMap
             set->clear();
         }
     }
-    [[gnu::noinline]] [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
+    [[nodiscard]] inline auto& find(const CacheAddress& address) noexcept {
         auto* line = cache[address.getTag()];
         if (!line->matches(address)){
             // okay so we have a miss, look through the victim cache to see if we can find a match

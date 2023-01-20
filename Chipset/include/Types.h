@@ -30,7 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Detect.h"
 
 
-
+using uint24_t = __uint24;
+using int24_t = __int24;
 template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>

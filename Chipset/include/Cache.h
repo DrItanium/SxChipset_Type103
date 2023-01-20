@@ -117,7 +117,6 @@ union BasicCacheAddress {
     void setOffset(uint32_t value) noexcept { offset = value; }
     inline bool matches(const Self& other) const noexcept { return backingStore_ == other.backingStore_; }
     inline void clear() noexcept { backingStore_.clear(); }
-    constexpr auto getWordOffset() const noexcept { return wordView.offset; }
 private:
     SplitWord32 backingStore_;
     struct {
@@ -126,11 +125,6 @@ private:
         uint8_t bank : BankBitsCount;
         uint24_t key : KeyBitsCount;
     };
-    struct {
-        uint8_t a0 : 1;
-        uint8_t offset : OffsetWordBitsCount;
-        uint32_t rest : (TagBitsCount + KeyBitsCount + BankBitsCount);
-    } wordView;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, SetConfiguration config>
@@ -152,7 +146,6 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
     constexpr auto getTag() const noexcept { return tag; }
     constexpr auto getKey() const noexcept { return key; }
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
-    constexpr auto getWordOffset() const noexcept { return wordView.offset; }
     inline bool matches(const Self& other) const noexcept { return backingStore_ == other.backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
     inline void clear() noexcept { backingStore_.clear(); }
@@ -163,11 +156,6 @@ private:
         uint16_t tag : TagBitsCount;
         uint24_t key : KeyBitsCount;
     };
-    struct {
-        uint8_t a0 : 1;
-        uint8_t offset : OffsetWordBitsCount;
-        uint32_t rest : (TagBitsCount + KeyBitsCount);
-    } wordView;
 };
 
 template<uint8_t offsetBits, uint8_t tagBits, uint8_t bankBits, SetConfiguration config>

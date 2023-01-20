@@ -184,7 +184,7 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
     auto &line = getCache().find(addr);
     // the compiler seems to barf on for loops at -Ofast
     // so instead, we want to unpack it to make sure
-    for (auto offset = static_cast<uint8_t>(MemoryCache::CacheAddress{addr}.getWordOffset()); ; ++offset) {
+    for (auto offset = (MemoryCache::CacheAddress{addr}.getOffset() >> 1); ; ++offset) {
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));

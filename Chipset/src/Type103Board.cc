@@ -130,7 +130,7 @@ Platform::begin() noexcept {
     }
 }
 
-[[gnu::always_inline]] 
+[[gnu::always_inline]]
 inline void 
 triggerClock() noexcept {
     pulse<Pin::CLKSignal, LOW, HIGH>();
@@ -157,8 +157,7 @@ Platform::collectAddress() noexcept {
     auto m2 = readInputChannelAs<Channel2Value>();
     isReadOperation_ = m2.isReadOperation();
     auto tmp = isReadOperation_ ? 0xFF : 0x00;
-    address_.bytes[0] = m2.getWholeValue();
-    address_.address.a0 = 0;
+    address_.bytes[0] = m2.getWholeValue() & 0b1111'1110;
     triggerClock();
     address_.bytes[1] = readInputChannelAs<uint8_t>();
     triggerClock();

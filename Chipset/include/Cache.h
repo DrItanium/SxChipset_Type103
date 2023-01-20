@@ -1191,6 +1191,7 @@ struct CachePool {
     }
     inline auto& find(const SplitWord32& address) noexcept {
         CacheAddress addr(address);
+        addr.setOffset(0);
         return pool_[addr.getBankIndex()].find(addr);
     }
     void clear()  {

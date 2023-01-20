@@ -107,6 +107,10 @@ union BasicCacheAddress {
     static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
+    using KeyType = SmallestAvailableType_t<KeyBitsCount>;
+    using BankType = SmallestAvailableType_t<BankBitsCount>;
+    using TagType = SmallestAvailableType_t<TagBitsCount>;
+    using OffsetType = SmallestAvailableType_t<OffsetBitsCount>;
     constexpr explicit BasicCacheAddress(uint32_t address) : backingStore_(address) { }
     constexpr explicit BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     constexpr auto getBankIndex() const noexcept { return bank; }
@@ -120,10 +124,10 @@ union BasicCacheAddress {
 private:
     SplitWord32 backingStore_;
     struct {
-        uint8_t offset : OffsetBitsCount;
-        uint8_t tag : TagBitsCount; /// @todo implement compile time type detection routines
-        uint8_t bank : BankBitsCount;
-        uint24_t key : KeyBitsCount;
+        OffsetType offset : OffsetBitsCount;
+        TagType tag : TagBitsCount; /// @todo implement compile time type detection routines
+        BankType bank : BankBitsCount;
+        KeyType key : KeyBitsCount;
     };
 };
 
@@ -170,7 +174,9 @@ struct BasicDataCacheLine {
             word.full = 0;
         }
     }
-    inline bool matches(const CacheAddress& other) const noexcept { return flags_.valid_ && (other.getKey() == dest_.getKey()); }
+    [[gnu::noinline]] inline bool matches(const CacheAddress& other) const noexcept {
+        return flags_.valid_ && (other.getKey() == dest_.getKey());
+    }
     inline void sync() noexcept {
         if (flags_.valid_ && flags_.dirty_) {
             memoryWrite(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);

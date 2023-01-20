@@ -32,6 +32,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using uint24_t = __uint24;
 using int24_t = __int24;
+template<bool, typename T, typename F>
+struct Conditional {
+    using SelectedType = F;
+};
+
+template<typename T, typename F>
+struct Conditional<true, T, F> {
+    using SelectedType = T;
+};
+
+template<bool C, typename T, typename F>
+using Conditional_t = typename Conditional<C, T, F>::SelectedType;
+
+template<uint8_t numberOfBits>
+using SmallestAvailableType_t = Conditional_t<numberOfBits <= 8, uint8_t,
+                                    Conditional_t<numberOfBits <= 16, uint16_t,
+                                    Conditional_t<numberOfBits <= 24, uint24_t,
+                                    Conditional_t<numberOfBits <= 32, uint32_t, uint64_t>>>>;
 template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>

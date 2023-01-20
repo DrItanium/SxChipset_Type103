@@ -354,6 +354,7 @@ getDirectionRegister() noexcept {
     return getDirectionRegister(port);
 }
 [[gnu::always_inline]]
+//[[gnu::noinline]]
 inline void
 digitalWrite(Pin pin, PinState value) noexcept { 
     if (isPhysicalPin(pin)) {
@@ -380,7 +381,11 @@ template<Pin pin>
 [[gnu::always_inline]] 
 inline PinState
 digitalRead() noexcept { 
-    return digitalRead(pin);
+    if constexpr (isPhysicalPin(pin)) {
+        return (getInputRegister<pin>() & getPinMask<pin>()) ? HIGH : LOW;
+    } else {
+        return ::digitalRead(pin);
+    }
 }
 [[gnu::always_inline]] inline 
 void pinMode(Pin pin, PinDirection direction) noexcept {
@@ -400,20 +405,28 @@ void pinMode(PinDirection direction) noexcept {
 }
 
 template<Pin pin>
-[[gnu::always_inline]] 
-inline void 
+[[gnu::always_inline]]
+inline void
 digitalWrite(PinState value) noexcept {
-    digitalWrite(pin, value);
+    if constexpr (isPhysicalPin(pin)) {
+        if (auto& thePort = getOutputRegister<pin>(); value == LOW) {
+            thePort = thePort & ~getPinMask<pin>();
+        } else {
+            thePort = thePort | getPinMask<pin>();
+        }
+    } else {
+        digitalWrite(pin, value);
+    }
 }
 template<Pin pin, PinState value>
-[[gnu::always_inline]] 
-inline void 
+[[gnu::always_inline]]
+inline void
 digitalWrite() noexcept {
     if constexpr (isPhysicalPin(pin)) {
-        if constexpr (auto& thePort = getOutputRegister(pin); value == LOW) {
-            thePort = thePort & ~getPinMask(pin);
+        if constexpr (auto& thePort = getOutputRegister<pin>(); value == LOW) {
+            thePort = thePort & ~getPinMask<pin>();
         } else {
-            thePort = thePort | getPinMask(pin);
+            thePort = thePort | getPinMask<pin>();
         }
     } else {
         digitalWrite<pin>(value);

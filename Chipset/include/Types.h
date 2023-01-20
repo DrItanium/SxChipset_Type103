@@ -145,7 +145,7 @@ union SplitWord32 {
     struct {
         uint16_t offset : 15; // 32k offset
         uint8_t bank : 3; // which of the available 8 banks to choose from
-        uint32_t rest : 14; // upper portion
+        uint16_t rest : 14; // upper portion
     } onBoardMemoryAddress;
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }

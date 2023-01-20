@@ -1269,10 +1269,6 @@ constexpr auto NumberOfOffsetBits = 6;
 constexpr auto NumberOfTagBits = 7;
 constexpr auto OffChipSetConfiguration = SetConfiguration::DirectMappedWithVictimCache;
 using OffChipMemoryCache = CachePool<NumberOfOffsetBits, NumberOfTagBits, NumberOfBankBits, OffChipSetConfiguration>;
-constexpr auto OnChipOffsetBits = 4;
-constexpr auto OnChipTagBits = 7;
-constexpr auto OnChipSetConfiguration = SetConfiguration::TwoWayLRU;
-using OnChipMemoryCache = BasicDataCache<OnChipOffsetBits, OnChipTagBits, 0, OnChipSetConfiguration>;
 using MemoryCache = OffChipMemoryCache;
 
 MemoryCache& getCache() noexcept;

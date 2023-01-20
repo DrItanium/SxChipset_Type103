@@ -115,9 +115,7 @@ union BasicCacheAddress {
     constexpr auto getKey() const noexcept { return key; }
     constexpr const auto& getBackingStore() const noexcept { return backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
-    [[gnu::noinline]] bool matches(const Self& other) const noexcept {
-        return backingStore_ == other.backingStore_;
-    }
+    inline bool matches(const Self& other) const noexcept { return backingStore_ == other.backingStore_; }
     inline void clear() noexcept { backingStore_.clear(); }
     constexpr auto getWordOffset() const noexcept { return wordView.offset; }
 private:
@@ -155,12 +153,7 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
     constexpr auto getKey() const noexcept { return key; }
     constexpr auto getBackingStore() const noexcept { return backingStore_; }
     constexpr auto getWordOffset() const noexcept { return wordView.offset; }
-    constexpr auto getNonOffsetBits() const noexcept {
-        return backingStore_.getWholeValue() >> OffsetBitsCount;
-    }
-    bool matches(const Self& other) const noexcept {
-        return getNonOffsetBits() == other.getNonOffsetBits();
-    }
+    inline bool matches(const Self& other) const noexcept { return backingStore_ == other.backingStore_; }
     void setOffset(uint32_t value) noexcept { offset = value; }
     inline void clear() noexcept { backingStore_.clear(); }
 private:

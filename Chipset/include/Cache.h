@@ -172,8 +172,8 @@ struct BasicDataCacheLine {
     static constexpr auto NumberOfWords = NumberOfDataBytes / sizeof(SplitWord16);
     inline void clear() noexcept {
         dest_.clear();
-        dirty_ = false;
-        valid_ = false;
+        markInvalid();
+        markDirty();
         for (auto& word : words) {
             word.full = 0;
         }
@@ -184,15 +184,14 @@ struct BasicDataCacheLine {
     inline void sync() noexcept {
         if (isValid() && isDirty()) {
             memoryWrite(dest_.getBackingStore(), reinterpret_cast<uint8_t*>(words), NumberOfDataBytes);
-            dirty_ = false;
+            markClean();
         }
     }
     inline void reset(const CacheAddress& newAddress) noexcept {
         sync();
-        valid_ = true;
-        dirty_ = false; // mark it implicitly as dirty
+        markValid();
+        markClean();
         dest_ = newAddress;
-        //dest_.setOffset(0);
         memoryRead(dest_.getBackingStore(), reinterpret_cast<uint8_t *>(words), NumberOfDataBytes);
     }
     void begin() noexcept {
@@ -204,11 +203,8 @@ struct BasicDataCacheLine {
     [[nodiscard]] inline uint16_t getWord(byte offset) const noexcept {
         return words[offset].getWholeValue();
     }
-    template<bool deferMarkingDirty = false>
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
-        if constexpr (!deferMarkingDirty) {
-            markDirty();
-        }
+        markDirty();
         auto& theWord = words[offset];
         switch (style) {
             case EnableStyle::Full16:
@@ -227,20 +223,22 @@ struct BasicDataCacheLine {
     inline bool victimCacheMatches(const CacheAddress& address) const noexcept {
         return isValid() && dest_.matches(address);
     }
-    constexpr bool isValid() const noexcept { return valid_; }
-    constexpr bool isDirty() const noexcept { return dirty_; }
-    void markDirty() noexcept { dirty_ = true; }
+    constexpr bool isValid() const noexcept { return flags_.valid_; }
+    constexpr bool isDirty() const noexcept { return flags_.dirty_; }
+private:
+    void markDirty() noexcept { flags_.dirty_ = true; }
+    void markClean() noexcept { flags_.dirty_ = false; }
+    void markValid() noexcept { flags_.valid_ = true; }
+    void markInvalid() noexcept { flags_.valid_ = false; }
 private:
     CacheAddress dest_{0};
-    bool dirty_ = false;
-    bool valid_ = false;
-    //struct {
-    //    uint8_t reg;
-    //    struct {
-    //        uint8_t dirty_ : 1;
-    //        uint8_t valid_ : 1;
-    //    };
-    //} flags_;
+    struct {
+        uint8_t reg;
+        struct {
+            uint8_t dirty_ : 1;
+            uint8_t valid_ : 1;
+        };
+    } flags_;
     SplitWord16 words[NumberOfWords];
 };
 constexpr bool requiresCustomImplementation(SetConfiguration cfg) noexcept {

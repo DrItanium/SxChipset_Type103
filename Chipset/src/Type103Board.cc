@@ -123,6 +123,10 @@ Platform::begin() noexcept {
         // setup the direct data lines to be input
         getDirectionRegister<Port::DataLower>() = 0;
         getDirectionRegister<Port::DataUpper>() = 0;
+        pinMode<Pin::AddressCaptureSignal1>(OUTPUT);
+        pinMode<Pin::AddressCaptureSignal2>(OUTPUT);
+        digitalWrite<Pin::AddressCaptureSignal1, HIGH>();
+        digitalWrite<Pin::AddressCaptureSignal2, HIGH>();
     }
 }
 

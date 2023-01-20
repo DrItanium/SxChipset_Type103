@@ -139,6 +139,7 @@ triggerClock() noexcept {
 void 
 Platform::startAddressTransaction() noexcept {
     // clear the address counter to be on the safe side
+    digitalWrite<Pin::AddressCaptureSignal1>(LOW);
     triggerClock();
     digitalWrite<Pin::Enable, LOW>();
     singleCycleDelay(); // introduce this extra cycle of delay to make sure
@@ -149,6 +150,7 @@ void
 Platform::endAddressTransaction() noexcept {
     digitalWrite<Pin::Enable, HIGH>();
     triggerClock();
+    digitalWrite<Pin::AddressCaptureSignal1>(HIGH);
 }
 void
 Platform::collectAddress() noexcept {

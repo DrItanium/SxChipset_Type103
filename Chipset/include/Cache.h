@@ -143,6 +143,9 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
     static constexpr auto KeyDifferential = OffsetBitsCount + TagBitsCount + BankBitsCount ;
     static_assert(KeyDifferential < 32, "Number of tag bits is too high");
     static constexpr auto KeyBitsCount = (32 - KeyDifferential);
+    using KeyType = SmallestAvailableType_t<KeyBitsCount>;
+    using TagType = SmallestAvailableType_t<TagBitsCount>;
+    using OffsetType = SmallestAvailableType_t<OffsetBitsCount>;
     constexpr explicit BasicCacheAddress(uint32_t address) : backingStore_(address) { }
     constexpr explicit BasicCacheAddress(const SplitWord32& address) : backingStore_(address) { }
     constexpr auto getBankIndex() const noexcept { return 0; }
@@ -156,9 +159,9 @@ union BasicCacheAddress<offsetBits, tagBits, 0, config> {
 private:
     SplitWord32 backingStore_;
     struct {
-        uint8_t offset : OffsetBitsCount;
-        uint16_t tag : TagBitsCount;
-        uint24_t key : KeyBitsCount;
+        OffsetType offset : OffsetBitsCount;
+        TagType tag : TagBitsCount;
+        KeyType key : KeyBitsCount;
     };
 };
 

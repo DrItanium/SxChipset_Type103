@@ -214,6 +214,9 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         // make sure that we have enough time as the chip is pipelined
         singleCycleDelay();
     }
+    if constexpr (!isReadOperation) {
+        line.markDirty();
+    }
 }
 
 template<bool isReadOperation>

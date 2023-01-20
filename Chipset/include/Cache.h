@@ -203,8 +203,11 @@ struct BasicDataCacheLine {
     [[nodiscard]] inline uint16_t getWord(byte offset) const noexcept {
         return words[offset].getWholeValue();
     }
+    template<bool deferDirtyMarking = true>
     inline void setWord(byte offset, uint16_t value, EnableStyle style) noexcept {
-        markDirty();
+        if constexpr (!deferDirtyMarking) {
+            markDirty();
+        }
         auto& theWord = words[offset];
         switch (style) {
             case EnableStyle::Full16:
@@ -225,8 +228,8 @@ struct BasicDataCacheLine {
     }
     constexpr bool isValid() const noexcept { return flags_.valid_; }
     constexpr bool isDirty() const noexcept { return flags_.dirty_; }
-private:
     void markDirty() noexcept { flags_.dirty_ = true; }
+private:
     void markClean() noexcept { flags_.dirty_ = false; }
     void markValid() noexcept { flags_.valid_ = true; }
     void markInvalid() noexcept { flags_.valid_ = false; }

@@ -507,7 +507,7 @@ getPeripheralDevice(const SplitWord32& addr) noexcept {
             talkToi960<isReadOperation>(addr, timerInterface);
             break;
         default:
-            talkToi960<isReadOperation>(addr, getNullHandler());
+            talkToi960<isReadOperation>(addr, TreatAsOnChipAccess{});
             break;
     }
 }

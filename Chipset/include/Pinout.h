@@ -195,7 +195,6 @@ Count = NUM_DIGITAL_PINS,
     ShieldA3 = GPIOSelect,
     ShieldA4 = PortC1,
     ShieldA5 = PortC0,
-    PSRAM0 = ShieldD2,
     SD_EN = ShieldD10,
 };
 enum class Port : byte {

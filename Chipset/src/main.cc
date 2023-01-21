@@ -97,27 +97,6 @@ setupPSRAM() noexcept {
     SPI.endTransaction();
     return true;
 }
-template<bool performFullMemoryTest>
-void
-queryPSRAM() noexcept {
-    uint32_t memoryAmount = 0;
-    auto addPSRAMAmount = [&memoryAmount]() {
-        memoryAmount += (8ul * 1024ul * 1024ul);
-    };
-    if (setupPSRAM<Pin::PSRAM0, performFullMemoryTest>()) {
-        addPSRAMAmount();
-    }
-    if (memoryAmount == 0) {
-        Serial.println(F("NO MEMORY INSTALLED!"));
-        while (true) {
-            delay(1000);
-        }
-    } else {
-        Serial.print(F("Detected "));
-        Serial.print(memoryAmount);
-        Serial.println(F(" bytes of memory!"));
-    }
-}
 bool
 trySetupDS1307() noexcept {
     return timerInterface.begin();
@@ -379,7 +358,7 @@ bootCPU() noexcept {
         }
     }
 }
-
+File ram;
 void
 bringUpSDCard() noexcept {
     while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
@@ -387,6 +366,13 @@ bringUpSDCard() noexcept {
         delay(1000);
     }
     Serial.println(F("SD CARD FOUND!"));
+    if (!ram.open("ram.bin", FILE_WRITE)) {
+        Serial.println(F("COULD NOT OPEN RAM.BIN!")) ;
+        Serial.println(F("HALTING!"));
+        while (true) {
+            delay(1000);
+        }
+    }
 }
 void 
 setup() {
@@ -399,12 +385,10 @@ setup() {
     // setup the IO Expanders
     Platform::begin();
     bringUpSDCard();
-    queryPSRAM<false>();
     setupCache();
     delay(1000);
     installMemoryImage();
     // okay so we got the image installed, now we just terminate the SD card
-    SD.end();
     // now we wait for the memory controller to come up!
     bootCPU();
 }
@@ -458,79 +442,15 @@ installMemoryImage() noexcept {
     }
 }
 
-
-
-
-
-namespace {
-    template<Pin targetPin>
-    size_t
-    psramMemoryWrite(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        digitalWrite<targetPin, LOW>();
-#ifdef AVR_SPI_AVAILABLE
-        SPDR = 0x02;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[2];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[1];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[0];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPI.transfer(bytes, count);
-#else
-        SPI.transfer(0x02);
-        SPI.transfer(baseAddress.bytes[2]);
-        SPI.transfer(baseAddress.bytes[1]);
-        SPI.transfer(baseAddress.bytes[0]);
-        SPI.transfer(bytes, count);
-#endif
-        digitalWrite<targetPin, HIGH>();
-        return count;
-    }
-
-    template<Pin targetPin>
-    size_t
-    psramMemoryRead(SplitWord32 baseAddress, uint8_t* bytes, size_t count) noexcept {
-        digitalWrite<targetPin, LOW>();
-#ifdef AVR_SPI_AVAILABLE
-        SPDR = 0x03;
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[2];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[1];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPDR = baseAddress.bytes[0];
-        asm volatile ("nop");
-        while (!(SPSR & _BV(SPIF))) ; // wait
-        SPI.transfer(bytes, count);
-#else
-        SPI.transfer(0x03);
-        SPI.transfer(baseAddress.bytes[2]);
-        SPI.transfer(baseAddress.bytes[1]);
-        SPI.transfer(baseAddress.bytes[0]);
-        SPI.transfer(bytes, count);
-#endif
-        digitalWrite<targetPin, HIGH>();
-        return count;
-    }
-
-}
-
 size_t
 memoryWrite(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryWrite<Pin::PSRAM0>(address, bytes, count);
-
+    ram.seekSet(address.getWholeValue());
+    return ram.write(bytes, count);
 }
 size_t
 memoryRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-    return psramMemoryRead<Pin::PSRAM0>(address, bytes, count);
+    ram.seekSet(address.getWholeValue());
+    return ram.read(bytes, count);
 }
 
 

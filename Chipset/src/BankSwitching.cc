@@ -28,7 +28,7 @@
 #include "BankSelection.h"
 
 namespace External328Bus {
-    void setBank(uint8_t bank) noexcept {
+    void setBank(uint24_t bank) noexcept {
         // the 328 Bus is messed up on the 203 board so only use the internal 512k sram
         // I put a hole in PORTK which prevents the offsets into the banks from being properly defined
 #if 0
@@ -103,15 +103,13 @@ BankSwitcher::begin() noexcept {
 
 void
 BankSwitcher::setBank(uint24_t bank) noexcept {
-    if (bank != currentBank_) {
-        if (bank < 16) {
-            InternalBus::select();
-            InternalBus::setBank(bank);
-        } else {
-            External328Bus::select();
-            External328Bus::setBank(bank - 16);
-        }
-        currentBank_ = bank;
+    if (bank < 16) {
+        InternalBus::select();
+        InternalBus::setBank(bank);
+    } else {
+        External328Bus::select();
+        External328Bus::setBank(bank - 16);
     }
+    currentBank_ = bank;
 }
 

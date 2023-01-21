@@ -90,3 +90,28 @@ namespace InternalBus {
     }
 } // end namespace InternalBus
 
+void
+BankSwitcher::begin() noexcept {
+    XMCRB=0b00000'001; // need 32k. one pin released
+    //XMCRA=0b1'100'00'00; // put in one cycle wait states
+    XMCRA=0b1'000'00'00; // put in zero cycle wait states
+    pinMode<Pin::RealA15>(OUTPUT);
+    InternalBus::begin();
+    External328Bus::begin();
+    setBank(0);
+}
+
+void
+BankSwitcher::setBank(uint8_t bank) noexcept {
+    if (bank != currentBank_) {
+        if (bank < 16) {
+            InternalBus::select();
+            InternalBus::setBank(bank);
+        } else {
+            External328Bus::select();
+            External328Bus::setBank(bank - 16);
+        }
+        currentBank_ = bank;
+    }
+}
+

@@ -29,15 +29,20 @@
 #include <Arduino.h>
 #include "Types.h"
 #include "Pinout.h"
-namespace External328Bus {
-    void setBank(uint8_t bank) noexcept;
-    void begin() noexcept;
-    void select() noexcept;
-} // end namespace External328Bus
-namespace InternalBus {
-    void setBank(uint8_t bank) noexcept;
-    void begin() noexcept;
-    void select() noexcept;
-} // end namespace InternalBus
 
+class BankSwitcher {
+public:
+    BankSwitcher() = delete;
+    ~BankSwitcher() = delete;
+    BankSwitcher(const BankSwitcher&) = delete;
+    BankSwitcher(BankSwitcher&&) = delete;
+    BankSwitcher& operator=(const BankSwitcher&) = delete;
+    BankSwitcher& operator=(BankSwitcher&&) = delete;
+    static void begin() noexcept;
+    static void setBank(uint8_t bank) noexcept;
+    static uint8_t getBank() noexcept { return currentBank_; }
+private:
+    static inline uint8_t currentBank_ = 0;
+
+};
 #endif

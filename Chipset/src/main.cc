@@ -271,231 +271,226 @@ struct TreatAsOnChipAccess final { };
 template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-    if (auto theIndex = addr.onBoardMemoryAddress.bank; theIndex < 16) {
-        InternalBus::setBank(theIndex);
-        SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
-        do {
-            auto c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (isReadOperation) {
-                // keep setting the data lines and inform the i960
-                Platform::setDataLines(ptr->full);
-            } else {
-                switch (c0.getByteEnable()) {
-                    case EnableStyle::Full16:
-                        ptr->full = Platform::getDataLines();
-                        break;
-                    case EnableStyle::Lower8:
-                        // directly read from the ports to speed things up
-                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                        break;
-                    case EnableStyle::Upper8:
-                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                        break;
-                    default:
-                        break;
-                }
+    BankSwitcher::setBank(addr.onBoardMemoryAddress.bank);
+    SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
+    do {
+        auto c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (isReadOperation) {
+            // keep setting the data lines and inform the i960
+            Platform::setDataLines(ptr->full);
+        } else {
+            switch (c0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    ptr->full = Platform::getDataLines();
+                    break;
+                case EnableStyle::Lower8:
+                    // directly read from the ports to speed things up
+                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                    break;
+                case EnableStyle::Upper8:
+                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                    break;
+                default:
+                    break;
             }
-            auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
+        }
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
+        //singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (isReadOperation) {
+            // keep setting the data lines and inform the i960
+            Platform::setDataLines(ptr->full);
+        } else {
+            switch (c0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    ptr->full = Platform::getDataLines();
+                    break;
+                case EnableStyle::Lower8:
+                    // directly read from the ports to speed things up
+                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                    break;
+                case EnableStyle::Upper8:
+                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                    break;
+                default:
+                    break;
             }
-            ++ptr;
-            //singleCycleDelay(); // put this in to make sure we never over run anything
-            c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (isReadOperation) {
-                // keep setting the data lines and inform the i960
-                Platform::setDataLines(ptr->full);
-            } else {
-                switch (c0.getByteEnable()) {
-                    case EnableStyle::Full16:
-                        ptr->full = Platform::getDataLines();
-                        break;
-                    case EnableStyle::Lower8:
-                        // directly read from the ports to speed things up
-                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                        break;
-                    case EnableStyle::Upper8:
-                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                        break;
-                    default:
-                        break;
-                }
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
+        //singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (isReadOperation) {
+            // keep setting the data lines and inform the i960
+            Platform::setDataLines(ptr->full);
+        } else {
+            switch (c0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    ptr->full = Platform::getDataLines();
+                    break;
+                case EnableStyle::Lower8:
+                    // directly read from the ports to speed things up
+                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                    break;
+                case EnableStyle::Upper8:
+                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                    break;
+                default:
+                    break;
             }
-            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
+        //singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (isReadOperation) {
+            // keep setting the data lines and inform the i960
+            Platform::setDataLines(ptr->full);
+        } else {
+            switch (c0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    ptr->full = Platform::getDataLines();
+                    break;
+                case EnableStyle::Lower8:
+                    // directly read from the ports to speed things up
+                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                    break;
+                case EnableStyle::Upper8:
+                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                    break;
+                default:
+                    break;
             }
-            ++ptr;
-            //singleCycleDelay(); // put this in to make sure we never over run anything
-            c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (isReadOperation) {
-                // keep setting the data lines and inform the i960
-                Platform::setDataLines(ptr->full);
-            } else {
-                switch (c0.getByteEnable()) {
-                    case EnableStyle::Full16:
-                        ptr->full = Platform::getDataLines();
-                        break;
-                    case EnableStyle::Lower8:
-                        // directly read from the ports to speed things up
-                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                        break;
-                    case EnableStyle::Upper8:
-                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                        break;
-                    default:
-                        break;
-                }
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
+        //singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (isReadOperation) {
+            // keep setting the data lines and inform the i960
+            Platform::setDataLines(ptr->full);
+        } else {
+            switch (c0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    ptr->full = Platform::getDataLines();
+                    break;
+                case EnableStyle::Lower8:
+                    // directly read from the ports to speed things up
+                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                    break;
+                case EnableStyle::Upper8:
+                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                    break;
+                default:
+                    break;
             }
-            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
+        //singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (isReadOperation) {
+            // keep setting the data lines and inform the i960
+            Platform::setDataLines(ptr->full);
+        } else {
+            switch (c0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    ptr->full = Platform::getDataLines();
+                    break;
+                case EnableStyle::Lower8:
+                    // directly read from the ports to speed things up
+                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                    break;
+                case EnableStyle::Upper8:
+                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                    break;
+                default:
+                    break;
             }
-            ++ptr;
-            //singleCycleDelay(); // put this in to make sure we never over run anything
-            c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (isReadOperation) {
-                // keep setting the data lines and inform the i960
-                Platform::setDataLines(ptr->full);
-            } else {
-                switch (c0.getByteEnable()) {
-                    case EnableStyle::Full16:
-                        ptr->full = Platform::getDataLines();
-                        break;
-                    case EnableStyle::Lower8:
-                        // directly read from the ports to speed things up
-                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                        break;
-                    case EnableStyle::Upper8:
-                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                        break;
-                    default:
-                        break;
-                }
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
+        //singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (isReadOperation) {
+            // keep setting the data lines and inform the i960
+            Platform::setDataLines(ptr->full);
+        } else {
+            switch (c0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    ptr->full = Platform::getDataLines();
+                    break;
+                case EnableStyle::Lower8:
+                    // directly read from the ports to speed things up
+                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                    break;
+                case EnableStyle::Upper8:
+                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                    break;
+                default:
+                    break;
             }
-            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
+        //singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (isReadOperation) {
+            // keep setting the data lines and inform the i960
+            Platform::setDataLines(ptr->full);
+        } else {
+            switch (c0.getByteEnable()) {
+                case EnableStyle::Full16:
+                    ptr->full = Platform::getDataLines();
+                    break;
+                case EnableStyle::Lower8:
+                    // directly read from the ports to speed things up
+                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                    break;
+                case EnableStyle::Upper8:
+                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                    break;
+                default:
+                    break;
             }
-            ++ptr;
-            //singleCycleDelay(); // put this in to make sure we never over run anything
-            c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (isReadOperation) {
-                // keep setting the data lines and inform the i960
-                Platform::setDataLines(ptr->full);
-            } else {
-                switch (c0.getByteEnable()) {
-                    case EnableStyle::Full16:
-                        ptr->full = Platform::getDataLines();
-                        break;
-                    case EnableStyle::Lower8:
-                        // directly read from the ports to speed things up
-                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                        break;
-                    case EnableStyle::Upper8:
-                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                        break;
-                    default:
-                        break;
-                }
-            }
-            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
-            }
-            ++ptr;
-            //singleCycleDelay(); // put this in to make sure we never over run anything
-            c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (isReadOperation) {
-                // keep setting the data lines and inform the i960
-                Platform::setDataLines(ptr->full);
-            } else {
-                switch (c0.getByteEnable()) {
-                    case EnableStyle::Full16:
-                        ptr->full = Platform::getDataLines();
-                        break;
-                    case EnableStyle::Lower8:
-                        // directly read from the ports to speed things up
-                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                        break;
-                    case EnableStyle::Upper8:
-                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                        break;
-                    default:
-                        break;
-                }
-            }
-            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
-            }
-            ++ptr;
-            //singleCycleDelay(); // put this in to make sure we never over run anything
-            c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (isReadOperation) {
-                // keep setting the data lines and inform the i960
-                Platform::setDataLines(ptr->full);
-            } else {
-                switch (c0.getByteEnable()) {
-                    case EnableStyle::Full16:
-                        ptr->full = Platform::getDataLines();
-                        break;
-                    case EnableStyle::Lower8:
-                        // directly read from the ports to speed things up
-                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                        break;
-                    case EnableStyle::Upper8:
-                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                        break;
-                    default:
-                        break;
-                }
-            }
-            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
-            }
-            ++ptr;
-            //singleCycleDelay(); // put this in to make sure we never over run anything
-            c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (isReadOperation) {
-                // keep setting the data lines and inform the i960
-                Platform::setDataLines(ptr->full);
-            } else {
-                switch (c0.getByteEnable()) {
-                    case EnableStyle::Full16:
-                        ptr->full = Platform::getDataLines();
-                        break;
-                    case EnableStyle::Lower8:
-                        // directly read from the ports to speed things up
-                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                        break;
-                    case EnableStyle::Upper8:
-                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                        break;
-                    default:
-                        break;
-                }
-            }
-            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-            signalReady();
-            if (isBurstLast) {
-                break;
-            }
-            ++ptr;
-            singleCycleDelay(); // put this in to make sure we never over run anything
-        } while (true);
-    } else {
-        // if they are not valid addresses then use the null handler
-        talkToi960<isReadOperation>(addr, getNullHandler());
-    }
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
+        singleCycleDelay(); // put this in to make sure we never over run anything
+    } while (true);
 }
 template<bool isReadOperation>
 void
@@ -655,19 +650,19 @@ installMemoryImage() noexcept {
     } else {
         constexpr auto BufferSize = 16384;
 
-        InternalBus::select();
+        auto previousBank = BankSwitcher::getBank();
         Serial.println(F("TRANSFERRING!!"));
         unsigned int count = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize, ++count) {
             SplitWord32 view{address};
-            InternalBus::setBank(view.onBoardMemoryAddress.bank);
+            BankSwitcher::setBank(view.onBoardMemoryAddress.bank);
             uint8_t* theBuffer = reinterpret_cast<uint8_t*>(view.onBoardMemoryAddress.offset + 0x8000);
             theFirmware.read(theBuffer, BufferSize);
             Serial.print(F("."));
         }
         Serial.println(F("DONE!"));
         theFirmware.close();
-        InternalBus::setBank(0);
+        BankSwitcher::setBank(previousBank);
     }
 
 }
@@ -679,6 +674,7 @@ setup() {
     Wire.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+    SPI.usingInterrupt(9);
     // setup the IO Expanders
     Platform::begin();
     delay(1000);
@@ -708,3 +704,8 @@ byte GPIOR1;
 byte GPIOR2;
 #endif
 
+ISR(SPI_STC_vect) {
+    auto oldBank = BankSwitcher::getBank();
+    /// @todo implement
+    BankSwitcher::setBank(oldBank);
+}

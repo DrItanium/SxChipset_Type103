@@ -532,10 +532,12 @@ handleTransaction() noexcept {
     // that inputs are updated correctly since they are
     // tristated
     if (auto m2 = readInputChannelAs<uint8_t>(); (m2 & 0b1) == 0) {
+        addr.bytes[0] = m2;
+        // unpack the signal triggering to interleave the act of updating direction with waiting for the clock signalling
+        pulse<Pin::CLKSignal, LOW, HIGH>();
         getDirectionRegister<Port::DataLower>() = 0xFF;
         getDirectionRegister<Port::DataUpper>() = 0xFF;
-        addr.bytes[0] = m2;
-        triggerClock();
+        // this should give us enough time to make sure
         addr.bytes[1] = readInputChannelAs<uint8_t>();
         triggerClock();
         auto b2 = readInputChannelAs<uint8_t>();
@@ -562,10 +564,10 @@ handleTransaction() noexcept {
                 break;
         }
     } else {
+        addr.bytes[0] = m2 & 0b1111'1110;
+        pulse<Pin::CLKSignal, LOW, HIGH>();
         getDirectionRegister<Port::DataLower>() = 0;
         getDirectionRegister<Port::DataUpper>() = 0;
-        addr.bytes[0] = m2 & 0b1111'1110;
-        triggerClock();
         addr.bytes[1] = readInputChannelAs<uint8_t>();
         triggerClock();
         auto b2 = readInputChannelAs<uint8_t>();

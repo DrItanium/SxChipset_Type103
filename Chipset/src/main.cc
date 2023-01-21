@@ -101,10 +101,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
         do {
             auto c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             if constexpr (isReadOperation) {
                 // keep setting the data lines and inform the i960
                 Platform::setDataLines(ptr->full);
@@ -132,10 +128,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             ++ptr;
             //singleCycleDelay(); // put this in to make sure we never over run anything
             c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             if constexpr (isReadOperation) {
                 // keep setting the data lines and inform the i960
                 Platform::setDataLines(ptr->full);
@@ -163,10 +155,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             ++ptr;
             //singleCycleDelay(); // put this in to make sure we never over run anything
             c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             if constexpr (isReadOperation) {
                 // keep setting the data lines and inform the i960
                 Platform::setDataLines(ptr->full);
@@ -194,10 +182,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             ++ptr;
             //singleCycleDelay(); // put this in to make sure we never over run anything
             c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             if constexpr (isReadOperation) {
                 // keep setting the data lines and inform the i960
                 Platform::setDataLines(ptr->full);
@@ -225,10 +209,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             ++ptr;
             //singleCycleDelay(); // put this in to make sure we never over run anything
             c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             if constexpr (isReadOperation) {
                 // keep setting the data lines and inform the i960
                 Platform::setDataLines(ptr->full);
@@ -256,10 +236,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             ++ptr;
             //singleCycleDelay(); // put this in to make sure we never over run anything
             c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             if constexpr (isReadOperation) {
                 // keep setting the data lines and inform the i960
                 Platform::setDataLines(ptr->full);
@@ -287,10 +263,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             ++ptr;
             //singleCycleDelay(); // put this in to make sure we never over run anything
             c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             if constexpr (isReadOperation) {
                 // keep setting the data lines and inform the i960
                 Platform::setDataLines(ptr->full);
@@ -318,10 +290,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             ++ptr;
             //singleCycleDelay(); // put this in to make sure we never over run anything
             c0 = readInputChannelAs<Channel0Value, true>();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\tChannel0: 0b"));
-                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-            }
             if constexpr (isReadOperation) {
                 // keep setting the data lines and inform the i960
                 Platform::setDataLines(ptr->full);

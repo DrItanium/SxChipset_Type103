@@ -253,11 +253,46 @@ bootCPU() noexcept {
 }
 void
 installMemoryImage() noexcept {
+    static constexpr uint32_t MaximumFileSize = 512ul * 1024ul;
     while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD!"));
         delay(1000);
     }
     Serial.println(F("SD CARD FOUND!"));
+    // look for firmware.bin and open it readonly
+    auto theFirmware = SD.open("firmware.bin", FILE_READ);
+    if (!theFirmware) {
+        Serial.println(F("Could not open firmware.bin for reading!"));
+        while (true) {
+            delay(1000);
+        }
+    } else if (theFirmware.size() > MaximumFileSize) {
+        Serial.println(F("The firmware image is too large to fit in 512k of sram!"));
+        while (true) {
+            delay(1000);
+        }
+    } else {
+        constexpr auto BufferSize = 2048;
+        byte theBuffer[BufferSize] = { 0 };
+        InternalBus::select();
+        Serial.println(F("TRANSFERRING!!"));
+        unsigned int count = 0;
+        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize, ++count) {
+            SplitWord32 view{address};
+            InternalBus::setBank(view.onBoardMemoryAddress.bank);
+            auto numRead = theFirmware.read(theBuffer, BufferSize);
+            auto baseAddress = view.onBoardMemoryAddress.offset + 0x8000;
+            for (int i = 0, j = baseAddress; i < numRead; ++i) {
+                memory<byte>(j) = theBuffer[i];
+            }
+            if (count % 16 == 0)  {
+                Serial.print(F("."));
+            }
+        }
+        Serial.println(F("DONE!"));
+        theFirmware.close();
+        InternalBus::setBank(0);
+    }
 
 }
 void

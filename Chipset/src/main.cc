@@ -555,13 +555,10 @@ handleTransaction() noexcept {
         //
         // This system does not care about the size but it does care about where
         // one starts when performing a write operation
-        switch (b3) {
-            case 0xF0:
-                getPeripheralDevice<true>(addr);
-                break;
-            default:
-                talkToi960<true>(addr, TreatAsOnChipAccess{});
-                break;
+        if (b3 == 0xF0) {
+            getPeripheralDevice<true>(addr);
+        } else {
+            talkToi960<true>(addr, TreatAsOnChipAccess{});
         }
     } else {
         addr.bytes[0] = m2 & 0b1111'1110;
@@ -587,13 +584,10 @@ handleTransaction() noexcept {
         //
         // This system does not care about the size but it does care about where
         // one starts when performing a write operation
-        switch(b3) {
-            case 0xF0: // we haven't reserved much in the way of io space, so instead, just make sure that we are actually reserving the correct banks!
-                getPeripheralDevice<false>(addr);
-                break;
-            default:
-                talkToi960<false>(addr, TreatAsOnChipAccess{});
-                break;
+        if (b3 == 0xF0) {
+            getPeripheralDevice<false>(addr);
+        } else {
+            talkToi960<false>(addr, TreatAsOnChipAccess{});
         }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay

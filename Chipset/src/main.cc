@@ -537,16 +537,16 @@ handleTransaction() noexcept {
         pulse<Pin::CLKSignal, LOW, HIGH>();
         getDirectionRegister<Port::DataLower>() = 0xFF;
         getDirectionRegister<Port::DataUpper>() = 0xFF;
-        // this should give us enough time to make sure
-        addr.bytes[1] = readInputChannelAs<uint8_t>();
-        triggerClock();
+        auto b1 = readInputChannelAs<uint8_t>();
+        pulse<Pin::CLKSignal, LOW, HIGH>();
+        addr.bytes[1] = b1;
         auto b2 = readInputChannelAs<uint8_t>();
+        pulse<Pin::CLKSignal, LOW, HIGH>();
         addr.bytes[2] = b2;
-        triggerClock();
         auto b3 = readInputChannelAs<uint8_t>();
-        addr.bytes[3] = b3;
         digitalWrite<Pin::Enable, HIGH>();
-        triggerClock();
+        pulse<Pin::CLKSignal, LOW, HIGH>();
+        addr.bytes[3] = b3;
         // When we are in io space, we are treating the address as an opcode which
         // we can decompose while getting the pieces from the io expanders. Thus we
         // can overlay the act of decoding while getting the next part
@@ -568,15 +568,17 @@ handleTransaction() noexcept {
         pulse<Pin::CLKSignal, LOW, HIGH>();
         getDirectionRegister<Port::DataLower>() = 0;
         getDirectionRegister<Port::DataUpper>() = 0;
-        addr.bytes[1] = readInputChannelAs<uint8_t>();
-        triggerClock();
+        auto b1 = readInputChannelAs<uint8_t>();
+        pulse<Pin::CLKSignal, LOW, HIGH>();
+        addr.bytes[1] = b1;
         auto b2 = readInputChannelAs<uint8_t>();
+        pulse<Pin::CLKSignal, LOW, HIGH>();
         addr.bytes[2] = b2;
-        triggerClock();
         auto b3 = readInputChannelAs<uint8_t>();
-        addr.bytes[3] = b3;
         digitalWrite<Pin::Enable, HIGH>();
-        triggerClock();
+        pulse<Pin::CLKSignal, LOW, HIGH>();
+        addr.bytes[3] = b3;
+
         // When we are in io space, we are treating the address as an opcode which
         // we can decompose while getting the pieces from the io expanders. Thus we
         // can overlay the act of decoding while getting the next part

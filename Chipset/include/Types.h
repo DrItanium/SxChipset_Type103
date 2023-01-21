@@ -232,7 +232,7 @@ public:
 class NullHandler final {
 public:
     void startTransaction(const SplitWord32&) noexcept { }
-    uint16_t read(const Channel0Value&) const noexcept { return 0; }
+    [[nodiscard]] constexpr uint16_t read(const Channel0Value&) const noexcept { return 0; }
     void write(const Channel0Value&, uint16_t ) noexcept { }
     void endTransaction() noexcept { }
     void next() noexcept { }

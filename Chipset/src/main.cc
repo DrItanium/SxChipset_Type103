@@ -552,10 +552,10 @@ handleTransaction() noexcept {
     singleCycleDelay(); // introduce this extra cycle of delay to make sure
     // that inputs are updated correctly since they are
     // tristated
-    if (auto m2 = readInputChannelAs<Channel2Value>(); m2.isReadOperation()) {
+    if (auto m2 = readInputChannelAs<uint8_t>(); (m2 & 0b1) == 0) {
         getDirectionRegister<Port::DataLower>() = 0xFF;
         getDirectionRegister<Port::DataUpper>() = 0xFF;
-        addr.bytes[0] = m2.getWholeValue() & 0b1111'1110;
+        addr.bytes[0] = m2;
         triggerClock();
         addr.bytes[1] = readInputChannelAs<uint8_t>();
         triggerClock();
@@ -573,7 +573,7 @@ handleTransaction() noexcept {
     } else {
         getDirectionRegister<Port::DataLower>() = 0;
         getDirectionRegister<Port::DataUpper>() = 0;
-        addr.bytes[0] = m2.getWholeValue() & 0b1111'1110;
+        addr.bytes[0] = m2 & 0b1111'1110;
         triggerClock();
         addr.bytes[1] = readInputChannelAs<uint8_t>();
         triggerClock();

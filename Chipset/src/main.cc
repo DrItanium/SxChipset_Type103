@@ -218,7 +218,7 @@ handleTransaction() noexcept {
     // shift back to input channel 0
     singleCycleDelay();
 }
-template<bool TrackBootProcess = false>
+template<bool TrackBootProcess = true>
 void
 bootCPU() noexcept {
     pullCPUOutOfReset();

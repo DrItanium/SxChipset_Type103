@@ -38,6 +38,12 @@ singleCycleDelay() noexcept {
     asm volatile ("nop");
 }
 
+[[gnu::always_inline]]
+inline void
+halfCycleDelay() noexcept {
+    asm volatile ("nop");
+}
+
 
 class Platform final {
     public:

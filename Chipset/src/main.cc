@@ -90,58 +90,15 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
     handler.endTransaction();
 }
 
-struct TreatAsCacheAccess final { };
 struct TreatAsOnChipAccess final { };
 
-#if 0
-template<bool isReadOperation>
-inline void
-talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
-    auto &line = getCache().find(addr);
-    // the compiler seems to barf on for loops at -Ofast
-    // so instead, we want to unpack it to make sure
-    for (auto offset = (MemoryCache::CacheAddress{addr}.getOffset() >> 1); ; ++offset) {
-        auto c0 = readInputChannelAs<Channel0Value, true>();
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
-        }
-        if constexpr (isReadOperation) {
-            // okay it is a read operation, so... pull a cache line out
-            auto value = line.getWord(offset);
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tRead Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            Platform::setDataLines(value);
-        } else {
-            auto value = Platform::getDataLines();
-            if constexpr (EnableDebugMode) {
-                Serial.print(F("\t\tWrite Value: 0x"));
-                Serial.println(value, HEX);
-            }
-            line.setWord(offset, value, c0.getByteEnable());
-        }
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        // make sure that we have enough time as the chip is pipelined
-        singleCycleDelay();
-    }
-    if constexpr (!isReadOperation) {
-        line.markDirty();
-    }
-}
-#endif
 
 template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-    if (auto theIndex = addr.onBoardMemoryAddress.bank + 8; xmem::validBank(theIndex)) {
+    if (auto theIndex = addr.onBoardMemoryAddress.bank; xmem::validBank(theIndex)) {
         xmem::setMemoryBank(theIndex);
-        volatile SplitWord16* ptr = reinterpret_cast<volatile SplitWord16*>((RAMEND + 1) + addr.onBoardMemoryAddress.offset);
+        volatile SplitWord16* ptr = reinterpret_cast<volatile SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
         do {
             auto c0 = readInputChannelAs<Channel0Value, true>();
             if constexpr (EnableDebugMode) {

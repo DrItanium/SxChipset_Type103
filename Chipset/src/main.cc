@@ -86,6 +86,181 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         }
         handler.next();
         singleCycleDelay(); // put this in to make sure we never over run anything
+
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            Platform::setDataLines(value);
+        } else {
+            auto value = Platform::getDataLines();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        handler.next();
+        singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            Platform::setDataLines(value);
+        } else {
+            auto value = Platform::getDataLines();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        handler.next();
+        singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            Platform::setDataLines(value);
+        } else {
+            auto value = Platform::getDataLines();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        handler.next();
+        singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            Platform::setDataLines(value);
+        } else {
+            auto value = Platform::getDataLines();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        handler.next();
+        singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            Platform::setDataLines(value);
+        } else {
+            auto value = Platform::getDataLines();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        handler.next();
+        singleCycleDelay(); // put this in to make sure we never over run anything
+        c0 = readInputChannelAs<Channel0Value, true>();
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tChannel0: 0b"));
+            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+        }
+        if constexpr (isReadOperation) {
+            // okay it is a read operation, so... pull a cache line out
+            auto value = handler.read(c0);
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tGot Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            Platform::setDataLines(value);
+        } else {
+            auto value = Platform::getDataLines();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\t\tWrite Value: 0x"));
+                Serial.println(value, HEX);
+            }
+            // so we are writing to the cache
+            handler.write(c0, value);
+        }
+        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        handler.next();
+        singleCycleDelay(); // put this in to make sure we never over run anything
     } while(true);
     handler.endTransaction();
 }

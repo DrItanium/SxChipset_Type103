@@ -131,6 +131,223 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             }
             ++ptr;
             singleCycleDelay(); // put this in to make sure we never over run anything
+            c0 = readInputChannelAs<Channel0Value, true>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            if constexpr (isReadOperation) {
+                // keep setting the data lines and inform the i960
+                Platform::setDataLines(ptr->full);
+            } else {
+                switch (c0.getByteEnable()) {
+                    case EnableStyle::Full16:
+                        ptr->full = Platform::getDataLines();
+                        break;
+                    case EnableStyle::Lower8:
+                        // directly read from the ports to speed things up
+                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                        break;
+                    case EnableStyle::Upper8:
+                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                        break;
+                    default:
+                        break;
+                }
+            }
+            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            ++ptr;
+            singleCycleDelay(); // put this in to make sure we never over run anything
+            c0 = readInputChannelAs<Channel0Value, true>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            if constexpr (isReadOperation) {
+                // keep setting the data lines and inform the i960
+                Platform::setDataLines(ptr->full);
+            } else {
+                switch (c0.getByteEnable()) {
+                    case EnableStyle::Full16:
+                        ptr->full = Platform::getDataLines();
+                        break;
+                    case EnableStyle::Lower8:
+                        // directly read from the ports to speed things up
+                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                        break;
+                    case EnableStyle::Upper8:
+                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                        break;
+                    default:
+                        break;
+                }
+            }
+            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            ++ptr;
+            singleCycleDelay(); // put this in to make sure we never over run anything
+            c0 = readInputChannelAs<Channel0Value, true>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            if constexpr (isReadOperation) {
+                // keep setting the data lines and inform the i960
+                Platform::setDataLines(ptr->full);
+            } else {
+                switch (c0.getByteEnable()) {
+                    case EnableStyle::Full16:
+                        ptr->full = Platform::getDataLines();
+                        break;
+                    case EnableStyle::Lower8:
+                        // directly read from the ports to speed things up
+                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                        break;
+                    case EnableStyle::Upper8:
+                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                        break;
+                    default:
+                        break;
+                }
+            }
+            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            ++ptr;
+            singleCycleDelay(); // put this in to make sure we never over run anything
+            c0 = readInputChannelAs<Channel0Value, true>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            if constexpr (isReadOperation) {
+                // keep setting the data lines and inform the i960
+                Platform::setDataLines(ptr->full);
+            } else {
+                switch (c0.getByteEnable()) {
+                    case EnableStyle::Full16:
+                        ptr->full = Platform::getDataLines();
+                        break;
+                    case EnableStyle::Lower8:
+                        // directly read from the ports to speed things up
+                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                        break;
+                    case EnableStyle::Upper8:
+                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                        break;
+                    default:
+                        break;
+                }
+            }
+            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            ++ptr;
+            singleCycleDelay(); // put this in to make sure we never over run anything
+            c0 = readInputChannelAs<Channel0Value, true>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            if constexpr (isReadOperation) {
+                // keep setting the data lines and inform the i960
+                Platform::setDataLines(ptr->full);
+            } else {
+                switch (c0.getByteEnable()) {
+                    case EnableStyle::Full16:
+                        ptr->full = Platform::getDataLines();
+                        break;
+                    case EnableStyle::Lower8:
+                        // directly read from the ports to speed things up
+                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                        break;
+                    case EnableStyle::Upper8:
+                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                        break;
+                    default:
+                        break;
+                }
+            }
+            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            ++ptr;
+            singleCycleDelay(); // put this in to make sure we never over run anything
+            c0 = readInputChannelAs<Channel0Value, true>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            if constexpr (isReadOperation) {
+                // keep setting the data lines and inform the i960
+                Platform::setDataLines(ptr->full);
+            } else {
+                switch (c0.getByteEnable()) {
+                    case EnableStyle::Full16:
+                        ptr->full = Platform::getDataLines();
+                        break;
+                    case EnableStyle::Lower8:
+                        // directly read from the ports to speed things up
+                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                        break;
+                    case EnableStyle::Upper8:
+                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                        break;
+                    default:
+                        break;
+                }
+            }
+            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            ++ptr;
+            singleCycleDelay(); // put this in to make sure we never over run anything
+            c0 = readInputChannelAs<Channel0Value, true>();
+            if constexpr (EnableDebugMode) {
+                Serial.print(F("\tChannel0: 0b"));
+                Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            }
+            if constexpr (isReadOperation) {
+                // keep setting the data lines and inform the i960
+                Platform::setDataLines(ptr->full);
+            } else {
+                switch (c0.getByteEnable()) {
+                    case EnableStyle::Full16:
+                        ptr->full = Platform::getDataLines();
+                        break;
+                    case EnableStyle::Lower8:
+                        // directly read from the ports to speed things up
+                        ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                        break;
+                    case EnableStyle::Upper8:
+                        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                        break;
+                    default:
+                        break;
+                }
+            }
+            isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+            signalReady();
+            if (isBurstLast) {
+                break;
+            }
+            ++ptr;
+            singleCycleDelay(); // put this in to make sure we never over run anything
         } while (true);
     } else {
         // if they are not valid addresses then use the null handler

@@ -197,47 +197,39 @@ handleTransaction() noexcept {
     singleCycleDelay(); // introduce this extra cycle of delay to make sure
     // that inputs are updated correctly since they are
     // tristated
-    auto m2 = readInputChannelAs<Channel2Value>();
-    auto isReadOperation_ = m2.isReadOperation();
-    auto tmp = isReadOperation_ ? 0xFF : 0x00;
-    addr.bytes[0] = m2.getWholeValue() & 0b1111'1110;
-    getDirectionRegister<Port::DataLower>() = tmp;
-    getDirectionRegister<Port::DataUpper>() = tmp;
-    triggerClock();
-    addr.bytes[1] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    addr.bytes[2] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    addr.bytes[3] = readInputChannelAs<uint8_t>();
-    digitalWrite<Pin::Enable, HIGH>();
-    triggerClock();
-    if constexpr (EnableDebugMode) {
-        digitalWrite<Pin::AddressCaptureSignal1, HIGH>();
-    }
-    // don't do virtual address translation here
-    // for our purposes, we want to make sure that this code is a simple as possible
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("Address: 0x"));
-        Serial.print(addr.getWholeValue(), HEX);
-        Serial.print(F(" (0b"));
-        Serial.print(addr.getWholeValue(), BIN);
-        Serial.println(F(")"));
-        Serial.print(F("Operation: "));
-        if (isReadOperation_) {
-            Serial.println(F("Read!"));
-        } else {
-            Serial.println(F("Write!"));
-        }
-    }
-    if (addr.isIOInstruction()) {
-        if (isReadOperation_) {
+    if (auto m2 = readInputChannelAs<Channel2Value>(); m2.isReadOperation()) {
+        getDirectionRegister<Port::DataLower>() = 0xFF;
+        getDirectionRegister<Port::DataUpper>() = 0xFF;
+        addr.bytes[0] = m2.getWholeValue() & 0b1111'1110;
+        triggerClock();
+        addr.bytes[1] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        addr.bytes[2] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        auto b3 = readInputChannelAs<uint8_t>();
+        addr.bytes[3] = b3;
+        digitalWrite<Pin::Enable, HIGH>();
+        triggerClock();
+        if (b3 >= 0xF0) {
             handleIOOperation<true>(addr);
         } else {
-            handleIOOperation<false>(addr);
+            talkToi960<true>(addr, TreatAsOnChipAccess{});
         }
     } else {
-        if (isReadOperation_) {
-            talkToi960<true>(addr, TreatAsOnChipAccess{});
+        getDirectionRegister<Port::DataLower>() = 0;
+        getDirectionRegister<Port::DataUpper>() = 0;
+        addr.bytes[0] = m2.getWholeValue() & 0b1111'1110;
+        triggerClock();
+        addr.bytes[1] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        addr.bytes[2] = readInputChannelAs<uint8_t>();
+        triggerClock();
+        auto b3 = readInputChannelAs<uint8_t>();
+        addr.bytes[3] = b3;
+        digitalWrite<Pin::Enable, HIGH>();
+        triggerClock();
+        if (b3 >= 0xF0) {
+            handleIOOperation<false>(addr);
         } else {
             talkToi960<false>(addr, TreatAsOnChipAccess{});
         }

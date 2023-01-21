@@ -85,7 +85,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             break;
         }
         handler.next();
-        singleCycleDelay(); // put this in to make sure we never over run anything
+        //singleCycleDelay(); // put this in to make sure we never over run anything
 
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
@@ -115,7 +115,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             break;
         }
         handler.next();
-        singleCycleDelay(); // put this in to make sure we never over run anything
+        //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
@@ -144,7 +144,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             break;
         }
         handler.next();
-        singleCycleDelay(); // put this in to make sure we never over run anything
+        //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
@@ -173,7 +173,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             break;
         }
         handler.next();
-        singleCycleDelay(); // put this in to make sure we never over run anything
+        //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
@@ -202,7 +202,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             break;
         }
         handler.next();
-        singleCycleDelay(); // put this in to make sure we never over run anything
+        //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
@@ -231,7 +231,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             break;
         }
         handler.next();
-        singleCycleDelay(); // put this in to make sure we never over run anything
+        //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
@@ -260,7 +260,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
             break;
         }
         handler.next();
-        singleCycleDelay(); // put this in to make sure we never over run anything
+        //singleCycleDelay(); // put this in to make sure we never over run anything
     } while(true);
     handler.endTransaction();
 }

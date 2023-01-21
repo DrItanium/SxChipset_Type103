@@ -704,7 +704,3 @@ byte GPIOR1;
 byte GPIOR2;
 #endif
 
-ISR(SPI_STC_vect) {
-    BankSaver preserveOldBank;
-    /// @todo implement
-}

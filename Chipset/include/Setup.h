@@ -55,21 +55,12 @@ class Platform final {
         Platform& operator=(Platform&&) = delete;
     public:
         static void begin() noexcept;
-        static void startAddressTransaction() noexcept;
-        static void collectAddress() noexcept;
-        static void endAddressTransaction() noexcept;
         static void doReset(decltype(LOW) value) noexcept;
         static void doHold(decltype(LOW) value) noexcept;
         static uint16_t getDataLines() noexcept;
         static void setDataLines(uint16_t) noexcept;
-        static bool isReadOperation() noexcept { return isReadOperation_; }
-        static SplitWord32 getAddress() noexcept { return address_; }
     private:
-        static inline bool isReadOperation_ = false;
-        static inline SplitWord32 address_{0};
         static inline bool initialized_ = false;
-        static inline uint8_t dataLinesDirection_ = 0;
-        static inline SplitWord16 previousValue_{0};
 };
 
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

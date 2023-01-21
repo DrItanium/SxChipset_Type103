@@ -113,9 +113,8 @@ Platform::begin() noexcept {
         MCP23S17::write16<XIO, MCP23S17::Registers::GPINTEN, Pin::GPIOSelect>(0x0000); // no interrupts
         // we need to deactivate the data lines io expander by setting all lines as inputs and leaving it alone after that point
         // This code has to exist because I am retrofitting the old type103 design for this newer version with a mega2560
-        dataLinesDirection_ = MCP23S17::AllInput8;
-        previousValue_.setWholeValue(0);
-        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
+        auto dataLinesDirection_ = MCP23S17::AllInput8;
+        MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(0);
         MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_, dataLinesDirection_);
         XMCRB=0b00000'001; // need 32k. one pin released
         //XMCRA=0b1'100'00'00; // put in one cycle wait states
@@ -133,47 +132,6 @@ Platform::begin() noexcept {
     }
 }
 
-[[gnu::always_inline]]
-inline void 
-triggerClock() noexcept {
-    pulse<Pin::CLKSignal, LOW, HIGH>();
-    singleCycleDelay();
-}
-void 
-Platform::startAddressTransaction() noexcept {
-    // clear the address counter to be on the safe side
-    if constexpr (EnableDebugMode) {
-        digitalWrite<Pin::AddressCaptureSignal1, LOW>();
-    }
-    triggerClock();
-    digitalWrite<Pin::Enable, LOW>();
-    singleCycleDelay(); // introduce this extra cycle of delay to make sure
-                        // that inputs are updated correctly since they are
-                        // tristated
-}
-void
-Platform::endAddressTransaction() noexcept {
-    digitalWrite<Pin::Enable, HIGH>();
-    triggerClock();
-    if constexpr (EnableDebugMode) {
-        digitalWrite<Pin::AddressCaptureSignal1, HIGH>();
-    }
-}
-void
-Platform::collectAddress() noexcept {
-    auto m2 = readInputChannelAs<Channel2Value>();
-    isReadOperation_ = m2.isReadOperation();
-    auto tmp = isReadOperation_ ? 0xFF : 0x00;
-    address_.bytes[0] = m2.getWholeValue() & 0b1111'1110;
-    triggerClock();
-    address_.bytes[1] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    address_.bytes[2] = readInputChannelAs<uint8_t>();
-    triggerClock();
-    address_.bytes[3] = readInputChannelAs<uint8_t>();
-    getDirectionRegister<Port::DataLower>() = tmp;
-    getDirectionRegister<Port::DataUpper>() = tmp;
-}
 uint16_t
 Platform::getDataLines() noexcept {
     return makeWord(getInputRegister<Port::DataUpper>(), getInputRegister<Port::DataLower>());

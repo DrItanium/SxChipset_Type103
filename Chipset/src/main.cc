@@ -436,6 +436,7 @@ installMemoryImage() noexcept {
             }
         }
         memoryImage.close();
+        ram.flush();
         Serial.println();
         Serial.println(F("transfer complete!"));
         getCache().clear();

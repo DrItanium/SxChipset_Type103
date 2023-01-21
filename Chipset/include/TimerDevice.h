@@ -23,17 +23,15 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef CHIPSET_RTCDEVICE_H
-#define CHIPSET_RTCDEVICE_H
+#ifndef CHIPSET_TIMERDEVICE_H
+#define CHIPSET_TIMERDEVICE_H
 #include <Arduino.h>
 #include "Types.h"
 #include "Detect.h"
-#include "RTClib.h"
 #include "Peripheral.h"
 
 
 BeginDeviceOperationsList(TimerDevice)
-    UnixTime,
     SystemTimerComparisonValue,
     SystemTimerPrescalar,
 EndDeviceOperationsList(TimerDevice)
@@ -42,14 +40,10 @@ class TimerDevice : public OperatorPeripheral<TimerDeviceOperations, TimerDevice
 public:
     using Parent = OperatorPeripheral<TimerDeviceOperations, TimerDevice>;
     bool init() noexcept ;
-    bool isAvailable() const noexcept { return available_; }
+    bool isAvailable() const noexcept { return true; }
     void onStartTransaction(const SplitWord32& addr) noexcept;
     void onEndTransaction() noexcept { }
     uint16_t extendedRead(const Channel0Value& m0) const noexcept ;
     void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept ;
-private:
-    RTC_DS1307 rtc;
-    bool available_ = false;
-    SplitWord32 unixtimeCopy_{0};
 };
-#endif //CHIPSET_RTCDEVICE_H
+#endif //CHIPSET_TIMERDEVICE_H

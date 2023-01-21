@@ -25,20 +25,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <Arduino.h>
 #include "Peripheral.h"
-#include "RTClib.h"
 #include "Pinout.h"
-#include "RTCDevice.h"
+#include "TimerDevice.h"
 
 bool
 TimerDevice::init() noexcept {
-    if (rtc.begin()) {
-        if (!rtc.isrunning()) {
-            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        }
-        available_ = true;
-    } else {
-        available_ = false;
-    }
     // make sure that INT0 is enabled as an output. Make it high
     pinMode<Pin::INT0_960_>(OUTPUT);
 #if defined(TCCR2A) && defined(TCCR2B) && defined(TCNT2)
@@ -53,7 +44,7 @@ TimerDevice::init() noexcept {
     TCNT2 = 0;
 #endif
     digitalWrite<Pin::INT0_960_, HIGH>();
-    return available_;
+    return true;
 }
 
 uint16_t 
@@ -61,8 +52,6 @@ TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
-        case TimerDeviceOperations::UnixTime:
-            return unixtimeCopy_.retrieveHalf(getOffset());
 #if defined(TCCR2B)
         case TimerDeviceOperations::SystemTimerPrescalar:
             return static_cast<uint16_t>(TCCR2B & 0b111);
@@ -111,13 +100,5 @@ TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
 
 void
 TimerDevice::onStartTransaction(const SplitWord32 &addr) noexcept {
-    // ahead of time, sample the unix time. It will be safe to do this since
-    // the resolution is in seconds. Even if it does shift over it is okay!
-    switch (getCurrentOpcode()) {
-        case TimerDeviceOperations::UnixTime:
-            unixtimeCopy_.full = available_ ? rtc.now().unixtime() : 0;
-            break;
-        default:
-            break;
-    }
+    // do nothing right now
 }

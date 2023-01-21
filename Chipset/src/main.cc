@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Setup.h"
 #include "SerialDevice.h"
 #include "InfoDevice.h"
-#include "RTCDevice.h"
+#include "TimerDevice.h"
 #include "xmem.h"
 //#include "Cache.h"
 //SdFat SD;
@@ -299,6 +299,7 @@ void
 setup() {
     theSerial.begin();
     infoDevice.begin();
+    timerInterface.begin();
     Wire.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz

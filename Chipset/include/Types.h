@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_TYPES_H__
 #define SXCHIPSET_TYPE103_TYPES_H__
 #include <Arduino.h>
-#include <SdFat.h>
 #include "Detect.h"
 
 
@@ -54,11 +53,9 @@ template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
-extern SdFat SD;
 constexpr auto TransactionOffsetSize = 4; // 16-byte line
 enum class IOGroup : byte{
     Peripherals,
-    InternalStorage,
     Undefined,
 };
 static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");

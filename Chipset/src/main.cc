@@ -32,7 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SerialDevice.h"
 #include "InfoDevice.h"
 #include "TimerDevice.h"
-#include "xmem.h"
+#include <SD.h>
+#include "BankSelection.h"
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;
 InfoDevice infoDevice;
@@ -96,8 +97,8 @@ struct TreatAsOnChipAccess final { };
 template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-    if (auto theIndex = addr.onBoardMemoryAddress.bank; xmem::validBank(theIndex)) {
-        xmem::setMemoryBank(theIndex);
+    if (auto theIndex = addr.onBoardMemoryAddress.bank; theIndex < 16) {
+        InternalBus::setBank(theIndex);
         volatile SplitWord16* ptr = reinterpret_cast<volatile SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
         do {
             auto c0 = readInputChannelAs<Channel0Value, true>();
@@ -251,6 +252,15 @@ bootCPU() noexcept {
     }
 }
 void
+installMemoryImage() noexcept {
+    while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
+        Serial.println(F("NO SD CARD!"));
+        delay(1000);
+    }
+    Serial.println(F("SD CARD FOUND!"));
+
+}
+void
 setup() {
     theSerial.begin();
     infoDevice.begin();
@@ -261,7 +271,8 @@ setup() {
     // setup the IO Expanders
     Platform::begin();
     delay(1000);
-    // jump into the monitor rom to help me setup the i960 memory before jumping to it
+    // find firmware.bin and install it into the 512k block of memory
+    installMemoryImage();
     bootCPU();
 }
 

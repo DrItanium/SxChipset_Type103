@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "MCP23S17.h"
 #include "Peripheral.h"
-#include "xmem.h"
+#include "BankSelection.h"
 
 constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
 /**
@@ -117,8 +117,13 @@ Platform::begin() noexcept {
         previousValue_.setWholeValue(0);
         MCP23S17::write16<DataLines, MCP23S17::Registers::OLAT, Pin::GPIOSelect>(previousValue_.full);
         MCP23S17::writeDirection<DataLines, Pin::GPIOSelect>(dataLinesDirection_, dataLinesDirection_);
-        xmem::begin(true);
-        // setup the direct data lines to be input
+        XMCRB=0b00000'001; // need 32k. one pin released
+        //XMCRA=0b1'100'00'00; // put in one cycle wait states
+        XMCRA=0b1'000'00'00; // put in zero cycle wait states
+        pinMode<Pin::RealA15>(OUTPUT);
+        InternalBus::begin();
+        External328Bus::begin();
+        InternalBus::select();
         getDirectionRegister<Port::DataLower>() = 0;
         getDirectionRegister<Port::DataUpper>() = 0;
         pinMode<Pin::AddressCaptureSignal1>(OUTPUT);

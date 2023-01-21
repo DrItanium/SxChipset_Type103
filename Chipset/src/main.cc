@@ -50,7 +50,6 @@ pullCPUOutOfReset() noexcept {
 [[gnu::always_inline]]
 inline void 
 waitForDataState() noexcept {
-    singleCycleDelay();
     while (digitalRead<Pin::DEN>() == HIGH);
 }
 template<bool isReadOperation, typename T>
@@ -99,7 +98,7 @@ inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     if (auto theIndex = addr.onBoardMemoryAddress.bank; theIndex < 16) {
         InternalBus::setBank(theIndex);
-        volatile SplitWord16* ptr = reinterpret_cast<volatile SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
+        SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
         do {
             auto c0 = readInputChannelAs<Channel0Value, true>();
             if constexpr (EnableDebugMode) {
@@ -218,7 +217,7 @@ handleTransaction() noexcept {
     // shift back to input channel 0
     singleCycleDelay();
 }
-template<bool TrackBootProcess = true>
+template<bool TrackBootProcess = false>
 void
 bootCPU() noexcept {
     pullCPUOutOfReset();
@@ -283,9 +282,7 @@ installMemoryImage() noexcept {
             InternalBus::setBank(view.onBoardMemoryAddress.bank);
             uint8_t* theBuffer = reinterpret_cast<uint8_t*>(view.onBoardMemoryAddress.offset + 0x8000);
             theFirmware.read(theBuffer, BufferSize);
-            if (count % 16 == 0)  {
-                Serial.print(F("."));
-            }
+            Serial.print(F("."));
         }
         Serial.println(F("DONE!"));
         theFirmware.close();
@@ -312,8 +309,10 @@ setup() {
 
 void 
 loop() {
-    waitForDataState();
-    handleTransaction();
+    while (true) {
+        waitForDataState();
+        handleTransaction();
+    }
 }
 
 // if the AVR processor doesn't have access to the GPIOR registers then emulate

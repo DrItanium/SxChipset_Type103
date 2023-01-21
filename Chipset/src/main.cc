@@ -24,17 +24,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
 #include <SPI.h>
-#include <SdFat.h>
 #include "Types.h"
 #include "Pinout.h"
 #include "Wire.h"
 #include "Peripheral.h"
 #include "Setup.h"
 #include "SerialDevice.h"
-#include "RTCDevice.h"
 #include "InfoDevice.h"
-#include "Cache.h"
-SdFat SD;
+#include "RTCDevice.h"
+#include "xmem.h"
+//#include "Cache.h"
+//SdFat SD;
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;
 InfoDevice infoDevice;
@@ -47,68 +47,6 @@ putCPUInReset() noexcept {
 void 
 pullCPUOutOfReset() noexcept {
     Platform::doReset(HIGH);
-}
-void configurePins() noexcept;
-void setupIOExpanders() noexcept;
-void installMemoryImage() noexcept;
-template<Pin targetPin, bool performFullMemoryTest>
-bool
-setupPSRAM() noexcept {
-    SPI.beginTransaction(SPISettings(F_CPU/2, MSBFIRST, SPI_MODE0));
-    // according to the manuals we need at least 200 microseconds after bootup
-    // to allow the psram to do it's thing
-    delayMicroseconds(200);
-    // 0x66 tells the PSRAM to initialize properly
-    digitalWrite<targetPin, LOW>();
-    SPI.transfer(0x66);
-    digitalWrite<targetPin, HIGH>();
-    // test the first 64k instead of the full 8 megabytes
-    constexpr uint32_t endAddress = performFullMemoryTest ? 0x80'0000 : 0x10000;
-    for (uint32_t i = 0; i < endAddress; i += 4) {
-        SplitWord32 container {i}, result {0};
-        digitalWrite<targetPin, LOW>();
-        SPI.transfer(0x02); // write
-        SPI.transfer(container.bytes[2]);
-        SPI.transfer(container.bytes[1]);
-        SPI.transfer(container.bytes[0]);
-        SPI.transfer(container.bytes[0]);
-        SPI.transfer(container.bytes[1]);
-        SPI.transfer(container.bytes[2]);
-        SPI.transfer(container.bytes[3]);
-        digitalWrite<targetPin, HIGH>();
-        asm volatile ("nop");
-        asm volatile ("nop");
-        asm volatile ("nop");
-        asm volatile ("nop");
-        digitalWrite<targetPin, LOW>();
-        SPI.transfer(0x03); // read 
-        SPI.transfer(container.bytes[2]);
-        SPI.transfer(container.bytes[1]);
-        SPI.transfer(container.bytes[0]);
-        result.bytes[0] = SPI.transfer(0);
-        result.bytes[1] = SPI.transfer(0);
-        result.bytes[2] = SPI.transfer(0);
-        result.bytes[3] = SPI.transfer(0);
-        digitalWrite<targetPin, HIGH>();
-        if (container != result) {
-            return false;
-        }
-    }
-    SPI.endTransaction();
-    return true;
-}
-bool
-trySetupDS1307() noexcept {
-    return timerInterface.begin();
-}
-void 
-setupRTC() noexcept {
-    // use short circuiting or to choose the first available rtc
-    if (trySetupDS1307()) {
-        Serial.println(F("Found RTC DS1307"));
-    } else {
-        Serial.println(F("No active RTC found!"));
-    }
 }
 [[gnu::always_inline]]
 inline void 
@@ -157,6 +95,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 struct TreatAsCacheAccess final { };
 struct TreatAsOnChipAccess final { };
 
+#if 0
 template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
@@ -197,6 +136,7 @@ talkToi960(const SplitWord32& addr, TreatAsCacheAccess) noexcept {
         line.markDirty();
     }
 }
+#endif
 
 template<bool isReadOperation>
 inline void
@@ -278,9 +218,6 @@ handleIOOperation(const SplitWord32& addr) noexcept {
         case IOGroup::Peripherals:
             getPeripheralDevice<isReadOperation>(addr);
             break;
-        case IOGroup::InternalStorage:
-            talkToi960<isReadOperation>(addr, TreatAsOnChipAccess{});
-            break;
         default:
             talkToi960<isReadOperation>(addr, getNullHandler());
             break;
@@ -316,9 +253,9 @@ handleTransaction() noexcept {
         }
     } else {
         if (Platform::isReadOperation()) {
-            talkToi960<true>(addr, TreatAsCacheAccess{});
+            talkToi960<true>(addr, TreatAsOnChipAccess{});
         } else {
-            talkToi960<false>(addr, TreatAsCacheAccess{});
+            talkToi960<false>(addr, TreatAsOnChipAccess{});
         }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay
@@ -358,38 +295,17 @@ bootCPU() noexcept {
         }
     }
 }
-File ram;
 void
-bringUpSDCard() noexcept {
-    while (!SD.begin(static_cast<byte>(Pin::SD_EN))) {
-        Serial.println(F("NO SD CARD FOUND...WAITING!"));
-        delay(1000);
-    }
-    Serial.println(F("SD CARD FOUND!"));
-    if (!ram.open("ram.bin", FILE_WRITE)) {
-        Serial.println(F("COULD NOT OPEN RAM.BIN!")) ;
-        Serial.println(F("HALTING!"));
-        while (true) {
-            delay(1000);
-        }
-    }
-}
-void 
 setup() {
     theSerial.begin();
     infoDevice.begin();
     Wire.begin();
-    setupRTC();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // setup the IO Expanders
     Platform::begin();
-    bringUpSDCard();
-    setupCache();
     delay(1000);
-    installMemoryImage();
-    // okay so we got the image installed, now we just terminate the SD card
-    // now we wait for the memory controller to come up!
+    // jump into the monitor rom to help me setup the i960 memory before jumping to it
     bootCPU();
 }
 
@@ -399,61 +315,6 @@ loop() {
     waitForDataState();
     handleTransaction();
 }
-
-void sdCsInit(SdCsPin_t pin) {
-    pinMode(pin, OUTPUT);
-}
-
-void sdCsWrite(SdCsPin_t pin, bool level) {
-    digitalWrite(pin, level);
-}
-
-
-void 
-installMemoryImage() noexcept {
-    if (File memoryImage; !memoryImage.open("boot.sys", FILE_READ)) {
-        Serial.println(F("Couldn't open boot.sys!"));
-        while (true) {
-            delay(1000);
-        }
-    } else {
-        // write out to the data cache as we go along, when we do a miss then
-        // we will be successful in writing out to main memory
-        memoryImage.seekSet(0);
-        Serial.println(F("installing memory image from sd"));
-        constexpr auto BufferSize = 4096;
-        byte buffer[BufferSize] = { 0};
-        for (uint32_t i = 0, j = 0; i < memoryImage.size(); i += BufferSize, ++j) {
-            while (memoryImage.isBusy());
-            SplitWord32 currentAddressLine(i);
-            auto numRead = memoryImage.read(buffer, BufferSize);
-            if (numRead < 0) {
-                SD.errorHalt();
-            }
-            memoryWrite(currentAddressLine, buffer, numRead);
-            if ((j % 16) == 0) {
-                Serial.print(F("."));
-            }
-        }
-        memoryImage.close();
-        ram.flush();
-        Serial.println();
-        Serial.println(F("transfer complete!"));
-        getCache().clear();
-    }
-}
-
-size_t
-memoryWrite(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-    ram.seekSet(address.getWholeValue());
-    return ram.write(bytes, count);
-}
-size_t
-memoryRead(SplitWord32 address, uint8_t* bytes, size_t count) noexcept {
-    ram.seekSet(address.getWholeValue());
-    return ram.read(bytes, count);
-}
-
 
 // if the AVR processor doesn't have access to the GPIOR registers then emulate
 // them

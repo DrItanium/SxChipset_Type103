@@ -538,7 +538,8 @@ handleTransaction() noexcept {
         triggerClock();
         addr.bytes[1] = readInputChannelAs<uint8_t>();
         triggerClock();
-        addr.bytes[2] = readInputChannelAs<uint8_t>();
+        auto b2 = readInputChannelAs<uint8_t>();
+        addr.bytes[2] = b2;
         triggerClock();
         auto b3 = readInputChannelAs<uint8_t>();
         addr.bytes[3] = b3;
@@ -567,7 +568,8 @@ handleTransaction() noexcept {
         triggerClock();
         addr.bytes[1] = readInputChannelAs<uint8_t>();
         triggerClock();
-        addr.bytes[2] = readInputChannelAs<uint8_t>();
+        auto b2 = readInputChannelAs<uint8_t>();
+        addr.bytes[2] = b2;
         triggerClock();
         auto b3 = readInputChannelAs<uint8_t>();
         addr.bytes[3] = b3;

@@ -653,8 +653,7 @@ installMemoryImage() noexcept {
 
         auto previousBank = BankSwitcher::getBank();
         Serial.println(F("TRANSFERRING!!"));
-        unsigned int count = 0;
-        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize, ++count) {
+        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
             BankSwitcher::setBank(view.onBoardMemoryAddress.bank);
             uint8_t* theBuffer = reinterpret_cast<uint8_t*>(view.onBoardMemoryAddress.offset + 0x8000);

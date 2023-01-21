@@ -544,26 +544,21 @@ handleTransaction() noexcept {
         addr.bytes[3] = b3;
         digitalWrite<Pin::Enable, HIGH>();
         triggerClock();
-        if (b3 >= 0xF0) {
-            //handleIOOperation<true>(addr);
-            // When we are in io space, we are treating the address as an opcode which
-            // we can decompose while getting the pieces from the io expanders. Thus we
-            // can overlay the act of decoding while getting the next part
-            //
-            // The W/~R pin is used to figure out if this is a read or write operation
-            //
-            // This system does not care about the size but it does care about where
-            // one starts when performing a write operation
-            switch (b3) {
-                case 0xF0:
-                    getPeripheralDevice<true>(addr);
-                    break;
-                default:
-                    talkToi960<true>(addr, getNullHandler());
-                    break;
-            }
-        } else {
-            talkToi960<true>(addr, TreatAsOnChipAccess{});
+        // When we are in io space, we are treating the address as an opcode which
+        // we can decompose while getting the pieces from the io expanders. Thus we
+        // can overlay the act of decoding while getting the next part
+        //
+        // The W/~R pin is used to figure out if this is a read or write operation
+        //
+        // This system does not care about the size but it does care about where
+        // one starts when performing a write operation
+        switch (b3) {
+            case 0xF0:
+                getPeripheralDevice<true>(addr);
+                break;
+            default:
+                talkToi960<true>(addr, TreatAsOnChipAccess{});
+                break;
         }
     } else {
         getDirectionRegister<Port::DataLower>() = 0;
@@ -587,24 +582,12 @@ handleTransaction() noexcept {
         // This system does not care about the size but it does care about where
         // one starts when performing a write operation
         switch(b3) {
-            case 0xF0: // we haven't reserved much in the way of io space, so instead, just make sure that we are actually :w
+            case 0xF0: // we haven't reserved much in the way of io space, so instead, just make sure that we are actually reserving the correct banks!
                 getPeripheralDevice<false>(addr);
                 break;
             default:
                 talkToi960<false>(addr, TreatAsOnChipAccess{});
                 break;
-        }
-        if (b3 >= 0xF0) {
-            switch (b3) {
-                case 0xF0:
-                    getPeripheralDevice<false>(addr);
-                    break;
-                default:
-                    talkToi960<false>(addr, getNullHandler());
-                    break;
-            }
-        } else {
-            talkToi960<false>(addr, TreatAsOnChipAccess{});
         }
     }
     // allow for extra recovery time, introduce a single 10mhz cycle delay

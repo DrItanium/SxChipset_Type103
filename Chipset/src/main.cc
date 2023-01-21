@@ -708,7 +708,6 @@ byte GPIOR2;
 #endif
 
 ISR(SPI_STC_vect) {
-    auto oldBank = BankSwitcher::getBank();
+    BankSaver preserveOldBank;
     /// @todo implement
-    BankSwitcher::setBank(oldBank);
 }

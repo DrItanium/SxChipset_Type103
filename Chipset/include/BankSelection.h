@@ -43,6 +43,19 @@ public:
     static auto getBank() noexcept { return currentBank_; }
 private:
     static inline uint24_t currentBank_ = 0;
-
+};
+/**
+ * @brief Saves the current bank on constructor, it is restored when this object goes out of scope (RAII style); You cannot copy or move this but you can pass it by reference!
+ */
+struct BankSaver final {
+    BankSaver() noexcept : theBank_(BankSwitcher::getBank()) { }
+    ~BankSaver() noexcept { BankSwitcher::setBank(theBank_); }
+    // cannot copy or move it but still can be passed around as a token
+    BankSaver(const BankSaver&) = delete;
+    BankSaver(BankSaver&&) = delete;
+    BankSaver& operator=(const BankSaver&) = delete;
+    BankSaver& operator=(BankSaver&&) = delete;
+private:
+    uint24_t theBank_;
 };
 #endif

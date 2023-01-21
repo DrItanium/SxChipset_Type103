@@ -244,6 +244,7 @@ bootCPU() noexcept {
         handleTransaction();
         waitForDataState();
         handleTransaction();
+        waitForDataState();
         if (digitalRead<Pin::FAIL>() == HIGH) {
             Serial.println(F("CHECKSUM FAILURE!"));
         } else {
@@ -272,19 +273,16 @@ installMemoryImage() noexcept {
             delay(1000);
         }
     } else {
-        constexpr auto BufferSize = 2048;
-        byte theBuffer[BufferSize] = { 0 };
+        constexpr auto BufferSize = 16384;
+
         InternalBus::select();
         Serial.println(F("TRANSFERRING!!"));
         unsigned int count = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize, ++count) {
             SplitWord32 view{address};
             InternalBus::setBank(view.onBoardMemoryAddress.bank);
-            auto numRead = theFirmware.read(theBuffer, BufferSize);
-            auto baseAddress = view.onBoardMemoryAddress.offset + 0x8000;
-            for (int i = 0, j = baseAddress; i < numRead; ++i) {
-                memory<byte>(j) = theBuffer[i];
-            }
+            uint8_t* theBuffer = reinterpret_cast<uint8_t*>(view.onBoardMemoryAddress.offset + 0x8000);
+            theFirmware.read(theBuffer, BufferSize);
             if (count % 16 == 0)  {
                 Serial.print(F("."));
             }

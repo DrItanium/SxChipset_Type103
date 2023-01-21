@@ -512,27 +512,6 @@ getPeripheralDevice(const SplitWord32& addr) noexcept {
     }
 }
 
-template<bool isReadOperation>
-void
-//inline TransactionInterface&
-handleIOOperation(const SplitWord32& addr) noexcept {
-    // When we are in io space, we are treating the address as an opcode which
-    // we can decompose while getting the pieces from the io expanders. Thus we
-    // can overlay the act of decoding while getting the next part
-    // 
-    // The W/~R pin is used to figure out if this is a read or write operation
-    //
-    // This system does not care about the size but it does care about where
-    // one starts when performing a write operation
-    switch (addr.getIOGroup()) {
-        case IOGroup::Peripherals:
-            getPeripheralDevice<isReadOperation>(addr);
-            break;
-        default:
-            talkToi960<isReadOperation>(addr, getNullHandler());
-            break;
-    }
-}
 [[gnu::always_inline]]
 inline void
 triggerClock() noexcept {
@@ -566,7 +545,23 @@ handleTransaction() noexcept {
         digitalWrite<Pin::Enable, HIGH>();
         triggerClock();
         if (b3 >= 0xF0) {
-            handleIOOperation<true>(addr);
+            //handleIOOperation<true>(addr);
+            // When we are in io space, we are treating the address as an opcode which
+            // we can decompose while getting the pieces from the io expanders. Thus we
+            // can overlay the act of decoding while getting the next part
+            //
+            // The W/~R pin is used to figure out if this is a read or write operation
+            //
+            // This system does not care about the size but it does care about where
+            // one starts when performing a write operation
+            switch (b3) {
+                case 0xF0:
+                    getPeripheralDevice<true>(addr);
+                    break;
+                default:
+                    talkToi960<true>(addr, getNullHandler());
+                    break;
+            }
         } else {
             talkToi960<true>(addr, TreatAsOnChipAccess{});
         }
@@ -583,8 +578,31 @@ handleTransaction() noexcept {
         addr.bytes[3] = b3;
         digitalWrite<Pin::Enable, HIGH>();
         triggerClock();
+        // When we are in io space, we are treating the address as an opcode which
+        // we can decompose while getting the pieces from the io expanders. Thus we
+        // can overlay the act of decoding while getting the next part
+        //
+        // The W/~R pin is used to figure out if this is a read or write operation
+        //
+        // This system does not care about the size but it does care about where
+        // one starts when performing a write operation
+        switch(b3) {
+            case 0xF0: // we haven't reserved much in the way of io space, so instead, just make sure that we are actually :w
+                getPeripheralDevice<false>(addr);
+                break;
+            default:
+                talkToi960<false>(addr, TreatAsOnChipAccess{});
+                break;
+        }
         if (b3 >= 0xF0) {
-            handleIOOperation<false>(addr);
+            switch (b3) {
+                case 0xF0:
+                    getPeripheralDevice<false>(addr);
+                    break;
+                default:
+                    talkToi960<false>(addr, getNullHandler());
+                    break;
+            }
         } else {
             talkToi960<false>(addr, TreatAsOnChipAccess{});
         }

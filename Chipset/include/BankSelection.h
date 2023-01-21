@@ -39,10 +39,10 @@ public:
     BankSwitcher& operator=(const BankSwitcher&) = delete;
     BankSwitcher& operator=(BankSwitcher&&) = delete;
     static void begin() noexcept;
-    static void setBank(uint8_t bank) noexcept;
-    static uint8_t getBank() noexcept { return currentBank_; }
+    static void setBank(uint24_t bank) noexcept;
+    static auto getBank() noexcept { return currentBank_; }
 private:
-    static inline uint8_t currentBank_ = 0;
+    static inline uint24_t currentBank_ = 0;
 
 };
 #endif

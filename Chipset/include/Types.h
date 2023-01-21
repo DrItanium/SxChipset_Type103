@@ -54,14 +54,6 @@ constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 constexpr auto TransactionOffsetSize = 4; // 16-byte line
-enum class IOGroup : byte{
-    Peripherals,
-    Undefined,
-};
-static_assert(static_cast<byte>(IOGroup::Undefined) <= 16, "Too many IO groups defined!");
-constexpr IOGroup getGroup(uint8_t value) noexcept {
-    return value < static_cast<byte>(IOGroup::Undefined) ? static_cast<IOGroup>(value) : IOGroup::Undefined;
-}
 
 enum class EnableStyle : byte {
     Full16 = 0b00,
@@ -154,8 +146,7 @@ union SplitWord32 {
         uint8_t subfunction;
         uint8_t function;
         uint8_t device;
-        uint8_t group : 4;
-        uint8_t req : 4;
+        uint8_t major;
     } ioRequestAddress;
     struct {
         uint16_t offset : 15; // 32k offset
@@ -165,8 +156,7 @@ union SplitWord32 {
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
-    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.req == 0xF; }
-    [[nodiscard]] constexpr IOGroup getIOGroup() const noexcept { return getGroup(ioRequestAddress.group); }
+    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.major >= 0xF0; }
     [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return ioRequestAddress.device; }
     [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
     template<typename E>

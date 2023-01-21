@@ -102,7 +102,7 @@ BankSwitcher::begin() noexcept {
 }
 
 void
-BankSwitcher::setBank(uint8_t bank) noexcept {
+BankSwitcher::setBank(uint24_t bank) noexcept {
     if (bank != currentBank_) {
         if (bank < 16) {
             InternalBus::select();

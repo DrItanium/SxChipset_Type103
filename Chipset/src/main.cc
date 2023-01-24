@@ -298,7 +298,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     BankSwitcher::setBank(addr.onBoardMemoryAddress.bank);
     SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
     do {
-        auto c0 = readInputChannelAs<Channel0Value, true>();
+        auto c0 = readInputChannelAs<Channel0Value, false>();
         manipulateDataLines<isReadOperation>(ptr, c0);
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();

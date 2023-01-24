@@ -72,23 +72,7 @@ union Word8 {
         uint8_t fail : 1;
         uint8_t dataInt : 1;
     } channel0;
-    /**
-     * @brief Address bits [A1, A7] + W/~{R} in place of A0
-     */
-    struct {
-        uint8_t a0 : 1;
-        uint8_t addr : 7;
-    } lowestAddr;
-    [[nodiscard]] constexpr bool isReadOperation() const noexcept {
-        return lowestAddr.a0 == 0;
-    }
     [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
-    [[nodiscard]] constexpr bool dataInterruptTriggered() const noexcept { 
-        return channel0.dataInt == 0;
-    }
-    [[nodiscard]] constexpr auto getAddressBits1_7() const noexcept { 
-        return lowestAddr.addr;
-    }
     void clear() noexcept {
         value_ = 0;
     }
@@ -107,7 +91,6 @@ union Word8 {
     [[nodiscard]] constexpr bool operator>=(uint8_t other) const noexcept { return value_ >= other; }
 };
 using Channel0Value = Word8;
-using Channel2Value = Word8;
 
 union SplitWord16 {
     uint16_t full;
@@ -190,42 +173,6 @@ public:
 private:
     byte offset_ = 0;
 };
-/**
- * @brief Communication primitive for talking to the i960 or other devices,
- */
-template<typename T>
-class OperationHandler : public AddressTracker {
-public:
-    using Child = T;
-    void startTransaction(const SplitWord32& addr) noexcept {
-        recordAddress(addr);
-    }
-    void next() noexcept {
-        advanceOffset();
-    }
-    void endTransaction() noexcept {
-
-    }
-    uint16_t read(const Channel0Value& m0) const noexcept { return static_cast<const Child*>(this)->performRead(m0); }
-    void write(const Channel0Value& m0, uint16_t value) noexcept { static_cast<Child*>(this)->performWrite(m0, value); }
-};
-
-/**
- * @brief Fallback/through handler implementation
- */
-class NullHandler final {
-public:
-    void startTransaction(const SplitWord32&) noexcept { }
-    [[nodiscard]] constexpr uint16_t read(const Channel0Value&) const noexcept { return 0; }
-    void write(const Channel0Value&, uint16_t ) noexcept { }
-    void endTransaction() noexcept { }
-    void next() noexcept { }
-};
-
-inline NullHandler& getNullHandler() noexcept  {
-    static NullHandler temp;
-    return temp;
-}
 
 #ifndef _BV
 #define _BV(value) (1 << value)

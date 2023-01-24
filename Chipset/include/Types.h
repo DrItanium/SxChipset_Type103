@@ -163,7 +163,7 @@ union SplitWord32 {
     [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
     template<typename E>
     [[nodiscard]] constexpr E getIOFunction() const noexcept { return static_cast<E>(getIOFunctionCode()); }
-    [[nodiscard]] constexpr auto getAddressOffset() const noexcept { return address.offset; }
+    [[nodiscard]] constexpr auto getAddressOffset() const noexcept { return static_cast<uint8_t>((bytes[0] >> 1)&0b111); }
     [[nodiscard]] constexpr bool operator==(const SplitWord32& other) const noexcept { return full == other.full; }
     [[nodiscard]] constexpr bool operator!=(const SplitWord32& other) const noexcept { return full != other.full; }
     [[nodiscard]] constexpr bool operator<(const SplitWord32& other) const noexcept { return full < other.full; }
@@ -188,20 +188,16 @@ static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the 
 class AddressTracker {
 public:
     void recordAddress(const SplitWord32& addr) noexcept {
-        address_ = addr;
         offset_ = addr.getAddressOffset();
     }
     void advanceOffset() noexcept {
         ++offset_;
     }
     void clear() noexcept {
-        address_.clear();
         offset_ = 0;
     }
-    [[nodiscard]] constexpr auto getAddress() const noexcept  { return address_; }
     [[nodiscard]] constexpr auto getOffset() const noexcept { return offset_; }
 private:
-    SplitWord32 address_{0};
     byte offset_ = 0;
 };
 /**

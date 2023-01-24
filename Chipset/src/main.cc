@@ -297,80 +297,58 @@ inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     BankSwitcher::setBank(addr.onBoardMemoryAddress.bank);
     SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
-    do {
-        auto c0 = readInputChannelAs<Channel0Value, false>();
-        manipulateDataLines<isReadOperation>(ptr, c0);
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++ptr;
-        //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, false>();
-        manipulateDataLines<isReadOperation>(ptr, c0);
-        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++ptr;
-        //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, false>();
-        manipulateDataLines<isReadOperation>(ptr, c0);
-        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++ptr;
-        //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, false>();
-        manipulateDataLines<isReadOperation>(ptr, c0);
-        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++ptr;
-        //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, false>();
-        manipulateDataLines<isReadOperation>(ptr, c0);
-        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++ptr;
-        //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, false>();
-        manipulateDataLines<isReadOperation>(ptr, c0);
-        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++ptr;
-        //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, false>();
-        manipulateDataLines<isReadOperation>(ptr, c0);
-        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++ptr;
-        //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, false>();
-        manipulateDataLines<isReadOperation>(ptr, c0);
-        isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        signalReady();
-        if (isBurstLast) {
-            break;
-        }
-        ++ptr;
-        singleCycleDelay(); // put this in to make sure we never over run anything
-    } while (true);
+    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+    signalReady();
+    if (isBurstLast) {
+        return;
+    }
+    ++ptr;
+    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+    signalReady();
+    if (isBurstLast) {
+        return;
+    }
+    ++ptr;
+    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+    signalReady();
+    if (isBurstLast) {
+        return;
+    }
+    ++ptr;
+    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+    signalReady();
+    if (isBurstLast) {
+        return;
+    }
+    ++ptr;
+    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+    signalReady();
+    if (isBurstLast) {
+        return;
+    }
+    ++ptr;
+    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+    signalReady();
+    if (isBurstLast) {
+        return;
+    }
+    ++ptr;
+    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+    signalReady();
+    if (isBurstLast) {
+        return;
+    }
+    ++ptr;
+    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    // at this point we will _always_ end our transaction as the i960 does not allow going beyond this!
+    signalReady();
 }
 template<bool isReadOperation>
 void

@@ -267,18 +267,19 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 
 struct TreatAsOnChipAccess final { };
 
-void
-setFromDataLines(SplitWord16& ptr, EnableStyle style) noexcept {
+[[gnu::always_inline]]
+inline void
+setFromDataLines(SplitWord16* ptr, EnableStyle style) noexcept {
     switch (style) {
         case EnableStyle::Full16:
-            ptr.full = Platform::getDataLines();
+            ptr->full = Platform::getDataLines();
             break;
         case EnableStyle::Lower8:
             // directly read from the ports to speed things up
-            ptr.bytes[0] = getInputRegister<Port::DataLower>();
+            ptr->bytes[0] = getInputRegister<Port::DataLower>();
             break;
         case EnableStyle::Upper8:
-            ptr.bytes[1] = getInputRegister<Port::DataUpper>();
+            ptr->bytes[1] = getInputRegister<Port::DataUpper>();
             break;
         default:
             break;
@@ -296,7 +297,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
         } else {
-            setFromDataLines(*ptr, c0.getByteEnable());
+            setFromDataLines(ptr, c0.getByteEnable());
         }
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
@@ -310,7 +311,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
         } else {
-            setFromDataLines(*ptr, c0.getByteEnable());
+            setFromDataLines(ptr, c0.getByteEnable());
         }
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
@@ -324,7 +325,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
         } else {
-            setFromDataLines(*ptr, c0.getByteEnable());
+            setFromDataLines(ptr, c0.getByteEnable());
         }
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
@@ -338,7 +339,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
         } else {
-            setFromDataLines(*ptr, c0.getByteEnable());
+            setFromDataLines(ptr, c0.getByteEnable());
         }
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
@@ -352,7 +353,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
         } else {
-            setFromDataLines(*ptr, c0.getByteEnable());
+            setFromDataLines(ptr, c0.getByteEnable());
         }
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
@@ -366,7 +367,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
         } else {
-            setFromDataLines(*ptr, c0.getByteEnable());
+            setFromDataLines(ptr, c0.getByteEnable());
         }
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
@@ -380,7 +381,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
         } else {
-            setFromDataLines(*ptr, c0.getByteEnable());
+            setFromDataLines(ptr, c0.getByteEnable());
         }
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
@@ -394,7 +395,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
         } else {
-            setFromDataLines(*ptr, c0.getByteEnable());
+            setFromDataLines(ptr, c0.getByteEnable());
         }
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();

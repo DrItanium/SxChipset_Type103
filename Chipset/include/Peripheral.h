@@ -215,7 +215,7 @@ public:
         resetOpcode();
         static_cast<T*>(this)->onEndTransaction();
     }
-    [[gnu::noinline]] uint16_t performRead(const Channel0Value& m0) const noexcept {
+    [[nodiscard]] uint16_t performRead(const Channel0Value& m0) const noexcept {
         switch (currentOpcode_) {
             case E::Available:
                 return available();

@@ -197,8 +197,8 @@ public:
     using Child = T;
     //~OperatorPeripheral() override = default;
     bool begin() noexcept { return static_cast<Child*>(this)->init(); }
-    bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
-    constexpr uint8_t size() const noexcept { return size_; }
+    [[nodiscard]] bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
+    [[nodiscard]] constexpr uint8_t size() const noexcept { return size_; }
     void stashOpcode(const SplitWord32& addr) noexcept {
         // determine where we are looking :)
         currentOpcode_ = addr.getIOFunction<OperationList>();

@@ -61,9 +61,6 @@ signalReady() noexcept {
     pulse<Pin::Ready, LOW, HIGH>();
 }
 
-extern SplitWord16 previousValue;
-extern uint16_t currentDataLinesValue;
-
 template<typename T>
 class DynamicValue : public OperationHandler<DynamicValue<T>> {
     public:

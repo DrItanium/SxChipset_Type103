@@ -268,6 +268,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 struct TreatAsOnChipAccess final { };
 
 template<bool isReadOperation>
+//[[gnu::noinline]]
 [[gnu::always_inline]]
 inline void
 manipulateDataLines(SplitWord16* ptr) noexcept {
@@ -275,6 +276,7 @@ manipulateDataLines(SplitWord16* ptr) noexcept {
         // keep setting the data lines and inform the i960
         Platform::setDataLines(ptr->full);
     } else {
+#if 0
         switch (readInputChannelAs<Channel0Value, false>().getByteEnable()) {
             case EnableStyle::Full16:
                 ptr->full = Platform::getDataLines();
@@ -289,10 +291,19 @@ manipulateDataLines(SplitWord16* ptr) noexcept {
             default:
                 break;
         }
+#else
+        if (digitalRead<Pin::BE0>() == LOW) {
+            ptr->bytes[0] = getInputRegister<Port::DataLower>();
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+        }
+#endif
     }
 }
 
 template<bool isReadOperation>
+[[gnu::always_inline]]
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     BankSwitcher::setBank(addr.onBoardMemoryAddress.bank);

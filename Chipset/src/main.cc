@@ -275,7 +275,7 @@ manipulateDataLines(SplitWord16* ptr) noexcept {
         // keep setting the data lines and inform the i960
         Platform::setDataLines(ptr->full);
     } else {
-        switch (static_cast<EnableStyle>(readInputChannelAs<uint8_t>() & 0b11)) {
+        switch (readInputChannelAs<Channel0Value, false>().getByteEnable()) {
             case EnableStyle::Full16:
                 ptr->full = Platform::getDataLines();
                 break;

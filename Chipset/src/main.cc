@@ -267,22 +267,28 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 
 struct TreatAsOnChipAccess final { };
 
+template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
-setFromDataLines(SplitWord16* ptr, EnableStyle style) noexcept {
-    switch (style) {
-        case EnableStyle::Full16:
-            ptr->full = Platform::getDataLines();
-            break;
-        case EnableStyle::Lower8:
-            // directly read from the ports to speed things up
-            ptr->bytes[0] = getInputRegister<Port::DataLower>();
-            break;
-        case EnableStyle::Upper8:
-            ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-            break;
-        default:
-            break;
+manipulateDataLines(SplitWord16* ptr, Channel0Value style) noexcept {
+    if constexpr (isReadOperation) {
+        // keep setting the data lines and inform the i960
+        Platform::setDataLines(ptr->full);
+    } else {
+        switch (style.getByteEnable()) {
+            case EnableStyle::Full16:
+                ptr->full = Platform::getDataLines();
+                break;
+            case EnableStyle::Lower8:
+                // directly read from the ports to speed things up
+                ptr->bytes[0] = getInputRegister<Port::DataLower>();
+                break;
+            case EnableStyle::Upper8:
+                ptr->bytes[1] = getInputRegister<Port::DataUpper>();
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -293,12 +299,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
     do {
         auto c0 = readInputChannelAs<Channel0Value, true>();
-        if constexpr (isReadOperation) {
-            // keep setting the data lines and inform the i960
-            Platform::setDataLines(ptr->full);
-        } else {
-            setFromDataLines(ptr, c0.getByteEnable());
-        }
+        manipulateDataLines<isReadOperation>(ptr, c0);
         auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
@@ -307,12 +308,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, false>();
-        if constexpr (isReadOperation) {
-            // keep setting the data lines and inform the i960
-            Platform::setDataLines(ptr->full);
-        } else {
-            setFromDataLines(ptr, c0.getByteEnable());
-        }
+        manipulateDataLines<isReadOperation>(ptr, c0);
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
@@ -321,12 +317,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, false>();
-        if constexpr (isReadOperation) {
-            // keep setting the data lines and inform the i960
-            Platform::setDataLines(ptr->full);
-        } else {
-            setFromDataLines(ptr, c0.getByteEnable());
-        }
+        manipulateDataLines<isReadOperation>(ptr, c0);
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
@@ -335,12 +326,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, false>();
-        if constexpr (isReadOperation) {
-            // keep setting the data lines and inform the i960
-            Platform::setDataLines(ptr->full);
-        } else {
-            setFromDataLines(ptr, c0.getByteEnable());
-        }
+        manipulateDataLines<isReadOperation>(ptr, c0);
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
@@ -349,12 +335,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, false>();
-        if constexpr (isReadOperation) {
-            // keep setting the data lines and inform the i960
-            Platform::setDataLines(ptr->full);
-        } else {
-            setFromDataLines(ptr, c0.getByteEnable());
-        }
+        manipulateDataLines<isReadOperation>(ptr, c0);
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
@@ -363,12 +344,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, false>();
-        if constexpr (isReadOperation) {
-            // keep setting the data lines and inform the i960
-            Platform::setDataLines(ptr->full);
-        } else {
-            setFromDataLines(ptr, c0.getByteEnable());
-        }
+        manipulateDataLines<isReadOperation>(ptr, c0);
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
@@ -377,12 +353,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, false>();
-        if constexpr (isReadOperation) {
-            // keep setting the data lines and inform the i960
-            Platform::setDataLines(ptr->full);
-        } else {
-            setFromDataLines(ptr, c0.getByteEnable());
-        }
+        manipulateDataLines<isReadOperation>(ptr, c0);
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {
@@ -391,12 +362,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
         c0 = readInputChannelAs<Channel0Value, false>();
-        if constexpr (isReadOperation) {
-            // keep setting the data lines and inform the i960
-            Platform::setDataLines(ptr->full);
-        } else {
-            setFromDataLines(ptr, c0.getByteEnable());
-        }
+        manipulateDataLines<isReadOperation>(ptr, c0);
         isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
         signalReady();
         if (isBurstLast) {

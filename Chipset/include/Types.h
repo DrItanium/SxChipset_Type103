@@ -171,6 +171,14 @@ union SplitWord32 {
     [[nodiscard]] constexpr bool operator>(const SplitWord32& other) const noexcept { return full > other.full; }
     [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
     [[nodiscard]] constexpr auto retrieveHalf(byte offset) const noexcept { return halves[offset & 0b1]; }
+    [[nodiscard]] constexpr uintptr_t compute328BusAddress() const noexcept {
+        // since it is a 15 bit address, we want to just make sure that the most significant bit always 1
+        return static_cast<uintptr_t>(0x8000 | (halves[0]));
+    }
+    [[nodiscard]] constexpr uint24_t compute328BusBank() const noexcept {
+        return (static_cast<uint24_t>(halves[1]) << 1) | (bytes[0] & 0x80);
+        //return static_cast<uint24_t>(full >> 17);
+    }
     void assignHalf(byte offset, uint16_t value) noexcept { halves[offset & 0b1] = value; }
     void clear() noexcept { full = 0; }
 };

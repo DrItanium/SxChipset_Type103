@@ -306,8 +306,8 @@ template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-    BankSwitcher::setBank(addr.onBoardMemoryAddress.bank);
-    SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
+    BankSwitcher::setBank(addr.compute328BusBank());
+    SplitWord16* ptr = reinterpret_cast<SplitWord16*>(addr.compute328BusAddress());
     manipulateDataLines<isReadOperation>(ptr);
     auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();

@@ -430,6 +430,7 @@ handleTransaction() noexcept {
             talkToi960<true>(addr, TreatAsOnChipAccess{});
         }
     } else {
+        /// @todo do we need to the masking now that the caches have been removed?
         addr.bytes[0] = m2 & 0b1111'1110;
         pulse<Pin::CLKSignal, LOW, HIGH>();
         getDirectionRegister<Port::DataLower>() = 0;

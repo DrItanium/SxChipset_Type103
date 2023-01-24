@@ -524,8 +524,8 @@ installMemoryImage() noexcept {
         Serial.println(F("TRANSFERRING!!"));
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
-            BankSwitcher::setBank(view.onBoardMemoryAddress.bank);
-            uint8_t* theBuffer = reinterpret_cast<uint8_t*>(view.onBoardMemoryAddress.offset + 0x8000);
+            BankSwitcher::setBank(view.compute328BusBank());
+            uint8_t* theBuffer = reinterpret_cast<uint8_t*>(view.compute328BusAddress());
             theFirmware.read(theBuffer, BufferSize);
             Serial.print(F("."));
         }

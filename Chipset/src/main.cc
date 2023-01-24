@@ -301,7 +301,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         }
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, true>();
+        c0 = readInputChannelAs<Channel0Value, false>();
         if constexpr (isReadOperation) {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
@@ -328,7 +328,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         }
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, true>();
+        c0 = readInputChannelAs<Channel0Value, false>();
         if constexpr (isReadOperation) {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
@@ -355,7 +355,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         }
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, true>();
+        c0 = readInputChannelAs<Channel0Value, false>();
         if constexpr (isReadOperation) {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
@@ -382,7 +382,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         }
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, true>();
+        c0 = readInputChannelAs<Channel0Value, false>();
         if constexpr (isReadOperation) {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
@@ -409,7 +409,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         }
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, true>();
+        c0 = readInputChannelAs<Channel0Value, false>();
         if constexpr (isReadOperation) {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
@@ -436,7 +436,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         }
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, true>();
+        c0 = readInputChannelAs<Channel0Value, false>();
         if constexpr (isReadOperation) {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);
@@ -463,7 +463,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         }
         ++ptr;
         //singleCycleDelay(); // put this in to make sure we never over run anything
-        c0 = readInputChannelAs<Channel0Value, true>();
+        c0 = readInputChannelAs<Channel0Value, false>();
         if constexpr (isReadOperation) {
             // keep setting the data lines and inform the i960
             Platform::setDataLines(ptr->full);

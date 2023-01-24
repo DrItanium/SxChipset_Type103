@@ -198,7 +198,7 @@ public:
     //~OperatorPeripheral() override = default;
     bool begin() noexcept { return static_cast<Child*>(this)->init(); }
     bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
-    uint32_t size() const noexcept { return size_.getWholeValue(); }
+    constexpr uint8_t size() const noexcept { return size_; }
     void stashOpcode(const SplitWord32& addr) noexcept {
         // determine where we are looking :)
         currentOpcode_ = addr.getIOFunction<OperationList>();
@@ -215,12 +215,12 @@ public:
         resetOpcode();
         static_cast<T*>(this)->onEndTransaction();
     }
-    uint16_t performRead(const Channel0Value& m0) const noexcept {
+    [[gnu::noinline]] uint16_t performRead(const Channel0Value& m0) const noexcept {
         switch (currentOpcode_) {
             case E::Available:
-                return available() ? 0xFFFF : 0x0000;
+                return available();
             case E::Size:
-                return size_.retrieveHalf(getOffset());
+                return size();
             default:
                 if (validOperation(currentOpcode_)) {
                     return static_cast<const Child*>(this)->extendedRead(m0);
@@ -242,9 +242,7 @@ public:
                 break;
         }
     }
-    uint16_t read(const Channel0Value& m0) const noexcept {
-        return performRead(m0);
-    }
+    [[nodiscard]] uint16_t read(const Channel0Value& m0) const noexcept { return performRead(m0); }
     void write(const Channel0Value& m0, uint16_t value) noexcept {
         performWrite(m0, value);
     }
@@ -255,7 +253,7 @@ protected:
     [[nodiscard]] constexpr OperationList getCurrentOpcode() const noexcept { return currentOpcode_; }
 private:
     OperationList currentOpcode_ = OperationList::Count;
-    SplitWord32 size_{static_cast<uint32_t>(E::Count) };
+    uint8_t size_{static_cast<uint8_t>(E::Count) };
 };
 
 #define BeginDeviceOperationsList(name) enum class name ## Operations : byte { Available, Size,

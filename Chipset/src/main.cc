@@ -270,12 +270,12 @@ struct TreatAsOnChipAccess final { };
 template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
-manipulateDataLines(SplitWord16* ptr, Channel0Value style) noexcept {
+manipulateDataLines(SplitWord16* ptr) noexcept {
     if constexpr (isReadOperation) {
         // keep setting the data lines and inform the i960
         Platform::setDataLines(ptr->full);
     } else {
-        switch (style.getByteEnable()) {
+        switch (static_cast<EnableStyle>(readInputChannelAs<uint8_t>() & 0b11)) {
             case EnableStyle::Full16:
                 ptr->full = Platform::getDataLines();
                 break;
@@ -297,56 +297,56 @@ inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     BankSwitcher::setBank(addr.onBoardMemoryAddress.bank);
     SplitWord16* ptr = reinterpret_cast<SplitWord16*>(0x8000 + addr.onBoardMemoryAddress.offset);
-    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    manipulateDataLines<isReadOperation>(ptr);
     auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();
     if (isBurstLast) {
         return;
     }
     ++ptr;
-    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    manipulateDataLines<isReadOperation>(ptr);
     isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();
     if (isBurstLast) {
         return;
     }
     ++ptr;
-    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    manipulateDataLines<isReadOperation>(ptr);
     isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();
     if (isBurstLast) {
         return;
     }
     ++ptr;
-    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    manipulateDataLines<isReadOperation>(ptr);
     isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();
     if (isBurstLast) {
         return;
     }
     ++ptr;
-    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    manipulateDataLines<isReadOperation>(ptr);
     isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();
     if (isBurstLast) {
         return;
     }
     ++ptr;
-    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    manipulateDataLines<isReadOperation>(ptr);
     isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();
     if (isBurstLast) {
         return;
     }
     ++ptr;
-    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    manipulateDataLines<isReadOperation>(ptr);
     isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();
     if (isBurstLast) {
         return;
     }
     ++ptr;
-    manipulateDataLines<isReadOperation>(ptr, readInputChannelAs<Channel0Value, false>());
+    manipulateDataLines<isReadOperation>(ptr);
     // at this point we will _always_ end our transaction as the i960 does not allow going beyond this!
     signalReady();
 }

@@ -54,7 +54,6 @@ constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 constexpr auto TransactionOffsetSize = 4; // 16-byte line
-
 enum class EnableStyle : byte {
     Full16 = 0b00,
     Upper8 = 0b01,
@@ -62,35 +61,7 @@ enum class EnableStyle : byte {
     Undefined = 0b11,
 };
 
-union Word8 {
-    explicit Word8(uint8_t value = 0) noexcept : value_(value) { }
-    uint8_t value_;
-    struct {
-        uint8_t be : 2;
-        uint8_t blast : 1;
-        uint8_t den : 1;
-        uint8_t fail : 1;
-        uint8_t dataInt : 1;
-    } channel0;
-    [[nodiscard]] constexpr EnableStyle getByteEnable() const noexcept { return static_cast<EnableStyle>(channel0.be); }
-    void clear() noexcept {
-        value_ = 0;
-    }
-    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return value_; }
-    [[nodiscard]] constexpr bool operator==(const Word8& other) const noexcept { return value_ == other.value_; }
-    [[nodiscard]] constexpr bool operator!=(const Word8& other) const noexcept { return value_ != other.value_; }
-    [[nodiscard]] constexpr bool operator<(const Word8& other) const noexcept { return value_ < other.value_; }
-    [[nodiscard]] constexpr bool operator<=(const Word8& other) const noexcept { return value_ <= other.value_; }
-    [[nodiscard]] constexpr bool operator>(const Word8& other) const noexcept { return value_ > other.value_; }
-    [[nodiscard]] constexpr bool operator>=(const Word8& other) const noexcept { return value_ >= other.value_; }
-    [[nodiscard]] constexpr bool operator==(uint8_t other) const noexcept { return value_ == other; }
-    [[nodiscard]] constexpr bool operator!=(uint8_t other) const noexcept { return value_ != other; }
-    [[nodiscard]] constexpr bool operator<(uint8_t other) const noexcept { return value_ < other; }
-    [[nodiscard]] constexpr bool operator<=(uint8_t other) const noexcept { return value_ <= other; }
-    [[nodiscard]] constexpr bool operator>(uint8_t other) const noexcept { return value_ > other; }
-    [[nodiscard]] constexpr bool operator>=(uint8_t other) const noexcept { return value_ >= other; }
-};
-using Channel0Value = Word8;
+using Channel0Value = uint8_t;
 
 union SplitWord16 {
     uint16_t full;

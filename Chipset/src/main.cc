@@ -60,7 +60,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         auto c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            Serial.println(static_cast<int>(c0), BIN);
         }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out
@@ -90,7 +90,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            Serial.println(static_cast<int>(c0), BIN);
         }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out
@@ -119,7 +119,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            Serial.println(static_cast<int>(c0), BIN);
         }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out
@@ -148,7 +148,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            Serial.println(static_cast<int>(c0), BIN);
         }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out
@@ -177,7 +177,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            Serial.println(static_cast<int>(c0), BIN);
         }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out
@@ -206,7 +206,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            Serial.println(static_cast<int>(c0), BIN);
         }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out
@@ -235,7 +235,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         c0 = readInputChannelAs<Channel0Value, true>();
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tChannel0: 0b"));
-            Serial.println(static_cast<int>(c0.getWholeValue()), BIN);
+            Serial.println(static_cast<int>(c0), BIN);
         }
         if constexpr (isReadOperation) {
             // okay it is a read operation, so... pull a cache line out

@@ -145,7 +145,7 @@ using WriteOperation = RWOperation<false>;
 
 [[gnu::always_inline]]
 inline void
-manipulateDataLines(const SplitWord16* ptr, ReadOperation) noexcept {
+manipulateDataLines(const SplitWord16* const ptr, ReadOperation) noexcept {
     if constexpr (EnableDebugMode) {
         Serial.print(F("\tRead Out 0x"));
         Serial.println(ptr->full, HEX);

@@ -58,100 +58,62 @@ setDataLines(uint16_t value) noexcept {
     getOutputRegister<Port::DataLower>() = lowByte(value);
     getOutputRegister<Port::DataUpper>() = highByte(value);
 }
-template<bool isReadOperation, typename T>
+template<bool isReadOperation>
+struct RWOperation final {};
+using ReadOperation = RWOperation<true>;
+using WriteOperation = RWOperation<false>;
+
+template<typename T>
 [[gnu::always_inline]]
 inline void
-manipulateHandler(T& handler) noexcept {
-    if constexpr (isReadOperation) {
-        // okay it is a read operation, so... pull a cache line out
-        auto value = handler.read();
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\t\tGot Value: 0x"));
-            Serial.println(value, HEX);
-        }
-        setDataLines(value);
-    } else {
-        auto value = Platform::getDataLines();
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\t\tWrite Value: 0x"));
-            Serial.println(value, HEX);
-        }
-        // so we are writing to the cache
-        handler.write(value);
+manipulateHandler(T& handler, WriteOperation) noexcept {
+    auto value = Platform::getDataLines();
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("\t\tWrite Value: 0x"));
+        Serial.println(value, HEX);
     }
+    // so we are writing to the cache
+    handler.write(value);
+}
+
+template<typename T>
+[[gnu::always_inline]]
+inline void
+manipulateHandler(T& handler, ReadOperation) noexcept {
+    // okay it is a read operation, so... pull a cache line out
+    auto value = handler.read();
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("\t\tGot Value: 0x"));
+        Serial.println(value, HEX);
+    }
+    setDataLines(value);
 }
 template<bool isReadOperation, typename T>
 inline void
 talkToi960(const SplitWord32& addr, T& handler) noexcept {
     handler.startTransaction(addr);
-    manipulateHandler<isReadOperation>(handler);
-    auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
+    for (byte i =0 ; i < 8; ++i) {
+        manipulateHandler(handler, RWOperation<isReadOperation>{});
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            return;
+        }
+        handler.next();
     }
-    handler.next();
-    manipulateHandler<isReadOperation>(handler);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    handler.next();
-    manipulateHandler<isReadOperation>(handler);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    handler.next();
-    manipulateHandler<isReadOperation>(handler);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    handler.next();
-    manipulateHandler<isReadOperation>(handler);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    handler.next();
-    manipulateHandler<isReadOperation>(handler);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    handler.next();
-    manipulateHandler<isReadOperation>(handler);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    handler.next();
-    manipulateHandler<isReadOperation>(handler);
-    signalReady();
 }
 
 struct TreatAsOnChipAccess final { };
-template<bool isReadOperation>
-struct RWOperation final {};
-using ReadOperation = RWOperation<true>;
-using WriteOperation = RWOperation<false>;
 
 [[gnu::always_inline]]
 inline void
 manipulateDataLines(const SplitWord16* const ptr, ReadOperation) noexcept {
     if constexpr (EnableDebugMode) {
         Serial.print(F("\tRead Out 0x"));
-        Serial.println(ptr->full, HEX);
+        Serial.println(ptr->getWholeValue(), HEX);
     }
     // keep setting the data lines and inform the i960
-    setDataLines(ptr->full);
+    setDataLines(ptr->getWholeValue());
 }
 
 [[gnu::always_inline]]

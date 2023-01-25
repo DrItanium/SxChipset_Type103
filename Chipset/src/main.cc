@@ -83,9 +83,6 @@ manipulateHandler(T& handler) noexcept {
 template<bool isReadOperation, typename T>
 inline void
 talkToi960(const SplitWord32& addr, T& handler) noexcept {
-    if constexpr (EnableDebugMode) {
-        Serial.println(F("Entering genericTalkToI960"));
-    }
     handler.startTransaction(addr);
     manipulateHandler<isReadOperation>(handler);
     auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;

@@ -179,7 +179,9 @@ getPeripheralDevice(const SplitWord32& addr) noexcept {
 [[gnu::always_inline]]
 inline void
 triggerClock() noexcept {
-    pulse<Pin::CLKSignal, LOW, HIGH>();
+    // just write to the CLKSignal pin to force a toggle
+    getInputRegister<Pin::CLKSignal>() = 1;
+    getInputRegister<Pin::CLKSignal>() = 1;
     singleCycleDelay();
 }
 

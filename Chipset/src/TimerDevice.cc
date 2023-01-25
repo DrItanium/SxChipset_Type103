@@ -48,7 +48,7 @@ TimerDevice::init() noexcept {
 }
 
 uint16_t 
-TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
+TimerDevice::extendedRead() const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
@@ -65,7 +65,7 @@ TimerDevice::extendedRead(const Channel0Value& m0) const noexcept {
     }
 }
 void 
-TimerDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
+TimerDevice::extendedWrite(uint16_t value) noexcept {
     // do nothing
     switch (getCurrentOpcode()) {
 #if defined(TCCR2A) && defined(TCCR2B)

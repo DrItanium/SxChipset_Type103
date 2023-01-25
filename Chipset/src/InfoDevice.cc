@@ -33,7 +33,7 @@ namespace {
 }
 
 uint16_t 
-InfoDevice::extendedRead(const Channel0Value& m0) const noexcept {
+InfoDevice::extendedRead() const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
@@ -46,6 +46,6 @@ InfoDevice::extendedRead(const Channel0Value& m0) const noexcept {
     }
 }
 void 
-InfoDevice::extendedWrite(const Channel0Value&, uint16_t) noexcept {
+InfoDevice::extendedWrite(uint16_t) noexcept {
     // do nothing
 }

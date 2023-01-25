@@ -82,11 +82,7 @@ public:
         stashOpcode(addr);
         static_cast<T*>(this)->onStartTransaction(addr);
     }
-    void endTransaction() noexcept {
-        resetOpcode();
-        static_cast<T*>(this)->onEndTransaction();
-    }
-    [[nodiscard]] uint16_t performRead(const Channel0Value& m0) const noexcept {
+    [[nodiscard]] uint16_t performRead() const noexcept {
         switch (currentOpcode_) {
             case E::Available:
                 return available();
@@ -94,13 +90,13 @@ public:
                 return size();
             default:
                 if (validOperation(currentOpcode_)) {
-                    return static_cast<const Child*>(this)->extendedRead(m0);
+                    return static_cast<const Child*>(this)->extendedRead();
                 } else {
                     return 0;
                 }
         }
     }
-    void performWrite(const Channel0Value& m0, uint16_t value) noexcept {
+    void performWrite(uint16_t value) noexcept {
         switch (currentOpcode_) {
             case E::Available:
             case E::Size:
@@ -108,14 +104,14 @@ public:
                 break;
             default:
                 if (validOperation(currentOpcode_)) {
-                    static_cast<Child*>(this)->extendedWrite(m0, value);
+                    static_cast<Child*>(this)->extendedWrite(value);
                 }
                 break;
         }
     }
-    [[nodiscard]] uint16_t read(const Channel0Value& m0) const noexcept { return performRead(m0); }
-    void write(const Channel0Value& m0, uint16_t value) noexcept {
-        performWrite(m0, value);
+    [[nodiscard]] uint16_t read() const noexcept { return performRead(); }
+    void write(uint16_t value) noexcept {
+        performWrite(value);
     }
     void next() noexcept {
         advanceOffset();

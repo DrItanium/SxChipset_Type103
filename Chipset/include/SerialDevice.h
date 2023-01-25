@@ -40,9 +40,8 @@ public:
     bool isAvailable() const noexcept { return true; }
     void setBaudRate(uint32_t baudRate) noexcept;
     [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
-    uint16_t extendedRead(const Channel0Value& m0) const noexcept;
-    void extendedWrite(const Channel0Value& m0, uint16_t value) noexcept;
-    void onEndTransaction() noexcept { }
+    uint16_t extendedRead() const noexcept;
+    void extendedWrite(uint16_t value) noexcept;
     void onStartTransaction(const SplitWord32&) noexcept { }
 private:
     uint32_t baud_ = 115200;

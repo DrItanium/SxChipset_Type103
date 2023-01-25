@@ -53,7 +53,7 @@ SerialDevice::init() noexcept {
 
 
 uint16_t 
-SerialDevice::extendedRead(const Channel0Value& m0) const noexcept {
+SerialDevice::extendedRead() const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
@@ -69,7 +69,7 @@ SerialDevice::extendedRead(const Channel0Value& m0) const noexcept {
     }
 }
 void 
-SerialDevice::extendedWrite(const Channel0Value& m0, uint16_t value) noexcept {
+SerialDevice::extendedWrite(uint16_t value) noexcept {
     // do nothing
     bool setBaud = false;
     switch (getCurrentOpcode()) {

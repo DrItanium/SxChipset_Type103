@@ -120,7 +120,13 @@ union SplitWord32 {
         return static_cast<uintptr_t>(0x8000 | (halves[0]));
     }
     [[nodiscard]] constexpr uint24_t compute328BusBank() const noexcept {
-        return static_cast<uint24_t>(full >> 15);
+        //return static_cast<uint24_t>(full >> 15);
+        uint24_t normal = halves[1];
+        normal <<= 1;
+        if (halves[0] & 0x8000) {
+            normal |= 0b1;
+        }
+        return normal;
     }
     void assignHalf(byte offset, uint16_t value) noexcept { halves[offset & 0b1] = value; }
     void clear() noexcept { full = 0; }

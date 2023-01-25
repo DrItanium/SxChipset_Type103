@@ -138,57 +138,42 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 }
 
 struct TreatAsOnChipAccess final { };
+template<bool isReadOperation>
+struct RWOperation final {};
+using ReadOperation = RWOperation<true>;
+using WriteOperation = RWOperation<false>;
 
-template<bool isReadOperation, bool useSwitchStatement = false>
-//[[gnu::noinline]]
 [[gnu::always_inline]]
 inline void
-manipulateDataLines(SplitWord16* ptr) noexcept {
-    if constexpr (isReadOperation) {
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\tRead Out 0x"));
-            Serial.println(ptr->full, HEX);
-        }
-        // keep setting the data lines and inform the i960
-        setDataLines(ptr->full);
-    } else {
-        if constexpr (EnableDebugMode) {
-            Serial.print(F("\tWrite in 0x"));
-            Serial.println(Platform::getDataLines(), HEX);
-        }
-        if constexpr (useSwitchStatement) {
-            switch (static_cast<EnableStyle>(readInputChannelAs<Channel0Value, false>() & 0b11)) {
-                case EnableStyle::Full16:
-                    ptr->full = Platform::getDataLines();
-                    break;
-                case EnableStyle::Lower8:
-                    // directly read from the ports to speed things up
-                    ptr->bytes[0] = getInputRegister<Port::DataLower>();
-                    break;
-                case EnableStyle::Upper8:
-                    ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-                    break;
-                default:
-                    break;
-            }
-        } else {
-            if (digitalRead<Pin::BE0>() == LOW) {
-                ptr->bytes[0] = getInputRegister<Port::DataLower>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-            }
-        }
+manipulateDataLines(const SplitWord16* ptr, ReadOperation) noexcept {
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("\tRead Out 0x"));
+        Serial.println(ptr->full, HEX);
+    }
+    // keep setting the data lines and inform the i960
+    setDataLines(ptr->full);
+}
+
+[[gnu::always_inline]]
+inline void
+manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("\tWrite in 0x"));
+        Serial.println(Platform::getDataLines(), HEX);
+    }
+    if (digitalRead<Pin::BE0>() == LOW) {
+        ptr->bytes[0] = getInputRegister<Port::DataLower>();
+    }
+    if (digitalRead<Pin::BE1>() == LOW) {
+        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
     }
 }
+
 
 template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-    if constexpr (EnableDebugMode) {
-        Serial.println(F("Entering onChipAccess impl"));
-    }
     BankSwitcher::setBank(addr.compute328BusBank());
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target Bank: 0x"));
@@ -199,60 +184,15 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         Serial.print(F("Target Address: 0x"));
         Serial.println(addr.compute328BusAddress(), HEX);
     }
-    manipulateDataLines<isReadOperation>(ptr);
-    auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    ++ptr;
-    manipulateDataLines<isReadOperation>(ptr);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    ++ptr;
-    manipulateDataLines<isReadOperation>(ptr);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    ++ptr;
-    manipulateDataLines<isReadOperation>(ptr);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    ++ptr;
-    manipulateDataLines<isReadOperation>(ptr);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    ++ptr;
-    manipulateDataLines<isReadOperation>(ptr);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    ++ptr;
-    manipulateDataLines<isReadOperation>(ptr);
-    isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-    signalReady();
-    if (isBurstLast) {
-        return;
-    }
-    ++ptr;
-    manipulateDataLines<isReadOperation>(ptr);
-    // at this point we will _always_ end our transaction as the i960 does not allow going beyond this!
-    signalReady();
-    if constexpr (EnableDebugMode) {
-        Serial.println(F("Leaving onChipAccess impl"));
+    using TargetOp = RWOperation<isReadOperation>;
+    for (byte i = 0; i < 8; ++i) {
+        manipulateDataLines(ptr, TargetOp{});
+        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        signalReady();
+        if (isBurstLast) {
+            break;
+        }
+        ++ptr;
     }
 }
 template<bool isReadOperation>

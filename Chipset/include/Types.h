@@ -119,11 +119,10 @@ union SplitWord32 {
         // since it is a 15 bit address, we want to just make sure that the most significant bit always 1
         return static_cast<uintptr_t>(0x8000 | (halves[0]));
     }
-    [[nodiscard]] constexpr uint24_t compute328BusBank() const noexcept {
-        //return static_cast<uint24_t>(full >> 15);
+    [[nodiscard]] constexpr auto compute328BusBank() const noexcept {
         uint24_t normal = halves[1];
         normal <<= 1;
-        if (halves[0] & 0x8000) {
+        if (bytes[1] & 0x80) {
             normal |= 0b1;
         }
         return normal;

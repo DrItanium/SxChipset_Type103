@@ -439,6 +439,18 @@ pulse() noexcept {
     digitalWrite<pin, from>();
 }
 
+/**
+ * @brief Do a blind toggle of the given output pin by using the input register; This will always return the pin to its original position without needing to be explicit
+ * @tparam pin The pin to toggle
+ */
+template<Pin pin>
+[[gnu::always_inline]]
+inline void
+pulse() noexcept {
+    getInputRegister<pin>() = 1;
+    getInputRegister<pin>() = 1;
+}
+
 
 constexpr bool hasPWM(Pin pin) noexcept {
     return digitalPinHasPWM(static_cast<byte>(pin));

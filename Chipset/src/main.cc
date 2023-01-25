@@ -180,8 +180,7 @@ getPeripheralDevice(const SplitWord32& addr) noexcept {
 inline void
 triggerClock() noexcept {
     // just write to the CLKSignal pin to force a toggle
-    getInputRegister<Pin::CLKSignal>() = 1;
-    getInputRegister<Pin::CLKSignal>() = 1;
+    pulse<Pin::CLKSignal>();
     singleCycleDelay();
 }
 

@@ -62,6 +62,10 @@ template<bool isReadOperation>
 struct RWOperation final {};
 using ReadOperation = RWOperation<true>;
 using WriteOperation = RWOperation<false>;
+struct LoadFromEBI final { };
+struct LoadFromPortK final { };
+
+using SelectedLogic = LoadFromPortK;
 
 template<typename T>
 [[gnu::always_inline]]
@@ -185,7 +189,7 @@ triggerClock() noexcept {
 }
 
 inline void
-handleTransaction() noexcept {
+handleTransaction(LoadFromPortK) noexcept {
     SplitWord32 addr{0};
     // clear the address counter to be on the safe side
     if constexpr (EnableDebugMode) {
@@ -260,6 +264,52 @@ handleTransaction() noexcept {
     // shift back to input channel 0
     singleCycleDelay();
 }
+
+void
+handleTransaction(LoadFromEBI) noexcept {
+    // clear the address counter to be on the safe side
+    SplitWord32 addr{memory<uint32_t>(0x7F00)};
+    //singleCycleDelay(); // introduce this extra cycle of delay to make sure
+    // that inputs are updated correctly since they are
+    // tristated
+    if ((addr.bytes[0] & 0b1) == 0) {
+        memory<uint16_t>(0x7F10) = 0xFFFF;
+        // When we are in io space, we are treating the address as an opcode which
+        // we can decompose while getting the pieces from the io expanders. Thus we
+        // can overlay the act of decoding while getting the next part
+        //
+        // The W/~R pin is used to figure out if this is a read or write operation
+        //
+        // This system does not care about the size but it does care about where
+        // one starts when performing a write operation
+        if (addr.isIOInstruction()) {
+            getPeripheralDevice<true>(addr);
+        } else {
+            talkToi960<true>(addr, TreatAsOnChipAccess{});
+        }
+    } else {
+        /// @todo do we need to the masking now that the caches have been removed?
+        addr.bytes[0] &= 0b1111'1110;
+        memory<uint16_t>(0x7F10) = 0;
+
+        // When we are in io space, we are treating the address as an opcode which
+        // we can decompose while getting the pieces from the io expanders. Thus we
+        // can overlay the act of decoding while getting the next part
+        //
+        // The W/~R pin is used to figure out if this is a read or write operation
+        //
+        // This system does not care about the size but it does care about where
+        // one starts when performing a write operation
+        if (addr.isIOInstruction()) {
+            getPeripheralDevice<false>(addr);
+        } else {
+            talkToi960<false>(addr, TreatAsOnChipAccess{});
+        }
+    }
+    // allow for extra recovery time, introduce a single 10mhz cycle delay
+    // shift back to input channel 0
+    singleCycleDelay();
+}
 template<bool TrackBootProcess = false>
 void
 bootCPU() noexcept {
@@ -283,9 +333,9 @@ bootCPU() noexcept {
         Serial.println(F("STARTUP COMPLETE! BOOTING..."));
         // okay so we got past this, just start performing actions
         waitForDataState();
-        handleTransaction();
+        handleTransaction(SelectedLogic {});
         waitForDataState();
-        handleTransaction();
+        handleTransaction(SelectedLogic {});
         waitForDataState();
         if (digitalRead<Pin::FAIL>() == HIGH) {
             Serial.println(F("CHECKSUM FAILURE!"));
@@ -354,7 +404,7 @@ void
 loop() {
     while (true) {
         waitForDataState();
-        handleTransaction();
+        handleTransaction(SelectedLogic{});
     }
 }
 

@@ -87,7 +87,6 @@ union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
     ElementContainer<uint32_t, uint8_t> bytes;
-    ElementContainer<uint32_t, SplitWord16> word16;
     constexpr explicit SplitWord32(uint32_t value) : full(value) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
@@ -107,7 +106,7 @@ union SplitWord32 {
     [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
     template<typename E>
     [[nodiscard]] constexpr E getIOFunction() const noexcept { return static_cast<E>(getIOFunctionCode()); }
-    [[nodiscard]] constexpr auto getAddressOffset() const noexcept { return static_cast<uint8_t>((bytes[0] >> 1)&0b111); }
+    [[nodiscard]] constexpr uint8_t getAddressOffset() const noexcept { return (bytes[0] & 0b1110) >> 1; }
     [[nodiscard]] constexpr bool operator==(const SplitWord32& other) const noexcept { return full == other.full; }
     [[nodiscard]] constexpr bool operator!=(const SplitWord32& other) const noexcept { return full != other.full; }
     [[nodiscard]] constexpr bool operator<(const SplitWord32& other) const noexcept { return full < other.full; }

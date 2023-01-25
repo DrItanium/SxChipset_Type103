@@ -440,6 +440,17 @@ pulse() noexcept {
 }
 
 /**
+ * @brief Toggle the value of the output pin blindly
+ * @tparam pin The output pin to toggle
+ */
+template<Pin pin>
+[[gnu::always_inline]]
+inline void
+toggle() noexcept {
+    getInputRegister<pin>() |= getPinMask<pin>();
+}
+
+/**
  * @brief Do a blind toggle of the given output pin by using the input register; This will always return the pin to its original position without needing to be explicit
  * @tparam pin The pin to toggle
  */
@@ -447,8 +458,8 @@ template<Pin pin>
 [[gnu::always_inline]]
 inline void
 pulse() noexcept {
-    getInputRegister<pin>() = 1;
-    getInputRegister<pin>() = 1;
+    toggle<pin>();
+    toggle<pin>();
 }
 
 

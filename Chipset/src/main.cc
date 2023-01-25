@@ -192,25 +192,25 @@ handleTransaction() noexcept {
         digitalWrite<Pin::AddressCaptureSignal1, LOW>();
     }
     triggerClock();
-    digitalWrite<Pin::Enable, LOW>();
+    toggle<Pin::Enable>();
     singleCycleDelay(); // introduce this extra cycle of delay to make sure
     // that inputs are updated correctly since they are
     // tristated
     if (auto m2 = readInputChannelAs<uint8_t>(); (m2 & 0b1) == 0) {
         addr.bytes[0] = m2;
         // unpack the signal triggering to interleave the act of updating direction with waiting for the clock signalling
-        pulse<Pin::CLKSignal, LOW, HIGH>();
+        pulse<Pin::CLKSignal>();
         getDirectionRegister<Port::DataLower>() = 0xFF;
         getDirectionRegister<Port::DataUpper>() = 0xFF;
         auto b1 = readInputChannelAs<uint8_t>();
-        pulse<Pin::CLKSignal, LOW, HIGH>();
+        pulse<Pin::CLKSignal>();
         addr.bytes[1] = b1;
         auto b2 = readInputChannelAs<uint8_t>();
-        pulse<Pin::CLKSignal, LOW, HIGH>();
+        pulse<Pin::CLKSignal>();
         addr.bytes[2] = b2;
         auto b3 = readInputChannelAs<uint8_t>();
-        digitalWrite<Pin::Enable, HIGH>();
-        pulse<Pin::CLKSignal, LOW, HIGH>();
+        toggle<Pin::Enable>();
+        pulse<Pin::CLKSignal>();
         addr.bytes[3] = b3;
         // When we are in io space, we are treating the address as an opcode which
         // we can decompose while getting the pieces from the io expanders. Thus we
@@ -228,18 +228,18 @@ handleTransaction() noexcept {
     } else {
         /// @todo do we need to the masking now that the caches have been removed?
         addr.bytes[0] = m2 & 0b1111'1110;
-        pulse<Pin::CLKSignal, LOW, HIGH>();
+        pulse<Pin::CLKSignal>();
         getDirectionRegister<Port::DataLower>() = 0;
         getDirectionRegister<Port::DataUpper>() = 0;
         auto b1 = readInputChannelAs<uint8_t>();
-        pulse<Pin::CLKSignal, LOW, HIGH>();
+        pulse<Pin::CLKSignal>();
         addr.bytes[1] = b1;
         auto b2 = readInputChannelAs<uint8_t>();
-        pulse<Pin::CLKSignal, LOW, HIGH>();
+        pulse<Pin::CLKSignal>();
         addr.bytes[2] = b2;
         auto b3 = readInputChannelAs<uint8_t>();
-        digitalWrite<Pin::Enable, HIGH>();
-        pulse<Pin::CLKSignal, LOW, HIGH>();
+        toggle<Pin::Enable>();
+        pulse<Pin::CLKSignal>();
         addr.bytes[3] = b3;
 
         // When we are in io space, we are treating the address as an opcode which

@@ -52,6 +52,12 @@ inline void
 waitForDataState() noexcept {
     while (digitalRead<Pin::DEN>() == HIGH);
 }
+inline
+void
+setDataLines(uint16_t value) noexcept {
+    getOutputRegister<Port::DataLower>() = lowByte(value);
+    getOutputRegister<Port::DataUpper>() = highByte(value);
+}
 template<bool isReadOperation, typename T>
 inline void
 talkToi960(const SplitWord32& addr, T& handler) noexcept {
@@ -72,7 +78,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            Platform::setDataLines(value);
+            setDataLines(value);
         } else {
             auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
@@ -102,7 +108,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            Platform::setDataLines(value);
+            setDataLines(value);
         } else {
             auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
@@ -131,7 +137,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            Platform::setDataLines(value);
+            setDataLines(value);
         } else {
             auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
@@ -160,7 +166,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            Platform::setDataLines(value);
+            setDataLines(value);
         } else {
             auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
@@ -189,7 +195,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            Platform::setDataLines(value);
+            setDataLines(value);
         } else {
             auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
@@ -218,7 +224,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            Platform::setDataLines(value);
+            setDataLines(value);
         } else {
             auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
@@ -247,7 +253,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
                 Serial.print(F("\t\tGot Value: 0x"));
                 Serial.println(value, HEX);
             }
-            Platform::setDataLines(value);
+            setDataLines(value);
         } else {
             auto value = Platform::getDataLines();
             if constexpr (EnableDebugMode) {
@@ -284,7 +290,7 @@ manipulateDataLines(SplitWord16* ptr) noexcept {
             Serial.println(ptr->full, HEX);
         }
         // keep setting the data lines and inform the i960
-        Platform::setDataLines(ptr->full);
+        setDataLines(ptr->full);
     } else {
         if constexpr (EnableDebugMode) {
             Serial.print(F("\tWrite in 0x"));
@@ -391,7 +397,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
 }
 template<bool isReadOperation>
 void
-//inline TransactionInterface&
 getPeripheralDevice(const SplitWord32& addr) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:

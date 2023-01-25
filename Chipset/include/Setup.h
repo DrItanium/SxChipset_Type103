@@ -58,7 +58,6 @@ class Platform final {
         static void doReset(decltype(LOW) value) noexcept;
         static void doHold(decltype(LOW) value) noexcept;
         static uint16_t getDataLines() noexcept;
-        static void setDataLines(uint16_t) noexcept;
     private:
         static inline bool initialized_ = false;
 };

@@ -130,8 +130,3 @@ uint16_t
 Platform::getDataLines() noexcept {
     return makeWord(getInputRegister<Port::DataUpper>(), getInputRegister<Port::DataLower>());
 }
-void
-Platform::setDataLines(uint16_t value) noexcept {
-    getOutputRegister<Port::DataLower>() = lowByte(value);
-    getOutputRegister<Port::DataUpper>() = highByte(value);
-}

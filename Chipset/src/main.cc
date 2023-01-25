@@ -55,6 +55,9 @@ waitForDataState() noexcept {
 template<bool isReadOperation, typename T>
 inline void
 talkToi960(const SplitWord32& addr, T& handler) noexcept {
+    if constexpr (EnableDebugMode) {
+        Serial.println(F("Entering genericTalkToI960"));
+    }
     handler.startTransaction(addr);
     do {
         auto c0 = readInputChannelAs<Channel0Value, true>();
@@ -263,6 +266,9 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         //singleCycleDelay(); // put this in to make sure we never over run anything
     } while(true);
     handler.endTransaction();
+    if constexpr (EnableDebugMode) {
+        Serial.println(F("Leaving genericTalkToI960"));
+    }
 }
 
 struct TreatAsOnChipAccess final { };
@@ -273,6 +279,10 @@ template<bool isReadOperation>
 inline void
 manipulateDataLines(SplitWord16* ptr) noexcept {
     if constexpr (isReadOperation) {
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tRead Out 0x"));
+            Serial.println(ptr->full, HEX);
+        }
         // keep setting the data lines and inform the i960
         Platform::setDataLines(ptr->full);
     } else {
@@ -292,6 +302,10 @@ manipulateDataLines(SplitWord16* ptr) noexcept {
                 break;
         }
 #else
+        if constexpr (EnableDebugMode) {
+            Serial.print(F("\tWrite in 0x"));
+            Serial.println(Platform::getDataLines(), HEX);
+        }
         if (digitalRead<Pin::BE0>() == LOW) {
             ptr->bytes[0] = getInputRegister<Port::DataLower>();
         }
@@ -306,8 +320,19 @@ template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+    if constexpr (EnableDebugMode) {
+        Serial.println(F("Entering onChipAccess impl"));
+    }
     BankSwitcher::setBank(addr.compute328BusBank());
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("Target Bank: 0x"));
+        Serial.println(static_cast<uint32_t>(addr.compute328BusBank()), HEX);
+    }
     SplitWord16* ptr = reinterpret_cast<SplitWord16*>(addr.compute328BusAddress());
+    if constexpr (EnableDebugMode) {
+        Serial.print(F("Target Address: 0x"));
+        Serial.println(addr.compute328BusAddress(), HEX);
+    }
     manipulateDataLines<isReadOperation>(ptr);
     auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
     signalReady();
@@ -360,6 +385,9 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     manipulateDataLines<isReadOperation>(ptr);
     // at this point we will _always_ end our transaction as the i960 does not allow going beyond this!
     signalReady();
+    if constexpr (EnableDebugMode) {
+        Serial.println(F("Leaving onChipAccess impl"));
+    }
 }
 template<bool isReadOperation>
 void

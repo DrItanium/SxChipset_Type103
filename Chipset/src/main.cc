@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include "Types.h"
 #include "Pinout.h"
-#include "Wire.h"
 #include "Peripheral.h"
 #include "Setup.h"
 #include "SerialDevice.h"
@@ -387,7 +386,6 @@ setup() {
     theSerial.begin();
     infoDevice.begin();
     timerInterface.begin();
-    Wire.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     SPI.usingInterrupt(9);

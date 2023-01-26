@@ -30,7 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "MCP23S17.h"
 #include "Pinout.h"
-#include "RTClib.h"
 
 
 enum class TargetPeripheral {

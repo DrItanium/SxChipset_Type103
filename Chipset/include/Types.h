@@ -53,25 +53,13 @@ template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
-constexpr auto TransactionOffsetSize = 4; // 16-byte line
-enum class EnableStyle : byte {
-    Full16 = 0b00,
-    Upper8 = 0b01,
-    Lower8 = 0b10,
-    Undefined = 0b11,
-};
-
-using Channel0Value = uint8_t;
-
 union SplitWord16 {
     uint16_t full;
     ElementContainer<uint16_t, uint8_t> bytes;
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
-    constexpr SplitWord16() : full(0) { }
-    constexpr explicit SplitWord16(uint16_t value) : full(value) { }
+    constexpr explicit SplitWord16(uint16_t value = 0) : full(value) { }
     constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
-    void setWholeValue(uint16_t value) noexcept { full = value; }
     [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
     [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
     [[nodiscard]] constexpr bool operator==(uint16_t other) const noexcept { return full == other; }
@@ -81,7 +69,6 @@ union SplitWord16 {
     [[nodiscard]] constexpr bool operator>(const SplitWord16& other) const noexcept { return full > other.full; }
     [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
 };
-
 
 union SplitWord32 {
     uint32_t full;

@@ -352,8 +352,7 @@ installMemoryImage() noexcept {
     }
     Serial.println(F("SD CARD FOUND!"));
     // look for firmware.bin and open it readonly
-    auto theFirmware = SD.open("firmware.bin", FILE_READ);
-    if (!theFirmware) {
+    if (auto theFirmware = SD.open("firmware.bin", FILE_READ); !theFirmware) {
         Serial.println(F("Could not open firmware.bin for reading!"));
         while (true) {
             delay(1000);
@@ -379,7 +378,6 @@ installMemoryImage() noexcept {
         theFirmware.close();
         BankSwitcher::setBank(previousBank);
     }
-
 }
 void
 setup() {
@@ -388,7 +386,6 @@ setup() {
     timerInterface.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    SPI.usingInterrupt(9);
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

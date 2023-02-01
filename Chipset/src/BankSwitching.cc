@@ -62,9 +62,7 @@ namespace External328Bus {
 #endif
     }
     void select() noexcept {
-#if 0
         digitalWrite<Pin::RealA15, HIGH>();
-#endif
     }
 } // end namespace External328Bus
 namespace InternalBus {

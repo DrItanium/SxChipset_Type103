@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "MCP23S17.h"
 #include "Pinout.h"
+#include "Setup.h"
 
 
 enum class TargetPeripheral {
@@ -57,7 +58,8 @@ readInputChannelAs() noexcept {
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
-    pulse<Pin::Ready, LOW, HIGH>();
+    Platform::signalReady();
+    //pulse<Pin::Ready, LOW, HIGH>();
 }
 
 template<typename E, typename T>

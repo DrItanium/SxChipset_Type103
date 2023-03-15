@@ -46,16 +46,13 @@ void
 pullCPUOutOfReset() noexcept {
     Platform::doReset(HIGH);
 }
-[[gnu::always_inline]]
-inline void 
-waitForDataState() noexcept {
-    while (digitalRead<Pin::DEN>() == HIGH);
-}
-inline
 void
-setDataLines(uint16_t value) noexcept {
-    getOutputRegister<Port::DataLower>() = lowByte(value);
-    getOutputRegister<Port::DataUpper>() = highByte(value);
+waitForDataState() noexcept {
+    Platform::waitForDataState();
+}
+void
+setDataLines(uint32_t value) noexcept {
+    Platform::setDataLines(value);
 }
 template<bool isReadOperation>
 struct RWOperation final {};

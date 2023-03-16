@@ -1,0 +1,19 @@
+GAL16V8
+CPUDimmChip2
+
+CLK DEN IBE1 IBE0 A1   BLAST NC   NC  NC  GND
+OE  NC  FAIL OBE0 OBE1 OBE2  OBE3 ENU ENL VCC
+
+/FAIL.R = IBE1 * IBE0 * /BLAST
+/ENL = /A1 * /DEN
+/ENU = A1 * /DEN
+/OBE3 = /IBE1 * A1 * /DEN
+/OBE2 = /IBE0 * A1 * /DEN
+/OBE1 = /IBE1 * /A1 * /DEN
+/OBE0 = /IBE0 * /A1 * /DEN
+
+DESCRIPTION
+
+Provide ready signal and synchronization work to the i960Sx chip
+
+The ready signal synchronized to be an either edge detector

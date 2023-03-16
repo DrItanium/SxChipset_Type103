@@ -3,7 +3,7 @@
 	@galette $< 
 	@echo done.
 
-all: Type103PLD.jed Type103aPLD.jed Type103aCounter.jed SRAMCardDecoder.jed
+all: Type103PLD.jed Type103aPLD.jed Type103aCounter.jed SRAMCardDecoder.jed BusDecoder.jed
 
 
 
@@ -19,7 +19,8 @@ install_SRAMCardDecoder: SRAMCardDecoder.jed
 install_Type103aCounter: Type103aCounter.jed
 	minipro -p "ATF22V10CQZ(UES)" --write Type103aCounter.jed 
 
-
+install_BusDecoder: BusDecoder.jed
+	minipro -p ATF16V8C --write BusDecoder.jed 
 
 help: 
 	@echo "Build Options"

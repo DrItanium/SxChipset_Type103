@@ -1,0 +1,25 @@
+
+
+ Pin # | Name     | Pin Type
+-----------------------------
+   1   | PG0      | Input
+   2   | PG1      | Input
+   3   | PC0      | Input
+   4   | PC1      | Input
+   5   | PC2      | Input
+   6   | PC3      | Input
+   7   | PC4      | Input
+   8   | PC5      | Input
+   9   | PC6      | Input
+  10   | GND      | GND
+  11   | PC7      | Input
+  12   | SC3      | NC
+  13   | SC2      | NC
+  14   | SC1      | NC
+  15   | SC0      | Output
+  16   | EBI      | Output
+  17   | IOX      | Output
+  18   | IBUS     | Output
+  19   | XBUS     | Output
+  20   | VCC      | VCC
+

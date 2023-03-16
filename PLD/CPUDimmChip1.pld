@@ -11,7 +11,7 @@ I0.R = XINT0
 I3.R = XINT6
 Z0.R = RDY
 Z1.R = Z0
-/RDY = R1 * /R0 + /R1 * R0
+/RSYNC = Z1 * /Z0 + /Z1 * Z0
 
 DESCRIPTION
 

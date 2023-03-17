@@ -3,7 +3,13 @@
 	@galette $< 
 	@echo done.
 
-all: Type103PLD.jed Type103aPLD.jed Type103aCounter.jed SRAMCardDecoder.jed BusDecoder.jed
+all: Type103PLD.jed \
+	Type103aPLD.jed \
+	Type103aCounter.jed \
+	SRAMCardDecoder.jed \
+	BusDecoder.jed \
+	CPUDimmChip1.pld \
+	CPUDimmChip2.pld
 
 
 

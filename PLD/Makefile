@@ -28,6 +28,12 @@ install_Type103aCounter: Type103aCounter.jed
 install_BusDecoder: BusDecoder.jed
 	minipro -p ATF16V8C --write BusDecoder.jed 
 
+install_CPUDimmChip1: CPUDimmChip1.jed
+	minipro -p ATF16V8C --write CPUDimmChip1.jed 
+
+install_CPUDimmChip2: CPUDimmChip2.jed
+	minipro -p ATF16V8C --write CPUDimmChip2.jed 
+
 help: 
 	@echo "Build Options"
 	@echo "- all : compile the gal code"

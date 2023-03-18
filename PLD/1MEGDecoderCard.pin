@@ -19,7 +19,7 @@
   15   | NC       | NC
   16   | WR       | Output
   17   | RD       | Output
-  18   | EN1      | NC
-  19   | EN0      | NC
+  18   | EN1      | Output
+  19   | EN0      | Output
   20   | VCC      | VCC
 

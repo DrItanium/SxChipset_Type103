@@ -138,8 +138,15 @@ CH351DevicesTest() noexcept {
     controlSignals.ctl.bankSel = 0;
     bankRegister.reg32.gpio = 0;
     delay(1000);
+    if (controlSignals.ctl.den) {
+        Serial.println(F("The i960 seems to be in reset"));
+    } else {
+        Serial.println(F("ERROR! the i960 is not in reset!"));
+    }
     controlSignals.ctl.reset = 1;
-    while (controlSignals.ctl.den);
+    while (controlSignals.ctl.den) {
+        Serial.println("i960 starting up please wait!");
+    }
     Serial.println(F("i960 has been brought up!"));
     /// @todo implement handler code here
     Serial.println(F("DONE!"));
@@ -152,12 +159,11 @@ setup() {
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
     DDRJ = 0xFF; // output
-    setIBUSBank(0);
     // enable EBI
     XMCRB = 0b1'0000'000; // full 64k space and bus keeper
     XMCRA = 0b1'000'01'01; // need a single cycle wait state and enable EBI
-    IBUSTest();
     CH351DevicesTest();
+    IBUSTest();
 }
 
 

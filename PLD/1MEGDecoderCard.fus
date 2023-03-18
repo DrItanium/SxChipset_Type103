@@ -22,7 +22,7 @@ Pin 18 = EN0          XOR = 0   AC1 = 1
 
 Pin 17 = RD           XOR = 0   AC1 = 1
  16  ---- ---- ---- ---- ---- ---- ---- ----
- 17  ---- ---- ---- ---- ---x ---- ---- -x-x
+ 17  ---- ---- ---- ---- ---x ---x ---x x--x
  18  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  19  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  20  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -32,7 +32,7 @@ Pin 17 = RD           XOR = 0   AC1 = 1
 
 Pin 16 = WR           XOR = 0   AC1 = 1
  24  ---- ---- ---- ---- ---- ---- ---- ----
- 25  ---- ---- ---- ---- ---x ---- ---- x--x
+ 25  ---- ---- ---- ---- ---x ---x ---x -xx-
  26  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  27  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  28  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

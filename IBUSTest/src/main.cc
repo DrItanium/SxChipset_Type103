@@ -111,7 +111,11 @@ union [[gnu::packed]] CH351 {
 };
 void
 i960Cycle(volatile CH351& addressLines, volatile CH351& dataLines, volatile CH351& controlSignals) noexcept {
-    while (controlSignals.ctl.den);
+    while (controlSignals.ctl.den) {
+        if (!controlSignals.ctl.fail) {
+            return;
+        }
+    }
     Serial.print(F("Operation @0x"));
     Serial.println(addressLines.reg32.gpio, HEX);
     bool isWriteOperation = controlSignals.ctl.wr;

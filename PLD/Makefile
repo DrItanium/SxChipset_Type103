@@ -27,7 +27,7 @@ install_Type103aCounter: Type103aCounter.jed
 	minipro -p "ATF22V10CQZ(UES)" --write Type103aCounter.jed 
 
 install_BusDecoder: BusDecoder.jed
-	minipro -p ATF16V8C --write BusDecoder.jed 
+	minipro -p ATF16LV8C --write BusDecoder.jed 
 
 install_CPUDimmChip1: CPUDimmChip1.jed
 	minipro -p ATF16V8C --write CPUDimmChip1.jed 

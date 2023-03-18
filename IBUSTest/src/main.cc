@@ -31,6 +31,25 @@ setIBUSBank(uint8_t bankId) noexcept {
     PORTJ = bankId;
 }
 void
+bankTest() noexcept {
+    for (volatile byte* window = reinterpret_cast<volatile byte*>(IBUSFirstAddress); window < IBUSEndAddress; ++window) {
+        volatile byte theValue = static_cast<uint8_t>(random());
+        *window = theValue;
+        if (*window != theValue) {
+            Serial.print(F("Mismatch @0x"));
+            Serial.print(reinterpret_cast<uintptr_t>(window), HEX);
+            Serial.print(F(", G: 0x"));
+            Serial.print(*window, HEX);
+            Serial.print(F(", W: 0x"));
+            Serial.print(theValue, HEX);
+            Serial.println();
+            Serial.println(F("\tSkipping the rest of the bank"));
+            return;
+        }
+    }
+}
+
+void
 setup() {
     randomSeed(analogRead(A0) + analogRead(A1) + analogRead(A2) + analogRead(A3));
     Serial.begin(115200);
@@ -40,25 +59,13 @@ setup() {
     setIBUSBank(0);
     // enable EBI
     XMCRB = 0b1'0000'000; // full 64k space and bus keeper
-    XMCRA = 0b1'000'01'01; // no wait states and enable EBI
+    XMCRA = 0b1'000'01'01; // need a single cycle wait state and enable EBI
     Serial.println(F("Testing the first 16k of the IBUS"));
-    for (uint8_t bankIndex = 0; bankIndex < 0b01'000000; ++bankIndex) {
+    for (uint16_t bankIndex = 0; bankIndex < 0x100; ++bankIndex) {
         Serial.print(F("Setting to bank 0b"));
         Serial.println(bankIndex, BIN);
         setIBUSBank(bankIndex); 
-        for (volatile byte* window = reinterpret_cast<volatile byte*>(IBUSFirstAddress); window < IBUSEndAddress; ++window) {
-            volatile byte theValue = static_cast<uint8_t>(random());
-            *window = theValue;
-            if (*window != theValue) {
-                Serial.print(F("Mismatch @0x"));
-                Serial.print(reinterpret_cast<uintptr_t>(window), HEX);
-                Serial.print(F(", G: 0x"));
-                Serial.print(*window, HEX);
-                Serial.print(F(", W: 0x"));
-                Serial.print(theValue, HEX);
-                Serial.println();
-            }
-        }
+        bankTest();
     }
     Serial.println(F("DONE!"));
 }

@@ -8,9 +8,9 @@ all: Type103PLD.jed \
 	Type103aCounter.jed \
 	SRAMCardDecoder.jed \
 	BusDecoder.jed \
-	CPUDimmChip1.pld \
-	CPUDimmChip2.pld \
-	1MEGDecoderCard.pld
+	CPUDimmChip1.jed \
+	CPUDimmChip2.jed \
+	1MEGDecoderCard.jed
 
 
 

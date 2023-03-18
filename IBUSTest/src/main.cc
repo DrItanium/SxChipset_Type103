@@ -50,6 +50,63 @@ bankTest() noexcept {
 }
 
 void
+IBUSTest() noexcept {
+    Serial.println(F("Testing the first 16k of the IBUS"));
+    for (uint16_t bankIndex = 0; bankIndex < 0x100; ++bankIndex) {
+        Serial.print(F("Setting to bank 0b"));
+        Serial.println(bankIndex, BIN);
+        setIBUSBank(bankIndex); 
+        bankTest();
+    }
+    Serial.println(F("DONE!"));
+}
+template<typename T>
+volatile T& memory(uintptr_t address) noexcept {
+    return *reinterpret_cast<volatile T*>(address);
+}
+
+union [[gnu::packed]] CH351 {
+    static constexpr auto DirectionOutput = 1;
+    static constexpr auto DirectionInput = 0;
+    uint8_t registers[8];
+    struct {
+        uint8_t gpio[4];
+        uint8_t direction[4];
+    } reg8;
+    struct {
+        uint32_t gpio;
+        uint32_t direction;
+    } reg32;
+    struct {
+        uint16_t gpio[2];
+        uint16_t direction[2];
+    } reg16;
+    static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
+    struct {
+        uint8_t hold : 1;
+        uint8_t hlda : 1;
+        uint8_t lock : 1;
+        uint8_t fail : 1;
+        uint8_t reset : 1;
+        uint8_t cfg : 3;
+        uint8_t freq : 3;
+    } controlSignals;
+};
+void
+CH351DevicesTest() noexcept {
+    Serial.println(F("Testing CH351 devices!"));
+    volatile CH351& addressLines = memory<CH351>(0x2200);
+    volatile CH351& dataLines = memory<CH351>(0x2208);
+    volatile CH351& controlSignals = memory<CH351>(0x2210);
+    volatile CH351& bankRegister = memory<CH351>(0x2218);
+    addressLines.reg32.direction = 0;
+    dataLines.reg32.direction = 0xFFFF'FFFF;
+    controlSignals.reg32.direction = CH351::ControlSignalDirection;
+    bankRegister.reg32.direction = 0xFFFF'FFFF;
+    Serial.println(F("DONE!"));
+}
+
+void
 setup() {
     randomSeed(analogRead(A0) + analogRead(A1) + analogRead(A2) + analogRead(A3));
     Serial.begin(115200);
@@ -60,14 +117,8 @@ setup() {
     // enable EBI
     XMCRB = 0b1'0000'000; // full 64k space and bus keeper
     XMCRA = 0b1'000'01'01; // need a single cycle wait state and enable EBI
-    Serial.println(F("Testing the first 16k of the IBUS"));
-    for (uint16_t bankIndex = 0; bankIndex < 0x100; ++bankIndex) {
-        Serial.print(F("Setting to bank 0b"));
-        Serial.println(bankIndex, BIN);
-        setIBUSBank(bankIndex); 
-        bankTest();
-    }
-    Serial.println(F("DONE!"));
+    IBUSTest();
+    CH351DevicesTest();
 }
 
 

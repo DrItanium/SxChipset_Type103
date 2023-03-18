@@ -110,6 +110,45 @@ union [[gnu::packed]] CH351 {
     } ctl;
 };
 void
+i960Cycle(volatile CH351& addressLines, volatile CH351& dataLines, volatile CH351& controlSignals) noexcept {
+    while (controlSignals.ctl.den);
+    Serial.print(F("Operation @0x"));
+    Serial.println(addressLines.reg32.gpio, HEX);
+    bool isWriteOperation = controlSignals.ctl.wr;
+    if (isWriteOperation) {
+        dataLines.reg32.direction = 0;
+    } else {
+        dataLines.reg32.direction = 0xFFFF'FFFF;
+    }
+    do {
+        if (isWriteOperation) {
+            asm volatile ("nop");
+            asm volatile ("nop");
+            asm volatile ("nop");
+            asm volatile ("nop");
+            asm volatile ("nop");
+            asm volatile ("nop");
+            asm volatile ("nop");
+            asm volatile ("nop");
+            Serial.print(F("\tWrite 0x"));
+            Serial.print(dataLines.reg32.gpio, HEX);
+            Serial.print(F(" to 0x"));
+            Serial.println(addressLines.reg32.gpio, HEX);
+        } else {
+            dataLines.reg32.gpio = 0;
+            Serial.print(F("\tRead '0' from 0x"));
+            Serial.println(addressLines.reg32.gpio, HEX);
+        }
+        bool isBurstLast = controlSignals.ctl.blast;
+        {
+            controlSignals.ctl.ready = ~controlSignals.ctl.ready;
+        }
+        if (isBurstLast) {
+            break;
+        }
+    } while (true);
+}
+void
 CH351DevicesTest() noexcept {
     Serial.println(F("Testing CH351 devices!"));
     volatile CH351& addressLines = memory<CH351>(0x2200);
@@ -148,6 +187,10 @@ CH351DevicesTest() noexcept {
         Serial.println("i960 starting up please wait!");
     }
     Serial.println(F("i960 has been brought up!"));
+    // now we want to make the i960 go into fail mode!
+    while (controlSignals.ctl.fail) {
+
+    }
     /// @todo implement handler code here
     Serial.println(F("DONE!"));
 }

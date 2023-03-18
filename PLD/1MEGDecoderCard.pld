@@ -6,8 +6,8 @@ PG1 NC  NC  NC  NC WR RD EN1 EN0 VCC
 
 /WR = /IEN * /PG0 * PG1 * M0 * A20 * M1 * A21 + /IEN * /PG0 * PG1 * /M0 * /A20 * M1 * A21 + /IEN * /PG0 * PG1 * M0 * A20 * /M1 * /A21 + /IEN * /PG0 * PG1 * /M0 * /A20 * /M1 * /A21
 /RD = /IEN * PG0 * /PG1 * M0 * A20 * M1 * A21 + /IEN * PG0 * /PG1 * /M0 * /A20 * M1 * A21 + /IEN * PG0 * /PG1 * M0 * A20 * /M1 * /A21 + /IEN * PG0 * /PG1 * /M0 * /A20 * /M1 * /A21
-/EN0 = /A19 * /IEN * PG0 * /PG1 * /M0 * /A20 * /M1 * /A21 + /A19 * /IEN * /PG0 * PG1 * /M0 * /A20 * /M1 * /A21 + /A19 * /IEN * PG0 * /PG1 * /M0 * /A20 * M1 * A21 + /A19 * /IEN * /PG0 * PG1 * /M0 * /A20 * M1 * A21 + /A19 * /IEN * PG0 * /PG1 * M0 * A20 * /M1 * /A21 + /A19 * /IEN * /PG0 * PG1 * M0 * A20 * /M1 * /A21 + /A19 * /IEN * PG0 * /PG1 * M0 * A20 * M1 * A21 + /A19 * /IEN * /PG0 * PG1 * M0 * A20 * M1 * A21
-/EN1 = A19 * /IEN * PG0 * /PG1 * /M0 * /A20 * /M1 * /A21 + A19 * /IEN * /PG0 * PG1 * /M0 * /A20 * /M1 * /A21 + A19 * /IEN * PG0 * /PG1 * /M0 * /A20 * M1 * A21 + A19 * /IEN * /PG0 * PG1 * /M0 * /A20 * M1 * A21 + A19 * /IEN * PG0 * /PG1 * M0 * A20 * /M1 * /A21 + A19 * /IEN * /PG0 * PG1 * M0 * A20 * /M1 * /A21 + A19 * /IEN * PG0 * /PG1 * M0 * A20 * M1 * A21 + A19 * /IEN * /PG0 * PG1 * M0 * A20 * M1 * A21
+/EN0 = /A19 * /IEN * /PG0 * PG1 * /M0 * /A20 * /M1 * /A21 * M2 + /A19 * /IEN * /PG0 * PG1 * /M0 * /A20 * M1 * A21 * M2 + /A19 * /IEN * /PG0 * PG1 * M0 * A20 * /M1 * /A21 * M2 + /A19 * /IEN * /PG0 * PG1 * M0 * A20 * M1 * A21 * M2 + /A19 * /IEN * PG0 * /PG1 * /M0 * /A20 * M1 * A21 + /A19 * /IEN * PG0 * /PG1 * M0 * A20 * /M1 * /A21 + /A19 * /IEN * PG0 * /PG1 * M0 * A20 * M1 * A21 + /A19 * /IEN * PG0 * /PG1 * /M0 * /A20 * /M1 * /A21
+/EN1 = A19 * /IEN * PG0 * /PG1 * /M0 * /A20 * /M1 * /A21 + A19 * /IEN * PG0 * /PG1 * M0 * A20 * M1 * A21 + A19 * /IEN * PG0 * /PG1 * /M0 * /A20 * M1 * A21 + A19 * /IEN * PG0 * /PG1 * M0 * A20 * /M1 * /A21 + A19 * /IEN * /PG0 * PG1 * /M0 * /A20 * /M1 * /A21 * M3 + A19 * /IEN * /PG0 * PG1 * /M0 * /A20 * M1 * A21 * M3 + A19 * /IEN * /PG0 * PG1 * M0 * A20 * /M1 * /A21 * M3 + A19 * /IEN * /PG0 * PG1 * M0 * A20 * M1 * A21 * M3
 
 DESCRIPTION
 
@@ -17,8 +17,8 @@ Table Meaning
 -------------
 M0 - ADR Match A20
 M1 - ADR Match A21
-M2 - Unused
-M3 - Unused
+M2 - Chip 0 is Writable (active high)
+M3 - Chip 1 is Writable (active high)
 
 M0 and M1 are the only ones used and they match against the upper two bits of
 the IBUS address lines. This provides a maximum of four megabytes addressable
@@ -29,3 +29,21 @@ separate card.
 
 A19 is used to choose which of the two SRAM chips are to be selected.
 
+M2 and M3 are used to state if a given chip is read-only or read/write. This is
+done to support flash chips which use the exact same pinout. 
+
+
+Now we have to only allow Writes on chips marked as read/write
+
+If both M2 and M3 are high then it is business as usual
+
+if m2 is low but M3 is high then only trigger if A19 is HIGH
+
+
+if m2 is high but M3 is low then only trigger if A19 is low
+
+
+if both are low then it is not allowed in any case!
+
+However, we don't have enough product terms to satisfy this, instead we need to
+deactivate enable on writes when it is not allowed

@@ -90,7 +90,24 @@ union [[gnu::packed]] CH351 {
         uint8_t reset : 1;
         uint8_t cfg : 3;
         uint8_t freq : 3;
-    } controlSignals;
+        uint8_t boff : 1;
+        uint8_t ready : 1;
+        uint8_t nmi : 1;
+        uint8_t nc : 2;
+        uint8_t xint0 : 1;
+        uint8_t xint1 : 1;
+        uint8_t xint2 : 1;
+        uint8_t xint3 : 1;
+        uint8_t xint4 : 1;
+        uint8_t xint5 : 1;
+        uint8_t xint6 : 1;
+        uint8_t xint7 : 1;
+        uint8_t byteEnable : 4;
+        uint8_t den : 1;
+        uint8_t blast : 1;
+        uint8_t wr : 1;
+        uint8_t bankSel : 1;
+    } ctl;
 };
 void
 CH351DevicesTest() noexcept {
@@ -101,8 +118,30 @@ CH351DevicesTest() noexcept {
     volatile CH351& bankRegister = memory<CH351>(0x2218);
     addressLines.reg32.direction = 0;
     dataLines.reg32.direction = 0xFFFF'FFFF;
+    dataLines.reg32.gpio = 0;
     controlSignals.reg32.direction = CH351::ControlSignalDirection;
+    controlSignals.reg32.gpio = 0;
     bankRegister.reg32.direction = 0xFFFF'FFFF;
+    controlSignals.ctl.hold = 0;
+    controlSignals.ctl.reset = 0; // put i960 in reset
+    controlSignals.ctl.boff = 1;
+    controlSignals.ctl.ready = 0;
+    controlSignals.ctl.nmi = 1;
+    controlSignals.ctl.xint0 = 1;
+    controlSignals.ctl.xint1 = 1;
+    controlSignals.ctl.xint2 = 1;
+    controlSignals.ctl.xint3 = 1;
+    controlSignals.ctl.xint4 = 1;
+    controlSignals.ctl.xint5 = 1;
+    controlSignals.ctl.xint6 = 1;
+    controlSignals.ctl.xint7 = 1;
+    controlSignals.ctl.bankSel = 0;
+    bankRegister.reg32.gpio = 0;
+    delay(1000);
+    controlSignals.ctl.reset = 1;
+    while (controlSignals.ctl.den);
+    Serial.println(F("i960 has been brought up!"));
+    /// @todo implement handler code here
     Serial.println(F("DONE!"));
 }
 

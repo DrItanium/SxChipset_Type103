@@ -139,7 +139,7 @@ i960Cycle(volatile CH351& addressLines, volatile CH351& dataLines, volatile CH35
             Serial.print(F("\tRead '0' from 0x"));
             Serial.println(addressLines.reg32.gpio, HEX);
         }
-        bool isBurstLast = controlSignals.ctl.blast;
+        bool isBurstLast = controlSignals.ctl.blast == 0;
         {
             controlSignals.ctl.ready = ~controlSignals.ctl.ready;
         }
@@ -189,7 +189,7 @@ CH351DevicesTest() noexcept {
     Serial.println(F("i960 has been brought up!"));
     // now we want to make the i960 go into fail mode!
     while (controlSignals.ctl.fail) {
-
+        i960Cycle(addressLines, dataLines, controlSignals);
     }
     /// @todo implement handler code here
     Serial.println(F("DONE!"));

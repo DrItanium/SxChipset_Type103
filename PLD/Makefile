@@ -9,7 +9,8 @@ all: Type103PLD.jed \
 	SRAMCardDecoder.jed \
 	BusDecoder.jed \
 	CPUDimmChip1.pld \
-	CPUDimmChip2.pld
+	CPUDimmChip2.pld \
+	1MEGDecoderCard.pld
 
 
 
@@ -33,6 +34,9 @@ install_CPUDimmChip1: CPUDimmChip1.jed
 
 install_CPUDimmChip2: CPUDimmChip2.jed
 	minipro -p ATF16V8C --write CPUDimmChip2.jed 
+
+install_1MEGDecoderCard: 1MEGDecoderCard.jed
+	minipro -p ATF16V8C --write 1MEGDecoderCard.jed 
 
 help: 
 	@echo "Build Options"

@@ -1,0 +1,33 @@
+GAL16V8
+1MEGDecoderChip
+
+IEN A21 A20 A19 M0 M1 M2 M3  PG0 GND
+PG1 NC  MM1  MM0  EEN WR RD EN0 EN1 VCC
+
+/EEN = PG0 * /PG1 + /PG0 * PG1
+/MM0 = M0 * A20 + /M0 * /A20
+/MM1 = M1 * A21 + /M1 * /A21
+/WR = /EEN * /MM0 * /MM1 * /PG0 * PG1
+/RD = /EEN * /MM0 * /MM1 * PG0 * /PG1
+/EN0 = /EEN * /MM0 * /MM1 * /A19
+/EN1 = /EEN * /MM0 * /MM1 * A19
+
+DESCRIPTION
+
+Provides IBUS decoding to map 1 megabyte of RAM across two 512k SRAM chips.
+
+Table Meaning
+-------------
+M0 - ADR Match A20
+M1 - ADR Match A21
+M2 - Unused
+M3 - Unused
+
+M0 and M1 are the only ones used and they match against the upper two bits of
+the IBUS address lines. This provides a maximum of four megabytes addressable
+by the IBUS.
+
+PG0 and PG1 are the WR and RD pins, IEN is the IBUS.EN pin that comes from a
+separate card. 
+
+A19 is used to choose which of the two SRAM chips are to be selected.

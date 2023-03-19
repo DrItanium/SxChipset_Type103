@@ -98,11 +98,6 @@ Platform::waitForDataState() noexcept {
     getProcessorInterface().waitForDataState();
 }
 
-uint8_t
-Platform::readInputSignalPort() noexcept {
-    return getProcessorInterface().control_.view8.data[3];
-}
-
 uint32_t
 Platform::readAddress() noexcept {
     return getProcessorInterface().getAddress();

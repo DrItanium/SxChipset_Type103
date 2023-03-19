@@ -171,6 +171,11 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     }
 #endif
 }
+template<bool isReadOperation, typename T>
+[[gnu::always_inline]]
+inline void talkToi960(uint32_t address, T) noexcept {
+    talkToi960<isReadOperation>(SplitWord32{address}, T{});
+}
 template<bool isReadOperation>
 void
 getPeripheralDevice(const SplitWord32& addr) noexcept {
@@ -189,6 +194,12 @@ getPeripheralDevice(const SplitWord32& addr) noexcept {
             break;
     }
 }
+template<bool isReadOperation>
+[[gnu::always_inline]]
+inline void
+getPeripheralDevice(uint32_t addr) noexcept {
+    getPeripheralDevice<isReadOperation>(SplitWord32{addr});
+}
 
 #if 0
 [[gnu::always_inline]]
@@ -204,6 +215,21 @@ inline void
 handleTransaction(LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     auto address = Platform::readAddress();
+    if (Platform::isReadOperation()) {
+        Platform::configureDataLinesForRead();
+        if (Platform::isIOOperation()) {
+            getPeripheralDevice<true>(address);
+        } else {
+            talkToi960<true>(address, TreatAsOnChipAccess{});
+        }
+    } else {
+        Platform::configureDataLinesForWrite();
+        if (Platform::isIOOperation()) {
+            getPeripheralDevice<false>(address);
+        } else {
+            talkToi960<false>(address, TreatAsOnChipAccess{});
+        }
+    }
     // need this delay to synchronize everything :)
     singleCycleDelay();
 }

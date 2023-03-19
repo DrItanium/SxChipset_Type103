@@ -57,7 +57,6 @@ class Platform final {
         static void begin() noexcept;
         static void doReset(decltype(LOW) value) noexcept;
         static void doHold(decltype(LOW) value) noexcept;
-        static uint32_t getDataLines() noexcept;
         static uint8_t getCPUConfigValue() noexcept;
         static uint8_t getFrequencyInfo() noexcept;
         static void tellCPUToBackOff() noexcept;
@@ -70,16 +69,20 @@ class Platform final {
         static void signalXINT5() noexcept;
         static void signalXINT6() noexcept;
         static void signalXINT7() noexcept;
+        static uint32_t getDataLines() noexcept;
         static void setDataLines(uint32_t value) noexcept;
         static void waitForDataState() noexcept;
         static void setBankConfiguration(bool value) noexcept;
-        static uint8_t readInputSignalPort() noexcept;
         static uint32_t readAddress() noexcept;
         static void signalReady() noexcept;
         static bool checksumFailure() noexcept;
         static bool isBurstLast() noexcept;
+        static uint8_t getByteEnable() noexcept;
+        static bool isReadOperation() noexcept;
+        static void configureDataLinesForWrite() noexcept;
+        static void configureDataLinesForRead() noexcept;
+        static bool isIOOperation() noexcept;
     private:
-        static inline bool readyStatus_ = false;
         static inline bool initialized_ = false;
 };
 

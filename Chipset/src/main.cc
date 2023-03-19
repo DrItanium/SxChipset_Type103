@@ -163,10 +163,11 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     }
 #endif
 }
-template<bool isReadOperation, typename T>
+template<bool isReadOperation>
 [[gnu::always_inline]]
-inline void talkToi960(uint32_t address, T) noexcept {
-    talkToi960<isReadOperation>(SplitWord32{address}, T{});
+inline void
+talkToi960(uint32_t addr, TreatAsOnChipAccess) noexcept {
+    talkToi960<isReadOperation>(SplitWord32{addr}, TreatAsOnChipAccess{});
 }
 template<bool isReadOperation>
 void

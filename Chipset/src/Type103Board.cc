@@ -116,3 +116,13 @@ Platform::signalReady() noexcept {
     volatile auto& proc = getProcessorInterface();
     proc.control_.ctl.ready = ~proc.control_.ctl.ready;
 }
+
+bool
+Platform::isReadOperation() noexcept {
+    return getProcessorInterface().control_.ctl.wr == 0;
+}
+
+bool
+Platform::isIOOperation() noexcept {
+    return getProcessorInterface().address_.view8.data[3] == 0xF0;
+}

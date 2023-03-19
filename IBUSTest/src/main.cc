@@ -23,6 +23,9 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <SD.h>
 constexpr size_t IBUSFirstAddress = 0x4000;
 constexpr size_t IBUSLastAddress = 0x7FFF;
 volatile byte* IBUSEndAddress = reinterpret_cast<volatile byte*>(IBUSLastAddress + 1);
@@ -203,14 +206,21 @@ void
 setup() {
     randomSeed(analogRead(A0) + analogRead(A1) + analogRead(A2) + analogRead(A3));
     Serial.begin(115200);
+    Wire.begin();
+    SPI.begin();
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
     DDRJ = 0xFF; // output
     // enable EBI
     XMCRB = 0b1'0000'000; // full 64k space and bus keeper
     XMCRA = 0b1'000'01'01; // need a single cycle wait state and enable EBI
-    CH351DevicesTest();
     IBUSTest();
+    if (!SD.begin(PIN_PB0)) {
+        Serial.println(F("NO SD CARD FOUND!"));
+    }  else {
+        Serial.println(F("SD CARD INSERTED!!!"));
+    }
+    CH351DevicesTest();
 }
 
 

@@ -198,7 +198,12 @@ triggerClock() noexcept {
     //pulse<Pin::CLKSignal>();
     singleCycleDelay();
 }
-
+inline void
+handleTransaction(LoadFromIBUS) noexcept {
+    // first we need to extract the address from the CH351s
+    // need this delay to synchronize everything :)
+    singleCycleDelay();
+}
 inline void
 handleTransaction(LoadFromPortK) noexcept {
 #if 0

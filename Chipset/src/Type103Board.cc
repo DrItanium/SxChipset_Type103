@@ -39,50 +39,42 @@ constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
  */
 constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device7;
 
+volatile ProcessorInterface&
+getProcessorInterface() noexcept {
+    return adjustedMemory<ProcessorInterface>(0);
+}
 
+namespace {
+    static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
+}
 void
 Platform::begin() noexcept {
     if (!initialized_) {
         initialized_ = true;
-        // configure pins
-        //pinMode<Pin::GPIOSelect>(OUTPUT);
-        //pinMode<Pin::SD_EN>(OUTPUT);
-        //pinMode<Pin::Ready>(OUTPUT);
-        //pinMode<Pin::INT0_960_>(OUTPUT);
-        //pinMode<Pin::Enable>(OUTPUT);
-        //pinMode<Pin::CLKSignal>(OUTPUT);
-        //pinMode<Pin::DEN>(INPUT);
-        //pinMode<Pin::BLAST_>(INPUT);
-        //pinMode<Pin::FAIL>(INPUT);
-        //pinMode<Pin::Capture0>(INPUT);
-        //pinMode<Pin::Capture1>(INPUT);
-        //pinMode<Pin::Capture2>(INPUT);
-        //pinMode<Pin::Capture3>(INPUT);
-        //pinMode<Pin::Capture4>(INPUT);
-        //pinMode<Pin::Capture5>(INPUT);
-        //pinMode<Pin::Capture6>(INPUT);
-        //pinMode<Pin::Capture7>(INPUT);
-        //digitalWrite<Pin::CLKSignal, LOW>();
-        //digitalWrite<Pin::Ready, HIGH>();
-        //digitalWrite<Pin::GPIOSelect, HIGH>();
-        //digitalWrite<Pin::INT0_960_, HIGH>();
-        //digitalWrite<Pin::SD_EN, HIGH>();
-        //digitalWrite<Pin::Enable, HIGH>();
-        //// do an initial clear of the clock signal
-        //pulse<Pin::CLKSignal, LOW, HIGH>();
-
-        //BankSwitcher::begin();
-        //getDirectionRegister<Port::DataLower>() = 0;
-        //getDirectionRegister<Port::DataUpper>() = 0;
-        //pinMode<Pin::AddressCaptureSignal1>(OUTPUT);
-        //pinMode<Pin::AddressCaptureSignal2>(OUTPUT);
-        //digitalWrite<Pin::AddressCaptureSignal1, HIGH>();
-        //digitalWrite<Pin::AddressCaptureSignal2, HIGH>();
+        volatile auto& proc = getProcessorInterface();
+        proc.address_.view32.direction = 0;
+        configureDataLinesForRead();
+        proc.dataLines_.view32.data = 0;
+        proc.control_.view32.direction = ControlSignalDirection;
+        proc.control_.view32.data = 0;
+        proc.control_.ctl.hold = 0;
+        proc.control_.ctl.reset = 0; // put i960 in reset
+        proc.control_.ctl.backOff = 1;
+        proc.control_.ctl.ready = 0;
+        proc.control_.ctl.nmi = 1;
+        proc.control_.ctl.xint0 = 1;
+        proc.control_.ctl.xint1 = 1;
+        proc.control_.ctl.xint2 = 1;
+        proc.control_.ctl.xint3 = 1;
+        proc.control_.ctl.xint4 = 1;
+        proc.control_.ctl.xint5 = 1;
+        proc.control_.ctl.xint6 = 1;
+        proc.control_.ctl.xint7 = 1;
+        proc.control_.ctl.bankSelect = 0;
+        proc.bank_.view32.direction = 0xFFFF'FFFF;
+        proc.bank_.view32.data = 0;
+        BankSwitcher::begin();
     }
-}
-volatile ProcessorInterface&
-getProcessorInterface() noexcept {
-    return adjustedMemory<ProcessorInterface>(0);
 }
 uint32_t
 Platform::getDataLines() noexcept {
@@ -125,4 +117,16 @@ Platform::isReadOperation() noexcept {
 bool
 Platform::isIOOperation() noexcept {
     return getProcessorInterface().address_.view8.data[3] == 0xF0;
+}
+
+void
+Platform::configureDataLinesForRead() noexcept {
+    // output
+    getProcessorInterface().dataLines_.view32.direction = 0xFFFF'FFFF;
+}
+
+void
+Platform::configureDataLinesForWrite() noexcept {
+    // input
+    getProcessorInterface().dataLines_.view32.direction = 0;
 }

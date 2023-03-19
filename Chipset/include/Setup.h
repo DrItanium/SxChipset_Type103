@@ -99,31 +99,35 @@ enum class CPUFrequencyInfo {
 enum class ByteEnableKind : uint8_t {
     /// @brief A full 32-bit value
     Full32 = 0b0000,
-    /// @brief The upper 24-bits of the 32-bit value, generally implies misalignment
-    Upper24 = 0b0001,
-    /// @brief impossible state
-    Upper16_Lowest8 = 0b0010,
     /// @brief Operate on the upper 16-bits only
     Upper16 = 0b0011,
-    Highest8_Lower16 = 0b0100,
-    Highest8_Lower8 = 0b0101,
-    Highest8_Lowest8 = 0b0110,
-    /// @brief only the highest 8-bits
-    Highest8 = 0b0111,
-    /// @brief Operate on the lower 24-bits, generally implies a misalignment
-    Lower24 = 0b1000,
-    /// @brief a misaligned 16-bit operation
-    Mid16 = 0b1001,
-    Higher8_Lowest8 = 0b1010,
-    /// @brief bits 16-23
-    Higher8 = 0b1011,
     /// @brief operate on the lower 16-bits only
     Lower16 = 0b1100,
+    /// @brief only the highest 8-bits
+    Highest8 = 0b0111,
+    /// @brief bits 16-23
+    Higher8 = 0b1011,
     /// @brief bits 8-15
     Lower8 = 0b1101,
     /// @brief bits 0-7
     Lowest8 = 0b1110,
+
+    // misalignment states
+    /// @brief The upper 24-bits of the 32-bit value, generally implies misalignment
+    Upper24 = 0b0001,
+    /// @brief Operate on the lower 24-bits, generally implies a misalignment
+    Lower24 = 0b1000,
+    /// @brief a misaligned 16-bit operation
+    Mid16 = 0b1001,
+
+
+    // Impossible states (I believe)
     Nothing = 0b1111,
+    Highest8_Lower16 = 0b0100,
+    Highest8_Lower8 = 0b0101,
+    Highest8_Lowest8 = 0b0110,
+    Upper16_Lowest8 = 0b0010,
+    Higher8_Lowest8 = 0b1010,
 };
 /**
  * @brief Given a 32-bit bus, is the given kind a legal one; A false here means
@@ -191,6 +195,11 @@ constexpr auto LegalState_v = isLegalState(kind);
 template<ByteEnableKind kind>
 constexpr auto Misaligned_v = isMisaligned(kind);
 
+constexpr bool alignedTo32bitBoundaries(uint32_t address) noexcept {
+    return (address & 0b11) == 0;
+}
+static_assert(alignedTo32bitBoundaries(0b11111100), "32-bit alignment logic is broken");
+static_assert(!alignedTo32bitBoundaries(0b11111110), "32-bit alignment logic is broken");
 /**
  * @brief Generated as part of write operations
  */

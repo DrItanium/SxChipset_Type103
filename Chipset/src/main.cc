@@ -60,13 +60,15 @@ using ReadOperation = RWOperation<true>;
 using WriteOperation = RWOperation<false>;
 struct LoadFromEBI final { };
 struct LoadFromPortK final { };
+struct LoadFromIBUS final { };
 
-using SelectedLogic = LoadFromPortK;
+using SelectedLogic = LoadFromIBUS;
 
 template<typename T>
 [[gnu::always_inline]]
 inline void
 manipulateHandler(T& handler, WriteOperation) noexcept {
+#if 0
     auto value = Platform::getDataLines();
     if constexpr (EnableDebugMode) {
         Serial.print(F("\t\tWrite Value: 0x"));
@@ -74,12 +76,14 @@ manipulateHandler(T& handler, WriteOperation) noexcept {
     }
     // so we are writing to the cache
     handler.write(value);
+#endif
 }
 
 template<typename T>
 [[gnu::always_inline]]
 inline void
 manipulateHandler(T& handler, ReadOperation) noexcept {
+#if 0
     // okay it is a read operation, so... pull a cache line out
     auto value = handler.read();
     if constexpr (EnableDebugMode) {
@@ -87,10 +91,12 @@ manipulateHandler(T& handler, ReadOperation) noexcept {
         Serial.println(value, HEX);
     }
     setDataLines(value);
+#endif
 }
 template<bool isReadOperation, typename T>
 inline void
 talkToi960(const SplitWord32& addr, T& handler) noexcept {
+#if 0
     handler.startTransaction(addr);
     for (byte i =0 ; i < 8; ++i) {
         manipulateHandler(handler, RWOperation<isReadOperation>{});
@@ -101,6 +107,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
         }
         handler.next();
     }
+#endif
 }
 
 struct TreatAsOnChipAccess final { };
@@ -108,17 +115,20 @@ struct TreatAsOnChipAccess final { };
 [[gnu::always_inline]]
 inline void
 manipulateDataLines(const SplitWord16* const ptr, ReadOperation) noexcept {
+#if 0
     if constexpr (EnableDebugMode) {
         Serial.print(F("\tRead Out 0x"));
         Serial.println(ptr->getWholeValue(), HEX);
     }
     // keep setting the data lines and inform the i960
     setDataLines(ptr->getWholeValue());
+#endif
 }
 
 [[gnu::always_inline]]
 inline void
 manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
+#if 0
     if constexpr (EnableDebugMode) {
         Serial.print(F("\tWrite in 0x"));
         Serial.println(Platform::getDataLines(), HEX);
@@ -129,6 +139,7 @@ manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
     if (digitalRead<Pin::BE1>() == LOW) {
         ptr->bytes[1] = getInputRegister<Port::DataUpper>();
     }
+#endif
 }
 
 
@@ -136,6 +147,7 @@ template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+#if 0
     BankSwitcher::setBank(addr.compute328BusBank());
     if constexpr (EnableDebugMode) {
         Serial.print(F("Target Bank: 0x"));
@@ -149,13 +161,15 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     using TargetOp = RWOperation<isReadOperation>;
     for (byte i = 0; i < 8; ++i) {
         manipulateDataLines(ptr, TargetOp{});
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        //auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        auto end = Platform::isBurstLast();
         signalReady();
-        if (isBurstLast) {
+        if (end) {
             break;
         }
         ++ptr;
     }
+#endif
 }
 template<bool isReadOperation>
 void
@@ -180,12 +194,14 @@ getPeripheralDevice(const SplitWord32& addr) noexcept {
 inline void
 triggerClock() noexcept {
     // just write to the CLKSignal pin to force a toggle
-    pulse<Pin::CLKSignal>();
+    Platform::signalReady();
+    //pulse<Pin::CLKSignal>();
     singleCycleDelay();
 }
 
 inline void
 handleTransaction(LoadFromPortK) noexcept {
+#if 0
     SplitWord32 addr{0};
     // clear the address counter to be on the safe side
     if constexpr (EnableDebugMode) {
@@ -259,10 +275,12 @@ handleTransaction(LoadFromPortK) noexcept {
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0
     singleCycleDelay();
+#endif
 }
 
 void
 handleTransaction(LoadFromEBI) noexcept {
+#if 0
     // clear the address counter to be on the safe side
     SplitWord32 addr{memory<uint32_t>(0x7F00)};
     //singleCycleDelay(); // introduce this extra cycle of delay to make sure
@@ -305,41 +323,9 @@ handleTransaction(LoadFromEBI) noexcept {
     // allow for extra recovery time, introduce a single 10mhz cycle delay
     // shift back to input channel 0
     singleCycleDelay();
+#endif
 }
-template<bool TrackBootProcess = false>
-void
-bootCPU() noexcept {
-    pullCPUOutOfReset();
-    // I used to keep track of the boot process but I realized that we don't actually need to do this
-    // It just increases overhead and can slow down the boot process. A checksum fail will still halt the CPU
-    // as expected. We just sit there waiting for something that will never continue. This is fine.
 
-    // The boot process is left here just incase we need to reactivate it
-    if constexpr (TrackBootProcess) {
-        while (digitalRead<Pin::FAIL>() == LOW) {
-            if (digitalRead<Pin::DEN>() == LOW) {
-                break;
-            }
-        }
-        while (digitalRead<Pin::FAIL>() == HIGH) {
-            if (digitalRead<Pin::DEN>() == LOW) {
-                break;
-            }
-        }
-        Serial.println(F("STARTUP COMPLETE! BOOTING..."));
-        // okay so we got past this, just start performing actions
-        waitForDataState();
-        handleTransaction(SelectedLogic {});
-        waitForDataState();
-        handleTransaction(SelectedLogic {});
-        waitForDataState();
-        if (digitalRead<Pin::FAIL>() == HIGH) {
-            Serial.println(F("CHECKSUM FAILURE!"));
-        } else {
-            Serial.println(F("BOOT SUCCESSFUL!"));
-        }
-    }
-}
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = 512ul * 1024ul;
@@ -388,7 +374,7 @@ setup() {
     delay(1000);
     // find firmware.bin and install it into the 512k block of memory
     installMemoryImage();
-    bootCPU();
+    pullCPUOutOfReset();
 }
 
 

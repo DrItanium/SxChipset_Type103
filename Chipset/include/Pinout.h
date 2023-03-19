@@ -39,9 +39,11 @@ Count = NUM_DIGITAL_PINS,
 #endif
 #undef X
     // fake entries
+#if 0
     XIO5,
     XIO6,
     XIO7,
+#endif
 #ifdef PIN_WIRE_SDA
     SDA = PIN_WIRE_SDA,
 #endif
@@ -197,8 +199,8 @@ Count = NUM_DIGITAL_PINS,
     ShieldA4 = PortC1,
     ShieldA5 = PortC0,
 #endif
-    SD_EN = PinB0,
-#define X(index) IBUSBankPin ## index = PinJ ## index 
+    SD_EN = PortB0,
+#define X(index) IBUSBankPin ## index = PortJ ## index 
     X(0),
     X(1),
     X(2),
@@ -485,9 +487,11 @@ constexpr bool hasPWM(Pin pin) noexcept {
 template<Pin p>
 constexpr auto HasPWM_v = hasPWM(p);
 
+#if 0
 [[gnu::always_inline]]
 inline uint8_t readFromCapture() noexcept {
     return getInputRegister<Port::Capture>();
 }
+#endif
 
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

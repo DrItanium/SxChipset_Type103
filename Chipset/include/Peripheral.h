@@ -45,6 +45,7 @@ template<typename E>
 constexpr bool validOperation(E value) noexcept {
     return static_cast<int>(value) >= 0 && (static_cast<int>(value) < static_cast<int>(E::Count));
 }
+#if 0
 template<typename T, bool introduceCpuCycleDelay = false>
 inline T
 readInputChannelAs() noexcept {
@@ -55,6 +56,7 @@ readInputChannelAs() noexcept {
     }
     return T{readFromCapture()};
 }
+#endif
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {

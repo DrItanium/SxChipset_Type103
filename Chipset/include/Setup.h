@@ -76,6 +76,8 @@ class Platform final {
         static uint8_t readInputSignalPort() noexcept;
         static uint32_t readAddress() noexcept;
         static void signalReady() noexcept;
+        static bool checksumFailure() noexcept;
+        static bool isBurstLast() noexcept;
     private:
         static inline bool readyStatus_ = false;
         static inline bool initialized_ = false;

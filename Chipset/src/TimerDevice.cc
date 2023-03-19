@@ -31,7 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 bool
 TimerDevice::init() noexcept {
     // make sure that INT0 is enabled as an output. Make it high
+#if 0
     pinMode<Pin::INT0_960_>(OUTPUT);
+#endif
 #if defined(TCCR2A) && defined(TCCR2B) && defined(TCNT2)
     // enable CTC (OCR2A) mode
     bitClear(TCCR2A, WGM20);
@@ -43,7 +45,9 @@ TimerDevice::init() noexcept {
     bitClear(TCCR2B, CS22);
     TCNT2 = 0;
 #endif
+#if 0
     digitalWrite<Pin::INT0_960_, HIGH>();
+#endif
     return true;
 }
 

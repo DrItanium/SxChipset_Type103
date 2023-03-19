@@ -62,7 +62,7 @@ namespace External328Bus {
 #endif
     }
     void select() noexcept {
-        digitalWrite<Pin::RealA15, HIGH>();
+        //digitalWrite<Pin::RealA15, HIGH>();
     }
 } // end namespace External328Bus
 namespace InternalBus {
@@ -73,18 +73,18 @@ namespace InternalBus {
         bankSelect |= ((bank << 4) & 0b11110000);
         PORTL = bankSelect;
 #else
-        getOutputRegister<Port::L>() = ((bank << 4) & 0xF0);
+        //getOutputRegister<Port::L>() = ((bank << 4) & 0xF0);
 #endif
     }
     void begin() noexcept {
-        pinMode<Pin::InternalBank0>(OUTPUT);
-        pinMode<Pin::InternalBank1>(OUTPUT);
-        pinMode<Pin::InternalBank2>(OUTPUT);
-        pinMode<Pin::InternalBank3>(OUTPUT);
+        //pinMode<Pin::InternalBank0>(OUTPUT);
+        //pinMode<Pin::InternalBank1>(OUTPUT);
+        //pinMode<Pin::InternalBank2>(OUTPUT);
+        //pinMode<Pin::InternalBank3>(OUTPUT);
         setBank(0);
     }
     void select() noexcept {
-        digitalWrite<Pin::RealA15, LOW>();
+        // digitalWrite<Pin::RealA15, LOW>();
     }
 } // end namespace InternalBus
 
@@ -92,8 +92,8 @@ void
 BankSwitcher::begin() noexcept {
     XMCRB=0b00000'001; // need 32k. one pin released
     //XMCRA=0b1'100'00'00; // put in one cycle wait states
-    XMCRA=0b1'000'00'00; // put in zero cycle wait states
-    pinMode<Pin::RealA15>(OUTPUT);
+    XMCRA=0b1'000'01'01; // put in zero cycle wait states
+    //pinMode<Pin::RealA15>(OUTPUT);
     InternalBus::begin();
     External328Bus::begin();
     setBank(0);
@@ -101,6 +101,7 @@ BankSwitcher::begin() noexcept {
 
 void
 BankSwitcher::setBank(uint24_t bank) noexcept {
+#if 0
     if (bank < 16) {
         InternalBus::select();
         InternalBus::setBank(bank);
@@ -109,5 +110,6 @@ BankSwitcher::setBank(uint24_t bank) noexcept {
         External328Bus::setBank(bank - 16);
     }
     currentBank_ = bank;
+#endif
 }
 

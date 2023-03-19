@@ -50,7 +50,36 @@ volatile ProcessorInterface&
 getProcessorInterface() noexcept {
     return adjustedMemory<ProcessorInterface>(0);
 }
+enum class CPUKind : uint8_t  {
+    Sx = 0b000,
+};
 
+enum class ByteEnableKind : uint8_t {
+    Full32 = 0b0000,
+    Upper24 = 0b0001,
+    Upper16_Lowest8 = 0b0010,
+    Upper16 = 0b0011,
+    Highest8_Lower16 = 0b0100,
+    Highest8_Lower8 = 0b0101,
+    Highest8_Lowest8 = 0b0110,
+    Highest8 = 0b0111,
+    Lower24 = 0b1000,
+    Mid16 = 0b1001,
+    Higher8_Lowest8 = 0b1010,
+    Higher8 = 0b1011,
+    Lower16 = 0b1100,
+    Lower8 = 0b1101,
+    Lowest8 = 0b1110,
+    Nothing = 0b1111,
+};
+/**
+ * @brief Generated as part of write operations
+ */
+struct WritePacket {
+    uint32_t address;
+    ByteEnableKind mask;
+    uint32_t value;
+};
 
 class Platform final {
     public:
@@ -97,6 +126,7 @@ class Platform final {
         static void configureDataLinesForWrite() noexcept;
         static void configureDataLinesForRead() noexcept;
         static bool isIOOperation() noexcept;
+        static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(getProcessorInterface().control_.ctl.cfg); }
     private:
         static inline bool initialized_ = false;
 };

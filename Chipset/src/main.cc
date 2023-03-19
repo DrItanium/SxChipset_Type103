@@ -190,6 +190,7 @@ getPeripheralDevice(const SplitWord32& addr) noexcept {
     }
 }
 
+#if 0
 [[gnu::always_inline]]
 inline void
 triggerClock() noexcept {
@@ -198,9 +199,11 @@ triggerClock() noexcept {
     //pulse<Pin::CLKSignal>();
     singleCycleDelay();
 }
+#endif
 inline void
 handleTransaction(LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
+    auto address = Platform::readAddress();
     // need this delay to synchronize everything :)
     singleCycleDelay();
 }

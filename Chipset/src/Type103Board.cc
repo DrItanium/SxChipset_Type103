@@ -80,58 +80,17 @@ Platform::begin() noexcept {
         //digitalWrite<Pin::AddressCaptureSignal2, HIGH>();
     }
 }
-struct [[gnu::packed]] CH351 {
-    SplitWord32 value_;
-    SplitWord32 direction_;
-};
-struct [[gnu::packed]] ProcessorInterface {
-    CH351 address_;
-    CH351 dataLines_;
-    union {
-        CH351 device;
-        struct {
-            uint8_t hold_ : 1;
-            uint8_t hlda_ : 1;
-            uint8_t lock_ : 1;
-            uint8_t fail_ : 1;
-            uint8_t reset_ : 1;
-            uint8_t cfg_ : 3;
-            uint8_t freq_ : 3;
-            uint8_t backOff_ : 1;
-            uint8_t ready_ : 1;
-            uint8_t nmi_ : 1;
-            uint8_t unused_ : 2;
-            uint8_t xint0_ : 1;
-            uint8_t xint1_ : 1;
-            uint8_t xint2_ : 1;
-            uint8_t xint3_ : 1;
-            uint8_t xint4_ : 1;
-            uint8_t xint5_ : 1;
-            uint8_t xint6_ : 1;
-            uint8_t xint7_ : 1;
-            uint8_t byteEnable_ : 4;
-            uint8_t den_ : 1;
-            uint8_t blast_ : 1;
-            uint8_t wr_ : 1;
-            uint8_t bankSelect_ : 1;
-        } bits_;
-    } ctl;
-    CH351 bank_;
-    void waitForDataState() noexcept {
-        while (ctl.bits_.den_ != 0);
-    }
-} ;
 volatile ProcessorInterface&
 getProcessorInterface() noexcept {
     return adjustedMemory<ProcessorInterface>(0);
 }
 uint32_t
 Platform::getDataLines() noexcept {
-    return getProcessorInterface().dataLines_.value_.getWholeValue();
+    return getProcessorInterface().getDataLines();
 }
 void
 Platform::setDataLines(uint32_t value) noexcept {
-    getProcessorInterface().dataLines_.value_.full = value;
+    getProcessorInterface().setDataLines(value);
 }
 
 void
@@ -141,24 +100,24 @@ Platform::waitForDataState() noexcept {
 
 uint8_t
 Platform::readInputSignalPort() noexcept {
-    return getProcessorInterface().ctl.device.value_.bytes[3];
+    return getProcessorInterface().control_.view8.data[3];
 }
 
 uint32_t
 Platform::readAddress() noexcept {
-    return getProcessorInterface().address_.value_.getWholeValue();
+    return getProcessorInterface().getAddress();
 }
 void 
 Platform::doReset(decltype(LOW) value) noexcept {
-    getProcessorInterface().ctl.bits_.reset_ = value;
+    getProcessorInterface().control_.ctl.reset = value;
 }
 void 
 Platform::doHold(decltype(LOW) value) noexcept {
-    getProcessorInterface().ctl.bits_.hold_ = value;
+    getProcessorInterface().control_.ctl.hold = value;
 }
 
 void
 Platform::signalReady() noexcept {
-    readyStatus_ = !readyStatus_;
-    getProcessorInterface().ctl.bits_.ready_ = readyStatus_;
+    volatile auto& proc = getProcessorInterface();
+    proc.control_.ctl.ready = ~proc.control_.ctl.ready;
 }

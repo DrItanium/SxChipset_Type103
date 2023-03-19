@@ -153,5 +153,67 @@ static_assert(pow2(8) == 256);
 static_assert(pow2(9) == 512);
 static_assert(pow2(10) == 1024);
 
+union [[gnu::packed]] CH351 {
+    uint8_t registers[8];
+    struct {
+        uint32_t data;
+        uint32_t direction;
+    } view32;
+    struct {
+        uint16_t data[2];
+        uint16_t direction[2];
+    } view16;
+    struct {
+        uint8_t data[4];
+        uint8_t direction[4];
+    } view8;
+    struct {
+        uint8_t hold : 1;
+        uint8_t hlda : 1;
+        uint8_t lock : 1;
+        uint8_t fail : 1;
+        uint8_t reset : 1;
+        uint8_t cfg : 3;
+        uint8_t freq : 3;
+        uint8_t backOff : 1;
+        uint8_t ready : 1;
+        uint8_t nmi : 1;
+        uint8_t unused : 2;
+        uint8_t xint0 : 1;
+        uint8_t xint1 : 1;
+        uint8_t xint2 : 1;
+        uint8_t xint3 : 1;
+        uint8_t xint4 : 1;
+        uint8_t xint5 : 1;
+        uint8_t xint6 : 1;
+        uint8_t xint7 : 1;
+        uint8_t byteEnable : 4;
+        uint8_t den : 1;
+        uint8_t blast : 1;
+        uint8_t wr : 1;
+        uint8_t bankSelect : 1;
+    } ctl;
+};
+struct [[gnu::packed]] ProcessorInterface {
+    CH351 address_;
+    CH351 dataLines_;
+    CH351 control_;
+    CH351 bank_;
+    void waitForDataState() const noexcept {
+        while (control_.ctl.den != 0);
+    }
+    bool checksumFailure() const noexcept {
+        return control_.ctl.fail == 0;
+    }
+    uint32_t getAddress() const noexcept {
+        return address_.view32.data;
+    }
+    uint32_t getDataLines() const noexcept {
+        return dataLines_.view32.data;
+    }
+    void setDataLines(uint32_t value) noexcept {
+        dataLines_.view32.data = value;
+    }
+} ;
 
 #endif //SXCHIPSET_TYPE103_TYPES_H__

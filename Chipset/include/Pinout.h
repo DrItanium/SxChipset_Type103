@@ -60,6 +60,7 @@ Count = NUM_DIGITAL_PINS,
 #ifdef PIN_SPI_MISO
     SPI_MISO = PIN_SPI_MISO,
 #endif
+#if 0
     // aliases
     Digital0 = PortE2,
     Digital1 = PortE7,
@@ -195,7 +196,18 @@ Count = NUM_DIGITAL_PINS,
     ShieldA3 = GPIOSelect,
     ShieldA4 = PortC1,
     ShieldA5 = PortC0,
-    SD_EN = ShieldD10,
+#endif
+    SD_EN = PinB0,
+#define X(index) IBUSBankPin ## index = PinJ ## index 
+    X(0),
+    X(1),
+    X(2),
+    X(3),
+    X(4),
+    X(5),
+    X(6),
+    X(7),
+#undef X
 };
 enum class Port : byte {
     // stop at mega2560 tier
@@ -203,9 +215,12 @@ enum class Port : byte {
 #include "AVRPorts.def"
 #undef X
     None,
+#if 0
     Capture = K,
     DataLower = H,
     DataUpper = F,
+#endif
+    IBUSBank = J,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

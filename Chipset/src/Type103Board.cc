@@ -29,20 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Setup.h"
 #include "Types.h"
 #include "Pinout.h"
-#include "MCP23S17.h"
+//#include "MCP23S17.h"
 #include "Peripheral.h"
 #include "BankSelection.h"
 
-constexpr auto DataLines = MCP23S17::HardwareDeviceAddress::Device0;
-/**
- * @brief Onboard device to control reset and other various features
- */
-constexpr auto XIO = MCP23S17::HardwareDeviceAddress::Device7;
-
-volatile ProcessorInterface&
-getProcessorInterface() noexcept {
-    return adjustedMemory<ProcessorInterface>(0);
-}
 
 namespace {
     static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;

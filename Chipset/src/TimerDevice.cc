@@ -27,15 +27,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "Pinout.h"
 #include "TimerDevice.h"
+#include "Setup.h"
 
+constexpr bool OutputCompareModeForTimer2 = false;
 bool
 TimerDevice::init() noexcept {
     // make sure that INT0 is enabled as an output. Make it high
-#if 0
-    pinMode<Pin::INT0_960_>(OUTPUT);
-#endif
+    if constexpr (OutputCompareModeForTimer2) {
+        pinMode<Pin::INT0_960_>(OUTPUT);
+    } else {
+
+    }
 #if defined(TCCR2A) && defined(TCCR2B) && defined(TCNT2)
     // enable CTC (OCR2A) mode
+    // right now, we are doing everything through the CH351 chips so do not use
+    // the output pins, interrupts will have to be used instead!
     bitClear(TCCR2A, WGM20);
     bitSet(TCCR2A, WGM21);
     bitClear(TCCR2B, WGM22);
@@ -45,9 +51,11 @@ TimerDevice::init() noexcept {
     bitClear(TCCR2B, CS22);
     TCNT2 = 0;
 #endif
-#if 0
-    digitalWrite<Pin::INT0_960_, HIGH>();
-#endif
+    if constexpr (OutputCompareModeForTimer2) {
+        digitalWrite<Pin::INT0_960_, HIGH>();
+    } else {
+
+    }
     return true;
 }
 
@@ -75,15 +83,32 @@ TimerDevice::extendedWrite(uint16_t value) noexcept {
 #if defined(TCCR2A) && defined(TCCR2B)
         case TimerDeviceOperations::SystemTimerPrescalar:
             {
-                // enable toggle mode
+                // Previously, we were using the compare output mode of Timer
+                // 2 but with the use of the CH351s I have to use the interrupt
+                // instead
                 auto maskedValue = value & 0b111;
-                if (value != 0) {
-                    bitSet(TCCR2A, COM2A0);
-                    bitClear(TCCR2A, COM2A1);
+                if constexpr (OutputCompareModeForTimer2) {
+                    // enable toggle mode
+                    if (value != 0) {
+                        bitSet(TCCR2A, COM2A0);
+                        bitClear(TCCR2A, COM2A1);
+                    } else {
+                        bitClear(TCCR2A, COM2A0);
+                        bitClear(TCCR2A, COM2A1);
+                    }
                 } else {
-                    bitClear(TCCR2A, COM2A0);
-                    bitClear(TCCR2A, COM2A1);
+                    // We are currently using the CH351 for interaction with
+                    // the i960 so we use interrupts instead to trigger all of
+                    // this. However, we can still treat the value of zero as a
+                    // disable and anything else as an enable!
+                    /// @todo disable interrupts while doing this?
+                    if (value != 0) {
+                        bitSet(TIMSK2, OCIE2A);
+                    } else {
+                        bitClear(TIMSK2, OCIE2A);
+                    }
                 }
+                // make sure we activate the prescalar value
                 uint8_t result = TCCR2B & 0b1111'1000;
                 result |= static_cast<uint8_t>(maskedValue);
                 TCCR2B = result;
@@ -105,4 +130,8 @@ TimerDevice::extendedWrite(uint16_t value) noexcept {
 void
 TimerDevice::onStartTransaction(const SplitWord32 &addr) noexcept {
     // do nothing right now
+}
+
+ISR(TIMER2_COMPA_vect) {
+    getProcessorInterface().control_.ctl.xint0 = ~getProcessorInterface().control_.ctl.xint0;
 }

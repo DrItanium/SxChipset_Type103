@@ -200,6 +200,7 @@ Count = NUM_DIGITAL_PINS,
     ShieldA5 = PortC0,
 #endif
     SD_EN = PortB0,
+    INT0_960_ = PortB4,
 #define X(index) IBUSBankPin ## index = PortJ ## index 
     X(0),
     X(1),

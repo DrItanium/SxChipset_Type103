@@ -44,6 +44,13 @@ halfCycleDelay() noexcept {
     asm volatile ("nop");
 }
 
+[[gnu::always_inline]]
+inline 
+volatile ProcessorInterface&
+getProcessorInterface() noexcept {
+    return adjustedMemory<ProcessorInterface>(0);
+}
+
 
 class Platform final {
     public:

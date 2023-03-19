@@ -76,6 +76,14 @@ class Platform final {
         static void signalXINT5() noexcept;
         static void signalXINT6() noexcept;
         static void signalXINT7() noexcept;
+        static void toggleXINT0() noexcept;
+        static void toggleXINT1() noexcept;
+        static void toggleXINT2() noexcept;
+        static void toggleXINT3() noexcept;
+        static void toggleXINT4() noexcept;
+        static void toggleXINT5() noexcept;
+        static void toggleXINT6() noexcept;
+        static void toggleXINT7() noexcept;
         static uint32_t getDataLines() noexcept;
         static void setDataLines(uint32_t value) noexcept;
         static void waitForDataState() noexcept;

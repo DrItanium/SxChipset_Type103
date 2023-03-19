@@ -133,5 +133,6 @@ TimerDevice::onStartTransaction(const SplitWord32 &addr) noexcept {
 }
 
 ISR(TIMER2_COMPA_vect) {
-    getProcessorInterface().control_.ctl.xint0 = ~getProcessorInterface().control_.ctl.xint0;
+    // to emulate the output compare match behavior, we are going to be toggling XINT0 on each trigger
+    Platform::toggleXINT0();
 }

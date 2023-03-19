@@ -145,3 +145,8 @@ Platform::signalNMI() noexcept {
     getProcessorInterface().control_.ctl.nmi = 0;
     getProcessorInterface().control_.ctl.nmi = 1;
 }
+
+bool
+Platform::isBurstLast() noexcept {
+    return getProcessorInterface().control_.ctl.blast == 0;
+}

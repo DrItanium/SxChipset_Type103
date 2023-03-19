@@ -50,10 +50,6 @@ void
 waitForDataState() noexcept {
     Platform::waitForDataState();
 }
-void
-setDataLines(uint32_t value) noexcept {
-    Platform::setDataLines(value);
-}
 template<bool isReadOperation>
 struct RWOperation final {};
 using ReadOperation = RWOperation<true>;
@@ -68,7 +64,6 @@ template<typename T>
 [[gnu::always_inline]]
 inline void
 manipulateHandler(T& handler, WriteOperation) noexcept {
-#if 0
     auto value = Platform::getDataLines();
     if constexpr (EnableDebugMode) {
         Serial.print(F("\t\tWrite Value: 0x"));
@@ -76,38 +71,35 @@ manipulateHandler(T& handler, WriteOperation) noexcept {
     }
     // so we are writing to the cache
     handler.write(value);
-#endif
 }
 
 template<typename T>
 [[gnu::always_inline]]
 inline void
 manipulateHandler(T& handler, ReadOperation) noexcept {
-#if 0
     // okay it is a read operation, so... pull a cache line out
     auto value = handler.read();
     if constexpr (EnableDebugMode) {
         Serial.print(F("\t\tGot Value: 0x"));
         Serial.println(value, HEX);
     }
-    setDataLines(value);
-#endif
+    Platform::setDataLines(value);
 }
 template<bool isReadOperation, typename T>
 inline void
 talkToi960(const SplitWord32& addr, T& handler) noexcept {
-#if 0
     handler.startTransaction(addr);
-    for (byte i =0 ; i < 8; ++i) {
+    // previously, we were doing up to eight operations but things have changed
+    // since we are now operating on a 32-bit bus
+    while (true) {
         manipulateHandler(handler, RWOperation<isReadOperation>{});
-        auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
+        auto isDone = Platform::isBurstLast();
         signalReady();
-        if (isBurstLast) {
+        if (isDone) {
             return;
         }
         handler.next();
     }
-#endif
 }
 
 struct TreatAsOnChipAccess final { };

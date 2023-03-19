@@ -198,8 +198,18 @@ constexpr auto Misaligned_v = isMisaligned(kind);
 constexpr bool alignedTo32bitBoundaries(uint32_t address) noexcept {
     return (address & 0b11) == 0;
 }
-static_assert(alignedTo32bitBoundaries(0b11111100), "32-bit alignment logic is broken");
-static_assert(!alignedTo32bitBoundaries(0b11111110), "32-bit alignment logic is broken");
+constexpr bool isUpper16bitValue(uint32_t address) noexcept {
+    return (address & 0b11) == 0b10;
+}
+constexpr bool isLower16bitValue(uint32_t address) noexcept {
+    return alignedTo32bitBoundaries(address);
+}
+static_assert(alignedTo32bitBoundaries(0), "32-bit alignment logic is broken");
+static_assert(!alignedTo32bitBoundaries(0b10), "32-bit alignment logic is broken");
+static_assert(isUpper16bitValue(0b10), "is 16-bit upper half check is broken");
+static_assert(!isUpper16bitValue(0), "is 16-bit upper half check is broken");
+static_assert(isLower16bitValue(0), "is 16-bit lower half check is broken");
+static_assert(!isLower16bitValue(0b10), "is 16-bit lower half check is broken");
 /**
  * @brief Generated as part of write operations
  */

@@ -50,28 +50,147 @@ volatile ProcessorInterface&
 getProcessorInterface() noexcept {
     return adjustedMemory<ProcessorInterface>(0);
 }
+/**
+ * @brief The CPU Module kind as described in the Cyclone SDK manual
+ */
 enum class CPUKind : uint8_t  {
+    /// @brief The CPU installed is a 80960Sx processor
     Sx = 0b000,
+    /// @brief The CPU installed is a 80960Kx processor
+    Kx = 0b001,
+    /// @brief The CPU installed is a 80960Cx processor
+    Cx = 0b010,
+    /// @brief The CPU installed is a 80960Hx processor
+    Hx = 0b011,
+    /// @brief The CPU installed is a 80960Jx processor
+    Jx = 0b100,
+    Reserved0 = 0b101,
+    Reserved1 = 0b110,
+    Reserved2 = 0b111,
 };
 
+enum class NativeBusWidth : uint8_t {
+    Unknown,
+    Sixteen,
+    ThirtyTwo,
+};
+
+constexpr NativeBusWidth getBusWidth(CPUKind kind) noexcept {
+    switch (kind) {
+        case CPUKind::Sx:
+            return NativeBusWidth::Sixteen;
+        case CPUKind::Kx:
+        case CPUKind::Cx:
+        case CPUKind::Hx:
+        case CPUKind::Jx:
+            return NativeBusWidth::ThirtyTwo;
+        default:
+            return NativeBusWidth::Unknown;
+    }
+}
+
+/// @brief The Cyclone SDK board supported many different clock speeds, we only support a 10MHz synchronized with the AVR chip
+enum class CPUFrequencyInfo {
+    /// @brief The only supported frequency
+    Clock10MHz = 0b000,
+};
+
+/// @brief the bytes to operate on in a single memory transaction cycle
 enum class ByteEnableKind : uint8_t {
+    /// @brief A full 32-bit value
     Full32 = 0b0000,
+    /// @brief The upper 24-bits of the 32-bit value, generally implies misalignment
     Upper24 = 0b0001,
+    /// @brief impossible state
     Upper16_Lowest8 = 0b0010,
+    /// @brief Operate on the upper 16-bits only
     Upper16 = 0b0011,
     Highest8_Lower16 = 0b0100,
     Highest8_Lower8 = 0b0101,
     Highest8_Lowest8 = 0b0110,
+    /// @brief only the highest 8-bits
     Highest8 = 0b0111,
+    /// @brief Operate on the lower 24-bits, generally implies a misalignment
     Lower24 = 0b1000,
+    /// @brief a misaligned 16-bit operation
     Mid16 = 0b1001,
     Higher8_Lowest8 = 0b1010,
+    /// @brief bits 16-23
     Higher8 = 0b1011,
+    /// @brief operate on the lower 16-bits only
     Lower16 = 0b1100,
+    /// @brief bits 8-15
     Lower8 = 0b1101,
+    /// @brief bits 0-7
     Lowest8 = 0b1110,
     Nothing = 0b1111,
 };
+/**
+ * @brief Given a 32-bit bus, is the given kind a legal one; A false here means
+ * that there are holes in byte enable pattern; I do not think that is possible
+ * with how the i960 operates
+ */
+constexpr bool isLegalState(ByteEnableKind kind) noexcept {
+    switch (kind) {
+        case ByteEnableKind::Full32:
+        case ByteEnableKind::Upper24:
+        case ByteEnableKind::Upper16:
+        case ByteEnableKind::Highest8:
+        case ByteEnableKind::Lower24:
+        case ByteEnableKind::Mid16:
+        case ByteEnableKind::Higher8:
+        case ByteEnableKind::Lower16:
+        case ByteEnableKind::Lower8:
+        case ByteEnableKind::Lowest8:
+            return true;
+        default:
+            return false;
+    }
+}
+
+constexpr bool isPossibleState(NativeBusWidth width, ByteEnableKind kind) noexcept {
+    switch (width) {
+        case NativeBusWidth::Sixteen: 
+            {
+                switch (kind) {
+                    case ByteEnableKind::Upper16:
+                    case ByteEnableKind::Lower16:
+                    case ByteEnableKind::Highest8:
+                    case ByteEnableKind::Higher8:
+                    case ByteEnableKind::Lower8:
+                    case ByteEnableKind::Lowest8:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        case NativeBusWidth::ThirtyTwo:
+            return isLegalState(kind);
+        default:
+            return false;
+    }
+}
+
+constexpr bool isMisaligned(ByteEnableKind kind) noexcept {
+    switch (kind) {
+        case ByteEnableKind::Full32:
+        case ByteEnableKind::Upper16:
+        case ByteEnableKind::Lower16:
+        case ByteEnableKind::Highest8:
+        case ByteEnableKind::Higher8:
+        case ByteEnableKind::Lower8:
+        case ByteEnableKind::Lowest8:
+            return false;
+        default:
+            return true;
+    }
+}
+template<ByteEnableKind kind>
+constexpr auto LegalState_v = isLegalState(kind);
+
+template<ByteEnableKind kind>
+constexpr auto Misaligned_v = isMisaligned(kind);
+
 /**
  * @brief Generated as part of write operations
  */

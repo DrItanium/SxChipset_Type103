@@ -150,3 +150,8 @@ bool
 Platform::isBurstLast() noexcept {
     return getProcessorInterface().control_.ctl.blast == 0;
 }
+
+uint8_t
+Platform::getByteEnable() noexcept {
+    return getProcessorInterface().control_.ctl.byteEnable;
+}

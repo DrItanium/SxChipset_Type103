@@ -133,12 +133,38 @@ manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
     }
 #endif
 }
+template<bool isReadOperation, ByteEnableKind kind>
+void 
+processRequest(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
 
+}
 
 template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+    /// @todo figure out which bank we are a part of on the IBUS
+    do {
+        switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
+#define X(frag) case ByteEnableKind:: frag : processRequest < isReadOperation , ByteEnableKind:: frag > (addr, TreatAsOnChipAccess {}); break
+            X(Full32);
+            X(Lower16);
+            X(Upper16);
+            X(Lowest8);
+            X(Lower8);
+            X(Higher8);
+            X(Highest8);
+#undef X
+            default:
+                /// @todo implement simple walkthrough
+                break;
+        }
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            break;
+        }
+    } while (true);
 #if 0
     BankSwitcher::setBank(addr.compute328BusBank());
     if constexpr (EnableDebugMode) {

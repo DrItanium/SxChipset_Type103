@@ -134,10 +134,18 @@ manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
 #endif
 }
 template<bool isReadOperation, ByteEnableKind kind>
-void 
-processRequest(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+struct RequestProcessor {
+    static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
 
-}
+    }
+};
+
+template<bool isReadOperation>
+struct RequestProcessor<isReadOperation, ByteEnableKind::Full32> {
+    static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+
+    }
+};
 
 template<bool isReadOperation>
 [[gnu::always_inline]]
@@ -146,7 +154,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     /// @todo figure out which bank we are a part of on the IBUS
     do {
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : processRequest < isReadOperation , ByteEnableKind:: frag > (addr, TreatAsOnChipAccess {}); break
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, TreatAsOnChipAccess {}); break
             X(Full32);
             X(Lower16);
             X(Upper16);

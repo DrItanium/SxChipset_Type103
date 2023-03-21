@@ -40,6 +40,7 @@ public:
     BankSwitcher& operator=(BankSwitcher&&) = delete;
     static void begin() noexcept;
     static void setBank(uint24_t bank) noexcept;
+    static void setBank(const SplitWord32& bank) noexcept;
     static auto getBank() noexcept { return currentBank_; }
 private:
     static inline uint24_t currentBank_ = 0;

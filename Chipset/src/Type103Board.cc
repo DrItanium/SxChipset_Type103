@@ -182,3 +182,10 @@ uint8_t
 Platform::getDataByte(uint8_t index) noexcept {
     return getProcessorInterface().dataLines_.view8.data[index & 0b11];
 }
+
+volatile SplitWord32& 
+Platform::adjustMemoryView(const SplitWord32& addr) noexcept {
+    BankSwitcher::setBank(addr);
+    // support IBUS 
+    return memory<SplitWord32>(0b0100'0000'0000'0000 + (addr.halves[0] & 0b0011'1111'1111'1111));
+}

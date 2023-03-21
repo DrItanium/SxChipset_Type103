@@ -146,8 +146,9 @@ public:
     static void execute(const SplitWord32& addr, TreatAsOffChipAccess) noexcept {
         performEBIExecution( Platform::getMemoryView(addr, AccessFromXBUS { }));
     }
-    static void execute(const SplitWord32& addr, Instruction& container) noexcept {
-
+    static void execute(Instruction& container, TreatAsInstruction) noexcept {
+        // reads need to be interpreted right then and there
+        // writes can be deferred
     }
 };
 template<bool isReadOperation, typename T>
@@ -170,7 +171,36 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 template<bool isReadOperation>
 inline void
 talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
-
+    Instruction operation;
+    operation.opcode_ = addr;
+    do {
+        switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, TreatAsInstruction{}); break
+            X(Full32);
+            X(Lower16);
+            X(Upper16);
+            X(Lowest8);
+            X(Lower8);
+            X(Higher8);
+            X(Highest8);
+            X(Mid16);
+            X(Lower24);
+            X(Upper24);
+            X(Highest8_Lower16 );
+            X(Highest8_Lower8 );
+            X(Highest8_Lowest8 );
+            X(Upper16_Lowest8 );
+            X(Higher8_Lowest8 );
+#undef X
+            default:
+                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(operation, TreatAsInstruction{});
+                break;
+        }
+    } while (true);
+    if constexpr (!isReadOperation) {
+        // at this point, we process the instruction instead of trying to do it
+        // inline
+    }
 }
 
 

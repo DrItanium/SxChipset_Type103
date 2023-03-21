@@ -50,40 +50,14 @@ waitForDataState() noexcept {
     Platform::waitForDataState();
 }
 template<bool isReadOperation>
-struct RWOperation final {};
+struct RWOperation final {
+    static constexpr bool IsReadOperation = isReadOperation;
+};
 using ReadOperation = RWOperation<true>;
 using WriteOperation = RWOperation<false>;
-struct LoadFromEBI final { };
-struct LoadFromPortK final { };
 struct LoadFromIBUS final { };
-
+struct LoadFromXBUS final { };
 using SelectedLogic = LoadFromIBUS;
-
-template<typename T>
-[[gnu::always_inline]]
-inline void
-manipulateHandler(T& handler, WriteOperation) noexcept {
-    auto value = Platform::getDataLines();
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("\t\tWrite Value: 0x"));
-        Serial.println(value, HEX);
-    }
-    // so we are writing to the cache
-    handler.write(value);
-}
-
-template<typename T>
-[[gnu::always_inline]]
-inline void
-manipulateHandler(T& handler, ReadOperation) noexcept {
-    // okay it is a read operation, so... pull a cache line out
-    auto value = handler.read();
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("\t\tGot Value: 0x"));
-        Serial.println(value, HEX);
-    }
-    Platform::setDataLines(value);
-}
 
 struct TreatAsOnChipAccess final { };
 struct TreatAsOffChipAccess final { };
@@ -171,22 +145,6 @@ public:
         }
     }
 };
-template<bool isReadOperation, typename T>
-inline void
-talkToi960(const SplitWord32& addr, T& handler) noexcept {
-    handler.startTransaction(addr);
-    // previously, we were doing up to eight operations but things have changed
-    // since we are now operating on a 32-bit bus
-    while (true) {
-        manipulateHandler(handler, RWOperation<isReadOperation>{});
-        auto isDone = Platform::isBurstLast();
-        signalReady();
-        if (isDone) {
-            return;
-        }
-        handler.next();
-    }
-}
 
 template<bool isReadOperation>
 inline void
@@ -306,47 +264,12 @@ talkToi960(const SplitWord32& addr, TreatAsOffChipAccess) noexcept {
         }
     } while (true);
 }
-template<bool isReadOperation>
+
+template<typename K, typename T>
 [[gnu::always_inline]]
 inline void
-talkToi960(uint32_t addr, TreatAsOnChipAccess) noexcept {
-    talkToi960<isReadOperation>(SplitWord32{addr}, TreatAsOnChipAccess{});
-}
-template<bool isReadOperation>
-[[gnu::always_inline]]
-inline void
-talkToi960(uint32_t addr, TreatAsOffChipAccess) noexcept {
-    talkToi960<isReadOperation>(SplitWord32{addr}, TreatAsOffChipAccess{});
-}
-template<bool isReadOperation>
-[[gnu::always_inline]]
-inline void
-talkToi960(uint32_t addr, TreatAsInstruction) noexcept {
-    talkToi960<isReadOperation>(SplitWord32{addr}, TreatAsInstruction{});
-}
-template<bool isReadOperation>
-void
-getPeripheralDevice(const SplitWord32& addr) noexcept {
-    switch (addr.getIODevice<TargetPeripheral>()) {
-        case TargetPeripheral::Info:
-            talkToi960<isReadOperation>(addr, infoDevice);
-            break;
-        case TargetPeripheral::Serial:
-            talkToi960<isReadOperation>(addr, theSerial);
-            break;
-        case TargetPeripheral::RTC:
-            talkToi960<isReadOperation>(addr, timerInterface);
-            break;
-        default:
-            talkToi960<isReadOperation>(addr, TreatAsOnChipAccess{});
-            break;
-    }
-}
-template<bool isReadOperation>
-[[gnu::always_inline]]
-inline void
-getPeripheralDevice(uint32_t addr) noexcept {
-    getPeripheralDevice<isReadOperation>(SplitWord32{addr});
+talkToi960(uint32_t addr, T, K) noexcept {
+    talkToi960<K::IsReadOperation>(SplitWord32{addr}, T{});
 }
 
 inline void
@@ -356,18 +279,16 @@ handleTransaction(LoadFromIBUS) noexcept {
     if (Platform::isReadOperation()) {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            talkToi960<true>(address, TreatAsInstruction{});
-            //getPeripheralDevice<true>(address);
+            talkToi960(address, TreatAsInstruction{}, ReadOperation{});
         } else {
-            talkToi960<true>(address, TreatAsOnChipAccess{});
+            talkToi960(address, TreatAsOnChipAccess{}, ReadOperation{});
         }
     } else {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            //getPeripheralDevice<false>(address);
-            talkToi960<false>(address, TreatAsInstruction{});
+            talkToi960(address, TreatAsInstruction{}, WriteOperation{});
         } else {
-            talkToi960<false>(address, TreatAsOnChipAccess{});
+            talkToi960(address, TreatAsOnChipAccess{}, WriteOperation{});
         }
     }
     // need this delay to synchronize everything :)

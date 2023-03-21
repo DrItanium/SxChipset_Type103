@@ -183,15 +183,6 @@ Platform::getDataByte(uint8_t index) noexcept {
     return getProcessorInterface().dataLines_.view8.data[index & 0b11];
 }
 
-template<typename T>
-volatile T& memory(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    return memory<T>(0b0100'0000'0000'0000 + (addr.halves[0] & 0b0011'1111'1111'1111));
-}
-
-template<typename T>
-volatile T& memory(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    return memory<T>(0b1000'0000'0000'0000 + (addr.halves[0] & 0b0111'1111'1111'1111));
-}
 
 volatile SplitWord32& 
 Platform::getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept {
@@ -207,9 +198,26 @@ Platform::getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept {
 
 void 
 Platform::setBank(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    
+    setBank(static_cast<uint8_t>(addr.full >> 14), AccessFromIBUS{});
 }
 void 
 Platform::setBank(const SplitWord32& addr, AccessFromXBUS) noexcept {
+    setBank(addr.full, AccessFromXBUS{});
+}
 
+void 
+Platform::setBank(uint8_t bankId, AccessFromIBUS) noexcept {
+    PORTJ = bankId;
+}
+void 
+Platform::setBank(uint32_t bankAddress, AccessFromXBUS) noexcept {
+    getProcessorInterface().bank_.view32.data = bankAddress;
+}
+uint8_t 
+Platform::getBank(AccessFromIBUS) noexcept {
+    return PORTJ;
+}
+uint32_t 
+Platform::getBank(AccessFromXBUS) noexcept {
+    return getProcessorInterface().bank_.view32.data;
 }

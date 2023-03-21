@@ -110,22 +110,16 @@ union SplitWord32 {
     [[nodiscard]] constexpr bool operator>(const SplitWord32& other) const noexcept { return full > other.full; }
     [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
     [[nodiscard]] constexpr auto retrieveHalf(byte offset) const noexcept { return halves[offset & 0b1]; }
-    [[nodiscard]] constexpr uintptr_t compute328BusAddress() const noexcept {
-        // since it is a 15 bit address, we want to just make sure that the most significant bit always 1
-        return static_cast<uintptr_t>(0x8000 | (halves[0]));
-    }
-    [[nodiscard]] constexpr auto compute328BusBank() const noexcept {
-        uint24_t normal = halves[1];
-        normal <<= 1;
-        if (bytes[1] & 0x80) {
-            normal |= 0b1;
-        }
-        return normal;
+    [[nodiscard]] constexpr uint8_t getIBUSBankIndex() const noexcept {
+        return static_cast<uint8_t>(full >> 14);
     }
     void assignHalf(byte offset, uint16_t value) noexcept { halves[offset & 0b1] = value; }
     void clear() noexcept { full = 0; }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
+static_assert(SplitWord32{0xFFFF'FFFF}.getIBUSBankIndex() == 0xFF);
+static_assert(SplitWord32{0xFFFE'FFFF}.getIBUSBankIndex() == 0xFB);
+static_assert(SplitWord32{0xFFEF'FFFF}.getIBUSBankIndex() == 0xBF);
 
 
 class AddressTracker {
@@ -224,5 +218,15 @@ struct [[gnu::packed]] ProcessorInterface {
         dataLines_.view32.data = value;
     }
 } ;
+
+template<typename T>
+volatile T& memory(const SplitWord32& addr, AccessFromIBUS) noexcept {
+    return memory<T>(0b0100'0000'0000'0000 + (addr.halves[0] & 0b0011'1111'1111'1111));
+}
+
+template<typename T>
+volatile T& memory(const SplitWord32& addr, AccessFromXBUS) noexcept {
+    return memory<T>(0b1000'0000'0000'0000 + (addr.halves[0] & 0b0111'1111'1111'1111));
+}
 
 #endif //SXCHIPSET_TYPE103_TYPES_H__

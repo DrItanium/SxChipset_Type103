@@ -508,7 +508,7 @@ installMemoryImage() noexcept {
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
             Platform::setBank(view, AccessFromIBUS{});
-            uint8_t* theBuffer = reinterpret_cast<uint8_t*>(view.compute328BusAddress());
+            uint8_t* theBuffer = const_cast<uint8_t*>(&memory<uint8_t>(view, AccessFromIBUS{}));
             theFirmware.read(theBuffer, BufferSize);
             Serial.print(F("."));
         }

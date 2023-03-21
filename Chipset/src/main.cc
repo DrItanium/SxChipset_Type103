@@ -104,128 +104,62 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 struct TreatAsOnChipAccess final { };
 struct TreatAsOffChipAccess final { };
 
-[[gnu::always_inline]]
-inline void
-manipulateDataLines(const SplitWord16* const ptr, ReadOperation) noexcept {
-#if 0
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("\tRead Out 0x"));
-        Serial.println(ptr->getWholeValue(), HEX);
-    }
-    // keep setting the data lines and inform the i960
-    setDataLines(ptr->getWholeValue());
-#endif
-}
 
-[[gnu::always_inline]]
-inline void
-manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
-#if 0
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("\tWrite in 0x"));
-        Serial.println(Platform::getDataLines(), HEX);
-    }
-    if (digitalRead<Pin::BE0>() == LOW) {
-        ptr->bytes[0] = getInputRegister<Port::DataLower>();
-    }
-    if (digitalRead<Pin::BE1>() == LOW) {
-        ptr->bytes[1] = getInputRegister<Port::DataUpper>();
-    }
-#endif
-}
 template<bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
-    static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-        auto& ptr = Platform::getMemoryView(addr, AccessFromIBUS { });
-        if constexpr (constexpr uint8_t theBits = static_cast<uint8_t>(kind); isReadOperation) {
-            if constexpr (theBits == 0) {
+private:
+    static constexpr uint8_t ByteEnableAsBits = static_cast<uint8_t>(kind);
+    static void performExecution(volatile SplitWord32& ptr) noexcept {
+        if constexpr (isReadOperation) {
+            if constexpr (ByteEnableAsBits == 0) {
                 Platform::setDataLines(ptr.full);
-            } else if constexpr (theBits == 0b0011) {
+            } else if constexpr (ByteEnableAsBits == 0b0011) {
                 Platform::setUpperDataBits(ptr.halves[1]);
-            } else if constexpr (theBits == 0b1100) {
+            } else if constexpr (ByteEnableAsBits == 0b1100) {
                 Platform::setLowerDataBits(ptr.halves[0]);
             } else {
-                if constexpr ((theBits & 0b0001) == 0) {
+                if constexpr ((ByteEnableAsBits & 0b0001) == 0) {
                     Platform::setDataByte(0, ptr.bytes[0]);
                 }
-                if constexpr ((theBits & 0b0010) == 0) {
+                if constexpr ((ByteEnableAsBits & 0b0010) == 0) {
                     Platform::setDataByte(1, ptr.bytes[1]);
                 }
-                if constexpr ((theBits & 0b0100) == 0) {
+                if constexpr ((ByteEnableAsBits & 0b0100) == 0) {
                     Platform::setDataByte(2, ptr.bytes[2]);
                 }
-                if constexpr ((theBits & 0b1000) == 0) {
+                if constexpr ((ByteEnableAsBits & 0b1000) == 0) {
                     Platform::setDataByte(3, ptr.bytes[3]);
                 }
             }
         } else {
-            if constexpr (theBits == 0) {
+            if constexpr (ByteEnableAsBits == 0) {
                 ptr.full = Platform::getDataLines();
-            } else if constexpr (theBits == 0b0011) {
+            } else if constexpr (ByteEnableAsBits == 0b0011) {
                 ptr.halves[1] = Platform::getUpperDataBits();
-            } else if constexpr (theBits == 0b1100) {
+            } else if constexpr (ByteEnableAsBits == 0b1100) {
                 ptr.halves[0] = Platform::getLowerDataBits();
             } else {
-                if constexpr ((theBits & 0b0001) == 0) {
+                if constexpr ((ByteEnableAsBits & 0b0001) == 0) {
                     ptr.bytes[0] = Platform::getDataByte(0);
                 }
-                if constexpr ((theBits & 0b0010) == 0) {
+                if constexpr ((ByteEnableAsBits & 0b0010) == 0) {
                     ptr.bytes[1] = Platform::getDataByte(1);
                 }
-                if constexpr ((theBits & 0b0100) == 0) {
+                if constexpr ((ByteEnableAsBits & 0b0100) == 0) {
                     ptr.bytes[2] = Platform::getDataByte(2);
                 }
-                if constexpr ((theBits & 0b1000) == 0) {
+                if constexpr ((ByteEnableAsBits & 0b1000) == 0) {
                     ptr.bytes[3] = Platform::getDataByte(3);
                 }
             }
         }
     }
+public:
+    static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+        performExecution( Platform::getMemoryView(addr, AccessFromIBUS { }));
+    }
     static void execute(const SplitWord32& addr, TreatAsOffChipAccess) noexcept {
-        auto& ptr = Platform::getMemoryView(addr, AccessFromXBUS { });
-        if constexpr (constexpr uint8_t theBits = static_cast<uint8_t>(kind); isReadOperation) {
-            if constexpr (theBits == 0) {
-                Platform::setDataLines(ptr.full);
-            } else if constexpr (theBits == 0b0011) {
-                Platform::setUpperDataBits(ptr.halves[1]);
-            } else if constexpr (theBits == 0b1100) {
-                Platform::setLowerDataBits(ptr.halves[0]);
-            } else {
-                if constexpr ((theBits & 0b0001) == 0) {
-                    Platform::setDataByte(0, ptr.bytes[0]);
-                }
-                if constexpr ((theBits & 0b0010) == 0) {
-                    Platform::setDataByte(1, ptr.bytes[1]);
-                }
-                if constexpr ((theBits & 0b0100) == 0) {
-                    Platform::setDataByte(2, ptr.bytes[2]);
-                }
-                if constexpr ((theBits & 0b1000) == 0) {
-                    Platform::setDataByte(3, ptr.bytes[3]);
-                }
-            }
-        } else {
-            if constexpr (theBits == 0) {
-                ptr.full = Platform::getDataLines();
-            } else if constexpr (theBits == 0b0011) {
-                ptr.halves[1] = Platform::getUpperDataBits();
-            } else if constexpr (theBits == 0b1100) {
-                ptr.halves[0] = Platform::getLowerDataBits();
-            } else {
-                if constexpr ((theBits & 0b0001) == 0) {
-                    ptr.bytes[0] = Platform::getDataByte(0);
-                }
-                if constexpr ((theBits & 0b0010) == 0) {
-                    ptr.bytes[1] = Platform::getDataByte(1);
-                }
-                if constexpr ((theBits & 0b0100) == 0) {
-                    ptr.bytes[2] = Platform::getDataByte(2);
-                }
-                if constexpr ((theBits & 0b1000) == 0) {
-                    ptr.bytes[3] = Platform::getDataByte(3);
-                }
-            }
-        }
+        performExecution( Platform::getMemoryView(addr, AccessFromXBUS { }));
     }
 };
 
@@ -258,7 +192,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
 #undef X
             default:
                 RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(addr, TreatAsOnChipAccess{});
-                /// @todo implement simple walkthrough
                 break;
         }
         auto end = Platform::isBurstLast();
@@ -267,29 +200,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             break;
         }
     } while (true);
-#if 0
-    BankSwitcher::setBank(addr.compute328BusBank());
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("Target Bank: 0x"));
-        Serial.println(static_cast<uint32_t>(addr.compute328BusBank()), HEX);
-    }
-    SplitWord16* ptr = reinterpret_cast<SplitWord16*>(addr.compute328BusAddress());
-    if constexpr (EnableDebugMode) {
-        Serial.print(F("Target Address: 0x"));
-        Serial.println(addr.compute328BusAddress(), HEX);
-    }
-    using TargetOp = RWOperation<isReadOperation>;
-    for (byte i = 0; i < 8; ++i) {
-        manipulateDataLines(ptr, TargetOp{});
-        //auto isBurstLast = digitalRead<Pin::BLAST_>() == LOW;
-        auto end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            break;
-        }
-        ++ptr;
-    }
-#endif
 }
 template<bool isReadOperation>
 [[gnu::always_inline]]
@@ -322,16 +232,6 @@ getPeripheralDevice(uint32_t addr) noexcept {
     getPeripheralDevice<isReadOperation>(SplitWord32{addr});
 }
 
-#if 0
-[[gnu::always_inline]]
-inline void
-triggerClock() noexcept {
-    // just write to the CLKSignal pin to force a toggle
-    Platform::signalReady();
-    //pulse<Pin::CLKSignal>();
-    singleCycleDelay();
-}
-#endif
 inline void
 handleTransaction(LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
@@ -353,132 +253,6 @@ handleTransaction(LoadFromIBUS) noexcept {
     }
     // need this delay to synchronize everything :)
     singleCycleDelay();
-}
-inline void
-handleTransaction(LoadFromPortK) noexcept {
-#if 0
-    SplitWord32 addr{0};
-    // clear the address counter to be on the safe side
-    if constexpr (EnableDebugMode) {
-        digitalWrite<Pin::AddressCaptureSignal1, LOW>();
-    }
-    triggerClock();
-    toggle<Pin::Enable>();
-    singleCycleDelay(); // introduce this extra cycle of delay to make sure
-    // that inputs are updated correctly since they are
-    // tristated
-    if (auto m2 = readInputChannelAs<uint8_t>(); (m2 & 0b1) == 0) {
-        addr.bytes[0] = m2;
-        // unpack the signal triggering to interleave the act of updating direction with waiting for the clock signalling
-        pulse<Pin::CLKSignal>();
-        getDirectionRegister<Port::DataLower>() = 0xFF;
-        getDirectionRegister<Port::DataUpper>() = 0xFF;
-        auto b1 = readInputChannelAs<uint8_t>();
-        pulse<Pin::CLKSignal>();
-        addr.bytes[1] = b1;
-        auto b2 = readInputChannelAs<uint8_t>();
-        pulse<Pin::CLKSignal>();
-        addr.bytes[2] = b2;
-        auto b3 = readInputChannelAs<uint8_t>();
-        toggle<Pin::Enable>();
-        pulse<Pin::CLKSignal>();
-        addr.bytes[3] = b3;
-        // When we are in io space, we are treating the address as an opcode which
-        // we can decompose while getting the pieces from the io expanders. Thus we
-        // can overlay the act of decoding while getting the next part
-        //
-        // The W/~R pin is used to figure out if this is a read or write operation
-        //
-        // This system does not care about the size but it does care about where
-        // one starts when performing a write operation
-        if (b3 == 0xF0) {
-            getPeripheralDevice<true>(addr);
-        } else {
-            talkToi960<true>(addr, TreatAsOnChipAccess{});
-        }
-    } else {
-        /// @todo do we need to the masking now that the caches have been removed?
-        addr.bytes[0] = m2 & 0b1111'1110;
-        pulse<Pin::CLKSignal>();
-        getDirectionRegister<Port::DataLower>() = 0;
-        getDirectionRegister<Port::DataUpper>() = 0;
-        auto b1 = readInputChannelAs<uint8_t>();
-        pulse<Pin::CLKSignal>();
-        addr.bytes[1] = b1;
-        auto b2 = readInputChannelAs<uint8_t>();
-        pulse<Pin::CLKSignal>();
-        addr.bytes[2] = b2;
-        auto b3 = readInputChannelAs<uint8_t>();
-        toggle<Pin::Enable>();
-        pulse<Pin::CLKSignal>();
-        addr.bytes[3] = b3;
-
-        // When we are in io space, we are treating the address as an opcode which
-        // we can decompose while getting the pieces from the io expanders. Thus we
-        // can overlay the act of decoding while getting the next part
-        //
-        // The W/~R pin is used to figure out if this is a read or write operation
-        //
-        // This system does not care about the size but it does care about where
-        // one starts when performing a write operation
-        if (b3 == 0xF0) {
-            getPeripheralDevice<false>(addr);
-        } else {
-            talkToi960<false>(addr, TreatAsOnChipAccess{});
-        }
-    }
-    // allow for extra recovery time, introduce a single 10mhz cycle delay
-    // shift back to input channel 0
-    singleCycleDelay();
-#endif
-}
-
-void
-handleTransaction(LoadFromEBI) noexcept {
-#if 0
-    // clear the address counter to be on the safe side
-    SplitWord32 addr{memory<uint32_t>(0x7F00)};
-    //singleCycleDelay(); // introduce this extra cycle of delay to make sure
-    // that inputs are updated correctly since they are
-    // tristated
-    if ((addr.bytes[0] & 0b1) == 0) {
-        memory<uint16_t>(0x7F10) = 0xFFFF;
-        // When we are in io space, we are treating the address as an opcode which
-        // we can decompose while getting the pieces from the io expanders. Thus we
-        // can overlay the act of decoding while getting the next part
-        //
-        // The W/~R pin is used to figure out if this is a read or write operation
-        //
-        // This system does not care about the size but it does care about where
-        // one starts when performing a write operation
-        if (addr.isIOInstruction()) {
-            getPeripheralDevice<true>(addr);
-        } else {
-            talkToi960<true>(addr, TreatAsOnChipAccess{});
-        }
-    } else {
-        /// @todo do we need to the masking now that the caches have been removed?
-        addr.bytes[0] &= 0b1111'1110;
-        memory<uint16_t>(0x7F10) = 0;
-
-        // When we are in io space, we are treating the address as an opcode which
-        // we can decompose while getting the pieces from the io expanders. Thus we
-        // can overlay the act of decoding while getting the next part
-        //
-        // The W/~R pin is used to figure out if this is a read or write operation
-        //
-        // This system does not care about the size but it does care about where
-        // one starts when performing a write operation
-        if (addr.isIOInstruction()) {
-            getPeripheralDevice<false>(addr);
-        } else {
-            talkToi960<false>(addr, TreatAsOnChipAccess{});
-        }
-    }
-    // allow for extra recovery time, introduce a single 10mhz cycle delay
-    // shift back to input channel 0
-    singleCycleDelay();
-#endif
 }
 
 void

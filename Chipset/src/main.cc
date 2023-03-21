@@ -59,9 +59,15 @@ struct LoadFromIBUS final { };
 struct LoadFromXBUS final { };
 using SelectedLogic = LoadFromIBUS;
 
-struct TreatAsOnChipAccess final { };
-struct TreatAsOffChipAccess final { };
-struct TreatAsInstruction final { };
+struct TreatAsOnChipAccess final {
+    using AccessMethod = AccessFromIBUS;
+};
+struct TreatAsOffChipAccess final {
+    using AccessMethod = AccessFromXBUS;
+};
+struct TreatAsInstruction final { 
+    using AccessMethod = AccessFromInstruction;
+};
 
 
 template<bool isReadOperation, ByteEnableKind kind>
@@ -128,11 +134,9 @@ private:
         }
     }
 public:
-    static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-        performEBIExecution( Platform::getMemoryView(addr, AccessFromIBUS { }));
-    }
-    static void execute(const SplitWord32& addr, TreatAsOffChipAccess) noexcept {
-        performEBIExecution( Platform::getMemoryView(addr, AccessFromXBUS { }));
+    template<typename T>
+    static void execute(const SplitWord32& addr, T) noexcept {
+        performEBIExecution( Platform::getMemoryView(addr, T {}));
     }
     static void execute(Instruction& container, TreatAsInstruction) noexcept {
 
@@ -190,16 +194,16 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
 
 
 
-template<bool isReadOperation>
+template<bool isReadOperation, typename T>
 [[gnu::always_inline]]
 inline void
-talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+talkToi960(const SplitWord32& addr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
     // banks
-    Platform::setBank(addr, AccessFromIBUS{});
+    Platform::setBank(addr, typename T::AccessMethod{});
     do {
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, TreatAsOnChipAccess {}); break
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, typename T::AccessMethod {}); break;
             X(Full32);
             X(Lower16);
             X(Upper16);
@@ -217,44 +221,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             X(Higher8_Lowest8 );
 #undef X
             default:
-                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(addr, TreatAsOnChipAccess{});
-                break;
-        }
-        auto end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            break;
-        }
-    } while (true);
-}
-template<bool isReadOperation>
-[[gnu::always_inline]]
-inline void
-talkToi960(const SplitWord32& addr, TreatAsOffChipAccess) noexcept {
-    // only need to set this once, it is literally impossible for this to span
-    // banks
-    Platform::setBank(addr, AccessFromXBUS{});
-    do {
-        switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, TreatAsOffChipAccess {}); break
-            X(Full32);
-            X(Lower16);
-            X(Upper16);
-            X(Lowest8);
-            X(Lower8);
-            X(Higher8);
-            X(Highest8);
-            X(Mid16);
-            X(Lower24);
-            X(Upper24);
-            X(Highest8_Lower16 );
-            X(Highest8_Lower8 );
-            X(Highest8_Lowest8 );
-            X(Upper16_Lowest8 );
-            X(Higher8_Lowest8 );
-#undef X
-            default:
-                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(addr, TreatAsOffChipAccess{});
+                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(addr, typename T::AccessMethod{});
                 break;
         }
         auto end = Platform::isBurstLast();

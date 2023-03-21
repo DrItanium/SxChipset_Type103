@@ -95,6 +95,16 @@ struct RequestProcessor {
 private:
     static constexpr uint8_t ByteEnableAsBits = static_cast<uint8_t>(kind);
     static void performEBIExecution(volatile SplitWord32& ptr) noexcept {
+        // stream the data out onto the bus
+        // at some point this code may go away and instead we only respond when
+        // being talked to.
+        if constexpr (isReadOperation) {
+            fulfillIOExpanderRead(const_cast<const SplitWord32&>(ptr));
+        } else {
+            fulfillIOExpanderWrites(ptr);
+        }
+    }
+    static void fulfillIOExpanderRead(const SplitWord32& ptr) noexcept {
         if constexpr (isReadOperation) {
             if constexpr (ByteEnableAsBits == 0) {
                 Platform::setDataLines(ptr.full);
@@ -116,7 +126,11 @@ private:
                     Platform::setDataByte(3, ptr.bytes[3]);
                 }
             }
-        } else {
+        } 
+        // do nothing on writes
+    }
+    static void fulfillIOExpanderWrites(volatile SplitWord32& ptr) noexcept {
+        if constexpr (!isReadOperation) {
             if constexpr (ByteEnableAsBits == 0) {
                 ptr.full = Platform::getDataLines();
             } else if constexpr (ByteEnableAsBits == 0b0011) {
@@ -147,6 +161,7 @@ public:
         performEBIExecution( Platform::getMemoryView(addr, AccessFromXBUS { }));
     }
     static void execute(Instruction& container, TreatAsInstruction) noexcept {
+        // reads probably need to happen ahead of time to be honest
         // reads need to be interpreted right then and there
         // writes can be deferred
     }

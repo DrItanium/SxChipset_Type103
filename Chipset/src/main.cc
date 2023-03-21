@@ -161,12 +161,13 @@ public:
         performEBIExecution( Platform::getMemoryView(addr, AccessFromXBUS { }));
     }
     static void execute(Instruction& container, TreatAsInstruction) noexcept {
-        if constexpr (isReadOperation) {
+
+        if constexpr (uint8_t targetWordIndex = ((Platform::getAddressOffset() >> 2) & 0b11); isReadOperation) {
             // assume that we have performed the read operation ahead of time
             // and that we are operating on the packet we got back
-            fulfillIOExpanderReads(container.args_[(Platform::getAddressOffset() & 0b1100) >> 2]);
+            fulfillIOExpanderReads(container.args_[targetWordIndex]);
         } else {
-            fulfillIOExpanderWrites(container.args_[(Platform::getAddressOffset() & 0b1100) >> 2]);
+            fulfillIOExpanderWrites(container.args_[targetWordIndex]);
         }
     }
 };
@@ -192,6 +193,13 @@ inline void
 talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
     Instruction operation;
     operation.opcode_ = addr;
+
+    if (isReadOperation) {
+        // We perform the read operation _ahead_ of sending it back to the i960
+        // The result of the read operation is stored in the args of the
+        // instruction. 
+        // that is what's performed here
+    }
     do {
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
 #define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, TreatAsInstruction{}); break

@@ -37,8 +37,8 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations, InfoDevice> {
 public:
     bool init() noexcept  { return true; }
     bool isAvailable() const noexcept { return true; }
-    uint16_t extendedRead() const noexcept;
-    void extendedWrite(uint16_t value) noexcept;
+    uint32_t extendedRead() const noexcept;
+    void extendedWrite(uint32_t value) noexcept;
     void onStartTransaction(const SplitWord32&) noexcept { }
 };
 

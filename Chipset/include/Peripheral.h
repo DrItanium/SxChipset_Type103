@@ -45,23 +45,10 @@ template<typename E>
 constexpr bool validOperation(E value) noexcept {
     return static_cast<int>(value) >= 0 && (static_cast<int>(value) < static_cast<int>(E::Count));
 }
-#if 0
-template<typename T, bool introduceCpuCycleDelay = false>
-inline T
-readInputChannelAs() noexcept {
-    // make sure there is a builtin delay
-    if constexpr (introduceCpuCycleDelay) {
-        asm volatile ("nop");
-        asm volatile ("nop");
-    }
-    return T{readFromCapture()};
-}
-#endif
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
     Platform::signalReady();
-    //pulse<Pin::Ready, LOW, HIGH>();
 }
 
 template<typename E, typename T>
@@ -85,7 +72,7 @@ public:
         stashOpcode(addr);
         static_cast<T*>(this)->onStartTransaction(addr);
     }
-    [[nodiscard]] uint16_t performRead() const noexcept {
+    [[nodiscard]] uint32_t performRead() const noexcept {
         switch (currentOpcode_) {
             case E::Available:
                 return available();
@@ -99,7 +86,7 @@ public:
                 }
         }
     }
-    void performWrite(uint16_t value) noexcept {
+    void performWrite(uint32_t value) noexcept {
         switch (currentOpcode_) {
             case E::Available:
             case E::Size:
@@ -112,8 +99,8 @@ public:
                 break;
         }
     }
-    [[nodiscard]] uint16_t read() const noexcept { return performRead(); }
-    void write(uint16_t value) noexcept {
+    [[nodiscard]] uint32_t read() const noexcept { return performRead(); }
+    void write(uint32_t value) noexcept {
         performWrite(value);
     }
     void next() noexcept {

@@ -56,25 +56,25 @@ TimerDevice::init() noexcept {
     return true;
 }
 
-uint16_t 
+uint32_t
 TimerDevice::extendedRead() const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (getCurrentOpcode()) {
 #if defined(TCCR2B)
         case TimerDeviceOperations::SystemTimerPrescalar:
-            return static_cast<uint16_t>(TCCR2B & 0b111);
+            return static_cast<uint32_t>(TCCR2B & 0b111);
 #endif
 #if defined(OCR2A)
         case TimerDeviceOperations::SystemTimerComparisonValue:
-            return static_cast<uint16_t>(OCR2A);
+            return static_cast<uint32_t>(OCR2A);
 #endif
         default:
             return 0;
     }
 }
 void 
-TimerDevice::extendedWrite(uint16_t value) noexcept {
+TimerDevice::extendedWrite(uint32_t value) noexcept {
     // do nothing
     switch (getCurrentOpcode()) {
 #if defined(TCCR2A) && defined(TCCR2B) && defined(TIMSK2)

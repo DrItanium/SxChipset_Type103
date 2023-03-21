@@ -42,7 +42,7 @@ public:
     bool init() noexcept ;
     bool isAvailable() const noexcept { return true; }
     void onStartTransaction(const SplitWord32& addr) noexcept;
-    uint16_t extendedRead() const noexcept ;
-    void extendedWrite(uint16_t value) noexcept ;
+    uint32_t extendedRead() const noexcept ;
+    void extendedWrite(uint32_t value) noexcept ;
 };
 #endif //CHIPSET_TIMERDEVICE_H

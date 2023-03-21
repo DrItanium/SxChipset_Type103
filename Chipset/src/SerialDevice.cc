@@ -32,7 +32,7 @@ performSerialRead() noexcept {
 }
 
 void
-performSerialWrite(uint16_t value) noexcept {
+performSerialWrite(uint32_t value) noexcept {
     Serial.write(static_cast<uint8_t>(value));
 }
 
@@ -52,7 +52,7 @@ SerialDevice::init() noexcept {
 }
 
 
-uint16_t 
+uint32_t
 SerialDevice::extendedRead() const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
@@ -63,15 +63,14 @@ SerialDevice::extendedRead() const noexcept {
             Serial.flush();
             return 0;
         case SerialDeviceOperations::Baud:
-            return SplitWord32{baud_}.retrieveHalf(getOffset());
+            return baud_;
         default:
             return 0;
     }
 }
 void 
-SerialDevice::extendedWrite(uint16_t value) noexcept {
+SerialDevice::extendedWrite(uint32_t value) noexcept {
     // do nothing
-    bool setBaud = false;
     switch (getCurrentOpcode()) {
         case SerialDeviceOperations::RW:
             performSerialWrite(value);
@@ -80,16 +79,10 @@ SerialDevice::extendedWrite(uint16_t value) noexcept {
             Serial.flush();
             break;
         case SerialDeviceOperations::Baud:
-            baudAssignTemporary_.assignHalf(getOffset(), value);
-            // when we assign the upper half then we want to set the baud
-            setBaud = (getOffset() & 0b1);
+            Serial.flush();
+            setBaudRate(value);
             break;
         default:
             break;
-    }
-    if (setBaud) {
-        Serial.flush();
-        setBaudRate(baudAssignTemporary_.getWholeValue());
-        baudAssignTemporary_.clear();
     }
 }

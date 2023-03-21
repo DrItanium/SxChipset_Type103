@@ -265,6 +265,7 @@ class Platform final {
         static void configureDataLinesForRead() noexcept;
         static bool isIOOperation() noexcept;
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(getProcessorInterface().control_.ctl.cfg); }
+        static volatile SplitWord32& adjustMemoryView(const SplitWord32& addr) noexcept;
     private:
         static inline bool initialized_ = false;
 };

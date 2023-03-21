@@ -136,16 +136,34 @@ manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
 template<bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
     static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+        if constexpr (isReadOperation) {
 
+        } else {
+
+        }
     }
 };
+#define BeginRequestHandler(kind) \
+    template<bool isReadOperation> \
+    struct RequestProcessor<isReadOperation, ByteEnableKind:: kind > { \
+        static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept { 
 
-template<bool isReadOperation>
-struct RequestProcessor<isReadOperation, ByteEnableKind::Full32> {
-    static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
+#define EndRequestHandler } };
 
+BeginRequestHandler(Full32) 
+    // set the appropriate bank index
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setDataLines(ptr.full);
+    } else {
+        ptr.full = Platform::getDataLines();
     }
-};
+EndRequestHandler
+
+#undef BeginRequestHandler
+#undef EndRequestHandler
+
+
 
 template<bool isReadOperation>
 [[gnu::always_inline]]

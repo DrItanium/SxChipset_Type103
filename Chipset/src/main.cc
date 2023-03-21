@@ -178,6 +178,78 @@ BeginRequestHandler(Upper16)
     }
 EndRequestHandler
 
+BeginRequestHandler(Lowest8)
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setDataByte(0, ptr.bytes[0]);
+    } else {
+        ptr.bytes[0] = Platform::getDataByte(0);
+    }
+EndRequestHandler
+
+BeginRequestHandler(Lower8)
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setDataByte(1, ptr.bytes[1]);
+    } else {
+        ptr.bytes[1] = Platform::getDataByte(1);
+    }
+EndRequestHandler
+
+BeginRequestHandler(Higher8)
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setDataByte(2, ptr.bytes[2]);
+    } else {
+        ptr.bytes[2] = Platform::getDataByte(2);
+    }
+EndRequestHandler
+
+BeginRequestHandler(Highest8)
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setDataByte(3, ptr.bytes[3]);
+    } else {
+        ptr.bytes[3] = Platform::getDataByte(3);
+    }
+EndRequestHandler
+
+BeginRequestHandler(Upper24) 
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setDataByte(1, ptr.bytes[1]);
+        Platform::setDataByte(2, ptr.bytes[2]);
+        Platform::setDataByte(3, ptr.bytes[3]);
+    } else {
+        ptr.bytes[1] = Platform::getDataByte(1);
+        ptr.bytes[2] = Platform::getDataByte(2);
+        ptr.bytes[3] = Platform::getDataByte(3);
+    }
+EndRequestHandler
+
+BeginRequestHandler(Lower24) 
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setDataByte(0, ptr.bytes[0]);
+        Platform::setDataByte(1, ptr.bytes[1]);
+        Platform::setDataByte(2, ptr.bytes[2]);
+    } else {
+        ptr.bytes[0] = Platform::getDataByte(0);
+        ptr.bytes[1] = Platform::getDataByte(1);
+        ptr.bytes[2] = Platform::getDataByte(2);
+    }
+EndRequestHandler
+BeginRequestHandler(Mid16) 
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setDataByte(1, ptr.bytes[1]);
+        Platform::setDataByte(2, ptr.bytes[2]);
+    } else {
+        ptr.bytes[1] = Platform::getDataByte(1);
+        ptr.bytes[2] = Platform::getDataByte(2);
+    }
+EndRequestHandler
+
 #undef BeginRequestHandler
 #undef EndRequestHandler
 

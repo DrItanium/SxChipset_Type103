@@ -266,6 +266,10 @@ class Platform final {
         static bool isIOOperation() noexcept;
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(getProcessorInterface().control_.ctl.cfg); }
         static volatile SplitWord32& adjustMemoryView(const SplitWord32& addr) noexcept;
+        static uint16_t getUpperDataBits() noexcept;
+        static uint16_t getLowerDataBits() noexcept;
+        static void setUpperDataBits(uint16_t value) noexcept;
+        static void setLowerDataBits(uint16_t value) noexcept;
     private:
         static inline bool initialized_ = false;
 };

@@ -160,6 +160,24 @@ BeginRequestHandler(Full32)
     }
 EndRequestHandler
 
+BeginRequestHandler(Lower16)
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setLowerDataBits(ptr.halves[0]);
+    } else {
+        ptr.halves[0] = Platform::getLowerDataBits();
+    }
+EndRequestHandler
+
+BeginRequestHandler(Upper16)
+    auto& ptr = Platform::adjustMemoryView(addr);
+    if constexpr (isReadOperation) {
+        Platform::setUpperDataBits(ptr.halves[1]);
+    } else {
+        ptr.halves[1] = Platform::getUpperDataBits();
+    }
+EndRequestHandler
+
 #undef BeginRequestHandler
 #undef EndRequestHandler
 

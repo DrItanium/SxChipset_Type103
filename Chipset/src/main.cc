@@ -84,32 +84,17 @@ manipulateHandler(T& handler, ReadOperation) noexcept {
     }
     Platform::setDataLines(value);
 }
-template<bool isReadOperation, typename T>
-inline void
-talkToi960(const SplitWord32& addr, T& handler) noexcept {
-    handler.startTransaction(addr);
-    // previously, we were doing up to eight operations but things have changed
-    // since we are now operating on a 32-bit bus
-    while (true) {
-        manipulateHandler(handler, RWOperation<isReadOperation>{});
-        auto isDone = Platform::isBurstLast();
-        signalReady();
-        if (isDone) {
-            return;
-        }
-        handler.next();
-    }
-}
 
 struct TreatAsOnChipAccess final { };
 struct TreatAsOffChipAccess final { };
+struct TreatAsInstruction final { };
 
 
 template<bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
 private:
     static constexpr uint8_t ByteEnableAsBits = static_cast<uint8_t>(kind);
-    static void performExecution(volatile SplitWord32& ptr) noexcept {
+    static void performEBIExecution(volatile SplitWord32& ptr) noexcept {
         if constexpr (isReadOperation) {
             if constexpr (ByteEnableAsBits == 0) {
                 Platform::setDataLines(ptr.full);
@@ -156,12 +141,37 @@ private:
     }
 public:
     static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-        performExecution( Platform::getMemoryView(addr, AccessFromIBUS { }));
+        performEBIExecution( Platform::getMemoryView(addr, AccessFromIBUS { }));
     }
     static void execute(const SplitWord32& addr, TreatAsOffChipAccess) noexcept {
-        performExecution( Platform::getMemoryView(addr, AccessFromXBUS { }));
+        performEBIExecution( Platform::getMemoryView(addr, AccessFromXBUS { }));
+    }
+    static void execute(const SplitWord32& addr, Instruction& container) noexcept {
+
     }
 };
+template<bool isReadOperation, typename T>
+inline void
+talkToi960(const SplitWord32& addr, T& handler) noexcept {
+    handler.startTransaction(addr);
+    // previously, we were doing up to eight operations but things have changed
+    // since we are now operating on a 32-bit bus
+    while (true) {
+        manipulateHandler(handler, RWOperation<isReadOperation>{});
+        auto isDone = Platform::isBurstLast();
+        signalReady();
+        if (isDone) {
+            return;
+        }
+        handler.next();
+    }
+}
+
+template<bool isReadOperation>
+inline void
+talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
+
+}
 
 
 
@@ -169,9 +179,10 @@ template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-    /// @todo figure out which bank we are a part of on the IBUS
+    // only need to set this once, it is literally impossible for this to span
+    // banks
+    Platform::setBank(addr, AccessFromIBUS{});
     do {
-        Platform::setBank(addr, AccessFromIBUS{});
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
 #define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, TreatAsOnChipAccess {}); break
             X(Full32);
@@ -204,8 +215,51 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
 template<bool isReadOperation>
 [[gnu::always_inline]]
 inline void
+talkToi960(const SplitWord32& addr, TreatAsOffChipAccess) noexcept {
+    // only need to set this once, it is literally impossible for this to span
+    // banks
+    Platform::setBank(addr, AccessFromXBUS{});
+    do {
+        switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, TreatAsOffChipAccess {}); break
+            X(Full32);
+            X(Lower16);
+            X(Upper16);
+            X(Lowest8);
+            X(Lower8);
+            X(Higher8);
+            X(Highest8);
+            X(Mid16);
+            X(Lower24);
+            X(Upper24);
+            X(Highest8_Lower16 );
+            X(Highest8_Lower8 );
+            X(Highest8_Lowest8 );
+            X(Upper16_Lowest8 );
+            X(Higher8_Lowest8 );
+#undef X
+            default:
+                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(addr, TreatAsOffChipAccess{});
+                break;
+        }
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            break;
+        }
+    } while (true);
+}
+template<bool isReadOperation>
+[[gnu::always_inline]]
+inline void
 talkToi960(uint32_t addr, TreatAsOnChipAccess) noexcept {
     talkToi960<isReadOperation>(SplitWord32{addr}, TreatAsOnChipAccess{});
+}
+template<bool isReadOperation>
+[[gnu::always_inline]]
+inline void
+talkToi960(uint32_t addr, TreatAsOffChipAccess) noexcept {
+    talkToi960<isReadOperation>(SplitWord32{addr}, TreatAsOffChipAccess{});
 }
 template<bool isReadOperation>
 void

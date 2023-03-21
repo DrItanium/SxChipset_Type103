@@ -136,10 +136,33 @@ manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
 template<bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
     static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-        if constexpr (isReadOperation) {
-
+        auto& ptr = Platform::adjustMemoryView(addr);
+        if constexpr (constexpr uint8_t theBits = static_cast<uint8_t>(kind); isReadOperation) {
+            if constexpr (theBits & 0b0001) {
+                Platform::setDataByte(0, ptr.bytes[0]);
+            }
+            if constexpr (theBits & 0b0010) {
+                Platform::setDataByte(1, ptr.bytes[1]);
+            }
+            if constexpr (theBits & 0b0100) {
+                Platform::setDataByte(2, ptr.bytes[2]);
+            }
+            if constexpr (theBits & 0b1000) {
+                Platform::setDataByte(3, ptr.bytes[3]);
+            }
         } else {
-
+            if constexpr (theBits & 0b0001) {
+                ptr.bytes[0] = Platform::getDataByte(0);
+            }
+            if constexpr (theBits & 0b0010) {
+                ptr.bytes[1] = Platform::getDataByte(1);
+            }
+            if constexpr (theBits & 0b0100) {
+                ptr.bytes[2] = Platform::getDataByte(2);
+            }
+            if constexpr (theBits & 0b1000) {
+                ptr.bytes[3] = Platform::getDataByte(3);
+            }
         }
     }
 };
@@ -214,42 +237,6 @@ BeginRequestHandler(Highest8)
     }
 EndRequestHandler
 
-BeginRequestHandler(Upper24) 
-    auto& ptr = Platform::adjustMemoryView(addr);
-    if constexpr (isReadOperation) {
-        Platform::setDataByte(1, ptr.bytes[1]);
-        Platform::setDataByte(2, ptr.bytes[2]);
-        Platform::setDataByte(3, ptr.bytes[3]);
-    } else {
-        ptr.bytes[1] = Platform::getDataByte(1);
-        ptr.bytes[2] = Platform::getDataByte(2);
-        ptr.bytes[3] = Platform::getDataByte(3);
-    }
-EndRequestHandler
-
-BeginRequestHandler(Lower24) 
-    auto& ptr = Platform::adjustMemoryView(addr);
-    if constexpr (isReadOperation) {
-        Platform::setDataByte(0, ptr.bytes[0]);
-        Platform::setDataByte(1, ptr.bytes[1]);
-        Platform::setDataByte(2, ptr.bytes[2]);
-    } else {
-        ptr.bytes[0] = Platform::getDataByte(0);
-        ptr.bytes[1] = Platform::getDataByte(1);
-        ptr.bytes[2] = Platform::getDataByte(2);
-    }
-EndRequestHandler
-BeginRequestHandler(Mid16) 
-    auto& ptr = Platform::adjustMemoryView(addr);
-    if constexpr (isReadOperation) {
-        Platform::setDataByte(1, ptr.bytes[1]);
-        Platform::setDataByte(2, ptr.bytes[2]);
-    } else {
-        ptr.bytes[1] = Platform::getDataByte(1);
-        ptr.bytes[2] = Platform::getDataByte(2);
-    }
-EndRequestHandler
-
 #undef BeginRequestHandler
 #undef EndRequestHandler
 
@@ -270,6 +257,15 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             X(Lower8);
             X(Higher8);
             X(Highest8);
+            X(Mid16);
+            X(Lower24);
+            X(Upper24);
+            X(Nothing);
+            X(Highest8_Lower16 );
+            X(Highest8_Lower8 );
+            X(Highest8_Lowest8 );
+            X(Upper16_Lowest8 );
+            X(Higher8_Lowest8 );
 #undef X
             default:
                 /// @todo implement simple walkthrough

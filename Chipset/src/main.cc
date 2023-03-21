@@ -151,7 +151,7 @@ public:
 };
 
 template<bool isReadOperation>
-inline void
+void
 talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
     Instruction operation;
     operation.opcode_ = addr;
@@ -195,8 +195,7 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
 
 
 template<bool isReadOperation, typename T>
-[[gnu::always_inline]]
-inline void
+void
 talkToi960(const SplitWord32& addr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
     // banks
@@ -233,13 +232,12 @@ talkToi960(const SplitWord32& addr, T) noexcept {
 }
 
 template<typename K, typename T>
-[[gnu::always_inline]]
-inline void
+void
 talkToi960(uint32_t addr, T, K) noexcept {
     talkToi960<K::IsReadOperation>(SplitWord32{addr}, T{});
 }
 
-inline void
+void
 handleTransaction(LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     auto address = Platform::readAddress();

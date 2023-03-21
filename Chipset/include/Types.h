@@ -113,6 +113,9 @@ union SplitWord32 {
     [[nodiscard]] constexpr uint8_t getIBUSBankIndex() const noexcept {
         return static_cast<uint8_t>(full >> 14);
     }
+    [[nodiscard]] constexpr uint32_t getXBUSBankIndex() const noexcept {
+        return full >> 15;
+    }
     void assignHalf(byte offset, uint16_t value) noexcept { halves[offset & 0b1] = value; }
     void clear() noexcept { full = 0; }
 };
@@ -120,6 +123,7 @@ static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the 
 static_assert(SplitWord32{0xFFFF'FFFF}.getIBUSBankIndex() == 0xFF);
 static_assert(SplitWord32{0xFFFE'FFFF}.getIBUSBankIndex() == 0xFB);
 static_assert(SplitWord32{0xFFEF'FFFF}.getIBUSBankIndex() == 0xBF);
+static_assert(SplitWord32{0xFFFF'FFFF}.getXBUSBankIndex() == 0x1'FFFF);
 
 
 class AddressTracker {

@@ -203,7 +203,6 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             X(Mid16);
             X(Lower24);
             X(Upper24);
-            X(Nothing);
             X(Highest8_Lower16 );
             X(Highest8_Lower8 );
             X(Highest8_Lowest8 );
@@ -211,6 +210,7 @@ talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
             X(Higher8_Lowest8 );
 #undef X
             default:
+                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(addr, TreatAsOnChipAccess{});
                 /// @todo implement simple walkthrough
                 break;
         }

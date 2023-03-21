@@ -155,3 +155,30 @@ uint8_t
 Platform::getByteEnable() noexcept {
     return getProcessorInterface().control_.ctl.byteEnable;
 }
+
+uint16_t 
+Platform::getUpperDataBits() noexcept {
+    return getProcessorInterface().dataLines_.view16.data[1];
+}
+uint16_t 
+Platform::getLowerDataBits() noexcept {
+    return getProcessorInterface().dataLines_.view16.data[0];
+}
+void 
+Platform::setUpperDataBits(uint16_t value) noexcept {
+
+    getProcessorInterface().dataLines_.view16.data[1] = value;
+}
+void 
+Platform::setLowerDataBits(uint16_t value) noexcept {
+
+    getProcessorInterface().dataLines_.view16.data[0] = value;
+}
+void 
+Platform::setDataByte(uint8_t index, uint8_t value) noexcept {
+    getProcessorInterface().dataLines_.view8.data[index & 0b11] = value;
+}
+uint8_t 
+Platform::getDataByte(uint8_t index) noexcept {
+    return getProcessorInterface().dataLines_.view8.data[index & 0b11];
+}

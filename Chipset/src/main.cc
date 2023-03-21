@@ -138,29 +138,29 @@ struct RequestProcessor {
     static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
         auto& ptr = Platform::adjustMemoryView(addr);
         if constexpr (constexpr uint8_t theBits = static_cast<uint8_t>(kind); isReadOperation) {
-            if constexpr (theBits & 0b0001) {
+            if constexpr ((theBits & 0b0001) == 0) {
                 Platform::setDataByte(0, ptr.bytes[0]);
             }
-            if constexpr (theBits & 0b0010) {
+            if constexpr ((theBits & 0b0010) == 0) {
                 Platform::setDataByte(1, ptr.bytes[1]);
             }
-            if constexpr (theBits & 0b0100) {
+            if constexpr ((theBits & 0b0100) == 0) {
                 Platform::setDataByte(2, ptr.bytes[2]);
             }
-            if constexpr (theBits & 0b1000) {
+            if constexpr ((theBits & 0b1000) == 0) {
                 Platform::setDataByte(3, ptr.bytes[3]);
             }
         } else {
-            if constexpr (theBits & 0b0001) {
+            if constexpr ((theBits & 0b0001) == 0) {
                 ptr.bytes[0] = Platform::getDataByte(0);
             }
-            if constexpr (theBits & 0b0010) {
+            if constexpr ((theBits & 0b0010) == 0) {
                 ptr.bytes[1] = Platform::getDataByte(1);
             }
-            if constexpr (theBits & 0b0100) {
+            if constexpr ((theBits & 0b0100) == 0) {
                 ptr.bytes[2] = Platform::getDataByte(2);
             }
-            if constexpr (theBits & 0b1000) {
+            if constexpr ((theBits & 0b1000) == 0) {
                 ptr.bytes[3] = Platform::getDataByte(3);
             }
         }

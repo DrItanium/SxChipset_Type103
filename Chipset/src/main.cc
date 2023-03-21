@@ -138,7 +138,7 @@ public:
     static void execute(const SplitWord32& addr, T) noexcept {
         performEBIExecution( Platform::getMemoryView(addr, T {}));
     }
-    static void execute(Instruction& container, TreatAsInstruction) noexcept {
+    static void execute(Instruction& container, AccessFromInstruction) noexcept {
 
         if constexpr (uint8_t targetWordIndex = ((Platform::getAddressOffset() >> 2) & 0b11); isReadOperation) {
             // assume that we have performed the read operation ahead of time
@@ -164,7 +164,7 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
     }
     do {
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, TreatAsInstruction{}); break
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, typename TreatAsInstruction::AccessMethod{}); break
             X(Full32);
             X(Lower16);
             X(Upper16);
@@ -182,7 +182,7 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
             X(Higher8_Lowest8 );
 #undef X
             default:
-                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(operation, TreatAsInstruction{});
+                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(operation, typename TreatAsInstruction::AccessMethod{});
                 break;
         }
     } while (true);

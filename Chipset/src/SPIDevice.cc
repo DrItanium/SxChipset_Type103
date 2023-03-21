@@ -26,9 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Types.h"
 #include "Pinout.h"
-#include "BankSelection.h"
+//#include "BankSelection.h"
 
 ISR(SPI_STC_vect) {
-        BankSaver preserveOldBank;
+ //       BankSaver preserveOldBank;
         /// @todo implement
 }

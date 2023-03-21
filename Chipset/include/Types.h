@@ -60,6 +60,8 @@ struct TagDispatcher {
 template<typename T>
 using TreatAs = TagDispatcher<T>;
 using TreatAsOrdinal = TreatAs<uint32_t>;
+struct AccessFromIBUS final { };
+struct AccessFromXBUS final { };
 union SplitWord16 {
     uint16_t full;
     ElementContainer<uint16_t, uint8_t> bytes;

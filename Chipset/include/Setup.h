@@ -265,7 +265,14 @@ class Platform final {
         static void configureDataLinesForRead() noexcept;
         static bool isIOOperation() noexcept;
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(getProcessorInterface().control_.ctl.cfg); }
-        static volatile SplitWord32& getMemoryView(const SplitWord32& addr) noexcept;
+        static void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept;
+        static void setBank(const SplitWord32& addr, AccessFromXBUS) noexcept;
+        static void setBank(uint8_t bankId, AccessFromIBUS) noexcept;
+        static void setBank(uint32_t bankAddress, AccessFromXBUS) noexcept;
+        static uint8_t getBank(AccessFromIBUS) noexcept;
+        static uint32_t getBank(AccessFromXBUS) noexcept;
+        static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept;
+        static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static uint16_t getUpperDataBits() noexcept;
         static uint16_t getLowerDataBits() noexcept;
         static void setUpperDataBits(uint16_t value) noexcept;

@@ -32,7 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "InfoDevice.h"
 #include "TimerDevice.h"
 #include <SD.h>
-#include "BankSelection.h"
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;
 InfoDevice infoDevice;
@@ -103,6 +102,7 @@ talkToi960(const SplitWord32& addr, T& handler) noexcept {
 }
 
 struct TreatAsOnChipAccess final { };
+struct TreatAsOffChipAccess final { };
 
 [[gnu::always_inline]]
 inline void
@@ -136,7 +136,53 @@ manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
 template<bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
     static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-        auto& ptr = Platform::getMemoryView(addr);
+        auto& ptr = Platform::getMemoryView(addr, AccessFromIBUS { });
+        if constexpr (constexpr uint8_t theBits = static_cast<uint8_t>(kind); isReadOperation) {
+            if constexpr (theBits == 0) {
+                Platform::setDataLines(ptr.full);
+            } else if constexpr (theBits == 0b0011) {
+                Platform::setUpperDataBits(ptr.halves[1]);
+            } else if constexpr (theBits == 0b1100) {
+                Platform::setLowerDataBits(ptr.halves[0]);
+            } else {
+                if constexpr ((theBits & 0b0001) == 0) {
+                    Platform::setDataByte(0, ptr.bytes[0]);
+                }
+                if constexpr ((theBits & 0b0010) == 0) {
+                    Platform::setDataByte(1, ptr.bytes[1]);
+                }
+                if constexpr ((theBits & 0b0100) == 0) {
+                    Platform::setDataByte(2, ptr.bytes[2]);
+                }
+                if constexpr ((theBits & 0b1000) == 0) {
+                    Platform::setDataByte(3, ptr.bytes[3]);
+                }
+            }
+        } else {
+            if constexpr (theBits == 0) {
+                ptr.full = Platform::getDataLines();
+            } else if constexpr (theBits == 0b0011) {
+                ptr.halves[1] = Platform::getUpperDataBits();
+            } else if constexpr (theBits == 0b1100) {
+                ptr.halves[0] = Platform::getLowerDataBits();
+            } else {
+                if constexpr ((theBits & 0b0001) == 0) {
+                    ptr.bytes[0] = Platform::getDataByte(0);
+                }
+                if constexpr ((theBits & 0b0010) == 0) {
+                    ptr.bytes[1] = Platform::getDataByte(1);
+                }
+                if constexpr ((theBits & 0b0100) == 0) {
+                    ptr.bytes[2] = Platform::getDataByte(2);
+                }
+                if constexpr ((theBits & 0b1000) == 0) {
+                    ptr.bytes[3] = Platform::getDataByte(3);
+                }
+            }
+        }
+    }
+    static void execute(const SplitWord32& addr, TreatAsOffChipAccess) noexcept {
+        auto& ptr = Platform::getMemoryView(addr, AccessFromXBUS { });
         if constexpr (constexpr uint8_t theBits = static_cast<uint8_t>(kind); isReadOperation) {
             if constexpr (theBits == 0) {
                 Platform::setDataLines(ptr.full);
@@ -191,7 +237,7 @@ inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     /// @todo figure out which bank we are a part of on the IBUS
     do {
-        BankSwitcher::setBank(addr);
+        Platform::setBank(addr, AccessFromIBUS{});
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
 #define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, TreatAsOnChipAccess {}); break
             X(Full32);
@@ -457,18 +503,18 @@ installMemoryImage() noexcept {
     } else {
         constexpr auto BufferSize = 16384;
 
-        auto previousBank = BankSwitcher::getBank();
+        auto previousBank = Platform::getBank(AccessFromIBUS{});
         Serial.println(F("TRANSFERRING!!"));
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
-            BankSwitcher::setBank(view.compute328BusBank());
+            Platform::setBank(view, AccessFromIBUS{});
             uint8_t* theBuffer = reinterpret_cast<uint8_t*>(view.compute328BusAddress());
             theFirmware.read(theBuffer, BufferSize);
             Serial.print(F("."));
         }
         Serial.println(F("DONE!"));
         theFirmware.close();
-        BankSwitcher::setBank(previousBank);
+        Platform::setBank(previousBank, AccessFromIBUS{});
     }
 }
 void

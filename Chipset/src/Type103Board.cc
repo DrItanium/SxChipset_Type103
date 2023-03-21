@@ -29,9 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Setup.h"
 #include "Types.h"
 #include "Pinout.h"
-//#include "MCP23S17.h"
 #include "Peripheral.h"
-#include "BankSelection.h"
 
 
 namespace {
@@ -41,6 +39,9 @@ void
 Platform::begin() noexcept {
     if (!initialized_) {
         initialized_ = true;
+        // setup the EBI
+        XMCRB=0b0'0000'000;
+        XMCRA=0b1'000'01'01; 
         volatile auto& proc = getProcessorInterface();
         proc.address_.view32.direction = 0;
         configureDataLinesForRead();
@@ -63,7 +64,6 @@ Platform::begin() noexcept {
         proc.control_.ctl.bankSelect = 0;
         proc.bank_.view32.direction = 0xFFFF'FFFF;
         proc.bank_.view32.data = 0;
-        BankSwitcher::begin();
     }
 }
 uint32_t
@@ -183,8 +183,33 @@ Platform::getDataByte(uint8_t index) noexcept {
     return getProcessorInterface().dataLines_.view8.data[index & 0b11];
 }
 
+template<typename T>
+volatile T& memory(const SplitWord32& addr, AccessFromIBUS) noexcept {
+    return memory<T>(0b0100'0000'0000'0000 + (addr.halves[0] & 0b0011'1111'1111'1111));
+}
+
+template<typename T>
+volatile T& memory(const SplitWord32& addr, AccessFromXBUS) noexcept {
+    return memory<T>(0b1000'0000'0000'0000 + (addr.halves[0] & 0b0111'1111'1111'1111));
+}
+
 volatile SplitWord32& 
-Platform::getMemoryView(const SplitWord32& addr) noexcept {
+Platform::getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept {
     // support IBUS 
-    return memory<SplitWord32>(0b0100'0000'0000'0000 + (addr.halves[0] & 0b0011'1111'1111'1111));
+    return memory<SplitWord32>(addr, AccessFromIBUS{}); 
+}
+
+volatile SplitWord32& 
+Platform::getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept {
+    // support XBUS 
+    return memory<SplitWord32>(addr, AccessFromXBUS{}); 
+}
+
+void 
+Platform::setBank(const SplitWord32& addr, AccessFromIBUS) noexcept {
+    
+}
+void 
+Platform::setBank(const SplitWord32& addr, AccessFromXBUS) noexcept {
+
 }

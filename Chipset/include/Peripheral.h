@@ -60,7 +60,6 @@ struct Instruction {
     // important to this here, the byte enable bits should _not_ be included
     SplitWord32 args_[4]; // a single transaction is up to 16-bytes or four 32-bit
                           // words in size
-    //explicit Instruction(SplitWord32 opcode) : opcode_(opcode) { }
 };
 template<typename E, typename T>
 class OperatorPeripheral : public AddressTracker {

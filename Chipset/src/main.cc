@@ -319,6 +319,12 @@ talkToi960(uint32_t addr, TreatAsOffChipAccess) noexcept {
     talkToi960<isReadOperation>(SplitWord32{addr}, TreatAsOffChipAccess{});
 }
 template<bool isReadOperation>
+[[gnu::always_inline]]
+inline void
+talkToi960(uint32_t addr, TreatAsInstruction) noexcept {
+    talkToi960<isReadOperation>(SplitWord32{addr}, TreatAsInstruction{});
+}
+template<bool isReadOperation>
 void
 getPeripheralDevice(const SplitWord32& addr) noexcept {
     switch (addr.getIODevice<TargetPeripheral>()) {
@@ -350,14 +356,16 @@ handleTransaction(LoadFromIBUS) noexcept {
     if (Platform::isReadOperation()) {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            getPeripheralDevice<true>(address);
+            talkToi960<true>(address, TreatAsInstruction{});
+            //getPeripheralDevice<true>(address);
         } else {
             talkToi960<true>(address, TreatAsOnChipAccess{});
         }
     } else {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            getPeripheralDevice<false>(address);
+            //getPeripheralDevice<false>(address);
+            talkToi960<false>(address, TreatAsInstruction{});
         } else {
             talkToi960<false>(address, TreatAsOnChipAccess{});
         }

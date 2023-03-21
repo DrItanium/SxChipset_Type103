@@ -113,3 +113,8 @@ BankSwitcher::setBank(uint24_t bank) noexcept {
 #endif
 }
 
+void
+BankSwitcher::setBank(const SplitWord32& addr) noexcept {
+    /// @todo implement
+}
+

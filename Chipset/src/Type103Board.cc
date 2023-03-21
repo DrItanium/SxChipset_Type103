@@ -184,8 +184,7 @@ Platform::getDataByte(uint8_t index) noexcept {
 }
 
 volatile SplitWord32& 
-Platform::adjustMemoryView(const SplitWord32& addr) noexcept {
-    BankSwitcher::setBank(addr);
+Platform::getMemoryView(const SplitWord32& addr) noexcept {
     // support IBUS 
     return memory<SplitWord32>(0b0100'0000'0000'0000 + (addr.halves[0] & 0b0011'1111'1111'1111));
 }

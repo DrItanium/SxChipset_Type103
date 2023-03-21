@@ -136,7 +136,7 @@ manipulateDataLines(SplitWord16* ptr, WriteOperation) noexcept {
 template<bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
     static void execute(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
-        auto& ptr = Platform::adjustMemoryView(addr);
+        auto& ptr = Platform::getMemoryView(addr);
         if constexpr (constexpr uint8_t theBits = static_cast<uint8_t>(kind); isReadOperation) {
             if constexpr (theBits == 0) {
                 Platform::setDataLines(ptr.full);
@@ -191,6 +191,7 @@ inline void
 talkToi960(const SplitWord32& addr, TreatAsOnChipAccess) noexcept {
     /// @todo figure out which bank we are a part of on the IBUS
     do {
+        BankSwitcher::setBank(addr);
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
 #define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, TreatAsOnChipAccess {}); break
             X(Full32);

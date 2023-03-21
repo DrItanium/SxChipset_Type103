@@ -265,7 +265,7 @@ class Platform final {
         static void configureDataLinesForRead() noexcept;
         static bool isIOOperation() noexcept;
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(getProcessorInterface().control_.ctl.cfg); }
-        static volatile SplitWord32& adjustMemoryView(const SplitWord32& addr) noexcept;
+        static volatile SplitWord32& getMemoryView(const SplitWord32& addr) noexcept;
         static uint16_t getUpperDataBits() noexcept;
         static uint16_t getLowerDataBits() noexcept;
         static void setUpperDataBits(uint16_t value) noexcept;

@@ -99,12 +99,12 @@ private:
         // at some point this code may go away and instead we only respond when
         // being talked to.
         if constexpr (isReadOperation) {
-            fulfillIOExpanderRead(const_cast<const SplitWord32&>(ptr));
+            fulfillIOExpanderReads(const_cast<const SplitWord32&>(ptr));
         } else {
             fulfillIOExpanderWrites(ptr);
         }
     }
-    static void fulfillIOExpanderRead(const SplitWord32& ptr) noexcept {
+    static void fulfillIOExpanderReads(const SplitWord32& ptr) noexcept {
         if constexpr (isReadOperation) {
             if constexpr (ByteEnableAsBits == 0) {
                 Platform::setDataLines(ptr.full);
@@ -161,9 +161,13 @@ public:
         performEBIExecution( Platform::getMemoryView(addr, AccessFromXBUS { }));
     }
     static void execute(Instruction& container, TreatAsInstruction) noexcept {
-        // reads probably need to happen ahead of time to be honest
-        // reads need to be interpreted right then and there
-        // writes can be deferred
+        if constexpr (isReadOperation) {
+            // assume that we have performed the read operation ahead of time
+            // and that we are operating on the packet we got back
+            fulfillIOExpanderReads(container.args_[(Platform::getAddressOffset() & 0b1100) >> 2]);
+        } else {
+            fulfillIOExpanderWrites(container.args_[(Platform::getAddressOffset() & 0b1100) >> 2]);
+        }
     }
 };
 template<bool isReadOperation, typename T>

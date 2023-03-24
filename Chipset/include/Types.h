@@ -89,17 +89,26 @@ union SplitWord32 {
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
     struct {
-        uint8_t subfunction;
+        uint8_t alignment : 4;
+        uint8_t minor : 4;
         uint8_t function;
         uint8_t device;
-        uint8_t major;
+        uint8_t group : 4;
+        uint8_t tag : 4;
     } ioRequestAddress;
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
-    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.major >= 0xF0; }
+    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.tag == 0xF; }
     [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return ioRequestAddress.device; }
     [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
+    [[nodiscard]] constexpr uint8_t getIOGroup() const noexcept { return ioRequestAddress.group; }
+    [[nodiscard]] constexpr uint8_t getIOAlignment() const noexcept { return ioRequestAddress.alignment; }
+    [[nodiscard]] constexpr uint8_t getIOMinorCode() const noexcept { return ioRequestAddress.minor; }
+    /**
+     * @brief Returns true if the alignment (lowest four bits) is 0; only treat the operation as an IO one if it is aligned to 16-byte boundaries
+     */
+    [[nodiscard]] constexpr bool isIOAligned() const noexcept { return getIOAlignment() == 0; }
     template<typename E>
     [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
     template<typename E>
@@ -234,5 +243,6 @@ template<typename T>
 volatile T& memory(const SplitWord32& addr, AccessFromXBUS) noexcept {
     return memory<T>(0b1000'0000'0000'0000 + (addr.halves[0] & 0b0111'1111'1111'1111));
 }
+
 
 #endif //SXCHIPSET_TYPE103_TYPES_H__

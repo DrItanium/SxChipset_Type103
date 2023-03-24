@@ -32,6 +32,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "InfoDevice.h"
 #include "TimerDevice.h"
 #include <SD.h>
+/**
+ * @brief An opcode combined with arguments that we pass to Peripherals to parse
+ */
+struct Instruction {
+    SplitWord32 opcode_;
+    // there are up to four 32-bit words so we need to stash information
+    // important to this here, the byte enable bits should _not_ be included
+    SplitWord32 args_[4]; // a single transaction is up to 16-bytes or four 32-bit
+                          // words in size
+    [[nodiscard]] constexpr auto isProperlyAligned() const noexcept { return opcode_.isIOAligned(); }
+    [[nodiscard]] constexpr auto getGroup() const noexcept { return opcode_.getIOGroup(); }
+    [[nodiscard]] constexpr auto getDevice() const noexcept { return opcode_.getIODevice<TargetPeripheral>(); }
+    template<typename T>
+    [[nodiscard]] constexpr auto getFunction() const noexcept { return opcode_.getIOFunction<T>(); }
+};
 // the logging shield I'm using has a DS1307 RTC
 SerialDevice theSerial;
 InfoDevice infoDevice;
@@ -149,46 +164,109 @@ public:
         }
     }
 };
+void
+readFromSerialDevice(Instruction& instruction) noexcept {
 
+}
+void
+readFromInfoDevice(Instruction& instruction) noexcept {
+
+}
+void
+readFromTimerDevice(Instruction& instruction) noexcept {
+
+}
+void
+performIOReadGroup0(Instruction& instruction) noexcept {
+    // unlike standard i960 operations, we only encode the data we actually care
+    // about out of the packet when performing a read operation so at this
+    // point it doesn't matter what kind of data the i960 is requesting.
+    // This maintains consistency and makes the implementation much simpler
+    switch (instruction.getDevice()) {
+        case TargetPeripheral::Info:
+            readFromSerialDevice(instruction);
+            break;
+        case TargetPeripheral::Serial:
+            readFromInfoDevice(instruction);
+            break;
+        case TargetPeripheral::Timer:
+            readFromTimerDevice(instruction);
+            break;
+        default:
+            // unknown device so do not do anything
+            break;
+    }
+}
+void
+performIOWriteGroup0(const Instruction& instruction) noexcept {
+    // unlike standard i960 operations, we only decode the data we actually care
+    // about out of the packet when performing a write operation so at this
+    // point it doesn't matter what kind of data we were actually given
+}
 template<bool isReadOperation>
 void
 talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
-    Instruction operation;
-    operation.opcode_ = addr;
-
-    if (isReadOperation) {
-        // We perform the read operation _ahead_ of sending it back to the i960
-        // The result of the read operation is stored in the args of the
-        // instruction. 
-        // that is what's performed here
-    }
-    do {
-        switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
+    // while this was an IO space request, if it isn't aligned then just treat
+    // it as a normal routine
+    if (addr.isIOAligned()) {
+        Instruction operation;
+        operation.opcode_ = addr;
+        if constexpr (isReadOperation) {
+            // We perform the read operation _ahead_ of sending it back to the i960
+            // The result of the read operation is stored in the args of the
+            // instruction. 
+            // that is what's performed here
+            switch (operation.getGroup()) {
+                case 0x0: // only group 0 is active right now
+                    performIOReadGroup0(operation);
+                    break;
+                default:
+                    // just ignore the data and return what we have inside of
+                    // the operation object itself. 
+                    //
+                    // This greatly simplifies everything!
+                    return;
+            }
+        }
+        do {
+            switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
 #define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, typename TreatAsInstruction::AccessMethod{}); break
-            X(Full32);
-            X(Lower16);
-            X(Upper16);
-            X(Lowest8);
-            X(Lower8);
-            X(Higher8);
-            X(Highest8);
-            X(Mid16);
-            X(Lower24);
-            X(Upper24);
-            X(Highest8_Lower16 );
-            X(Highest8_Lower8 );
-            X(Highest8_Lowest8 );
-            X(Upper16_Lowest8 );
-            X(Higher8_Lowest8 );
+                X(Full32);
+                X(Lower16);
+                X(Upper16);
+                X(Lowest8);
+                X(Lower8);
+                X(Higher8);
+                X(Highest8);
+                X(Mid16);
+                X(Lower24);
+                X(Upper24);
+                X(Highest8_Lower16 );
+                X(Highest8_Lower8 );
+                X(Highest8_Lowest8 );
+                X(Upper16_Lowest8 );
+                X(Higher8_Lowest8 );
 #undef X
-            default:
+                default:
                 RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(operation, typename TreatAsInstruction::AccessMethod{});
                 break;
+            }
+        } while (true);
+        if constexpr (!isReadOperation) {
+            switch (operation.getGroup()) {
+                case 0x0:
+                    performIOWriteGroup0(operation);
+                    break;
+                default:
+                    // if we got here then do nothing, usually that means the
+                    // group hasn't been fully implemented yet
+                    break;
+            }
         }
-    } while (true);
-    if constexpr (!isReadOperation) {
-        // at this point, we process the instruction instead of trying to do it
-        // inline
+    } else {
+        // okay so we should just treat it as a standard memory access
+        // operation
+        talkToi960<isReadOperation>(addr, TreatAsOnChipAccess{});
     }
 }
 

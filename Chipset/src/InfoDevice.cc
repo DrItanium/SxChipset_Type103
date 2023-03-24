@@ -32,20 +32,16 @@ namespace {
     constexpr SplitWord32 cpuClockRateExpose{F_CPU/2};
 }
 
-uint32_t
-InfoDevice::extendedRead() const noexcept {
-    /// @todo implement support for caching the target info field so we don't
-    /// need to keep looking up the dispatch address
-    switch (getCurrentOpcode()) {
+void
+InfoDevice::extendedRead(InfoDeviceOperations opcode, Instruction& instruction) const noexcept {
+    switch (opcode) {
         case InfoDeviceOperations::GetChipsetClock:
-            return systemRateExpose.getWholeValue();
+            instruction.args_[0] = systemRateExpose;
+            break;
         case InfoDeviceOperations::GetCPUClock:
-            return cpuClockRateExpose.getWholeValue();
+            instruction.args_[0] = cpuClockRateExpose;
+            break;
         default:
-            return 0;
+            break;
     }
-}
-void 
-InfoDevice::extendedWrite(uint32_t) noexcept {
-    // do nothing
 }

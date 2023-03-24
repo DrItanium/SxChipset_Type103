@@ -38,7 +38,7 @@ public:
     bool init() noexcept  { return true; }
     bool isAvailable() const noexcept { return true; }
     void extendedRead(InfoDeviceOperations opcode, Instruction& instruction) const noexcept;
-    void extendedWrite(InfoDeviceOperations opcode, const Instruction& instruction) noexcept;
+    void extendedWrite(InfoDeviceOperations opcode, const Instruction& instruction) noexcept { }
 };
 
 #endif //CHIPSET_INFODEVICE_H

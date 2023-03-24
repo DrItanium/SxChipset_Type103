@@ -75,7 +75,7 @@ public:
     bool begin() noexcept { return static_cast<Child*>(this)->init(); }
     [[nodiscard]] bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
     [[nodiscard]] constexpr uint8_t size() const noexcept { return size_; }
-    [[nodiscard]] void performRead(Instruction& instruction) const noexcept {
+    void performRead(Instruction& instruction) const noexcept {
         auto theOpcode = instruction.getFunction<E>();
         switch (theOpcode) {
             case E::Available:

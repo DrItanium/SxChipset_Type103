@@ -41,9 +41,9 @@ struct Instruction {
     // important to this here, the byte enable bits should _not_ be included
     SplitWord32 args_[4]; // a single transaction is up to 16-bytes or four 32-bit
                           // words in size
-    [[nodiscard]] constexpr auto isProperlyAligned() const noexcept { return opcode_.isIOAligned(); }
     [[nodiscard]] constexpr auto getGroup() const noexcept { return opcode_.getIOGroup(); }
     [[nodiscard]] constexpr auto getDevice() const noexcept { return opcode_.getIODevice<TargetPeripheral>(); }
+    [[nodiscard]] constexpr auto getMinor() const noexcept { return opcode_.getIOMinorCode(); }
     template<typename T>
     [[nodiscard]] constexpr auto getFunction() const noexcept { return opcode_.getIOFunction<T>(); }
 };

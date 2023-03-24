@@ -89,8 +89,7 @@ union SplitWord32 {
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
     struct {
-        uint8_t alignment : 4;
-        uint8_t minor : 4;
+        uint8_t minor;
         uint8_t function;
         uint8_t device;
         uint8_t group : 4;
@@ -103,12 +102,7 @@ union SplitWord32 {
     [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return ioRequestAddress.device; }
     [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
     [[nodiscard]] constexpr uint8_t getIOGroup() const noexcept { return ioRequestAddress.group; }
-    [[nodiscard]] constexpr uint8_t getIOAlignment() const noexcept { return ioRequestAddress.alignment; }
     [[nodiscard]] constexpr uint8_t getIOMinorCode() const noexcept { return ioRequestAddress.minor; }
-    /**
-     * @brief Returns true if the alignment (lowest four bits) is 0; only treat the operation as an IO one if it is aligned to 16-byte boundaries
-     */
-    [[nodiscard]] constexpr bool isIOAligned() const noexcept { return getIOAlignment() == 0; }
     template<typename E>
     [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
     template<typename E>

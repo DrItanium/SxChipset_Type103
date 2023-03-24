@@ -218,22 +218,17 @@ struct [[gnu::packed]] ProcessorInterface {
 
 template<typename T>
 volatile T* memoryPointer(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    return memoryPointer<T>(0b0100'0000'0000'0000 + (addr.halves[0] & 0b0011'1111'1111'1111));
+    return memoryPointer<T>(0x4000 + (addr.halves[0] & 0x3FFF));
 }
 
 template<typename T>
 volatile T* memoryPointer(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    return memoryPointer<T>(0b1000'0000'0000'0000 + (addr.halves[0] & 0b0111'1111'1111'1111));
+    return memoryPointer<T>(0x8000 + (addr.halves[0] & 0x7FFF));
 }
 
-template<typename T>
-volatile T& memory(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    return *memoryPointer<T>(addr, AccessFromIBUS{});
-}
-
-template<typename T>
-volatile T& memory(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    return *memoryPointer<T>(addr, AccessFromXBUS{});
+template<typename T, typename K>
+volatile T& memory(const SplitWord32& addr, K) noexcept {
+    return *memoryPointer<T>(addr, K{});
 }
 
 

@@ -343,6 +343,27 @@ handleTransaction(LoadFromIBUS) noexcept {
     singleCycleDelay();
 }
 
+template<bool inDebugMode, auto BufferSize>
+void
+doActualTransfer(File& theFirmware) noexcept {
+    for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
+        SplitWord32 view{address};
+        Platform::setBank(view, AccessFromIBUS{});
+        auto* theBuffer = Platform::viewAreaAsBytes(view, AccessFromIBUS{});
+        theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
+        if constexpr (inDebugMode) {
+            for (decltype(BufferSize) i = 0; i < BufferSize; ++i) {
+                Serial.print(F("\t@0x"));
+                Serial.print(view.getWholeValue(), HEX);
+                Serial.print(F(": 0x"));
+                Serial.println(theBuffer[i], HEX);
+            }
+        } else {
+            Serial.print(F("."));
+        }
+    }
+}
+template<bool inDebugMode = true>
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = 512ul * 1024ul;
@@ -363,17 +384,10 @@ installMemoryImage() noexcept {
             delay(1000);
         }
     } else {
-        constexpr auto BufferSize = 16384;
-
+        constexpr auto BufferSize = 8192;
         auto previousBank = Platform::getBank(AccessFromIBUS{});
         Serial.println(F("TRANSFERRING!!"));
-        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
-            SplitWord32 view{address};
-            Platform::setBank(view, AccessFromIBUS{});
-            auto* theBuffer = Platform::viewAreaAsBytes(view, AccessFromIBUS{});
-            theFirmware.read(theBuffer, BufferSize);
-            Serial.print(F("."));
-        }
+        doActualTransfer<inDebugMode, BufferSize>(theFirmware);
         Serial.println(F("DONE!"));
         theFirmware.close();
         Platform::setBank(previousBank, AccessFromIBUS{});

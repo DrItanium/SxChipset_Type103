@@ -177,6 +177,18 @@ readFromTimerDevice(Instruction& instruction) noexcept {
 
 }
 void
+writeToSerialDevice(const Instruction& instruction) noexcept {
+
+}
+void
+writeToInfoDevice(const Instruction& instruction) noexcept {
+
+}
+void
+writeToTimerDevice(const Instruction& instruction) noexcept {
+
+}
+void
 performIOReadGroup0(Instruction& instruction) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
     // about out of the packet when performing a read operation so at this
@@ -202,71 +214,81 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
+    switch (instruction.getDevice()) {
+        case TargetPeripheral::Info:
+            writeToSerialDevice(instruction);
+            break;
+        case TargetPeripheral::Serial:
+            writeToInfoDevice(instruction);
+            break;
+        case TargetPeripheral::Timer:
+            writeToTimerDevice(instruction);
+            break;
+        default:
+            // unknown device so do not do anything
+            break;
+    }
 }
 template<bool isReadOperation>
 void
 talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
-    // while this was an IO space request, if it isn't aligned then just treat
-    // it as a normal routine
-    if (addr.isIOAligned()) {
-        Instruction operation;
-        operation.opcode_ = addr;
-        if constexpr (isReadOperation) {
-            // We perform the read operation _ahead_ of sending it back to the i960
-            // The result of the read operation is stored in the args of the
-            // instruction. 
-            // that is what's performed here
-            switch (operation.getGroup()) {
-                case 0x0: // only group 0 is active right now
-                    performIOReadGroup0(operation);
-                    break;
-                default:
-                    // just ignore the data and return what we have inside of
-                    // the operation object itself. 
-                    //
-                    // This greatly simplifies everything!
-                    return;
-            }
-        }
-        do {
-            switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, typename TreatAsInstruction::AccessMethod{}); break
-                X(Full32);
-                X(Lower16);
-                X(Upper16);
-                X(Lowest8);
-                X(Lower8);
-                X(Higher8);
-                X(Highest8);
-                X(Mid16);
-                X(Lower24);
-                X(Upper24);
-                X(Highest8_Lower16 );
-                X(Highest8_Lower8 );
-                X(Highest8_Lowest8 );
-                X(Upper16_Lowest8 );
-                X(Higher8_Lowest8 );
-#undef X
-                default:
-                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(operation, typename TreatAsInstruction::AccessMethod{});
+    // If the lowest four bits are not zero then that is a problem on the side
+    // of the i960. For example, if you started in the middle of the 16-byte
+    // block then the data will still be valid just not what you wanted. This
+    // ignores a huge class of problems. Instead, we just process
+    Instruction operation;
+    operation.opcode_ = addr;
+    if constexpr (isReadOperation) {
+        // We perform the read operation _ahead_ of sending it back to the i960
+        // The result of the read operation is stored in the args of the
+        // instruction. 
+        // that is what's performed here
+        switch (operation.getGroup()) {
+            case 0x0: // only group 0 is active right now
+                performIOReadGroup0(operation);
                 break;
-            }
-        } while (true);
-        if constexpr (!isReadOperation) {
-            switch (operation.getGroup()) {
-                case 0x0:
-                    performIOWriteGroup0(operation);
-                    break;
-                default:
-                    // if we got here then do nothing, usually that means the
-                    // group hasn't been fully implemented yet
-                    break;
-            }
+            default:
+                // just ignore the data and return what we have inside of
+                // the operation object itself. 
+                //
+                // This greatly simplifies everything!
+                return;
         }
-    } else {
-        // okay so we should just treat it as a standard memory access
-        // operation
-        talkToi960<isReadOperation>(addr, TreatAsOnChipAccess{});
+    }
+    do {
+        switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, typename TreatAsInstruction::AccessMethod{}); break
+            X(Full32);
+            X(Lower16);
+            X(Upper16);
+            X(Lowest8);
+            X(Lower8);
+            X(Higher8);
+            X(Highest8);
+            X(Mid16);
+            X(Lower24);
+            X(Upper24);
+            X(Highest8_Lower16 );
+            X(Highest8_Lower8 );
+            X(Highest8_Lowest8 );
+            X(Upper16_Lowest8 );
+            X(Higher8_Lowest8 );
+#undef X
+            default:
+            RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(operation, typename TreatAsInstruction::AccessMethod{});
+            break;
+        }
+    } while (true);
+    if constexpr (!isReadOperation) {
+        switch (operation.getGroup()) {
+            case 0x0:
+                performIOWriteGroup0(operation);
+                break;
+            default:
+                // if we got here then do nothing, usually that means the
+                // group hasn't been fully implemented yet
+                break;
+        }
     }
 }
 

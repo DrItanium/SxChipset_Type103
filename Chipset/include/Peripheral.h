@@ -67,7 +67,7 @@ struct Instruction {
 };
 
 template<typename E, typename T>
-class OperatorPeripheral : public AddressTracker {
+class OperatorPeripheral {
 public:
     using OperationList = E;
     using Child = T;

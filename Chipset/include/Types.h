@@ -134,21 +134,6 @@ static_assert(SplitWord32{0xFFEF'FFFF}.getIBUSBankIndex() == 0xBF);
 static_assert(SplitWord32{0xFFFF'FFFF}.getXBUSBankIndex() == 0x1'FFFF);
 
 
-class AddressTracker {
-public:
-    void recordAddress(const SplitWord32& addr) noexcept {
-        offset_ = addr.getAddressOffset();
-    }
-    void advanceOffset() noexcept {
-        ++offset_;
-    }
-    void clear() noexcept {
-        offset_ = 0;
-    }
-    [[nodiscard]] constexpr auto getOffset() const noexcept { return offset_; }
-private:
-    byte offset_ = 0;
-};
 
 #ifndef _BV
 #define _BV(value) (1 << value)

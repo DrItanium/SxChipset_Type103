@@ -227,3 +227,14 @@ Platform::getAddressOffset() noexcept {
     return getProcessorInterface().address_.view8.data[0] & 0b1111;
 }
 
+volatile uint8_t*
+Platform::viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept {
+    // support IBUS 
+    return memoryPointer<uint8_t>(addr, AccessFromIBUS{}); 
+}
+
+volatile uint8_t*
+Platform::viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept {
+    // support XBUS 
+    return memoryPointer<uint8_t>(addr, AccessFromXBUS{}); 
+}

@@ -273,6 +273,8 @@ class Platform final {
         static uint32_t getBank(AccessFromXBUS) noexcept;
         static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept;
         static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept;
+        static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept;
+        static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static uint16_t getUpperDataBits() noexcept;
         static uint16_t getLowerDataBits() noexcept;
         static void setUpperDataBits(uint16_t value) noexcept;

@@ -86,6 +86,10 @@ private:
     }
     static void fulfillIOExpanderReads(const SplitWord32& ptr) noexcept {
         if constexpr (isReadOperation) {
+            if constexpr (inDebugMode) {
+                Serial.print(F("Read Operation: IOEXP is now 0x"));
+                Serial.println(ptr.getWholeValue(), HEX);
+            }
             if constexpr (ByteEnableAsBits == 0) {
                 Platform::setDataLines(ptr.full);
             } else if constexpr (ByteEnableAsBits == 0b0011) {
@@ -130,6 +134,11 @@ private:
                 if constexpr ((ByteEnableAsBits & 0b1000) == 0) {
                     ptr.bytes[3] = Platform::getDataByte(3);
                 }
+            }
+            if constexpr (inDebugMode) {
+                Serial.print(F("Write Operation: IOEXP is now 0x"));
+                auto theValue = ptr.full;
+                Serial.println(theValue, HEX);
             }
         }
     }
@@ -361,7 +370,7 @@ installMemoryImage() noexcept {
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
             Platform::setBank(view, AccessFromIBUS{});
-            uint8_t* theBuffer = const_cast<uint8_t*>(&memory<uint8_t>(view, AccessFromIBUS{}));
+            auto* theBuffer = Platform::viewAreaAsBytes(view, AccessFromIBUS{});
             theFirmware.read(theBuffer, BufferSize);
             Serial.print(F("."));
         }

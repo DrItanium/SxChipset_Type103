@@ -48,14 +48,24 @@ constexpr auto getRAMEnd() noexcept {
 }
 
 template<typename T>
+inline volatile T* memoryPointer(size_t address) noexcept {
+    return reinterpret_cast<volatile T*>(address) ;
+}
+template<typename T>
 inline volatile T& memory(size_t address) noexcept {
-    return *reinterpret_cast<volatile T*>(address) ;
+    return *memoryPointer<T>(address);
 }
 
 template<typename T>
 inline volatile T& adjustedMemory(size_t address) noexcept {
     return memory<T>(address + (getRAMEnd() + 1));
 }
+
+template<typename T>
+inline volatile T* adjustedMemoryPointer(size_t address) noexcept {
+    return memoryPointer<T>(address + (getRAMEnd() + 1));
+}
+
 
 
 #endif // end SXCHIPSET_TYPE103_DETECT_H__

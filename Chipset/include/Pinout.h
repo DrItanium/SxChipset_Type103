@@ -201,6 +201,7 @@ Count = NUM_DIGITAL_PINS,
 #endif
     SD_EN = PortB0,
     INT0_960_ = PortB4,
+    EnterDebugMode = PortG5,
 #define X(index) IBUSBankPin ## index = PortJ ## index 
     X(0),
     X(1),

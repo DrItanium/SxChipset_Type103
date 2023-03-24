@@ -311,7 +311,7 @@ talkToi960(uint32_t addr, T, K) noexcept {
     talkToi960<inDebugMode, K::IsReadOperation>(SplitWord32{addr}, T{});
 }
 
-template<bool inDebugMode = true>
+template<bool inDebugMode>
 void
 handleTransaction(LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
@@ -343,26 +343,6 @@ handleTransaction(LoadFromIBUS) noexcept {
     singleCycleDelay();
 }
 
-template<bool inDebugMode, auto BufferSize>
-void
-doActualTransfer(File& theFirmware) noexcept {
-    for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
-        SplitWord32 view{address};
-        Platform::setBank(view, AccessFromIBUS{});
-        auto* theBuffer = Platform::viewAreaAsBytes(view, AccessFromIBUS{});
-        theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
-        if constexpr (inDebugMode) {
-            for (decltype(BufferSize) i = 0; i < BufferSize; ++i) {
-                Serial.print(F("\t@0x"));
-                Serial.print(view.getWholeValue(), HEX);
-                Serial.print(F(": 0x"));
-                Serial.println(theBuffer[i], HEX);
-            }
-        } else {
-            Serial.print(F("."));
-        }
-    }
-}
 template<bool inDebugMode = true>
 void
 installMemoryImage() noexcept {
@@ -387,14 +367,26 @@ installMemoryImage() noexcept {
         constexpr auto BufferSize = 8192;
         auto previousBank = Platform::getBank(AccessFromIBUS{});
         Serial.println(F("TRANSFERRING!!"));
-        doActualTransfer<inDebugMode, BufferSize>(theFirmware);
+        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
+            SplitWord32 view{address};
+            Platform::setBank(view, AccessFromIBUS{});
+            auto* theBuffer = Platform::viewAreaAsBytes(view, AccessFromIBUS{});
+            theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
+            Serial.print(F("."));
+        }
         Serial.println(F("DONE!"));
         theFirmware.close();
         Platform::setBank(previousBank, AccessFromIBUS{});
     }
 }
+void 
+setupPins() noexcept {
+    // EnterDebugMode needs to be pulled low to start up in debug mode
+    pinMode(Pin::EnterDebugMode, INPUT_PULLUP);
+}
 void
 setup() {
+    setupPins();
     theSerial.begin();
     infoDevice.begin();
     timerInterface.begin();
@@ -407,25 +399,26 @@ setup() {
     installMemoryImage();
     pullCPUOutOfReset();
 }
-
-
+template<bool ForceEnterDebugMode = true>
+bool 
+isDebuggingSession() noexcept {
+    return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;
+}
 void 
 loop() {
-    waitForDataState();
-    handleTransaction(SelectedLogic{});
-}
+    if (isDebuggingSession()) {
+        while (true) {
+            waitForDataState();
+            handleTransaction<true>(SelectedLogic{});
+        }
+    } else {
+        while (true) {
+            waitForDataState();
+            handleTransaction<false>(SelectedLogic{});
+        }
 
-// if the AVR processor doesn't have access to the GPIOR registers then emulate
-// them
-#ifndef GPIOR0
-byte GPIOR0;
-#endif
-#ifndef GPIOR1
-byte GPIOR1;
-#endif
-#ifndef GPIOR2
-byte GPIOR2;
-#endif
+    }
+}
 
 
 #ifdef INT7_vect

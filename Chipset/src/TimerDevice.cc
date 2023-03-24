@@ -137,6 +137,6 @@ ISR(TIMER2_COMPA_vect) {
 #ifdef TIMER1_COMPA_vect
 ISR(TIMER1_COMPA_vect) {
     /// @todo implement output compare match behavior if it makes sense
-
 }
 #endif
+

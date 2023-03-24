@@ -300,10 +300,16 @@ talkToi960(uint32_t addr, T, K) noexcept {
     talkToi960<K::IsReadOperation>(SplitWord32{addr}, T{});
 }
 
+template<bool inDebugMode = true>
 void
 handleTransaction(LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     auto address = Platform::readAddress();
+    if constexpr (inDebugMode) {
+        Serial.println(F("NEW TRANSACTION"));
+        Serial.print(F("ADDRESS: 0x"));
+        Serial.println(address, HEX);
+    }
     if (Platform::isReadOperation()) {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
@@ -318,6 +324,9 @@ handleTransaction(LoadFromIBUS) noexcept {
         } else {
             talkToi960(address, TreatAsOnChipAccess{}, WriteOperation{});
         }
+    }
+    if constexpr (inDebugMode) {
+        Serial.println(F("END TRANSACTION"));
     }
     // need this delay to synchronize everything :)
     singleCycleDelay();
@@ -377,10 +386,8 @@ setup() {
 
 void 
 loop() {
-    while (true) {
-        waitForDataState();
-        handleTransaction(SelectedLogic{});
-    }
+    waitForDataState();
+    handleTransaction(SelectedLogic{});
 }
 
 // if the AVR processor doesn't have access to the GPIOR registers then emulate

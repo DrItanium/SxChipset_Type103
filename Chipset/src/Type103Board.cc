@@ -37,6 +37,7 @@ namespace {
 }
 void
 Platform::begin() noexcept {
+    static bool initialized_ = false;
     if (!initialized_) {
         initialized_ = true;
         // setup the EBI
@@ -62,8 +63,7 @@ Platform::begin() noexcept {
         proc.control_.ctl.xint6 = 1;
         proc.control_.ctl.xint7 = 1;
         proc.control_.ctl.bankSelect = 0;
-        proc.bank_.view32.direction = 0xFFFF'FFFF;
-        proc.bank_.view32.data = 0;
+        configureDataLinesForRead();
     }
 }
 uint32_t
@@ -226,3 +226,4 @@ uint8_t
 Platform::getAddressOffset() noexcept {
     return getProcessorInterface().address_.view8.data[0] & 0b1111;
 }
+

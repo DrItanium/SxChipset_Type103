@@ -195,10 +195,10 @@ union [[gnu::packed]] CH351 {
     } ctl;
 };
 struct [[gnu::packed]] ProcessorInterface {
-    CH351 address_;
-    CH351 dataLines_;
-    CH351 control_;
-    CH351 bank_;
+    volatile CH351 address_;
+    volatile CH351 dataLines_;
+    volatile CH351 control_;
+    volatile CH351 bank_;
     void waitForDataState() const noexcept {
         while (control_.ctl.den != 0);
     }

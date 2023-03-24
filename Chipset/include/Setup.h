@@ -279,7 +279,6 @@ class Platform final {
         static void setLowerDataBits(uint16_t value) noexcept;
         static void setDataByte(uint8_t index, uint8_t value) noexcept;
         static uint8_t getDataByte(uint8_t index) noexcept;
-        static inline bool initialized_ = false;
         static uint8_t getAddressOffset() noexcept;
 };
 

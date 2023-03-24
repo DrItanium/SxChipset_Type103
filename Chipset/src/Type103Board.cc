@@ -221,10 +221,14 @@ uint32_t
 Platform::getBank(AccessFromXBUS) noexcept {
     return getProcessorInterface().bank_.view32.data;
 }
+uint8_t
+Platform::getAddressLSB() noexcept {
+    return getProcessorInterface().address_.view8.data[0];
+}
 
 uint8_t
 Platform::getAddressOffset() noexcept {
-    return getProcessorInterface().address_.view8.data[0] & 0b1111;
+    return getAddressLSB() & 0b1111;
 }
 
 volatile uint8_t*

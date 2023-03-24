@@ -78,17 +78,21 @@ private:
         // stream the data out onto the bus
         // at some point this code may go away and instead we only respond when
         // being talked to.
+        //
         if constexpr (isReadOperation) {
-            fulfillIOExpanderReads(const_cast<const SplitWord32&>(ptr));
+            // make a copy to ensure that we read from memory when it is important
+            fulfillIOExpanderReads(ptr);
         } else {
+            // directly use the contents
             fulfillIOExpanderWrites(ptr);
         }
     }
-    static void fulfillIOExpanderReads(const SplitWord32& ptr) noexcept {
+    static void fulfillIOExpanderReads(volatile SplitWord32& ptr) noexcept {
         if constexpr (isReadOperation) {
             if constexpr (inDebugMode) {
                 Serial.print(F("Read Operation: IOEXP is now 0x"));
-                Serial.println(ptr.getWholeValue(), HEX);
+                auto theValue = ptr.full;
+                Serial.println(theValue, HEX);
             }
             if constexpr (ByteEnableAsBits == 0) {
                 Platform::setDataLines(ptr.full);
@@ -145,6 +149,11 @@ private:
 public:
     template<typename T>
     static void execute(const SplitWord32& addr, T) noexcept {
+        volatile SplitWord32& result = Platform::getMemoryView(addr, T{});
+        if constexpr (inDebugMode) {
+            Serial.print(F("Target Base Address: 0x"));
+            Serial.println(reinterpret_cast<size_t>(&result), HEX);
+        }
         performEBIExecution( Platform::getMemoryView(addr, T {}));
     }
     static void execute(Instruction& container, AccessFromInstruction) noexcept {
@@ -203,7 +212,8 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 }
 template<bool inDebugMode, bool isReadOperation>
 void
-talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
+talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
+    SplitWord32 addr{theAddr};
     // If the lowest four bits are not zero then that is a problem on the side
     // of the i960. For example, if you started in the middle of the 16-byte
     // block then the data will still be valid just not what you wanted. This
@@ -270,7 +280,8 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
 
 template<bool inDebugMode, bool isReadOperation, typename T>
 void
-talkToi960(const SplitWord32& addr, T) noexcept {
+talkToi960(uint32_t theAddr, T) noexcept {
+    SplitWord32 addr{theAddr};
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
@@ -302,14 +313,11 @@ talkToi960(const SplitWord32& addr, T) noexcept {
         if (end) {
             break;
         }
+        // update the LSB since we are moving on
+        addr.bytes[0] = Platform::getAddressLSB();
     } while (true);
 }
 
-template<bool inDebugMode, typename K, typename T>
-void
-talkToi960(uint32_t addr, T, K) noexcept {
-    talkToi960<inDebugMode, K::IsReadOperation>(SplitWord32{addr}, T{});
-}
 
 template<bool inDebugMode>
 void
@@ -324,16 +332,16 @@ handleTransaction(LoadFromIBUS) noexcept {
     if (Platform::isReadOperation()) {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode>(address, TreatAsInstruction{}, ReadOperation{});
+            talkToi960<inDebugMode, true>(address, TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode>(address, TreatAsOnChipAccess{}, ReadOperation{});
+            talkToi960<inDebugMode, true>(address, TreatAsOnChipAccess{});
         }
     } else {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode>(address, TreatAsInstruction{}, WriteOperation{});
+            talkToi960<inDebugMode, false>(address, TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode>(address, TreatAsOnChipAccess{}, WriteOperation{});
+            talkToi960<inDebugMode, false>(address, TreatAsOnChipAccess{});
         }
     }
     if constexpr (inDebugMode) {

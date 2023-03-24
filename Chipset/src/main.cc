@@ -149,72 +149,6 @@ public:
         }
     }
 };
-uint32_t theBaudRate = 115200;
-void 
-beginSerialDevice() noexcept {
-    Serial.begin(theBaudRate);
-}
-void
-readFromSerialDevice(Instruction& instruction) noexcept {
-    switch (instruction.getFunction<SerialDeviceOperations>()) {
-        case SerialDeviceOperations::Available:
-            instruction.args_[0].bytes[0] = 0xFF;
-            break;
-        case SerialDeviceOperations::Size:
-            instruction.args_[0].bytes[0] = static_cast<uint8_t>(SerialDeviceOperations::Count); 
-            break;
-        case SerialDeviceOperations::Baud:
-            instruction.args_[0].setWholeValue(theBaudRate);
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            break;
-        default:
-            break;
-    }
-}
-void
-readFromInfoDevice(Instruction& instruction) noexcept {
-
-}
-void
-readFromTimerDevice(Instruction& instruction) noexcept {
-
-}
-void
-writeToSerialDevice(const Instruction& instruction) noexcept {
-    switch (instruction.getFunction<SerialDeviceOperations>()) {
-        case SerialDeviceOperations::RW: // put a serial value out the console
-            Serial.write(static_cast<uint8_t>(instruction.args_[0].bytes[0]));
-            break;
-        case SerialDeviceOperations::Flush:
-            Serial.flush();
-            break;
-        case SerialDeviceOperations::Baud:
-            Serial.flush();
-            Serial.end();
-            theBaudRate = instruction.args_[0].getWholeValue();
-            Serial.begin(theBaudRate);
-            break;
-        default:
-            break;
-    }
-}
-void
-writeToInfoDevice(const Instruction& instruction) noexcept {
-    switch (instruction.getFunction<InfoDeviceOperations>()) {
-        default:
-            break;
-    }
-}
-void
-writeToTimerDevice(const Instruction& instruction) noexcept {
-    switch (instruction.getFunction<TimerDeviceOperations>()) {
-            
-        default:
-            break;
-    }
-}
 void
 performIOReadGroup0(Instruction& instruction) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
@@ -223,13 +157,13 @@ performIOReadGroup0(Instruction& instruction) noexcept {
     // This maintains consistency and makes the implementation much simpler
     switch (instruction.getDevice()) {
         case TargetPeripheral::Info:
-            readFromSerialDevice(instruction);
+            infoDevice.performRead(instruction);
             break;
         case TargetPeripheral::Serial:
-            readFromInfoDevice(instruction);
+            theSerial.performRead(instruction);
             break;
         case TargetPeripheral::Timer:
-            readFromTimerDevice(instruction);
+            timerInterface.performRead(instruction);
             break;
         default:
             // unknown device so do not do anything
@@ -243,13 +177,13 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
     // point it doesn't matter what kind of data we were actually given
     switch (instruction.getDevice()) {
         case TargetPeripheral::Info:
-            writeToSerialDevice(instruction);
+            infoDevice.performWrite(instruction);
             break;
         case TargetPeripheral::Serial:
-            writeToInfoDevice(instruction);
+            theSerial.performWrite(instruction);
             break;
         case TargetPeripheral::Timer:
-            writeToTimerDevice(instruction);
+            timerInterface.performWrite(instruction);
             break;
         default:
             // unknown device so do not do anything

@@ -216,6 +216,8 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
                 return;
         }
     }
+    // after we get the instruction configured (regardless of read or write) we
+    // interact with the i960 to either send data off or not
     do {
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
 #define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, typename TreatAsInstruction::AccessMethod{}); break

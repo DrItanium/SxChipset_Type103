@@ -70,7 +70,7 @@ struct TreatAsInstruction final {
 };
 
 
-template<bool isReadOperation, ByteEnableKind kind>
+template<bool inDebugMode, bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
 private:
     static constexpr uint8_t ByteEnableAsBits = static_cast<uint8_t>(kind);
@@ -149,6 +149,7 @@ public:
         }
     }
 };
+template<bool inDebugMode>
 void
 performIOReadGroup0(Instruction& instruction) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
@@ -170,6 +171,7 @@ performIOReadGroup0(Instruction& instruction) noexcept {
             break;
     }
 }
+template<bool inDebugMode>
 void
 performIOWriteGroup0(const Instruction& instruction) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
@@ -190,7 +192,7 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
             break;
     }
 }
-template<bool isReadOperation>
+template<bool inDebugMode, bool isReadOperation>
 void
 talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
     // If the lowest four bits are not zero then that is a problem on the side
@@ -206,7 +208,7 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
         // that is what's performed here
         switch (operation.getGroup()) {
             case 0x0: // only group 0 is active right now
-                performIOReadGroup0(operation);
+                performIOReadGroup0<inDebugMode>(operation);
                 break;
             default:
                 // just ignore the data and return what we have inside of
@@ -220,7 +222,7 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
     // interact with the i960 to either send data off or not
     do {
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (operation, typename TreatAsInstruction::AccessMethod{}); break
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (operation, typename TreatAsInstruction::AccessMethod{}); break
             X(Full32);
             X(Lower16);
             X(Upper16);
@@ -238,14 +240,14 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
             X(Higher8_Lowest8 );
 #undef X
             default:
-            RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(operation, typename TreatAsInstruction::AccessMethod{});
+            RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(operation, typename TreatAsInstruction::AccessMethod{});
             break;
         }
     } while (true);
     if constexpr (!isReadOperation) {
         switch (operation.getGroup()) {
             case 0x0:
-                performIOWriteGroup0(operation);
+                performIOWriteGroup0<inDebugMode>(operation);
                 break;
             default:
                 // if we got here then do nothing, usually that means the
@@ -257,7 +259,7 @@ talkToi960(const SplitWord32& addr, TreatAsInstruction) noexcept {
 
 
 
-template<bool isReadOperation, typename T>
+template<bool inDebugMode, bool isReadOperation, typename T>
 void
 talkToi960(const SplitWord32& addr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
@@ -265,7 +267,7 @@ talkToi960(const SplitWord32& addr, T) noexcept {
     Platform::setBank(addr, typename T::AccessMethod{});
     do {
         switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< isReadOperation , ByteEnableKind:: frag > :: execute (addr, typename T::AccessMethod {}); break;
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (addr, typename T::AccessMethod {}); break;
             X(Full32);
             X(Lower16);
             X(Upper16);
@@ -283,7 +285,7 @@ talkToi960(const SplitWord32& addr, T) noexcept {
             X(Higher8_Lowest8 );
 #undef X
             default:
-                RequestProcessor<isReadOperation, ByteEnableKind::Nothing>::execute(addr, typename T::AccessMethod{});
+                RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(addr, typename T::AccessMethod{});
                 break;
         }
         auto end = Platform::isBurstLast();
@@ -294,10 +296,10 @@ talkToi960(const SplitWord32& addr, T) noexcept {
     } while (true);
 }
 
-template<typename K, typename T>
+template<bool inDebugMode, typename K, typename T>
 void
 talkToi960(uint32_t addr, T, K) noexcept {
-    talkToi960<K::IsReadOperation>(SplitWord32{addr}, T{});
+    talkToi960<inDebugMode, K::IsReadOperation>(SplitWord32{addr}, T{});
 }
 
 template<bool inDebugMode = true>
@@ -313,16 +315,16 @@ handleTransaction(LoadFromIBUS) noexcept {
     if (Platform::isReadOperation()) {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            talkToi960(address, TreatAsInstruction{}, ReadOperation{});
+            talkToi960<inDebugMode>(address, TreatAsInstruction{}, ReadOperation{});
         } else {
-            talkToi960(address, TreatAsOnChipAccess{}, ReadOperation{});
+            talkToi960<inDebugMode>(address, TreatAsOnChipAccess{}, ReadOperation{});
         }
     } else {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            talkToi960(address, TreatAsInstruction{}, WriteOperation{});
+            talkToi960<inDebugMode>(address, TreatAsInstruction{}, WriteOperation{});
         } else {
-            talkToi960(address, TreatAsOnChipAccess{}, WriteOperation{});
+            talkToi960<inDebugMode>(address, TreatAsOnChipAccess{}, WriteOperation{});
         }
     }
     if constexpr (inDebugMode) {

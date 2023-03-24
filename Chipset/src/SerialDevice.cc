@@ -39,6 +39,7 @@ performSerialWrite(uint32_t value) noexcept {
 void 
 SerialDevice::setBaudRate(uint32_t baudRate) noexcept { 
     if (baudRate != baud_) {
+        Serial.flush();
         baud_ = baudRate; 
         Serial.end();
         Serial.begin(baud_);
@@ -52,35 +53,35 @@ SerialDevice::init() noexcept {
 }
 
 
-uint32_t
-SerialDevice::extendedRead() const noexcept {
+void
+SerialDevice::extendedRead(SerialDeviceOperations opcode, Instruction& instruction) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
-    switch (getCurrentOpcode()) {
+    switch (opcode) {
         case SerialDeviceOperations::RW:
-            return performSerialRead();
+            instruction.args_[0].assignHalf(0, performSerialRead());
+            break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
-            return 0;
+            break;
         case SerialDeviceOperations::Baud:
-            return baud_;
+            instruction.args_[0].setWholeValue(baud_);
         default:
-            return 0;
+            break;
     }
 }
 void 
-SerialDevice::extendedWrite(uint32_t value) noexcept {
+SerialDevice::extendedWrite(SerialDeviceOperations opcode, const Instruction& instruction) noexcept {
     // do nothing
-    switch (getCurrentOpcode()) {
+    switch (opcode) {
         case SerialDeviceOperations::RW:
-            performSerialWrite(value);
+            performSerialWrite(instruction.args_[0].getWholeValue());
             break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
             break;
         case SerialDeviceOperations::Baud:
-            Serial.flush();
-            setBaudRate(value);
+            setBaudRate(instruction.args_[0].getWholeValue());
             break;
         default:
             break;

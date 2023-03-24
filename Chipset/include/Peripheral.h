@@ -50,6 +50,21 @@ inline void
 signalReady() noexcept {
     Platform::signalReady();
 }
+/**
+ * @brief An opcode combined with arguments that we pass to Peripherals to parse
+ */
+struct Instruction {
+    SplitWord32 opcode_;
+    // there are up to four 32-bit words so we need to stash information
+    // important to this here, the byte enable bits should _not_ be included
+    SplitWord32 args_[4]; // a single transaction is up to 16-bytes or four 32-bit
+                          // words in size
+    [[nodiscard]] constexpr auto getGroup() const noexcept { return opcode_.getIOGroup(); }
+    [[nodiscard]] constexpr auto getDevice() const noexcept { return opcode_.getIODevice<TargetPeripheral>(); }
+    [[nodiscard]] constexpr auto getMinor() const noexcept { return opcode_.getIOMinorCode(); }
+    template<typename T>
+    [[nodiscard]] constexpr auto getFunction() const noexcept { return opcode_.getIOFunction<T>(); }
+};
 
 template<typename E, typename T>
 class OperatorPeripheral : public AddressTracker {
@@ -60,56 +75,37 @@ public:
     bool begin() noexcept { return static_cast<Child*>(this)->init(); }
     [[nodiscard]] bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
     [[nodiscard]] constexpr uint8_t size() const noexcept { return size_; }
-    void stashOpcode(const SplitWord32& addr) noexcept {
-        // determine where we are looking :)
-        currentOpcode_ = addr.getIOFunction<OperationList>();
-    }
-    void resetOpcode() noexcept {
-        currentOpcode_ = OperationList::Count;
-    }
-    void startTransaction(const SplitWord32& addr) noexcept {
-        recordAddress(addr);
-        stashOpcode(addr);
-        static_cast<T*>(this)->onStartTransaction(addr);
-    }
-    [[nodiscard]] uint32_t performRead() const noexcept {
-        switch (currentOpcode_) {
+    [[nodiscard]] void performRead(Instruction& instruction) const noexcept {
+        auto theOpcode = instruction.getFunction<E>();
+        switch (theOpcode) {
             case E::Available:
-                return available();
+                instruction.args_[0].bytes[0] = available();
+                break;
             case E::Size:
-                return size();
+                instruction.args_[0].bytes[0] = size();
+                break;
             default:
-                if (validOperation(currentOpcode_)) {
-                    return static_cast<const Child*>(this)->extendedRead();
-                } else {
-                    return 0;
+                if (validOperation(theOpcode)) {
+                    static_cast<const Child*>(this)->extendedRead(theOpcode, instruction);
                 }
+                break;
         }
     }
-    void performWrite(uint32_t value) noexcept {
-        switch (currentOpcode_) {
+    void performWrite(const Instruction& instruction) noexcept {
+        auto theOpcode = instruction.getFunction<E>();
+        switch (theOpcode) {
             case E::Available:
             case E::Size:
                 // do nothing
                 break;
             default:
-                if (validOperation(currentOpcode_)) {
-                    static_cast<Child*>(this)->extendedWrite(value);
+                if (validOperation(theOpcode)) {
+                    static_cast<Child*>(this)->extendedWrite(theOpcode, instruction);
                 }
                 break;
         }
     }
-    [[nodiscard]] uint32_t read() const noexcept { return performRead(); }
-    void write(uint32_t value) noexcept {
-        performWrite(value);
-    }
-    void next() noexcept {
-        advanceOffset();
-    }
-protected:
-    [[nodiscard]] constexpr OperationList getCurrentOpcode() const noexcept { return currentOpcode_; }
 private:
-    OperationList currentOpcode_ = OperationList::Count;
     uint8_t size_{static_cast<uint8_t>(E::Count) };
 };
 

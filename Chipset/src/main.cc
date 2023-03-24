@@ -32,22 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "InfoDevice.h"
 #include "TimerDevice.h"
 #include <SD.h>
-/**
- * @brief An opcode combined with arguments that we pass to Peripherals to parse
- */
-struct Instruction {
-    SplitWord32 opcode_;
-    // there are up to four 32-bit words so we need to stash information
-    // important to this here, the byte enable bits should _not_ be included
-    SplitWord32 args_[4]; // a single transaction is up to 16-bytes or four 32-bit
-                          // words in size
-    [[nodiscard]] constexpr auto getGroup() const noexcept { return opcode_.getIOGroup(); }
-    [[nodiscard]] constexpr auto getDevice() const noexcept { return opcode_.getIODevice<TargetPeripheral>(); }
-    [[nodiscard]] constexpr auto getMinor() const noexcept { return opcode_.getIOMinorCode(); }
-    template<typename T>
-    [[nodiscard]] constexpr auto getFunction() const noexcept { return opcode_.getIOFunction<T>(); }
-};
-// the logging shield I'm using has a DS1307 RTC
+
 SerialDevice theSerial;
 InfoDevice infoDevice;
 TimerDevice timerInterface;
@@ -164,9 +149,29 @@ public:
         }
     }
 };
+uint32_t theBaudRate = 115200;
+void 
+beginSerialDevice() noexcept {
+    Serial.begin(theBaudRate);
+}
 void
 readFromSerialDevice(Instruction& instruction) noexcept {
-
+    switch (instruction.getFunction<SerialDeviceOperations>()) {
+        case SerialDeviceOperations::Available:
+            instruction.args_[0].bytes[0] = 0xFF;
+            break;
+        case SerialDeviceOperations::Size:
+            instruction.args_[0].bytes[0] = static_cast<uint8_t>(SerialDeviceOperations::Count); 
+            break;
+        case SerialDeviceOperations::Baud:
+            instruction.args_[0].setWholeValue(theBaudRate);
+            break;
+        case SerialDeviceOperations::Flush:
+            Serial.flush();
+            break;
+        default:
+            break;
+    }
 }
 void
 readFromInfoDevice(Instruction& instruction) noexcept {
@@ -178,15 +183,37 @@ readFromTimerDevice(Instruction& instruction) noexcept {
 }
 void
 writeToSerialDevice(const Instruction& instruction) noexcept {
-
+    switch (instruction.getFunction<SerialDeviceOperations>()) {
+        case SerialDeviceOperations::RW: // put a serial value out the console
+            Serial.write(static_cast<uint8_t>(instruction.args_[0].bytes[0]));
+            break;
+        case SerialDeviceOperations::Flush:
+            Serial.flush();
+            break;
+        case SerialDeviceOperations::Baud:
+            Serial.flush();
+            Serial.end();
+            theBaudRate = instruction.args_[0].getWholeValue();
+            Serial.begin(theBaudRate);
+            break;
+        default:
+            break;
+    }
 }
 void
 writeToInfoDevice(const Instruction& instruction) noexcept {
-
+    switch (instruction.getFunction<InfoDeviceOperations>()) {
+        default:
+            break;
+    }
 }
 void
 writeToTimerDevice(const Instruction& instruction) noexcept {
-
+    switch (instruction.getFunction<TimerDeviceOperations>()) {
+            
+        default:
+            break;
+    }
 }
 void
 performIOReadGroup0(Instruction& instruction) noexcept {

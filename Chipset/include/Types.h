@@ -123,6 +123,9 @@ union SplitWord32 {
     }
     void assignHalf(byte offset, uint16_t value) noexcept { halves[offset & 0b1] = value; }
     void clear() noexcept { full = 0; }
+    void setWholeValue(uint32_t value) noexcept {
+        full = value;
+    }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 static_assert(SplitWord32{0xFFFF'FFFF}.getIBUSBankIndex() == 0xFF);

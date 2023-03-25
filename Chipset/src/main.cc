@@ -89,11 +89,6 @@ private:
     }
     static void fulfillIOExpanderReads(volatile SplitWord32& ptr) noexcept {
         if constexpr (isReadOperation) {
-            if constexpr (inDebugMode) {
-                Serial.print(F("Read Operation: IOEXP is now 0x"));
-                auto theValue = ptr.full;
-                Serial.println(theValue, HEX);
-            }
             if constexpr (ByteEnableAsBits == 0) {
                 Platform::setDataLines(ptr.full);
             } else if constexpr (ByteEnableAsBits == 0b0011) {
@@ -113,6 +108,11 @@ private:
                 if constexpr ((ByteEnableAsBits & 0b1000) == 0) {
                     Platform::setDataByte(3, ptr.bytes[3]);
                 }
+            }
+            if constexpr (inDebugMode) {
+                Serial.print(F("Read Operation: IOEXP is now 0x"));
+                auto theValue = getProcessorInterface().dataLines_.view32.data;
+                Serial.println(theValue, HEX);
             }
         } 
         // do nothing on writes

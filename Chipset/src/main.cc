@@ -153,8 +153,10 @@ public:
         if constexpr (inDebugMode) {
             Serial.print(F("Target Base Address: 0x"));
             Serial.println(reinterpret_cast<size_t>(&result), HEX);
+            Serial.print(F("Target Base Address Contents: 0x"));
+            Serial.println(result.full, HEX);
         }
-        performEBIExecution( Platform::getMemoryView(addr, T {}));
+        performEBIExecution( result);
     }
     static void execute(Instruction& container, AccessFromInstruction) noexcept {
 

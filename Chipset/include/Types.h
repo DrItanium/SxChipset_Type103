@@ -126,6 +126,18 @@ union SplitWord32 {
     void setWholeValue(uint32_t value) noexcept {
         full = value;
     }
+    constexpr size_t alignedBankAddress(AccessFromIBUS) const noexcept {
+        return 0x4000 + (halves[0] & 0x3FFC);
+    }
+    constexpr size_t alignedBankAddress(AccessFromXBUS) const noexcept {
+        return 0x8000 + (halves[0] & 0x7FFC);
+    }
+    constexpr size_t unalignedBankAddress(AccessFromIBUS) const noexcept {
+        return 0x4000 + (halves[0] & 0x3FFF);
+    }
+    constexpr size_t unalignedBankAddress(AccessFromXBUS) const noexcept {
+        return 0x8000 + (halves[0] & 0x7FFF);
+    }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 static_assert(SplitWord32{0xFFFF'FFFF}.getIBUSBankIndex() == 0xFF);
@@ -216,20 +228,6 @@ struct [[gnu::packed]] ProcessorInterface {
     }
 } ;
 
-template<typename T>
-volatile T* memoryPointer(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    return memoryPointer<T>(0x4000 + (addr.halves[0] & 0x3FFF));
-}
-
-template<typename T>
-volatile T* memoryPointer(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    return memoryPointer<T>(0x8000 + (addr.halves[0] & 0x7FFF));
-}
-
-template<typename T, typename K>
-volatile T& memory(const SplitWord32& addr, K) noexcept {
-    return *memoryPointer<T>(addr, K{});
-}
 
 
 

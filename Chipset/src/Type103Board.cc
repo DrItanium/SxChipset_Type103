@@ -183,17 +183,14 @@ Platform::getDataByte(uint8_t index) noexcept {
     return getProcessorInterface().dataLines_.view8.data[index & 0b11];
 }
 
-
 volatile SplitWord32& 
 Platform::getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    // support IBUS 
-    return memory<SplitWord32>(addr, AccessFromIBUS{}); 
+    return memory<SplitWord32>(addr.alignedBankAddress(AccessFromIBUS{}));
 }
 
 volatile SplitWord32& 
 Platform::getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    // support XBUS 
-    return memory<SplitWord32>(addr, AccessFromXBUS{}); 
+    return memory<SplitWord32>(addr.alignedBankAddress(AccessFromXBUS{}));
 }
 
 void 
@@ -234,11 +231,11 @@ Platform::getAddressOffset() noexcept {
 volatile uint8_t*
 Platform::viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept {
     // support IBUS 
-    return memoryPointer<uint8_t>(addr, AccessFromIBUS{}); 
+    return memoryPointer<uint8_t>(addr.unalignedBankAddress(AccessFromIBUS{}));
 }
 
 volatile uint8_t*
 Platform::viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept {
     // support XBUS 
-    return memoryPointer<uint8_t>(addr, AccessFromXBUS{}); 
+    return memoryPointer<uint8_t>(addr.unalignedBankAddress(AccessFromXBUS{})); 
 }

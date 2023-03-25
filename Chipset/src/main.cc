@@ -149,6 +149,7 @@ private:
 public:
     template<typename T>
     static void execute(const SplitWord32& addr, T) noexcept {
+        // get the closest word from where we currently are
         volatile SplitWord32& result = Platform::getMemoryView(addr, T{});
         if constexpr (inDebugMode) {
             Serial.print(F("Target Base Address: 0x"));

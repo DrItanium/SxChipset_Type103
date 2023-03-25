@@ -271,7 +271,13 @@ class Platform final {
         static void setBank(uint32_t bankAddress, AccessFromXBUS) noexcept;
         static uint8_t getBank(AccessFromIBUS) noexcept;
         static uint32_t getBank(AccessFromXBUS) noexcept;
+        /**
+         * @brief Return a pointer to the closest aligned SplitWord32 on the IBUS
+         */
         static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept;
+        /**
+         * @brief Return a pointer to the closest aligned SplitWord32 on the XBUS
+         */
         static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept;
         static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept;

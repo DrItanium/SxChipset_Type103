@@ -216,6 +216,9 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 template<bool inDebugMode, bool isReadOperation>
 void
 talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
+    if (inDebugMode) {
+        Serial.println(F("INSTRUCTION REQUESTED!"));
+    }
     SplitWord32 addr{theAddr};
     // If the lowest four bits are not zero then that is a problem on the side
     // of the i960. For example, if you started in the middle of the 16-byte
@@ -263,6 +266,11 @@ talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
 #undef X
             default:
             RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(operation, typename TreatAsInstruction::AccessMethod{});
+            break;
+        }
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
             break;
         }
     } while (true);
@@ -413,7 +421,7 @@ setup() {
     installMemoryImage();
     pullCPUOutOfReset();
 }
-template<bool ForceEnterDebugMode = true>
+template<bool ForceEnterDebugMode = false>
 bool 
 isDebuggingSession() noexcept {
     return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;

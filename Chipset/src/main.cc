@@ -393,6 +393,9 @@ void
 setupPins() noexcept {
     // EnterDebugMode needs to be pulled low to start up in debug mode
     pinMode(Pin::EnterDebugMode, INPUT_PULLUP);
+    // setup the IBUS bank
+    DDRJ = 0xFF;
+    PORTJ = 0x00;
 }
 void
 setup() {

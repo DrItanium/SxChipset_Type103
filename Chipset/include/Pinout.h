@@ -38,12 +38,6 @@ Count = NUM_DIGITAL_PINS,
 #error "Count must equal the number of digital pins available"
 #endif
 #undef X
-    // fake entries
-#if 0
-    XIO5,
-    XIO6,
-    XIO7,
-#endif
 #ifdef PIN_WIRE_SDA
     SDA = PIN_WIRE_SDA,
 #endif
@@ -62,146 +56,16 @@ Count = NUM_DIGITAL_PINS,
 #ifdef PIN_SPI_MISO
     SPI_MISO = PIN_SPI_MISO,
 #endif
-#if 0
-    // aliases
-    Digital0 = PortE2,
-    Digital1 = PortE7,
-    Digital2 = PortE6,
-    Digital3 = PortB7,
-    Digital4 = PortB0,
-    Digital5 = PortB2,
-    Digital6 = PortB3,
-    Digital7 = PortB1,
-    Digital8 = PortE0,
-    Digital9 = PortE1,
-    Digital10 = PortD2,
-    Digital11 = PortD3,
-    Digital12 = PortD5,
-    Digital13 = PortB5,
-    Digital14 = PortB6,
-    Digital15 = PortB4,
-    Digital16 = PortD0,
-    Digital17 = PortD1,
-    Digital18 = PortD4,
-    Digital19 = PortD6,
-    Digital20 = PortD7,
-    Digital21 = PortG5,
-    Digital22 = PortG4,
-    Digital23 = PortG3,
-    Digital24 = PortK0,
-    Digital25 = PortK1,
-    Digital26 = PortK2,
-    Digital27 = PortK3,
-    Digital28 = PortK4,
-    Digital29 = PortK5,
-    Digital30 = PortK6,
-    Digital31 = PortK7,
-
-    InternalBank0 = PortL4,
-    InternalBank1 = PortL5,
-    InternalBank2 = PortL6,
-    InternalBank3 = PortL7,
-    FakeA15 = PortJ5,
-    RealA15 = PortC7,
-    Data0 = PortH0,
-    Data1 = PortH1,
-    Data2 = PortH2,
-    Data3 = PortH3,
-    Data4 = PortH4,
-    Data5 = PortH5,
-    Data6 = PortH6,
-    Data7 = PortH7,
-    Data8 = PortF0,
-    Data9 = PortF1,
-    Data10 = PortF2,
-    Data11 = PortF3,
-    Data12 = PortF4,
-    Data13 = PortF5,
-    Data14 = PortF6,
-    Data15 = PortF7,
-    AddressCaptureSignal1 = PortJ6,
-    AddressCaptureSignal2 = PortJ7,
-
-    Ready = Digital0,
-    CLKO = Digital1,
-    Enable = Digital2,
-    CLKSignal = Digital3,
-    GPIOSelect = Digital4,
-    INT0_960_ = Digital15,
-
-    Capture0 = Digital24,
-    Capture1 = Digital25,
-    Capture2 = Digital26,
-    Capture3 = Digital27,
-    Capture4 = Digital28,
-    Capture5 = Digital29,
-    Capture6 = Digital30,
-    Capture7 = Digital31,
-    // channel 0
-    BE0 = Capture0,
-    BE1 = Capture1,
-    BLAST_ = Capture2,
-    DEN = Capture3, 
-    FAIL = Capture4, 
-    DATA_INT0 = Capture5,
-#   define X(x, y) ADR ## x = Capture ## y
-    // channel 1
-    X(16, 0),
-    X(17, 1),
-    X(18, 2),
-    X(19, 3),
-    X(20, 4),
-    X(21, 5),
-    X(22, 6),
-    X(23, 7),
-    // channel 2
-    W_R_ = Capture0,
-    X(1, 1),
-    X(2, 2),
-    X(3, 3),
-    X(4, 4),
-    X(5, 5),
-    X(6, 6),
-    X(7, 7),
-    // channel 3
-    X(8, 0),
-    X(9, 1),
-    X(10, 2),
-    X(11, 3),
-    X(12, 4),
-    X(13, 5),
-    X(14, 6),
-    X(15, 7),
-#   undef X
-    ShieldD0 = Digital8,
-    ShieldD1 = Digital9,
-    ShieldD2 = Digital10,
-    ShieldD3 = Digital11,
-    ShieldD4 = Digital12,
-    ShieldD5 = Digital13,
-    ShieldD6 = Digital14,
-    ShieldD7 = Digital18,
-    ShieldD8 = Digital19,
-    ShieldD9 = Digital20,
-    ShieldD10 = Digital21,
-    ShieldD11 = Digital5,
-    ShieldD12 = Digital6,
-    ShieldD13 = Digital7,
-
-    ShieldMOSI = ShieldD11,
-    ShieldMISO = ShieldD12,
-    ShieldSCK = ShieldD13,
-
-    ShieldA0 = Digital22,
-    ShieldA1 = Digital23,
-    ShieldA2 = XIO7,
-    ShieldA3 = GPIOSelect,
-    ShieldA4 = PortC1,
-    ShieldA5 = PortC0,
-#endif
     SD_EN = PortB0,
     INT0_960_ = PortB4,
     EnterDebugMode = PortG5,
+    BE0 = PortF0,
+    BE1 = PortF1,
+    BE2 = PortF2,
+    BE3 = PortF3,
+    BLAST = PortF4,
+    DEN = PortF5,
+    READY = PortF6,
 #define X(index) IBUSBankPin ## index = PortJ ## index 
     X(0),
     X(1),
@@ -219,11 +83,7 @@ enum class Port : byte {
 #include "AVRPorts.def"
 #undef X
     None,
-#if 0
-    Capture = K,
-    DataLower = H,
-    DataUpper = F,
-#endif
+    SignalCTL = F,
     IBUSBank = J,
 };
 constexpr auto numberOfAvailablePins() noexcept {
@@ -488,12 +348,5 @@ constexpr bool hasPWM(Pin pin) noexcept {
 
 template<Pin p>
 constexpr auto HasPWM_v = hasPWM(p);
-
-#if 0
-[[gnu::always_inline]]
-inline uint8_t readFromCapture() noexcept {
-    return getInputRegister<Port::Capture>();
-}
-#endif
 
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

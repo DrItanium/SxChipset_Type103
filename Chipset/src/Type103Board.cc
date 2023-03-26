@@ -42,8 +42,15 @@ Platform::begin() noexcept {
     if (!initialized_) {
         initialized_ = true;
         // setup the EBI
-        XMCRB=0b0'0000'000;
-        XMCRA=0b1'000'01'01; 
+        XMCRB=0b1'0000'000;
+        // use the upper and lower sector limits feature to accelerate IO space
+        // 0x2200-0x3FFF is full speed, rest has a one cycle during read/write
+        // strobe delay since SRAM is 55ns
+        //
+        // I am using an HC573 on the interface board so the single cycle delay
+        // state is necessary! When I replace the interface chip with the
+        // AHC573, I'll get rid of the single cycle delay from the lower sector
+        XMCRA=0b1'010'01'01;  
         volatile auto& proc = getProcessorInterface();
         proc.address_.view32.direction = 0;
         configureDataLinesForRead();
@@ -243,10 +250,10 @@ volatile SplitWord32&
 Platform::getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept {
     return memory<SplitWord32>(addr.alignedBankAddress(AccessFromXBUS{}));
 }
-
+[[gnu::noinline]]
 void 
 Platform::setBank(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    setBank(static_cast<uint8_t>(addr.full >> 14), AccessFromIBUS{});
+    setBank(addr.getIBUSBankIndex(), AccessFromIBUS{});
 }
 void 
 Platform::setBank(const SplitWord32& addr, AccessFromXBUS) noexcept {

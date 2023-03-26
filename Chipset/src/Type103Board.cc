@@ -31,16 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "Peripheral.h"
 
-constexpr bool MCUHasDirectAccess = true;
 
 namespace {
-    static constexpr uint32_t ControlSignalDirection_CH351Only = 0b10000000'11111111'00111000'00010001;
-    // this verison is where we have directly connected certain signals
-    // to the MCU. So the signals have directly connected become inputs to
-    // prevent them from affecting things too much
-    static constexpr uint32_t ControlSignalDirection_DirectMCUAccess = 0b10000000'11111110'00101000'00010001;
+    static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
 
-    static constexpr uint32_t ControlSignalDirection = MCUHasDirectAccess ?  ControlSignalDirection_DirectMCUAccess : ControlSignalDirection_CH351Only;
 }
 void
 Platform::begin() noexcept {
@@ -55,6 +49,9 @@ Platform::begin() noexcept {
         configureDataLinesForRead();
         proc.dataLines_.view32.data = 0;
         proc.control_.view32.direction = ControlSignalDirection;
+        if constexpr (READYDirectConnect) {
+            proc.control_.view8.direction[1] &= 0b11101111;
+        }
         proc.control_.view32.data = 0;
         proc.control_.ctl.hold = 0;
         proc.control_.ctl.reset = 0; // put i960 in reset
@@ -109,7 +106,7 @@ Platform::doHold(decltype(LOW) value) noexcept {
 
 void
 Platform::signalReady() noexcept {
-    if constexpr (MCUHasDirectAccess) {
+    if constexpr (MCUHasDirectAccess || READYDirectConnect) {
         toggle<Pin::READY>();
     } else {
         getProcessorInterface().control_.ctl.ready = ~getProcessorInterface().control_.ctl.ready;

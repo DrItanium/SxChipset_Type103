@@ -405,15 +405,19 @@ setupPins() noexcept {
     // setup the IBUS bank
     DDRJ = 0xFF;
     PORTJ = 0x00;
-    pinMode(Pin::BE0, INPUT);
-    pinMode(Pin::BE1, INPUT);
-    pinMode(Pin::BE2, INPUT);
-    pinMode(Pin::BE3, INPUT);
-    pinMode(Pin::DEN, INPUT);
-    pinMode(Pin::BLAST, INPUT);
-    pinMode(Pin::WR, INPUT);
-    pinMode(Pin::READY, OUTPUT);
-    digitalWrite<Pin::READY, HIGH>();
+    if constexpr (MCUHasDirectAccess) {
+        pinMode(Pin::BE0, INPUT);
+        pinMode(Pin::BE1, INPUT);
+        pinMode(Pin::BE2, INPUT);
+        pinMode(Pin::BE3, INPUT);
+        pinMode(Pin::DEN, INPUT);
+        pinMode(Pin::BLAST, INPUT);
+        pinMode(Pin::WR, INPUT);
+    }
+    if constexpr (READYDirectConnect || MCUHasDirectAccess) {
+        pinMode(Pin::READY, OUTPUT);
+        digitalWrite<Pin::READY, HIGH>();
+    }
 }
 void
 setup() {
@@ -437,7 +441,7 @@ isDebuggingSession() noexcept {
 }
 void 
 loop() {
-    if (isDebuggingSession()) {
+    if (isDebuggingSession<true>()) {
         while (true) {
             waitForDataState();
             handleTransaction<true>(SelectedLogic{});

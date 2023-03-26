@@ -30,6 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 
 constexpr bool EnableDebugMode = false;
+constexpr bool MCUHasDirectAccess = false;
+constexpr bool READYDirectConnect = true;
 
 [[gnu::always_inline]]
 inline void

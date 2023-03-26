@@ -133,9 +133,68 @@ private:
             }
         }
     }
+    [[gnu::used]]
+    static void x0(volatile SplitWord32& ptr) noexcept {
+        if constexpr (!isReadOperation) {
+            if constexpr (ByteEnableAsBits == 0) {
+                ptr.full = Platform::getDataLines();
+            } else if constexpr (ByteEnableAsBits == 0b0011) {
+                ptr.halves[1] = Platform::getUpperDataBits();
+            } else if constexpr (ByteEnableAsBits == 0b1100) {
+                ptr.halves[0] = Platform::getLowerDataBits();
+            } else {
+                if constexpr ((ByteEnableAsBits & 0b0001) == 0) {
+                    ptr.bytes[0] = Platform::getDataByte(0);
+                }
+                if constexpr ((ByteEnableAsBits & 0b0010) == 0) {
+                    ptr.bytes[1] = Platform::getDataByte(1);
+                }
+                if constexpr ((ByteEnableAsBits & 0b0100) == 0) {
+                    ptr.bytes[2] = Platform::getDataByte(2);
+                }
+                if constexpr ((ByteEnableAsBits & 0b1000) == 0) {
+                    ptr.bytes[3] = Platform::getDataByte(3);
+                }
+            }
+            if constexpr (inDebugMode) {
+                Serial.print(F("Write Operation: IOEXP is now 0x"));
+                auto theValue = ptr.full;
+                Serial.println(theValue, HEX);
+            }
+        }
+    }
+    [[gnu::used]]
+    static void x1(volatile SplitWord32& ptr, volatile ProcessorInterface& iface) noexcept {
+        if constexpr (!isReadOperation) {
+            if constexpr (ByteEnableAsBits == 0) {
+                ptr.full = iface.dataLines_.view32.data;
+            } else if constexpr (ByteEnableAsBits == 0b0011) {
+                ptr.halves[1] = iface.dataLines_.view16.data[1];
+            } else if constexpr (ByteEnableAsBits == 0b1100) {
+                ptr.halves[0] = iface.dataLines_.view16.data[0];
+            } else {
+                if constexpr ((ByteEnableAsBits & 0b0001) == 0) {
+                    ptr.bytes[0] = iface.dataLines_.view8.data[0];
+                }
+                if constexpr ((ByteEnableAsBits & 0b0010) == 0) {
+                    ptr.bytes[1] = iface.dataLines_.view8.data[1];
+                }
+                if constexpr ((ByteEnableAsBits & 0b0100) == 0) {
+                    ptr.bytes[2] = iface.dataLines_.view8.data[2];
+                }
+                if constexpr ((ByteEnableAsBits & 0b1000) == 0) {
+                    ptr.bytes[3] = iface.dataLines_.view8.data[3];
+                }
+            }
+            if constexpr (inDebugMode) {
+                Serial.print(F("Write Operation: IOEXP is now 0x"));
+                auto theValue = ptr.full;
+                Serial.println(theValue, HEX);
+            }
+        }
+    }
 public:
     template<typename T>
-    [[gnu::noinline]]
     static void execute(const SplitWord32& addr, T) noexcept {
         // get the closest word from where we currently are
         // stream the data out onto the bus
@@ -150,7 +209,6 @@ public:
             fulfillIOExpanderWrites(Platform::getMemoryView(addr, T{}));
         }
     }
-    [[gnu::noinline]]
     static void execute(Instruction& container, AccessFromInstruction) noexcept {
 
         if constexpr (uint8_t targetWordIndex = ((Platform::getAddressOffset() >> 2) & 0b11); isReadOperation) {

@@ -251,7 +251,7 @@ digitalWrite(Pin pin, PinState value) noexcept {
 inline PinState 
 digitalRead(Pin pin) noexcept { 
     if (isPhysicalPin(pin)) {
-        return (getInputRegister(pin) & getPinMask(pin));
+        return (getInputRegister(pin) & getPinMask(pin)) ? HIGH : LOW;
     } else {
         return ::digitalRead(static_cast<byte>(pin));
     }
@@ -261,7 +261,7 @@ template<Pin pin>
 inline PinState
 digitalRead() noexcept { 
     if constexpr (isPhysicalPin(pin)) {
-        return (getInputRegister<pin>() & getPinMask<pin>());
+        return (getInputRegister<pin>() & getPinMask<pin>()) ? HIGH : LOW;
     } else {
         return ::digitalRead(pin);
     }

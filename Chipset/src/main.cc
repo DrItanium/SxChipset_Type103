@@ -170,6 +170,7 @@ struct RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing> {
 
     }
 };
+
 template<bool inDebugMode>
 inline
 void
@@ -234,7 +235,7 @@ talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
         // instruction. 
         // that is what's performed here
         switch (operation.getGroup()) {
-            case 0x0: // only group 0 is active right now
+            case 0xF0: // only group 0 is active right now
                 performIOReadGroup0<inDebugMode>(operation);
                 break;
             default:
@@ -282,7 +283,7 @@ talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
     } while (true);
     if constexpr (!isReadOperation) {
         switch (operation.getGroup()) {
-            case 0x0:
+            case 0xF0:
                 performIOWriteGroup0<inDebugMode>(operation);
                 break;
             default:

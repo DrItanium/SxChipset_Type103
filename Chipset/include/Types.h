@@ -88,21 +88,14 @@ union SplitWord32 {
     constexpr SplitWord32() : SplitWord32(0) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
-    struct {
-        uint8_t minor;
-        uint8_t function;
-        uint8_t device;
-        uint8_t group : 4;
-        uint8_t tag : 4;
-    } ioRequestAddress;
     [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
     [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
     [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
-    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return ioRequestAddress.tag == 0xF; }
-    [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return ioRequestAddress.device; }
-    [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return ioRequestAddress.function; }
-    [[nodiscard]] constexpr uint8_t getIOGroup() const noexcept { return ioRequestAddress.group; }
-    [[nodiscard]] constexpr uint8_t getIOMinorCode() const noexcept { return ioRequestAddress.minor; }
+    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return bytes[3] >= 0xF0; }
+    [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return bytes[2]; }
+    [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return bytes[1]; }
+    [[nodiscard]] constexpr uint8_t getIOGroup() const noexcept { return bytes[3]; }
+    [[nodiscard]] constexpr uint8_t getIOMinorCode() const noexcept { return bytes[0]; }
     template<typename E>
     [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
     template<typename E>

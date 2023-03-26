@@ -297,27 +297,31 @@ talkToi960(uint32_t theAddr, T) noexcept {
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
     do {
-        switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
+        if constexpr (isReadOperation) {
+            RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: Full32> :: execute (addr, typename T::AccessMethod {});
+        } else {
+            switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
 #define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (addr, typename T::AccessMethod {}); break;
-            X(Full32);
-            X(Lower16);
-            X(Upper16);
-            X(Lowest8);
-            X(Lower8);
-            X(Higher8);
-            X(Highest8);
-            X(Mid16);
-            X(Lower24);
-            X(Upper24);
-            X(Highest8_Lower16 );
-            X(Highest8_Lower8 );
-            X(Highest8_Lowest8 );
-            X(Upper16_Lowest8 );
-            X(Higher8_Lowest8 );
+                X(Full32);
+                X(Lower16);
+                X(Upper16);
+                X(Lowest8);
+                X(Lower8);
+                X(Higher8);
+                X(Highest8);
+                X(Mid16);
+                X(Lower24);
+                X(Upper24);
+                X(Highest8_Lower16 );
+                X(Highest8_Lower8 );
+                X(Highest8_Lowest8 );
+                X(Upper16_Lowest8 );
+                X(Higher8_Lowest8 );
 #undef X
-            default:
+                default:
                 RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(addr, typename T::AccessMethod{});
                 break;
+            }
         }
         auto end = Platform::isBurstLast();
         signalReady();

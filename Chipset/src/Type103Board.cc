@@ -250,7 +250,7 @@ volatile SplitWord32&
 Platform::getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept {
     return memory<SplitWord32>(addr.alignedBankAddress(AccessFromXBUS{}));
 }
-[[gnu::noinline]]
+
 void 
 Platform::setBank(const SplitWord32& addr, AccessFromIBUS) noexcept {
     setBank(addr.getIBUSBankIndex(), AccessFromIBUS{});

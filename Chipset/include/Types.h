@@ -116,19 +116,9 @@ union SplitWord32 {
     [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
     [[nodiscard]] constexpr auto retrieveHalf(byte offset) const noexcept { return halves[offset & 0b1]; }
     [[nodiscard]] constexpr uint8_t getIBUSBankIndex() const noexcept {
-        constexpr uint8_t Lookup0[256] {
-            #define X(index) ((index & 0b1100'0000) >> 6)
-#define Y(base) X(((base * 8) + 0)), X(((base * 8) + 1)), X(((base * 8) + 2)), X(((base * 8) + 3)), \
-            X(((base * 8) + 4)), X(((base * 8) + 5)), X(((base * 8) + 6)), X(((base * 8) + 7))
-            Y(0), Y(1), Y(2), Y(3), Y(4), Y(5), Y(6), Y(7),
-            Y(8), Y(9), Y(10), Y(11), Y(12), Y(13), Y(14), Y(15),
-            Y(16), Y(17), Y(18), Y(19), Y(20), Y(21), Y(22), Y(23),
-            Y(24), Y(25), Y(26), Y(27), Y(28), Y(29), Y(30), Y(31),
-#undef Y
-#undef X
-        };
+        uint8_t lower = (bytes[1] & 0b11000000) >> 6;
         uint8_t upper = (bytes[2] & 0b00111111) << 2;
-        return Lookup0[bytes[1]] | upper;
+        return lower | upper;
     }
     [[nodiscard]] constexpr uint32_t getXBUSBankIndex() const noexcept {
         return full >> 15;

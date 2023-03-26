@@ -303,3 +303,7 @@ volatile SplitWord128&
 Platform::getTransactionWindow(const SplitWord32& addr, AccessFromXBUS) noexcept {
     return memory<SplitWord128>(addr.transactionAlignedBankAddress(AccessFromXBUS{}));
 }
+uint8_t 
+Platform::getAddressMSB() noexcept {
+    return getProcessorInterface().address_.view8.data[3];
+}

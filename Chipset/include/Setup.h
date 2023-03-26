@@ -300,6 +300,7 @@ class Platform final {
         static uint8_t getDataByte(uint8_t index) noexcept;
         static uint8_t getAddressOffset() noexcept;
         static uint8_t getAddressLSB() noexcept;
+        static uint8_t getAddressMSB() noexcept;
 };
 
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

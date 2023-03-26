@@ -74,7 +74,7 @@ template<bool inDebugMode, bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
 private:
     static constexpr uint8_t ByteEnableAsBits = static_cast<uint8_t>(kind);
-    static void fulfillIOExpanderReads(volatile SplitWord32& ptr) noexcept {
+    static void updateIOExpander(volatile SplitWord32& ptr) noexcept {
         if constexpr (isReadOperation) {
             if constexpr (ByteEnableAsBits == 0) {
                 Platform::setDataLines(ptr.full);
@@ -101,11 +101,7 @@ private:
                 auto theValue = getProcessorInterface().dataLines_.view32.data;
                 Serial.println(theValue, HEX);
             }
-        } 
-        // do nothing on writes
-    }
-    static void fulfillIOExpanderWrites(volatile SplitWord32& ptr) noexcept {
-        if constexpr (!isReadOperation) {
+        } else {
             if constexpr (ByteEnableAsBits == 0) {
                 ptr.full = Platform::getDataLines();
             } else if constexpr (ByteEnableAsBits == 0b0011) {
@@ -140,13 +136,7 @@ public:
         // at some point this code may go away and instead we only respond when
         // being talked to.
         //
-        if constexpr (isReadOperation) {
-            // make a copy to ensure that we read from memory when it is important
-            fulfillIOExpanderReads(ptr);
-        } else {
-            // directly use the contents
-            fulfillIOExpanderWrites(ptr);
-        }
+        updateIOExpander(ptr);
     }
 };
 template<bool inDebugMode, bool isReadOperation>

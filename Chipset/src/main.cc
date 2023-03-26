@@ -74,19 +74,6 @@ template<bool inDebugMode, bool isReadOperation, ByteEnableKind kind>
 struct RequestProcessor {
 private:
     static constexpr uint8_t ByteEnableAsBits = static_cast<uint8_t>(kind);
-    static void performEBIExecution(volatile SplitWord32& ptr) noexcept {
-        // stream the data out onto the bus
-        // at some point this code may go away and instead we only respond when
-        // being talked to.
-        //
-        if constexpr (isReadOperation) {
-            // make a copy to ensure that we read from memory when it is important
-            fulfillIOExpanderReads(ptr);
-        } else {
-            // directly use the contents
-            fulfillIOExpanderWrites(ptr);
-        }
-    }
     static void fulfillIOExpanderReads(volatile SplitWord32& ptr) noexcept {
         if constexpr (isReadOperation) {
             if constexpr (ByteEnableAsBits == 0) {
@@ -148,17 +135,22 @@ private:
     }
 public:
     template<typename T>
+    [[gnu::noinline]]
     static void execute(const SplitWord32& addr, T) noexcept {
         // get the closest word from where we currently are
-        volatile SplitWord32& result = Platform::getMemoryView(addr, T{});
-        if constexpr (inDebugMode) {
-            Serial.print(F("Target Base Address: 0x"));
-            Serial.println(reinterpret_cast<size_t>(&result), HEX);
-            Serial.print(F("Target Base Address Contents: 0x"));
-            Serial.println(result.full, HEX);
+        // stream the data out onto the bus
+        // at some point this code may go away and instead we only respond when
+        // being talked to.
+        //
+        if constexpr (isReadOperation) {
+            // make a copy to ensure that we read from memory when it is important
+            fulfillIOExpanderReads(Platform::getMemoryView(addr, T{}));
+        } else {
+            // directly use the contents
+            fulfillIOExpanderWrites(Platform::getMemoryView(addr, T{}));
         }
-        performEBIExecution( result);
     }
+    [[gnu::noinline]]
     static void execute(Instruction& container, AccessFromInstruction) noexcept {
 
         if constexpr (uint8_t targetWordIndex = ((Platform::getAddressOffset() >> 2) & 0b11); isReadOperation) {
@@ -168,6 +160,15 @@ public:
         } else {
             fulfillIOExpanderWrites(container.args_[targetWordIndex]);
         }
+    }
+};
+template<bool inDebugMode, bool isReadOperation>
+struct RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing> {
+    template<typename T>
+    static void execute(const SplitWord32&, T) noexcept {
+    }
+    static void execute(Instruction&, AccessFromInstruction) noexcept {
+
     }
 };
 template<bool inDebugMode>

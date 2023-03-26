@@ -244,27 +244,39 @@ talkToi960(TreatAsInstruction) noexcept {
     // ignores a huge class of problems. Instead, we just process
     Instruction operation;
     operation.opcode_ = addr;
-    switch (operation.getGroup()) {
-        case 0xF0:
-            if constexpr (isReadOperation) {
+    if constexpr (isReadOperation) {
+        // We perform the read operation _ahead_ of sending it back to the i960
+        // The result of the read operation is stored in the args of the
+        // instruction. 
+        // that is what's performed here
+        switch (operation.getGroup()) {
+            case 0xF0: // only group 0 is active right now
                 performIOReadGroup0<inDebugMode>(operation);
-            }
-            doCommunication<inDebugMode, isReadOperation>(operation.args_);
-            if constexpr (!isReadOperation) {
+                break;
+            default:
+                // just ignore the data and return what we have inside of
+                // the operation object itself. 
+                //
+                // This greatly simplifies everything!
+                break;
+        }
+    }
+    doCommunication<inDebugMode, isReadOperation>(operation.args_);
+    if constexpr (!isReadOperation) {
+        switch (operation.getGroup()) {
+            case 0xF0:
                 performIOWriteGroup0<inDebugMode>(operation);
-            }
-            break;
-        default:
-            doCommunication<inDebugMode, isReadOperation>(operation.args_);
-            // if we got here then do nothing, usually that means the
-            // group hasn't been fully implemented yet
-            break;
+                break;
+            default:
+                // if we got here then do nothing, usually that means the
+                // group hasn't been fully implemented yet
+                break;
+        }
     }
 }
 
 
 template<bool inDebugMode, bool isReadOperation, typename T>
-[[gnu::noinline]]
 void
 talkToi960(T) noexcept {
     SplitWord32 addr{Platform::readAddress()};

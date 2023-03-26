@@ -360,6 +360,7 @@ handleTransaction(LoadFromIBUS) noexcept {
     }
     // need this delay to synchronize everything :)
     singleCycleDelay();
+    singleCycleDelay();
 }
 
 template<bool inDebugMode = true>

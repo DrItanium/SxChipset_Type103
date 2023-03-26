@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TimerDevice.h"
 #include "Setup.h"
 
-constexpr bool OutputCompareModeForTimer2 = true;
+constexpr bool OutputCompareModeForTimer2 = XINT0DirectConnect;
 constexpr bool OutputCompareModeForTimer1 = false;
 bool
 TimerDevice::init() noexcept {

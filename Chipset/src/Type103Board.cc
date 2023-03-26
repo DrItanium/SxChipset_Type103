@@ -52,6 +52,30 @@ Platform::begin() noexcept {
         if constexpr (READYDirectConnect) {
             proc.control_.view8.direction[1] &= 0b11101111;
         }
+        if constexpr (XINT0DirectConnect) {
+            proc.control_.view8.direction[2] &= 0b11111110;
+        }
+        if constexpr (XINT1DirectConnect) {
+            proc.control_.view8.direction[2] &= 0b11111101;
+        }
+        if constexpr (XINT2DirectConnect) {
+            proc.control_.view8.direction[2] &= 0b11111011;
+        }
+        if constexpr (XINT3DirectConnect) {
+            proc.control_.view8.direction[2] &= 0b11110111;
+        }
+        if constexpr (XINT4DirectConnect) {
+            proc.control_.view8.direction[2] &= 0b11101111;
+        }
+        if constexpr (XINT5DirectConnect) {
+            proc.control_.view8.direction[2] &= 0b11011111;
+        }
+        if constexpr (XINT6DirectConnect) {
+            proc.control_.view8.direction[2] &= 0b10111111;
+        }
+        if constexpr (XINT7DirectConnect) {
+            proc.control_.view8.direction[2] &= 0b01111111;
+        }
         proc.control_.view32.data = 0;
         proc.control_.ctl.hold = 0;
         proc.control_.ctl.reset = 0; // put i960 in reset

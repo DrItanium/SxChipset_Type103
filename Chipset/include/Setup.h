@@ -32,6 +32,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 constexpr bool EnableDebugMode = false;
 constexpr bool MCUHasDirectAccess = false;
 constexpr bool READYDirectConnect = true;
+constexpr bool XINT0DirectConnect = true;
+constexpr bool XINT1DirectConnect = false;
+constexpr bool XINT2DirectConnect = false;
+constexpr bool XINT3DirectConnect = false;
+constexpr bool XINT4DirectConnect = false;
+constexpr bool XINT5DirectConnect = false;
+constexpr bool XINT6DirectConnect = false;
+constexpr bool XINT7DirectConnect = false;
 
 [[gnu::always_inline]]
 inline void

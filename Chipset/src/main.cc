@@ -441,7 +441,7 @@ isDebuggingSession() noexcept {
 }
 void 
 loop() {
-    if (isDebuggingSession<true>()) {
+    if (isDebuggingSession()) {
         while (true) {
             waitForDataState();
             handleTransaction<true>(SelectedLogic{});

@@ -171,6 +171,7 @@ public:
     }
 };
 template<bool inDebugMode>
+inline
 void
 performIOReadGroup0(Instruction& instruction) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
@@ -193,6 +194,7 @@ performIOReadGroup0(Instruction& instruction) noexcept {
     }
 }
 template<bool inDebugMode>
+inline
 void
 performIOWriteGroup0(const Instruction& instruction) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
@@ -342,32 +344,28 @@ template<bool inDebugMode>
 void
 handleTransaction(LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
-    auto address = Platform::readAddress();
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
-        Serial.print(F("ADDRESS: 0x"));
-        Serial.println(address, HEX);
     }
     if (Platform::isWriteOperation()) {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, false>(address, TreatAsInstruction{});
+            talkToi960<inDebugMode, false>(Platform::readAddress(), TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, false>(address, TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, false>(Platform::readAddress(), TreatAsOnChipAccess{});
         }
     } else {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, true>(address, TreatAsInstruction{});
+            talkToi960<inDebugMode, true>(Platform::readAddress(), TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, true>(address, TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, true>(Platform::readAddress(), TreatAsOnChipAccess{});
         }
     }
     if constexpr (inDebugMode) {
         Serial.println(F("END TRANSACTION"));
     }
     // need this delay to synchronize everything :)
-    singleCycleDelay();
     singleCycleDelay();
 }
 

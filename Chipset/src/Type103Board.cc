@@ -134,7 +134,6 @@ void
 Platform::doHold(decltype(LOW) value) noexcept {
     getProcessorInterface().control_.ctl.hold = value;
 }
-
 void
 Platform::signalReady() noexcept {
     if constexpr (MCUHasDirectAccess) {
@@ -153,18 +152,15 @@ Platform::isWriteOperation() noexcept {
         return getProcessorInterface().control_.ctl.wr;
     }
 }
-
 bool
 Platform::isIOOperation() noexcept {
     return getProcessorInterface().address_.view8.data[3] == 0xF0;
 }
-
 void
 Platform::configureDataLinesForRead() noexcept {
     // output
     getProcessorInterface().dataLines_.view32.direction = 0xFFFF'FFFF;
 }
-
 void
 Platform::configureDataLinesForWrite() noexcept {
     // input

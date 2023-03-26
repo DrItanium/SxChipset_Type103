@@ -80,7 +80,7 @@ union SplitWord16 {
     [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
 };
 
-union SplitWord32 {
+union [[gnu::packed]] SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
     ElementContainer<uint32_t, uint8_t> bytes;
@@ -132,6 +132,12 @@ union SplitWord32 {
     }
     constexpr size_t unalignedBankAddress(AccessFromXBUS) const noexcept {
         return 0x8000 + (halves[0] & 0x7FFF);
+    }
+    constexpr size_t transactionAlignedBankAddress(AccessFromIBUS) const noexcept {
+        return 0x4000 + (halves[0] & 0x3FF0);
+    }
+    constexpr size_t transactionAlignedBankAddress(AccessFromXBUS) const noexcept {
+        return 0x8000 + (halves[0] & 0x7FF0);
     }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
@@ -221,7 +227,11 @@ struct [[gnu::packed]] ProcessorInterface {
     void setDataLines(uint32_t value) noexcept {
         dataLines_.view32.data = value;
     }
-} ;
+};
+
+struct [[gnu::packed]] SplitWord128 {
+    SplitWord32 contents[4];
+};
 
 
 

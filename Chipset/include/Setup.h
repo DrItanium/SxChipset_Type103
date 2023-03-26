@@ -288,6 +288,8 @@ class Platform final {
          * @brief Return a pointer to the closest aligned SplitWord32 on the XBUS
          */
         static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept;
+        static volatile SplitWord128& getTransactionWindow(const SplitWord32& addr, AccessFromIBUS) noexcept;
+        static volatile SplitWord128& getTransactionWindow(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept;
         static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static uint16_t getUpperDataBits() noexcept;

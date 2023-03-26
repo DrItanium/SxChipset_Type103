@@ -134,8 +134,7 @@ private:
         }
     }
 public:
-    template<typename T>
-    static void execute(const SplitWord32& addr, T) noexcept {
+    static void execute(volatile SplitWord32& ptr) noexcept {
         // get the closest word from where we currently are
         // stream the data out onto the bus
         // at some point this code may go away and instead we only respond when
@@ -143,10 +142,10 @@ public:
         //
         if constexpr (isReadOperation) {
             // make a copy to ensure that we read from memory when it is important
-            fulfillIOExpanderReads(Platform::getMemoryView(addr, T{}));
+            fulfillIOExpanderReads(ptr);
         } else {
             // directly use the contents
-            fulfillIOExpanderWrites(Platform::getMemoryView(addr, T{}));
+            fulfillIOExpanderWrites(ptr);
         }
     }
     static void execute(Instruction& container, AccessFromInstruction) noexcept {
@@ -162,8 +161,7 @@ public:
 };
 template<bool inDebugMode, bool isReadOperation>
 struct RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing> {
-    template<typename T>
-    static void execute(const SplitWord32&, T) noexcept {
+    static void execute(volatile SplitWord32&) noexcept {
 
     }
     static void execute(Instruction&, AccessFromInstruction) noexcept {
@@ -303,12 +301,15 @@ talkToi960(uint32_t theAddr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
+    volatile SplitWord128& theView = Platform::getTransactionWindow(addr, typename T::AccessMethod{});
     do {
+        // figure out which word we are currently looking at
+        volatile auto& targetElement = theView.contents[(addr.bytes[0] >> 2) & 0b11];
         if constexpr (isReadOperation) {
-            RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: Full32> :: execute (addr, typename T::AccessMethod {});
+            RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: Full32> :: execute (targetElement);
         } else {
             switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (addr, typename T::AccessMethod {}); break;
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (targetElement); break
                 X(Full32);
                 X(Lower16);
                 X(Upper16);
@@ -326,7 +327,7 @@ talkToi960(uint32_t theAddr, T) noexcept {
                 X(Higher8_Lowest8 );
 #undef X
                 default:
-                RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(addr, typename T::AccessMethod{});
+                RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(targetElement);
                 break;
             }
         }

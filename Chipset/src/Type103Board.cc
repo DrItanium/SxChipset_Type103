@@ -31,9 +31,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "Peripheral.h"
 
+constexpr bool MCUHasDirectAccess = true;
 
 namespace {
-    static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
+    static constexpr uint32_t ControlSignalDirection_CH351Only = 0b10000000'11111111'00111000'00010001;
+    // this verison is where we have directly connected certain signals
+    // to the MCU. So the signals have directly connected become inputs to
+    // prevent them from affecting things too much
+    static constexpr uint32_t ControlSignalDirection_DirectMCUAccess = 0b10000000'11111110'00101000'00010001;
+
+    static constexpr uint32_t ControlSignalDirection = MCUHasDirectAccess ?  ControlSignalDirection_DirectMCUAccess : ControlSignalDirection_CH351Only;
 }
 void
 Platform::begin() noexcept {
@@ -77,7 +84,14 @@ Platform::setDataLines(uint32_t value) noexcept {
 
 void
 Platform::waitForDataState() noexcept {
-    getProcessorInterface().waitForDataState();
+    if constexpr (MCUHasDirectAccess) {
+        while (digitalRead<Pin::DEN>() == HIGH) {
+            // yield time since we are waiting
+            yield();
+        }
+    } else {
+        getProcessorInterface().waitForDataState();
+    }
 }
 
 uint32_t
@@ -95,13 +109,21 @@ Platform::doHold(decltype(LOW) value) noexcept {
 
 void
 Platform::signalReady() noexcept {
-    volatile auto& proc = getProcessorInterface();
-    proc.control_.ctl.ready = ~proc.control_.ctl.ready;
+    if constexpr (MCUHasDirectAccess) {
+        toggle<Pin::READY>();
+    } else {
+        getProcessorInterface().control_.ctl.ready = ~getProcessorInterface().control_.ctl.ready;
+    }
+
 }
 
 bool
 Platform::isReadOperation() noexcept {
-    return getProcessorInterface().control_.ctl.wr == 0;
+    if constexpr (MCUHasDirectAccess) {
+        return digitalRead<Pin::WR>() == LOW;
+    } else {
+        return getProcessorInterface().control_.ctl.wr == 0;
+    }
 }
 
 bool
@@ -148,12 +170,20 @@ Platform::signalNMI() noexcept {
 
 bool
 Platform::isBurstLast() noexcept {
-    return getProcessorInterface().control_.ctl.blast == 0;
+    if constexpr (MCUHasDirectAccess) {
+        return digitalRead<Pin::BLAST>() == 0;
+    } else {
+        return getProcessorInterface().control_.ctl.blast == 0;
+    }
 }
 
 uint8_t
 Platform::getByteEnable() noexcept {
-    return getProcessorInterface().control_.ctl.byteEnable;
+    if constexpr (MCUHasDirectAccess) {
+        return getInputRegister<Port::SignalCTL>() & 0b1111;
+    } else {
+        return getProcessorInterface().control_.ctl.byteEnable;
+    }
 }
 
 uint16_t 

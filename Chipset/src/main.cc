@@ -411,6 +411,7 @@ setupPins() noexcept {
     pinMode(Pin::BE3, INPUT);
     pinMode(Pin::DEN, INPUT);
     pinMode(Pin::BLAST, INPUT);
+    pinMode(Pin::WR, INPUT);
     pinMode(Pin::READY, OUTPUT);
     digitalWrite<Pin::READY, HIGH>();
 }

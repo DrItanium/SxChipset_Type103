@@ -195,9 +195,10 @@ template<bool inDebugMode, bool isReadOperation>
 inline
 void
 doCommunication(volatile SplitWord128& theView) noexcept {
+    uint8_t index = Platform::getAddressLSB();
     do {
         // figure out which word we are currently looking at
-        volatile auto& targetElement = theView[(Platform::getAddressLSB() >> 2)&0b11];
+        volatile auto& targetElement = theView[(index >> 2)&0b11];
         if constexpr (isReadOperation) {
             RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: Full32> :: execute (targetElement);
         } else {
@@ -229,6 +230,7 @@ doCommunication(volatile SplitWord128& theView) noexcept {
         if (end) {
             break;
         }
+        index = Platform::getAddressLSB();
     } while (true);
 }
 template<bool inDebugMode, bool isReadOperation>

@@ -340,19 +340,19 @@ handleTransaction(LoadFromIBUS) noexcept {
         Serial.print(F("ADDRESS: 0x"));
         Serial.println(address, HEX);
     }
-    if (Platform::isReadOperation()) {
-        Platform::configureDataLinesForRead();
-        if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, true>(address, TreatAsInstruction{});
-        } else {
-            talkToi960<inDebugMode, true>(address, TreatAsOnChipAccess{});
-        }
-    } else {
+    if (Platform::isWriteOperation()) {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
             talkToi960<inDebugMode, false>(address, TreatAsInstruction{});
         } else {
             talkToi960<inDebugMode, false>(address, TreatAsOnChipAccess{});
+        }
+    } else {
+        Platform::configureDataLinesForRead();
+        if (Platform::isIOOperation()) {
+            talkToi960<inDebugMode, true>(address, TreatAsInstruction{});
+        } else {
+            talkToi960<inDebugMode, true>(address, TreatAsOnChipAccess{});
         }
     }
     if constexpr (inDebugMode) {

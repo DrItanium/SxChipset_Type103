@@ -138,12 +138,13 @@ Platform::signalReady() noexcept {
 
 }
 
+[[gnu::noinline]]
 bool
-Platform::isReadOperation() noexcept {
+Platform::isWriteOperation() noexcept {
     if constexpr (MCUHasDirectAccess) {
-        return digitalRead<Pin::WR>() == LOW;
+        return digitalRead<Pin::WR>();
     } else {
-        return getProcessorInterface().control_.ctl.wr == 0;
+        return getProcessorInterface().control_.ctl.wr;
     }
 }
 

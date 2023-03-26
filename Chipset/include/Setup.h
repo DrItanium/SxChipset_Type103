@@ -269,7 +269,7 @@ class Platform final {
         static bool checksumFailure() noexcept;
         static bool isBurstLast() noexcept;
         static uint8_t getByteEnable() noexcept;
-        static bool isReadOperation() noexcept;
+        static bool isWriteOperation() noexcept;
         static void configureDataLinesForWrite() noexcept;
         static void configureDataLinesForRead() noexcept;
         static bool isIOOperation() noexcept;

@@ -141,7 +141,7 @@ Platform::signalReady() noexcept {
 bool
 Platform::isWriteOperation() noexcept {
     if constexpr (MCUHasDirectAccess) {
-        return digitalRead<Pin::WR>() == HIGH;
+        return digitalRead<Pin::WR>();
     } else {
         return getProcessorInterface().control_.ctl.wr;
     }

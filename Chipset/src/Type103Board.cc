@@ -105,7 +105,7 @@ Platform::setDataLines(uint32_t value) noexcept {
 
 void
 Platform::waitForDataState() noexcept {
-    if constexpr (MCUHasDirectAccess) {
+    if constexpr (MCUHasDirectAccess || UseDENDirectConnect) {
         while (digitalRead<Pin::DEN>() == HIGH) {
             // yield time since we are waiting
             yield();

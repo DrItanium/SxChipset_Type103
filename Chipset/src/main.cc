@@ -405,15 +405,13 @@ setupPins() noexcept {
     // setup the IBUS bank
     DDRJ = 0xFF;
     PORTJ = 0x00;
-    if constexpr (MCUHasDirectAccess) {
-        pinMode(Pin::BE0, INPUT);
-        pinMode(Pin::BE1, INPUT);
-        pinMode(Pin::BE2, INPUT);
-        pinMode(Pin::BE3, INPUT);
-        pinMode(Pin::DEN, INPUT);
-        pinMode(Pin::BLAST, INPUT);
-        pinMode(Pin::WR, INPUT);
-    }
+    pinMode(Pin::BE0, INPUT);
+    pinMode(Pin::BE1, INPUT);
+    pinMode(Pin::BE2, INPUT);
+    pinMode(Pin::BE3, INPUT);
+    pinMode(Pin::DEN, INPUT);
+    pinMode(Pin::BLAST, INPUT);
+    pinMode(Pin::WR, INPUT);
     if constexpr (READYDirectConnect || MCUHasDirectAccess) {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();

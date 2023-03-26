@@ -40,6 +40,7 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
+constexpr bool UseDENDirectConnect = true;
 
 [[gnu::always_inline]]
 inline void

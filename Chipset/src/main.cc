@@ -233,58 +233,45 @@ doCommunication(volatile SplitWord128& theView) noexcept {
 }
 template<bool inDebugMode, bool isReadOperation>
 void
-talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
+talkToi960(TreatAsInstruction) noexcept {
     if (inDebugMode) {
         Serial.println(F("INSTRUCTION REQUESTED!"));
     }
-    SplitWord32 addr{theAddr};
+    SplitWord32 addr{Platform::readAddress()};
     // If the lowest four bits are not zero then that is a problem on the side
     // of the i960. For example, if you started in the middle of the 16-byte
     // block then the data will still be valid just not what you wanted. This
     // ignores a huge class of problems. Instead, we just process
     Instruction operation;
     operation.opcode_ = addr;
-    if constexpr (isReadOperation) {
-        // We perform the read operation _ahead_ of sending it back to the i960
-        // The result of the read operation is stored in the args of the
-        // instruction. 
-        // that is what's performed here
-        switch (operation.getGroup()) {
-            case 0xF0: // only group 0 is active right now
+    switch (operation.getGroup()) {
+        case 0xF0:
+            if constexpr (isReadOperation) {
                 performIOReadGroup0<inDebugMode>(operation);
-                break;
-            default:
-                // just ignore the data and return what we have inside of
-                // the operation object itself. 
-                //
-                // This greatly simplifies everything!
-                return;
-        }
-    }
-    doCommunication<inDebugMode, isReadOperation>(operation.args_);
-    if constexpr (!isReadOperation) {
-        switch (operation.getGroup()) {
-            case 0xF0:
+            }
+            doCommunication<inDebugMode, isReadOperation>(operation.args_);
+            if constexpr (!isReadOperation) {
                 performIOWriteGroup0<inDebugMode>(operation);
-                break;
-            default:
-                // if we got here then do nothing, usually that means the
-                // group hasn't been fully implemented yet
-                break;
-        }
+            }
+            break;
+        default:
+            doCommunication<inDebugMode, isReadOperation>(operation.args_);
+            // if we got here then do nothing, usually that means the
+            // group hasn't been fully implemented yet
+            break;
     }
 }
 
 
 template<bool inDebugMode, bool isReadOperation, typename T>
+[[gnu::noinline]]
 void
-talkToi960(uint32_t theAddr, T) noexcept {
-    SplitWord32 addr{theAddr};
+talkToi960(T) noexcept {
+    SplitWord32 addr{Platform::readAddress()};
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
-    volatile SplitWord128& theView = Platform::getTransactionWindow(addr, typename T::AccessMethod{});
-    doCommunication<inDebugMode, isReadOperation>(theView);
+    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}));
 }
 
 
@@ -298,16 +285,16 @@ handleTransaction(LoadFromIBUS) noexcept {
     if (Platform::isWriteOperation()) {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, false>(Platform::readAddress(), TreatAsInstruction{});
+            talkToi960<inDebugMode, false>(TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, false>(Platform::readAddress(), TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, false>(TreatAsOnChipAccess{});
         }
     } else {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, true>(Platform::readAddress(), TreatAsInstruction{});
+            talkToi960<inDebugMode, true>(TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, true>(Platform::readAddress(), TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, true>(TreatAsOnChipAccess{});
         }
     }
     if constexpr (inDebugMode) {

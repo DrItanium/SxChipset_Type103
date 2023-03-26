@@ -202,98 +202,12 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
     }
 }
 template<bool inDebugMode, bool isReadOperation>
+inline
 void
-talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
-    if (inDebugMode) {
-        Serial.println(F("INSTRUCTION REQUESTED!"));
-    }
-    SplitWord32 addr{theAddr};
-    // If the lowest four bits are not zero then that is a problem on the side
-    // of the i960. For example, if you started in the middle of the 16-byte
-    // block then the data will still be valid just not what you wanted. This
-    // ignores a huge class of problems. Instead, we just process
-    Instruction operation;
-    operation.opcode_ = addr;
-    if constexpr (isReadOperation) {
-        // We perform the read operation _ahead_ of sending it back to the i960
-        // The result of the read operation is stored in the args of the
-        // instruction. 
-        // that is what's performed here
-        switch (operation.getGroup()) {
-            case 0xF0: // only group 0 is active right now
-                performIOReadGroup0<inDebugMode>(operation);
-                break;
-            default:
-                // just ignore the data and return what we have inside of
-                // the operation object itself. 
-                //
-                // This greatly simplifies everything!
-                return;
-        }
-    }
-    // after we get the instruction configured (regardless of read or write) we
-    // interact with the i960 to either send data off or not
-    do {
-        auto& targetElement = operation.args_[(addr.bytes[0] >> 2) & 0b11];
-        if constexpr (isReadOperation) {
-            RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Full32>::execute(targetElement);
-        } else {
-            switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (targetElement); break
-                X(Full32);
-                X(Lower16);
-                X(Upper16);
-                X(Lowest8);
-                X(Lower8);
-                X(Higher8);
-                X(Highest8);
-                X(Mid16);
-                X(Lower24);
-                X(Upper24);
-                X(Highest8_Lower16 );
-                X(Highest8_Lower8 );
-                X(Highest8_Lowest8 );
-                X(Upper16_Lowest8 );
-                X(Higher8_Lowest8 );
-#undef X
-                default:
-                RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(targetElement);
-                break;
-            }
-        }
-        auto end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            break;
-        }
-        addr.bytes[0] = Platform::getAddressLSB();
-    } while (true);
-    if constexpr (!isReadOperation) {
-        switch (operation.getGroup()) {
-            case 0xF0:
-                performIOWriteGroup0<inDebugMode>(operation);
-                break;
-            default:
-                // if we got here then do nothing, usually that means the
-                // group hasn't been fully implemented yet
-                break;
-        }
-    }
-}
-
-
-
-template<bool inDebugMode, bool isReadOperation, typename T>
-void
-talkToi960(uint32_t theAddr, T) noexcept {
-    SplitWord32 addr{theAddr};
-    // only need to set this once, it is literally impossible for this to span
-    // banks
-    Platform::setBank(addr, typename T::AccessMethod{});
-    volatile SplitWord128& theView = Platform::getTransactionWindow(addr, typename T::AccessMethod{});
+doCommunication(volatile SplitWord128& theView) noexcept {
     do {
         // figure out which word we are currently looking at
-        volatile auto& targetElement = theView.contents[(addr.bytes[0] >> 2) & 0b11];
+        volatile auto& targetElement = theView[(Platform::getAddressLSB() >> 2)&0b11];
         if constexpr (isReadOperation) {
             RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: Full32> :: execute (targetElement);
         } else {
@@ -325,9 +239,62 @@ talkToi960(uint32_t theAddr, T) noexcept {
         if (end) {
             break;
         }
-        // update the LSB since we are moving on
-        addr.bytes[0] = Platform::getAddressLSB();
     } while (true);
+}
+template<bool inDebugMode, bool isReadOperation>
+void
+talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
+    if (inDebugMode) {
+        Serial.println(F("INSTRUCTION REQUESTED!"));
+    }
+    SplitWord32 addr{theAddr};
+    // If the lowest four bits are not zero then that is a problem on the side
+    // of the i960. For example, if you started in the middle of the 16-byte
+    // block then the data will still be valid just not what you wanted. This
+    // ignores a huge class of problems. Instead, we just process
+    Instruction operation;
+    operation.opcode_ = addr;
+    if constexpr (isReadOperation) {
+        // We perform the read operation _ahead_ of sending it back to the i960
+        // The result of the read operation is stored in the args of the
+        // instruction. 
+        // that is what's performed here
+        switch (operation.getGroup()) {
+            case 0xF0: // only group 0 is active right now
+                performIOReadGroup0<inDebugMode>(operation);
+                break;
+            default:
+                // just ignore the data and return what we have inside of
+                // the operation object itself. 
+                //
+                // This greatly simplifies everything!
+                return;
+        }
+    }
+    doCommunication<inDebugMode, isReadOperation>(operation.args_);
+    if constexpr (!isReadOperation) {
+        switch (operation.getGroup()) {
+            case 0xF0:
+                performIOWriteGroup0<inDebugMode>(operation);
+                break;
+            default:
+                // if we got here then do nothing, usually that means the
+                // group hasn't been fully implemented yet
+                break;
+        }
+    }
+}
+
+
+template<bool inDebugMode, bool isReadOperation, typename T>
+void
+talkToi960(uint32_t theAddr, T) noexcept {
+    SplitWord32 addr{theAddr};
+    // only need to set this once, it is literally impossible for this to span
+    // banks
+    Platform::setBank(addr, typename T::AccessMethod{});
+    volatile SplitWord128& theView = Platform::getTransactionWindow(addr, typename T::AccessMethod{});
+    doCommunication<inDebugMode, isReadOperation>(theView);
 }
 
 

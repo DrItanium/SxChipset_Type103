@@ -231,6 +231,9 @@ struct [[gnu::packed]] ProcessorInterface {
 
 struct [[gnu::packed]] SplitWord128 {
     SplitWord32 contents[4];
+    [[nodiscard]] SplitWord32& operator[](int index) noexcept { return contents[index]; }
+    [[nodiscard]] volatile SplitWord32& operator[](int index) volatile noexcept { return contents[index]; }
+    [[nodiscard]] const SplitWord32& operator[](int index) const noexcept { return contents[index]; }
 };
 
 

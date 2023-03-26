@@ -57,13 +57,16 @@ struct Instruction {
     SplitWord32 opcode_;
     // there are up to four 32-bit words so we need to stash information
     // important to this here, the byte enable bits should _not_ be included
-    SplitWord32 args_[4]; // a single transaction is up to 16-bytes or four 32-bit
-                          // words in size
+    SplitWord128 args_; // a single transaction is up to 16-bytes or four 32-bit
+                        // words in size
     [[nodiscard]] constexpr auto getGroup() const noexcept { return opcode_.getIOGroup(); }
     [[nodiscard]] constexpr auto getDevice() const noexcept { return opcode_.getIODevice<TargetPeripheral>(); }
     [[nodiscard]] constexpr auto getMinor() const noexcept { return opcode_.getIOMinorCode(); }
     template<typename T>
     [[nodiscard]] constexpr auto getFunction() const noexcept { return opcode_.getIOFunction<T>(); }
+    [[nodiscard]] SplitWord32& operator[](int index) noexcept { return args_[index]; }
+    [[nodiscard]] volatile SplitWord32& operator[](int index) volatile noexcept { return args_[index]; }
+    [[nodiscard]] const SplitWord32& operator[](int index) const noexcept { return args_[index]; }
 };
 
 template<typename E, typename T>
@@ -79,7 +82,7 @@ public:
         auto theOpcode = instruction.getFunction<E>();
         switch (theOpcode) {
             case E::Available:
-                instruction.args_[0].bytes[0] = available();
+                instruction[0].bytes[0] = available();
                 break;
             case E::Size:
                 instruction.args_[0].bytes[0] = size();

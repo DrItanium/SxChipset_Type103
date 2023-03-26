@@ -195,7 +195,7 @@ Platform::signalNMI() noexcept {
 bool
 Platform::isBurstLast() noexcept {
     if constexpr (MCUHasDirectAccess) {
-        return digitalRead<Pin::BLAST>() == 0;
+        return digitalRead<Pin::BLAST>() == LOW;
     } else {
         return getProcessorInterface().control_.ctl.blast == 0;
     }

@@ -49,7 +49,7 @@ Platform::begin() noexcept {
         configureDataLinesForRead();
         proc.dataLines_.view32.data = 0;
         proc.control_.view32.direction = ControlSignalDirection;
-        if constexpr (READYDirectConnect) {
+        if constexpr (MCUHasDirectAccess) {
             proc.control_.view8.direction[1] &= 0b11101111;
         }
         if constexpr (XINT0DirectConnect) {
@@ -105,7 +105,7 @@ Platform::setDataLines(uint32_t value) noexcept {
 
 void
 Platform::waitForDataState() noexcept {
-    if constexpr (MCUHasDirectAccess || UseDENDirectConnect) {
+    if constexpr (MCUHasDirectAccess) {
         while (digitalRead<Pin::DEN>() == HIGH) {
             // yield time since we are waiting
             yield();
@@ -130,7 +130,7 @@ Platform::doHold(decltype(LOW) value) noexcept {
 
 void
 Platform::signalReady() noexcept {
-    if constexpr (MCUHasDirectAccess || READYDirectConnect) {
+    if constexpr (MCUHasDirectAccess) {
         toggle<Pin::READY>();
     } else {
         getProcessorInterface().control_.ctl.ready = ~getProcessorInterface().control_.ctl.ready;

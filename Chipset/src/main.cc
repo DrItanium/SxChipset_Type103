@@ -412,7 +412,7 @@ setupPins() noexcept {
     pinMode(Pin::DEN, INPUT);
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
-    if constexpr (READYDirectConnect || MCUHasDirectAccess) {
+    if constexpr (MCUHasDirectAccess) {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();
     }
@@ -432,7 +432,7 @@ setup() {
     installMemoryImage();
     pullCPUOutOfReset();
 }
-template<bool ForceEnterDebugMode = false>
+template<bool ForceEnterDebugMode = EnableDebugMode>
 bool 
 isDebuggingSession() noexcept {
     return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;

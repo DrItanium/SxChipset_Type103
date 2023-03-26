@@ -148,23 +148,10 @@ public:
             fulfillIOExpanderWrites(ptr);
         }
     }
-    static void execute(Instruction& container, AccessFromInstruction) noexcept {
-
-        if constexpr (uint8_t targetWordIndex = ((Platform::getAddressOffset() >> 2) & 0b11); isReadOperation) {
-            // assume that we have performed the read operation ahead of time
-            // and that we are operating on the packet we got back
-            fulfillIOExpanderReads(container.args_[targetWordIndex]);
-        } else {
-            fulfillIOExpanderWrites(container.args_[targetWordIndex]);
-        }
-    }
 };
 template<bool inDebugMode, bool isReadOperation>
 struct RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing> {
     static void execute(volatile SplitWord32&) noexcept {
-
-    }
-    static void execute(Instruction&, AccessFromInstruction) noexcept {
 
     }
 };
@@ -247,11 +234,12 @@ talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
     // after we get the instruction configured (regardless of read or write) we
     // interact with the i960 to either send data off or not
     do {
+        auto& targetElement = operation.args_[(addr.bytes[0] >> 2) & 0b11];
         if constexpr (isReadOperation) {
-            RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Full32>::execute(operation, typename TreatAsInstruction::AccessMethod{});
+            RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Full32>::execute(targetElement);
         } else {
             switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (operation, typename TreatAsInstruction::AccessMethod{}); break
+#define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (targetElement); break
                 X(Full32);
                 X(Lower16);
                 X(Upper16);
@@ -269,7 +257,7 @@ talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
                 X(Higher8_Lowest8 );
 #undef X
                 default:
-                RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(operation, typename TreatAsInstruction::AccessMethod{});
+                RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(targetElement);
                 break;
             }
         }
@@ -278,6 +266,7 @@ talkToi960(uint32_t theAddr, TreatAsInstruction) noexcept {
         if (end) {
             break;
         }
+        addr.bytes[0] = Platform::getAddressLSB();
     } while (true);
     if constexpr (!isReadOperation) {
         switch (operation.getGroup()) {

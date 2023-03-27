@@ -125,11 +125,12 @@ doWriteUpdate(volatile uint8_t* destPtr, volatile uint8_t* srcPtr) noexcept {
 template<bool inDebugMode, bool isReadOperation>
 inline
 void
-doCommunication(volatile SplitWord128& theView) noexcept {
+doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb) noexcept {
+    /// @todo is there a way to only update the bytes that we need to update?
     //uint8_t index = Platform::getAddressLSB();
     do {
         // figure out which word we are currently looking at
-        if constexpr (volatile auto& targetElement = theView[Platform::getAddressOffset() >> 2]; isReadOperation) {
+        if constexpr (volatile auto& targetElement = theView[(*lsb & 0b1111) >> 2]; isReadOperation) {
             Platform::setDataLines(targetElement.full);
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {
@@ -155,11 +156,11 @@ doCommunication(volatile SplitWord128& theView) noexcept {
 }
 template<bool inDebugMode, bool isReadOperation>
 void
-talkToi960(TreatAsInstruction) noexcept {
+talkToi960(volatile uint8_t* lsb, SplitWord32& addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
         Serial.println(F("INSTRUCTION REQUESTED!"));
     }
-    SplitWord32 addr{Platform::readAddress()};
+    //SplitWord32 addr{Platform::readAddress()};
     // If the lowest four bits are not zero then that is a problem on the side
     // of the i960. For example, if you started in the middle of the 16-byte
     // block then the data will still be valid just not what you wanted. This
@@ -183,7 +184,7 @@ talkToi960(TreatAsInstruction) noexcept {
                 break;
         }
     }
-    doCommunication<inDebugMode, isReadOperation>(operation.args_);
+    doCommunication<inDebugMode, isReadOperation>(operation.args_, lsb);
     if constexpr (!isReadOperation) {
         switch (operation.getGroup()) {
             case 0xF0:
@@ -200,35 +201,35 @@ talkToi960(TreatAsInstruction) noexcept {
 
 template<bool inDebugMode, bool isReadOperation, typename T>
 void
-talkToi960(T) noexcept {
-    SplitWord32 addr{Platform::readAddress()};
+talkToi960(volatile uint8_t* lsb, SplitWord32& addr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
-    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}));
+    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), lsb);
 }
 
 
 template<bool inDebugMode>
 void
-handleTransaction(LoadFromIBUS) noexcept {
+handleTransaction(volatile uint8_t* lsb, LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
     }
+    SplitWord32 addr{Platform::readAddress()};
     if (Platform::isWriteOperation()) {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, false>(TreatAsInstruction{});
+            talkToi960<inDebugMode, false>(lsb, addr, TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, false>(TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, false>(lsb, addr, TreatAsOnChipAccess{});
         }
     } else {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, true>(TreatAsInstruction{});
+            talkToi960<inDebugMode, true>(lsb, addr, TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, true>(TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, true>(lsb, addr, TreatAsOnChipAccess{});
         }
     }
     if constexpr (inDebugMode) {
@@ -315,15 +316,16 @@ isDebuggingSession() noexcept {
 }
 void 
 loop() {
+    volatile uint8_t* lsb = memoryPointer<uint8_t>(0x2200);
     if (isDebuggingSession()) {
         while (true) {
             waitForDataState();
-            handleTransaction<true>(SelectedLogic{});
+            handleTransaction<true>(lsb, SelectedLogic{});
         }
     } else {
         while (true) {
             waitForDataState();
-            handleTransaction<false>(SelectedLogic{});
+            handleTransaction<false>(lsb, SelectedLogic{});
         }
 
     }

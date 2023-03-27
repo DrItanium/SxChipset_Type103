@@ -114,36 +114,31 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
             break;
     }
 }
-template<Pin targetPin>
-inline
-void 
-doWriteUpdate(volatile uint8_t* destPtr, volatile uint8_t* srcPtr) noexcept {
-    if (digitalRead<targetPin>() == LOW) {
-        *destPtr = *srcPtr;
-    }
-}
 template<bool inDebugMode, bool isReadOperation>
 inline
 void
 doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb) noexcept {
     /// @todo is there a way to only update the bytes that we need to update?
-    //uint8_t index = Platform::getAddressLSB();
-    do {
+    for(;;) {
         // figure out which word we are currently looking at
         if constexpr (volatile auto& targetElement = theView[(*lsb & 0b1111) >> 2]; isReadOperation) {
             Platform::setDataLines(targetElement.full);
         } else {
+            auto* theBytes = targetElement.bytes;
+            // you must check each enable bit to see if you have to write to that byte
+            // or not. You cannot just do a 32-bit write in all cases, this can
+            // cause memory corruption pretty badly. 
             if (digitalRead<Pin::BE0>() == LOW) {
-                targetElement.bytes[0] = Platform::getDataByte(0);
+                theBytes[0] = Platform::getDataByte(0);
             }
             if (digitalRead<Pin::BE1>() == LOW) {
-                targetElement.bytes[1] = Platform::getDataByte(1);
+                theBytes[1] = Platform::getDataByte(1);
             }
             if (digitalRead<Pin::BE2>() == LOW) {
-                targetElement.bytes[2] = Platform::getDataByte(2);
+                theBytes[2] = Platform::getDataByte(2);
             }
             if (digitalRead<Pin::BE3>() == LOW) {
-                targetElement.bytes[3] = Platform::getDataByte(3);
+                theBytes[3] = Platform::getDataByte(3);
             }
         }
         auto end = Platform::isBurstLast();
@@ -151,8 +146,7 @@ doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb) noexcept 
         if (end) {
             break;
         }
-        //index = Platform::getAddressLSB();
-    } while (true);
+    } 
 }
 template<bool inDebugMode, bool isReadOperation>
 void

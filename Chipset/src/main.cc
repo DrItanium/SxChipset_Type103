@@ -214,36 +214,46 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
 template<bool inDebugMode, bool isReadOperation, typename T>
 void
 talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32& addr, T) noexcept {
+    if constexpr (inDebugMode) {
+        Serial.println(F("Direct memory access begin!"));
+    }
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
-    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), addressLines, dataLines);
+    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), 
+            addressLines, dataLines);
+    if constexpr (inDebugMode) {
+        Serial.println(F("Direct memory access end!"));
+    }
 }
 
+template<bool inDebugMode, bool isReadOperation>
+void
+handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32& addr, LoadFromIBUS) noexcept {
+    if (addr.bytes[3] >= 0xF0) {
+        talkToi960<inDebugMode, isReadOperation>(addressLines, dataLines, addr, TreatAsInstruction{});
+    } else {
+        talkToi960<inDebugMode, isReadOperation>(addressLines, dataLines, addr, TreatAsOnChipAccess{});
+    }
+}
 
 template<bool inDebugMode>
 void
-handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, LoadFromIBUS) noexcept {
+handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, SplitWord32& addr, LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
     }
-    auto fullAddress = reinterpret_cast<DataRegister32>(addressLines);
-    SplitWord32 addr{*fullAddress};
     if (Platform::isWriteOperation()) {
-        Platform::configureDataLinesForWrite();
-        if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, false>(addressLines, dataLines, addr, TreatAsInstruction{});
-        } else {
-            talkToi960<inDebugMode, false>(addressLines, dataLines, addr, TreatAsOnChipAccess{});
+        for (byte i = 4; i < 8; ++i) {
+            dataLines[i] = 0;
         }
+        handleTransaction<inDebugMode, false>(addressLines, dataLines, addr, LoadFromIBUS{});
     } else {
-        Platform::configureDataLinesForRead();
-        if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, true>(addressLines, dataLines, addr, TreatAsInstruction{});
-        } else {
-            talkToi960<inDebugMode, true>(addressLines, dataLines, addr, TreatAsOnChipAccess{});
+        for (byte i = 4; i < 8; ++i) {
+            dataLines[i] = 0xFF;
         }
+        handleTransaction<inDebugMode, true>(addressLines, dataLines, addr, LoadFromIBUS{});
     }
     if constexpr (inDebugMode) {
         Serial.println(F("END TRANSACTION"));
@@ -331,15 +341,18 @@ void
 loop() {
     DataRegister8 addressLines = reinterpret_cast<DataRegister8>(0x2200);
     DataRegister8 dataLines = reinterpret_cast<DataRegister8>(0x2208);
+    SplitWord32 addr{0};
     if (isDebuggingSession()) {
         while (true) {
             waitForDataState();
-            handleTransaction<true>(addressLines, dataLines, SelectedLogic{});
+            addr.full = *reinterpret_cast<DataRegister32>(addressLines);
+            handleTransaction<true>(addressLines, dataLines, addr, SelectedLogic{});
         }
     } else {
         while (true) {
             waitForDataState();
-            handleTransaction<false>(addressLines, dataLines, SelectedLogic{});
+            addr.full = *reinterpret_cast<DataRegister32>(addressLines);
+            handleTransaction<false>(addressLines, dataLines, addr, SelectedLogic{});
         }
 
     }

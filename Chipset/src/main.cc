@@ -228,7 +228,8 @@ handleTransaction(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, Lo
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
     }
-    SplitWord32 addr{Platform::readAddress()};
+    uint32_t* theAddr= reinterpret_cast<uint32_t*>(lsb);
+    SplitWord32 addr{*theAddr};
     if (Platform::isWriteOperation()) {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
@@ -328,17 +329,19 @@ isDebuggingSession() noexcept {
 }
 void 
 loop() {
-    InterfaceDataRegister lsb = reinterpret_cast<uint8_t*>(0x2200);
+    InterfaceDataRegister addressLines = reinterpret_cast<uint8_t*>(0x2200);
     InterfaceDataRegister dataLines = reinterpret_cast<uint8_t*>(0x2208);
+    InterfaceDataRegister controlSignals = reinterpret_cast<uint8_t*>(0x2210);
+    InterfaceDataRegister bankRegister = reinterpret_cast<uint8_t*>(0x2218);
     if (isDebuggingSession()) {
         while (true) {
             waitForDataState();
-            handleTransaction<true>(lsb, dataLines, SelectedLogic{});
+            handleTransaction<true>(addressLines, dataLines, SelectedLogic{});
         }
     } else {
         while (true) {
             waitForDataState();
-            handleTransaction<false>(lsb, dataLines, SelectedLogic{});
+            handleTransaction<false>(addressLines, dataLines, SelectedLogic{});
         }
 
     }

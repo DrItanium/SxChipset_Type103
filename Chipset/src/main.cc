@@ -114,11 +114,12 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
             break;
     }
 }
-using InterfaceDataRegister = uint8_t*;
+using DataRegister8 = uint8_t*;
+using DataRegister32 = uint32_t*;
 template<bool inDebugMode, bool isReadOperation>
 inline
 void
-doCommunication(volatile SplitWord128& theView, InterfaceDataRegister lsb, InterfaceDataRegister dataLines) noexcept {
+doCommunication(volatile SplitWord128& theView, DataRegister8 lsb, DataRegister8 dataLines) noexcept {
     // We do direct byte writes on AVR to accelerate the operations
     // we pass the pointers in as well to also prevent constant recomputation
     // of the destination or source addresses in extended memory.
@@ -167,7 +168,7 @@ doCommunication(volatile SplitWord128& theView, InterfaceDataRegister lsb, Inter
 }
 template<bool inDebugMode, bool isReadOperation>
 void
-talkToi960(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, const SplitWord32& addr, TreatAsInstruction) noexcept {
+talkToi960(DataRegister8 lsb, DataRegister8 dataLines, const SplitWord32& addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
         Serial.println(F("INSTRUCTION REQUESTED!"));
     }
@@ -212,7 +213,7 @@ talkToi960(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, const Spl
 
 template<bool inDebugMode, bool isReadOperation, typename T>
 void
-talkToi960(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, const SplitWord32& addr, T) noexcept {
+talkToi960(DataRegister8 lsb, DataRegister8 dataLines, const SplitWord32& addr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
@@ -222,26 +223,26 @@ talkToi960(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, const Spl
 
 template<bool inDebugMode>
 void
-handleTransaction(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, LoadFromIBUS) noexcept {
+handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
     }
-    uint32_t* theAddr= reinterpret_cast<uint32_t*>(lsb);
-    SplitWord32 addr{*theAddr};
+    auto fullAddress = reinterpret_cast<DataRegister32>(addressLines);
+    SplitWord32 addr{*fullAddress};
     if (Platform::isWriteOperation()) {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, false>(lsb, dataLines, addr, TreatAsInstruction{});
+            talkToi960<inDebugMode, false>(addressLines, dataLines, addr, TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, false>(lsb, dataLines, addr, TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, false>(addressLines, dataLines, addr, TreatAsOnChipAccess{});
         }
     } else {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, true>(lsb, dataLines, addr, TreatAsInstruction{});
+            talkToi960<inDebugMode, true>(addressLines, dataLines, addr, TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, true>(lsb, dataLines, addr, TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, true>(addressLines, dataLines, addr, TreatAsOnChipAccess{});
         }
     }
     if constexpr (inDebugMode) {
@@ -328,10 +329,8 @@ isDebuggingSession() noexcept {
 }
 void 
 loop() {
-    InterfaceDataRegister addressLines = reinterpret_cast<uint8_t*>(0x2200);
-    InterfaceDataRegister dataLines = reinterpret_cast<uint8_t*>(0x2208);
-    InterfaceDataRegister controlSignals = reinterpret_cast<uint8_t*>(0x2210);
-    InterfaceDataRegister bankRegister = reinterpret_cast<uint8_t*>(0x2218);
+    DataRegister8 addressLines = reinterpret_cast<DataRegister8>(0x2200);
+    DataRegister8 dataLines = reinterpret_cast<DataRegister8>(0x2208);
     if (isDebuggingSession()) {
         while (true) {
             waitForDataState();

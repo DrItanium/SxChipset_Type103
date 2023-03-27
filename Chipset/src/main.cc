@@ -115,7 +115,6 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
     }
 }
 template<bool inDebugMode, bool isReadOperation>
-[[gnu::noinline]]
 inline
 void
 doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb, volatile uint8_t* dataLines) noexcept {

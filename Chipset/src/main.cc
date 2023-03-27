@@ -129,7 +129,7 @@ doCommunication(volatile SplitWord128& theView) noexcept {
     //uint8_t index = Platform::getAddressLSB();
     do {
         // figure out which word we are currently looking at
-        if constexpr (volatile auto& targetElement = theView[(Platform::getAddressLSB() >> 2) & 0b11]; isReadOperation) {
+        if constexpr (volatile auto& targetElement = theView[Platform::getAddressOffset() >> 2]; isReadOperation) {
             Platform::setDataLines(targetElement.full);
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {

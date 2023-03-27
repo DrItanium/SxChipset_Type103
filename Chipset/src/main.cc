@@ -116,7 +116,6 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 }
 using InterfaceDataRegister = uint8_t*;
 template<bool inDebugMode, bool isReadOperation>
-[[gnu::noinline]]
 inline
 void
 doCommunication(volatile SplitWord128& theView, InterfaceDataRegister lsb, InterfaceDataRegister dataLines) noexcept {

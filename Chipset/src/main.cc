@@ -114,8 +114,8 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
             break;
     }
 }
-using DataRegister8 = uint8_t*;
-using DataRegister32 = uint32_t*;
+using DataRegister8 = volatile uint8_t*;
+using DataRegister32 = volatile uint32_t*;
 template<bool inDebugMode, bool isReadOperation>
 [[gnu::noinline]]
 inline

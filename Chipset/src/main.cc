@@ -123,26 +123,26 @@ doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb, volatile 
     // of the destination or source addresses in extended memory.
     for(;;) {
         // figure out which word we are currently looking at
-        if constexpr (volatile uint8_t* targetElement = theView[(*lsb & 0b1111) >> 2].bytes; isReadOperation) {
-            dataLines[0] = targetElement[0];
-            dataLines[1] = targetElement[1];
-            dataLines[2] = targetElement[2];
-            dataLines[3] = targetElement[3];
+        if constexpr (volatile auto& targetElement = theView[(*lsb & 0b1111) >> 2]; isReadOperation) {
+            dataLines[0] = targetElement.bytes[0];
+            dataLines[1] = targetElement.bytes[1];
+            dataLines[2] = targetElement.bytes[2];
+            dataLines[3] = targetElement.bytes[3];
         } else {
             // you must check each enable bit to see if you have to write to that byte
             // or not. You cannot just do a 32-bit write in all cases, this can
             // cause memory corruption pretty badly. 
             if (digitalRead<Pin::BE0>() == LOW) {
-                targetElement[0] = dataLines[0];
+                targetElement.bytes[0] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
-                targetElement[1] = dataLines[1];
+                targetElement.bytes[1] = dataLines[1];
             }
             if (digitalRead<Pin::BE2>() == LOW) {
-                targetElement[2] = dataLines[2];
+                targetElement.bytes[2] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
-                targetElement[3] = dataLines[3];
+                targetElement.bytes[3] = dataLines[3];
             }
         }
         auto end = Platform::isBurstLast();

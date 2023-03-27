@@ -119,7 +119,7 @@ using DataRegister32 = uint32_t*;
 template<bool inDebugMode, bool isReadOperation>
 inline
 void
-doCommunication(volatile SplitWord128& theView, DataRegister8 lsb, DataRegister8 dataLines) noexcept {
+doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
     // We do direct byte writes on AVR to accelerate the operations
     // we pass the pointers in as well to also prevent constant recomputation
     // of the destination or source addresses in extended memory.
@@ -135,7 +135,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 lsb, DataRegister8
     // computing the current word. 
     for(;;) {
         // figure out which word we are currently looking at
-        if constexpr (volatile auto& targetElement = theView[(*lsb & 0b1111) >> 2]; isReadOperation) {
+        if constexpr (volatile auto& targetElement = theView[(*addressLines & 0b1111) >> 2]; isReadOperation) {
             auto* theBytes = targetElement.bytes;
             dataLines[0] = theBytes[0];
             dataLines[1] = theBytes[1];
@@ -168,7 +168,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 lsb, DataRegister8
 }
 template<bool inDebugMode, bool isReadOperation>
 void
-talkToi960(DataRegister8 lsb, DataRegister8 dataLines, const SplitWord32& addr, TreatAsInstruction) noexcept {
+talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32& addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
         Serial.println(F("INSTRUCTION REQUESTED!"));
     }
@@ -196,7 +196,7 @@ talkToi960(DataRegister8 lsb, DataRegister8 dataLines, const SplitWord32& addr, 
                 break;
         }
     }
-    doCommunication<inDebugMode, isReadOperation>(operation.args_, lsb, dataLines);
+    doCommunication<inDebugMode, isReadOperation>(operation.args_, addressLines, dataLines);
     if constexpr (!isReadOperation) {
         switch (operation.getGroup()) {
             case 0xF0:
@@ -213,11 +213,11 @@ talkToi960(DataRegister8 lsb, DataRegister8 dataLines, const SplitWord32& addr, 
 
 template<bool inDebugMode, bool isReadOperation, typename T>
 void
-talkToi960(DataRegister8 lsb, DataRegister8 dataLines, const SplitWord32& addr, T) noexcept {
+talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32& addr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
-    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), lsb, dataLines);
+    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), addressLines, dataLines);
 }
 
 

@@ -114,10 +114,11 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
             break;
     }
 }
+using InterfaceDataRegister = volatile uint8_t*;
 template<bool inDebugMode, bool isReadOperation>
 inline
 void
-doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb, volatile uint8_t* dataLines) noexcept {
+doCommunication(volatile SplitWord128& theView, InterfaceDataRegister lsb, InterfaceDataRegister dataLines) noexcept {
     // We do direct byte writes on AVR to accelerate the operations
     // we pass the pointers in as well to also prevent constant recomputation
     // of the destination or source addresses in extended memory.
@@ -166,7 +167,7 @@ doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb, volatile 
 }
 template<bool inDebugMode, bool isReadOperation>
 void
-talkToi960(volatile uint8_t* lsb, volatile uint8_t* dataLines, const SplitWord32& addr, TreatAsInstruction) noexcept {
+talkToi960(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, const SplitWord32& addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
         Serial.println(F("INSTRUCTION REQUESTED!"));
     }
@@ -211,7 +212,7 @@ talkToi960(volatile uint8_t* lsb, volatile uint8_t* dataLines, const SplitWord32
 
 template<bool inDebugMode, bool isReadOperation, typename T>
 void
-talkToi960(volatile uint8_t* lsb, volatile uint8_t* dataLines, const SplitWord32& addr, T) noexcept {
+talkToi960(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, const SplitWord32& addr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
@@ -221,7 +222,7 @@ talkToi960(volatile uint8_t* lsb, volatile uint8_t* dataLines, const SplitWord32
 
 template<bool inDebugMode>
 void
-handleTransaction(volatile uint8_t* lsb, volatile uint8_t* dataLines, LoadFromIBUS) noexcept {
+handleTransaction(InterfaceDataRegister lsb, InterfaceDataRegister dataLines, LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
@@ -326,8 +327,8 @@ isDebuggingSession() noexcept {
 }
 void 
 loop() {
-    volatile uint8_t* lsb = memoryPointer<uint8_t>(0x2200);
-    volatile uint8_t* dataLines = memoryPointer<uint8_t>(0x2208);
+    InterfaceDataRegister lsb = memoryPointer<uint8_t>(0x2200);
+    InterfaceDataRegister dataLines = memoryPointer<uint8_t>(0x2208);
     if (isDebuggingSession()) {
         while (true) {
             waitForDataState();

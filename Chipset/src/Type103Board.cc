@@ -230,11 +230,11 @@ Platform::setLowerDataBits(uint16_t value) noexcept {
 }
 void 
 Platform::setDataByte(uint8_t index, uint8_t value) noexcept {
-    getProcessorInterface().dataLines_.view8.data[index & 0b11] = value;
+    getProcessorInterface().dataLines_.view8.data[index] = value;
 }
 uint8_t 
 Platform::getDataByte(uint8_t index) noexcept {
-    return getProcessorInterface().dataLines_.view8.data[index & 0b11];
+    return getProcessorInterface().dataLines_.view8.data[index];
 }
 
 volatile SplitWord32& 

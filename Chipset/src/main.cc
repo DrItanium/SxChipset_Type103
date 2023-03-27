@@ -69,83 +69,6 @@ struct TreatAsInstruction final {
     using AccessMethod = AccessFromInstruction;
 };
 
-
-template<bool inDebugMode, bool isReadOperation, ByteEnableKind kind>
-struct RequestProcessor {
-private:
-    static constexpr uint8_t ByteEnableAsBits = static_cast<uint8_t>(kind);
-    static void updateIOExpander(volatile SplitWord32& ptr) noexcept {
-        if constexpr (isReadOperation) {
-            if constexpr (ByteEnableAsBits == 0) {
-                Platform::setDataLines(ptr.full);
-            } else if constexpr (ByteEnableAsBits == 0b0011) {
-                Platform::setUpperDataBits(ptr.halves[1]);
-            } else if constexpr (ByteEnableAsBits == 0b1100) {
-                Platform::setLowerDataBits(ptr.halves[0]);
-            } else {
-                if constexpr ((ByteEnableAsBits & 0b0001) == 0) {
-                    Platform::setDataByte(0, ptr.bytes[0]);
-                }
-                if constexpr ((ByteEnableAsBits & 0b0010) == 0) {
-                    Platform::setDataByte(1, ptr.bytes[1]);
-                }
-                if constexpr ((ByteEnableAsBits & 0b0100) == 0) {
-                    Platform::setDataByte(2, ptr.bytes[2]);
-                }
-                if constexpr ((ByteEnableAsBits & 0b1000) == 0) {
-                    Platform::setDataByte(3, ptr.bytes[3]);
-                }
-            }
-            if constexpr (inDebugMode) {
-                Serial.print(F("Read Operation: IOEXP is now 0x"));
-                auto theValue = getProcessorInterface().dataLines_.view32.data;
-                Serial.println(theValue, HEX);
-            }
-        } else {
-            if constexpr (ByteEnableAsBits == 0) {
-                ptr.full = Platform::getDataLines();
-            } else if constexpr (ByteEnableAsBits == 0b0011) {
-                ptr.halves[1] = Platform::getUpperDataBits();
-            } else if constexpr (ByteEnableAsBits == 0b1100) {
-                ptr.halves[0] = Platform::getLowerDataBits();
-            } else {
-                if constexpr ((ByteEnableAsBits & 0b0001) == 0) {
-                    ptr.bytes[0] = Platform::getDataByte(0);
-                }
-                if constexpr ((ByteEnableAsBits & 0b0010) == 0) {
-                    ptr.bytes[1] = Platform::getDataByte(1);
-                }
-                if constexpr ((ByteEnableAsBits & 0b0100) == 0) {
-                    ptr.bytes[2] = Platform::getDataByte(2);
-                }
-                if constexpr ((ByteEnableAsBits & 0b1000) == 0) {
-                    ptr.bytes[3] = Platform::getDataByte(3);
-                }
-            }
-            if constexpr (inDebugMode) {
-                Serial.print(F("Write Operation: IOEXP is now 0x"));
-                auto theValue = ptr.full;
-                Serial.println(theValue, HEX);
-            }
-        }
-    }
-public:
-    static void execute(volatile SplitWord32& ptr) noexcept {
-        // get the closest word from where we currently are
-        // stream the data out onto the bus
-        // at some point this code may go away and instead we only respond when
-        // being talked to.
-        //
-        updateIOExpander(ptr);
-    }
-};
-template<bool inDebugMode, bool isReadOperation>
-struct RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing> {
-    static void execute(volatile SplitWord32&) noexcept {
-
-    }
-};
-
 template<bool inDebugMode>
 inline
 void
@@ -191,6 +114,14 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
             break;
     }
 }
+template<Pin targetPin>
+inline
+void 
+doWriteUpdate(volatile uint8_t* destPtr, volatile uint8_t* srcPtr) noexcept {
+    if (digitalRead<targetPin>() == LOW) {
+        *destPtr = *srcPtr;
+    }
+}
 template<bool inDebugMode, bool isReadOperation>
 inline
 void
@@ -198,31 +129,20 @@ doCommunication(volatile SplitWord128& theView) noexcept {
     uint8_t index = Platform::getAddressLSB();
     do {
         // figure out which word we are currently looking at
-        volatile auto& targetElement = theView[(index >> 2)&0b11];
-        if constexpr (isReadOperation) {
-            RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: Full32> :: execute (targetElement);
+        if constexpr (volatile auto& targetElement = theView[(index >> 2) & 0b11]; isReadOperation) {
+            Platform::setDataLines(targetElement.full);
         } else {
-            switch (static_cast<ByteEnableKind>(Platform::getByteEnable())) {
-#define X(frag) case ByteEnableKind:: frag : RequestProcessor< inDebugMode, isReadOperation , ByteEnableKind:: frag > :: execute (targetElement); break
-                X(Full32);
-                X(Lower16);
-                X(Upper16);
-                X(Lowest8);
-                X(Lower8);
-                X(Higher8);
-                X(Highest8);
-                X(Mid16);
-                X(Lower24);
-                X(Upper24);
-                X(Highest8_Lower16 );
-                X(Highest8_Lower8 );
-                X(Highest8_Lowest8 );
-                X(Upper16_Lowest8 );
-                X(Higher8_Lowest8 );
-#undef X
-                default:
-                RequestProcessor<inDebugMode, isReadOperation, ByteEnableKind::Nothing>::execute(targetElement);
-                break;
+            if (digitalRead<Pin::BE0>() == LOW) {
+                targetElement.bytes[0] = Platform::getDataByte(0);
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                targetElement.bytes[1] = Platform::getDataByte(1);
+            }
+            if (digitalRead<Pin::BE2>() == LOW) {
+                targetElement.bytes[2] = Platform::getDataByte(2);
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                targetElement.bytes[3] = Platform::getDataByte(3);
             }
         }
         auto end = Platform::isBurstLast();

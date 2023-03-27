@@ -126,10 +126,10 @@ template<bool inDebugMode, bool isReadOperation>
 inline
 void
 doCommunication(volatile SplitWord128& theView) noexcept {
-    uint8_t index = Platform::getAddressLSB();
+    //uint8_t index = Platform::getAddressLSB();
     do {
         // figure out which word we are currently looking at
-        if constexpr (volatile auto& targetElement = theView[(index >> 2) & 0b11]; isReadOperation) {
+        if constexpr (volatile auto& targetElement = theView[(Platform::getAddressLSB() >> 2) & 0b11]; isReadOperation) {
             Platform::setDataLines(targetElement.full);
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {
@@ -150,7 +150,7 @@ doCommunication(volatile SplitWord128& theView) noexcept {
         if (end) {
             break;
         }
-        index = Platform::getAddressLSB();
+        //index = Platform::getAddressLSB();
     } while (true);
 }
 template<bool inDebugMode, bool isReadOperation>

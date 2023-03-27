@@ -115,10 +115,13 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
     }
 }
 template<bool inDebugMode, bool isReadOperation>
+[[gnu::noinline]]
 inline
 void
 doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb, volatile uint8_t* dataLines) noexcept {
-    /// @todo is there a way to only update the bytes that we need to update?
+    // We do direct byte writes on AVR to accelerate the operations
+    // we pass the pointers in as well to also prevent constant recomputation
+    // of the destination or source addresses in extended memory.
     for(;;) {
         // figure out which word we are currently looking at
         if constexpr (volatile uint8_t* targetElement = theView[(*lsb & 0b1111) >> 2].bytes; isReadOperation) {

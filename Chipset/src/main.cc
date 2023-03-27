@@ -121,6 +121,16 @@ doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb, volatile 
     // We do direct byte writes on AVR to accelerate the operations
     // we pass the pointers in as well to also prevent constant recomputation
     // of the destination or source addresses in extended memory.
+    // 
+    /// @todo eliminate the right shift by two using the byte offset instead of the view offset! Maintain word alignment
+    // A SplitWord128 is actually a 16-byte block, so we could just view it as
+    // that without any problems! What we would be doing is just masking out
+    // the lower two bits and just returning the pointer 
+    //
+    // At the pointer we are here, instructions have already been interpreted
+    // or have yet to be written to. This is a view change, nothing more. We
+    // just want to reduce the amount of extra work required on each iteration
+    // computing the current word. 
     for(;;) {
         // figure out which word we are currently looking at
         if constexpr (volatile auto& targetElement = theView[(*lsb & 0b1111) >> 2]; isReadOperation) {

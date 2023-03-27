@@ -114,8 +114,9 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
             break;
     }
 }
-using InterfaceDataRegister = volatile uint8_t*;
+using InterfaceDataRegister = uint8_t*;
 template<bool inDebugMode, bool isReadOperation>
+[[gnu::noinline]]
 inline
 void
 doCommunication(volatile SplitWord128& theView, InterfaceDataRegister lsb, InterfaceDataRegister dataLines) noexcept {
@@ -327,8 +328,8 @@ isDebuggingSession() noexcept {
 }
 void 
 loop() {
-    InterfaceDataRegister lsb = memoryPointer<uint8_t>(0x2200);
-    InterfaceDataRegister dataLines = memoryPointer<uint8_t>(0x2208);
+    InterfaceDataRegister lsb = reinterpret_cast<uint8_t*>(0x2200);
+    InterfaceDataRegister dataLines = reinterpret_cast<uint8_t*>(0x2208);
     if (isDebuggingSession()) {
         while (true) {
             waitForDataState();

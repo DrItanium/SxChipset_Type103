@@ -114,8 +114,8 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
             break;
     }
 }
-using DataRegister8 = uint8_t*;
-using DataRegister32 = uint32_t*;
+using DataRegister8 = volatile uint8_t*;
+using DataRegister32 = volatile uint32_t*;
 template<bool inDebugMode, bool isReadOperation>
 inline
 void
@@ -228,8 +228,7 @@ handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, LoadFromI
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
     }
-    auto fullAddress = reinterpret_cast<DataRegister32>(addressLines);
-    SplitWord32 addr{*fullAddress};
+    SplitWord32 addr{*reinterpret_cast<DataRegister32>(addressLines)};
     if (Platform::isWriteOperation()) {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {

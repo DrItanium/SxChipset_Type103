@@ -117,7 +117,6 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 using DataRegister8 = volatile uint8_t*;
 using DataRegister32 = volatile uint32_t*;
 template<bool inDebugMode, bool isReadOperation>
-[[gnu::noinline]]
 inline
 void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {

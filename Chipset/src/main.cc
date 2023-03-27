@@ -117,6 +117,7 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 using DataRegister8 = uint8_t*;
 using DataRegister32 = uint32_t*;
 template<bool inDebugMode, bool isReadOperation>
+[[gnu::noinline]]
 inline
 void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
@@ -137,6 +138,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
         // figure out which word we are currently looking at
         if constexpr (volatile auto& targetElement = theView[(*addressLines & 0b1111) >> 2]; isReadOperation) {
             auto* theBytes = targetElement.bytes;
+            //*reinterpret_cast<DataRegister32>(dataLines) = targetElement.full;
             dataLines[0] = theBytes[0];
             dataLines[1] = theBytes[1];
             dataLines[2] = theBytes[2];
@@ -168,7 +170,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
 }
 template<bool inDebugMode, bool isReadOperation>
 void
-talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32& addr, TreatAsInstruction) noexcept {
+talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
         Serial.println(F("INSTRUCTION REQUESTED!"));
     }
@@ -213,7 +215,7 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
 
 template<bool inDebugMode, bool isReadOperation, typename T>
 void
-talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32& addr, T) noexcept {
+talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, T) noexcept {
     if constexpr (inDebugMode) {
         Serial.println(F("Direct memory access begin!"));
     }
@@ -229,7 +231,14 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
 
 template<bool inDebugMode, bool isReadOperation>
 void
-handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32& addr, LoadFromIBUS) noexcept {
+handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
+        for (byte i = 4; i < 8; ++i) {
+            if constexpr (isReadOperation) {
+                dataLines[i] = 0xFF;
+            } else {
+                dataLines[i] = 0;
+            }
+        }
     if (addr.bytes[3] >= 0xF0) {
         talkToi960<inDebugMode, isReadOperation>(addressLines, dataLines, addr, TreatAsInstruction{});
     } else {
@@ -239,20 +248,14 @@ handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const Spl
 
 template<bool inDebugMode>
 void
-handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, SplitWord32& addr, LoadFromIBUS) noexcept {
+handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
     }
     if (Platform::isWriteOperation()) {
-        for (byte i = 4; i < 8; ++i) {
-            dataLines[i] = 0;
-        }
         handleTransaction<inDebugMode, false>(addressLines, dataLines, addr, LoadFromIBUS{});
     } else {
-        for (byte i = 4; i < 8; ++i) {
-            dataLines[i] = 0xFF;
-        }
         handleTransaction<inDebugMode, true>(addressLines, dataLines, addr, LoadFromIBUS{});
     }
     if constexpr (inDebugMode) {
@@ -339,20 +342,21 @@ isDebuggingSession() noexcept {
 }
 void 
 loop() {
-    DataRegister8 addressLines = reinterpret_cast<DataRegister8>(0x2200);
-    DataRegister8 dataLines = reinterpret_cast<DataRegister8>(0x2208);
-    SplitWord32 addr{0};
+    DataRegister8 AddressLinesPtr = reinterpret_cast<DataRegister8>(0x2200);
+    DataRegister8 DataLinesPtr = reinterpret_cast<DataRegister8>(0x2208);
+    DataRegister32 AddressLines32Ptr = reinterpret_cast<DataRegister32>(0x2200);
+    //SplitWord32 AddressStorage{0};
     if (isDebuggingSession()) {
         while (true) {
             waitForDataState();
-            addr.full = *reinterpret_cast<DataRegister32>(addressLines);
-            handleTransaction<true>(addressLines, dataLines, addr, SelectedLogic{});
+            //AddressStorage.full = *AddressLines32Ptr;
+            handleTransaction<true>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
         }
     } else {
         while (true) {
             waitForDataState();
-            addr.full = *reinterpret_cast<DataRegister32>(addressLines);
-            handleTransaction<false>(addressLines, dataLines, addr, SelectedLogic{});
+            //AddressStorage.full = *AddressLines32Ptr;
+            handleTransaction<false>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
         }
 
     }

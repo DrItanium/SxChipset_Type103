@@ -117,28 +117,30 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 template<bool inDebugMode, bool isReadOperation>
 inline
 void
-doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb) noexcept {
+doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb, volatile uint8_t* dataLines) noexcept {
     /// @todo is there a way to only update the bytes that we need to update?
     for(;;) {
         // figure out which word we are currently looking at
-        if constexpr (volatile auto& targetElement = theView[(*lsb & 0b1111) >> 2]; isReadOperation) {
-            Platform::setDataLines(targetElement.full);
+        if constexpr (volatile uint8_t* targetElement = theView[(*lsb & 0b1111) >> 2].bytes; isReadOperation) {
+            dataLines[0] = targetElement[0];
+            dataLines[1] = targetElement[1];
+            dataLines[2] = targetElement[2];
+            dataLines[3] = targetElement[3];
         } else {
-            auto* theBytes = targetElement.bytes;
             // you must check each enable bit to see if you have to write to that byte
             // or not. You cannot just do a 32-bit write in all cases, this can
             // cause memory corruption pretty badly. 
             if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = Platform::getDataByte(0);
+                targetElement[0] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = Platform::getDataByte(1);
+                targetElement[1] = dataLines[1];
             }
             if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[2] = Platform::getDataByte(2);
+                targetElement[2] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[3] = Platform::getDataByte(3);
+                targetElement[3] = dataLines[3];
             }
         }
         auto end = Platform::isBurstLast();
@@ -150,7 +152,7 @@ doCommunication(volatile SplitWord128& theView, volatile uint8_t* lsb) noexcept 
 }
 template<bool inDebugMode, bool isReadOperation>
 void
-talkToi960(volatile uint8_t* lsb, SplitWord32& addr, TreatAsInstruction) noexcept {
+talkToi960(volatile uint8_t* lsb, volatile uint8_t* dataLines, const SplitWord32& addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
         Serial.println(F("INSTRUCTION REQUESTED!"));
     }
@@ -178,7 +180,7 @@ talkToi960(volatile uint8_t* lsb, SplitWord32& addr, TreatAsInstruction) noexcep
                 break;
         }
     }
-    doCommunication<inDebugMode, isReadOperation>(operation.args_, lsb);
+    doCommunication<inDebugMode, isReadOperation>(operation.args_, lsb, dataLines);
     if constexpr (!isReadOperation) {
         switch (operation.getGroup()) {
             case 0xF0:
@@ -195,17 +197,17 @@ talkToi960(volatile uint8_t* lsb, SplitWord32& addr, TreatAsInstruction) noexcep
 
 template<bool inDebugMode, bool isReadOperation, typename T>
 void
-talkToi960(volatile uint8_t* lsb, SplitWord32& addr, T) noexcept {
+talkToi960(volatile uint8_t* lsb, volatile uint8_t* dataLines, const SplitWord32& addr, T) noexcept {
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
-    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), lsb);
+    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), lsb, dataLines);
 }
 
 
 template<bool inDebugMode>
 void
-handleTransaction(volatile uint8_t* lsb, LoadFromIBUS) noexcept {
+handleTransaction(volatile uint8_t* lsb, volatile uint8_t* dataLines, LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
     if constexpr (inDebugMode) {
         Serial.println(F("NEW TRANSACTION"));
@@ -214,16 +216,16 @@ handleTransaction(volatile uint8_t* lsb, LoadFromIBUS) noexcept {
     if (Platform::isWriteOperation()) {
         Platform::configureDataLinesForWrite();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, false>(lsb, addr, TreatAsInstruction{});
+            talkToi960<inDebugMode, false>(lsb, dataLines, addr, TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, false>(lsb, addr, TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, false>(lsb, dataLines, addr, TreatAsOnChipAccess{});
         }
     } else {
         Platform::configureDataLinesForRead();
         if (Platform::isIOOperation()) {
-            talkToi960<inDebugMode, true>(lsb, addr, TreatAsInstruction{});
+            talkToi960<inDebugMode, true>(lsb, dataLines, addr, TreatAsInstruction{});
         } else {
-            talkToi960<inDebugMode, true>(lsb, addr, TreatAsOnChipAccess{});
+            talkToi960<inDebugMode, true>(lsb, dataLines, addr, TreatAsOnChipAccess{});
         }
     }
     if constexpr (inDebugMode) {
@@ -311,15 +313,16 @@ isDebuggingSession() noexcept {
 void 
 loop() {
     volatile uint8_t* lsb = memoryPointer<uint8_t>(0x2200);
+    volatile uint8_t* dataLines = memoryPointer<uint8_t>(0x2208);
     if (isDebuggingSession()) {
         while (true) {
             waitForDataState();
-            handleTransaction<true>(lsb, SelectedLogic{});
+            handleTransaction<true>(lsb, dataLines, SelectedLogic{});
         }
     } else {
         while (true) {
             waitForDataState();
-            handleTransaction<false>(lsb, SelectedLogic{});
+            handleTransaction<false>(lsb, dataLines, SelectedLogic{});
         }
 
     }

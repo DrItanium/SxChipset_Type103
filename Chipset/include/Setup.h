@@ -76,6 +76,7 @@ enum class CPUKind : uint8_t  {
     Reserved0 = 0b101,
     Reserved1 = 0b110,
     Reserved2 = 0b111,
+    Generic,
 };
 
 enum class NativeBusWidth : uint8_t {

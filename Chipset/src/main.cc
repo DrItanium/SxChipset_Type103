@@ -24,6 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
 #include <SPI.h>
+#include <SD.h>
 #include "Types.h"
 #include "Pinout.h"
 #include "Peripheral.h"
@@ -31,7 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SerialDevice.h"
 #include "InfoDevice.h"
 #include "TimerDevice.h"
-#include <SD.h>
 
 SerialDevice theSerial;
 InfoDevice infoDevice;

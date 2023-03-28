@@ -116,7 +116,7 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 }
 using DataRegister8 = volatile uint8_t*;
 using DataRegister32 = volatile uint32_t*;
-template<bool inDebugMode, bool isReadOperation>
+template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 inline
 void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
@@ -167,7 +167,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
         }
     } 
 }
-template<bool inDebugMode, bool isReadOperation>
+template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void
 talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
@@ -197,7 +197,7 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
                 break;
         }
     }
-    doCommunication<inDebugMode, isReadOperation>(operation.args_, addressLines, dataLines);
+    doCommunication<inDebugMode, isReadOperation, width>(operation.args_, addressLines, dataLines);
     if constexpr (!isReadOperation) {
         switch (operation.getGroup()) {
             case 0xF0:
@@ -212,7 +212,7 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
 }
 
 
-template<bool inDebugMode, bool isReadOperation, typename T>
+template<bool inDebugMode, bool isReadOperation, NativeBusWidth width, typename T>
 void
 talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, T) noexcept {
     if constexpr (inDebugMode) {
@@ -221,14 +221,14 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
-    doCommunication<inDebugMode, isReadOperation>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), 
+    doCommunication<inDebugMode, isReadOperation, width>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), 
             addressLines, dataLines);
     if constexpr (inDebugMode) {
         Serial.println(F("Direct memory access end!"));
     }
 }
 
-template<bool inDebugMode, bool isReadOperation>
+template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void
 handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
         for (byte i = 4; i < 8; ++i) {
@@ -239,13 +239,13 @@ handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const Spl
             }
         }
     if (addr.bytes[3] >= 0xF0) {
-        talkToi960<inDebugMode, isReadOperation>(addressLines, dataLines, addr, TreatAsInstruction{});
+        talkToi960<inDebugMode, isReadOperation, width>(addressLines, dataLines, addr, TreatAsInstruction{});
     } else {
-        talkToi960<inDebugMode, isReadOperation>(addressLines, dataLines, addr, TreatAsOnChipAccess{});
+        talkToi960<inDebugMode, isReadOperation, width>(addressLines, dataLines, addr, TreatAsOnChipAccess{});
     }
 }
 
-template<bool inDebugMode>
+template<bool inDebugMode, NativeBusWidth width>
 void
 handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
@@ -253,9 +253,9 @@ handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const Spl
         Serial.println(F("NEW TRANSACTION"));
     }
     if (Platform::isWriteOperation()) {
-        handleTransaction<inDebugMode, false>(addressLines, dataLines, addr, LoadFromIBUS{});
+        handleTransaction<inDebugMode, false, width>(addressLines, dataLines, addr, LoadFromIBUS{});
     } else {
-        handleTransaction<inDebugMode, true>(addressLines, dataLines, addr, LoadFromIBUS{});
+        handleTransaction<inDebugMode, true, width>(addressLines, dataLines, addr, LoadFromIBUS{});
     }
     if constexpr (inDebugMode) {
         Serial.println(F("END TRANSACTION"));
@@ -338,7 +338,7 @@ bool
 isDebuggingSession() noexcept {
     return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;
 }
-template<bool dataModeActive> 
+template<bool inDebugMode, NativeBusWidth width> 
 [[noreturn]] void executionBody() noexcept {
     DataRegister8 AddressLinesPtr = reinterpret_cast<DataRegister8>(0x2200);
     DataRegister8 DataLinesPtr = reinterpret_cast<DataRegister8>(0x2208);
@@ -346,16 +346,31 @@ template<bool dataModeActive>
     while (true) {
         waitForDataState();
         //AddressStorage.full = *AddressLines32Ptr;
-        handleTransaction<true>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
+        handleTransaction<inDebugMode, width>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
+    }
+}
+template<NativeBusWidth width>
+[[noreturn]]
+void
+discoveryDebugKindAndDispatch() {
+    if (isDebuggingSession()) {
+        executionBody<true, width>();
+    } else {
+        executionBody<false, width>();
     }
 }
 void 
 loop() {
-    //SplitWord32 AddressStorage{0};
-    if (isDebuggingSession()) {
-        executionBody<true>();
-    } else {
-        executionBody<false>();
+    switch (getBusWidth(Platform::getInstalledCPUKind())) {
+        case NativeBusWidth::Sixteen:
+            discoveryDebugKindAndDispatch<NativeBusWidth::Sixteen>();
+            break;
+        case NativeBusWidth::ThirtyTwo:
+            discoveryDebugKindAndDispatch<NativeBusWidth::ThirtyTwo>();
+            break;
+        default:
+            discoveryDebugKindAndDispatch<NativeBusWidth::Unknown>();
+            break;
     }
 }
 

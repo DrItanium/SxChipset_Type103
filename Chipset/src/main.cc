@@ -117,8 +117,8 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 using DataRegister8 = volatile uint8_t*;
 using DataRegister32 = volatile uint32_t*;
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
-inline
-void
+struct CommunicationKernel {
+static void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
     // We do direct byte writes on AVR to accelerate the operations
     // we pass the pointers in as well to also prevent constant recomputation
@@ -200,6 +200,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
         }
     } 
 }
+};
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void
 talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, TreatAsInstruction) noexcept {
@@ -230,7 +231,7 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
                 break;
         }
     }
-    doCommunication<inDebugMode, isReadOperation, width>(operation.args_, addressLines, dataLines);
+    CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation.args_, addressLines, dataLines);
     if constexpr (!isReadOperation) {
         switch (operation.getGroup()) {
             case 0xF0:
@@ -254,7 +255,7 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
     // only need to set this once, it is literally impossible for this to span
     // banks
     Platform::setBank(addr, typename T::AccessMethod{});
-    doCommunication<inDebugMode, isReadOperation, width>(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), 
+    CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), 
             addressLines, dataLines);
     if constexpr (inDebugMode) {
         Serial.println(F("Direct memory access end!"));

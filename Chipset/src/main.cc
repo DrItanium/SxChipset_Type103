@@ -142,62 +142,29 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
     // computing the current word. 
     for(;;) {
         // figure out which word we are currently looking at
-        auto lowest = *addressLines & 0b1111;
-        if constexpr (volatile auto& targetElement = theView[(lowest) >> 2]; isReadOperation) {
+        if constexpr (volatile auto& targetElement = theView[(*addressLines & 0b1111) >> 2]; isReadOperation) {
             auto* theBytes = targetElement.bytes;
-            if constexpr (width == NativeBusWidth::Sixteen) {
-                if ((lowest & 0b0010)) {
-                    // upper half
-                    dataLines[2] = theBytes[2];
-                    dataLines[3] = theBytes[3];
-                } else {
-                    // lower half
-                    dataLines[0] = theBytes[0];
-                    dataLines[1] = theBytes[1];
-                }
-            } else {
-                // in all other cases do the whole thing
-                dataLines[0] = theBytes[0];
-                dataLines[1] = theBytes[1];
-                dataLines[2] = theBytes[2];
-                dataLines[3] = theBytes[3];
-            }
+            // in all other cases do the whole thing
+            dataLines[0] = theBytes[0];
+            dataLines[1] = theBytes[1];
+            dataLines[2] = theBytes[2];
+            dataLines[3] = theBytes[3];
         } else {
             auto* theBytes = targetElement.bytes;
-            if constexpr (width == NativeBusWidth::Sixteen) {
-                if ((lowest & 0b0010)) {
-                    // upper half
-                    if (digitalRead<Pin::BE2>() == LOW) {
-                        theBytes[2] = dataLines[2];
-                    }
-                    if (digitalRead<Pin::BE3>() == LOW) {
-                        theBytes[3] = dataLines[3];
-                    }
-                } else {
-                    // lower half
-                    if (digitalRead<Pin::BE0>() == LOW) {
-                        theBytes[0] = dataLines[0];
-                    }
-                    if (digitalRead<Pin::BE1>() == LOW) {
-                        theBytes[1] = dataLines[1];
-                    }
-                }
-            } else {
-                // you must check each enable bit to see if you have to write to that byte
-                // or not. You cannot just do a 32-bit write in all cases, this can
-                // cause memory corruption pretty badly. 
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[0] = dataLines[0];
-                }
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    theBytes[1] = dataLines[1];
-                }
-                if (digitalRead<Pin::BE2>() == LOW) {
-                    theBytes[2] = dataLines[2];
-                }
-                if (digitalRead<Pin::BE3>() == LOW) {
-                    theBytes[3] = dataLines[3];
-                }
+            // you must check each enable bit to see if you have to write to that byte
+            // or not. You cannot just do a 32-bit write in all cases, this can
+            // cause memory corruption pretty badly. 
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[0] = dataLines[0];
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[1] = dataLines[1];
+            }
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[2] = dataLines[2];
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[3] = dataLines[3];
             }
         }
         auto end = Platform::isBurstLast();
@@ -209,48 +176,70 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
 }
 };
 
-template<bool inDebugMode>
-struct CommunicationKernel<inDebugMode, true, NativeBusWidth::Sixteen> {
-    using Self = CommunicationKernel<inDebugMode, true, NativeBusWidth::Sixteen>;
+template<bool inDebugMode, bool isReadOperation>
+struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen> {
+    using Self = CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen>;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
     CommunicationKernel(const Self&) = delete;
     CommunicationKernel(Self&&) = delete;
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
-static void
-doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-    /// @todo check the start position as that will describe the cycle shape
-    if ((*addressLines & 0b0010) == 0) {
-        // since we started at the lower half of a 32-bit word we can just
-        // assign the 32-bit word and pulse twice
-        for(;;) {
-            // figure out which word we are currently looking at
-            auto lowest = *addressLines & 0b1111;
-            volatile auto& targetElement = theView[(lowest) >> 2];
-            auto* theBytes = targetElement.bytes;
-            dataLines[0] = theBytes[0];
-            dataLines[1] = theBytes[1];
-            dataLines[2] = theBytes[2];
-            dataLines[3] = theBytes[3];
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                break;
-            }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            singleCycleDelay();
-            singleCycleDelay();
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                break;
-            }
-        } 
-    } else {
-        // if it starts on an odd cycle then we need to just work like normal
-        // for now, perhaps align and then send off after that.
+private:
+    static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
+        if ((*addressLines & 0b0010) == 0) {
+            // since we started at the lower half of a 32-bit word we can just
+            // assign the 32-bit word and pulse twice
+            for(;;) {
+                // figure out which word we are currently looking at
+                auto lowest = *addressLines & 0b1111;
+                volatile auto& targetElement = theView[(lowest) >> 2];
+                auto* theBytes = targetElement.bytes;
+                dataLines[0] = theBytes[0];
+                dataLines[1] = theBytes[1];
+                dataLines[2] = theBytes[2];
+                dataLines[3] = theBytes[3];
+                auto end = Platform::isBurstLast();
+                signalReady();
+                if (end) {
+                    break;
+                }
+                // put in some amount of wait states before just signalling again
+                // since we started on the lower half of a 32-bit word
+                singleCycleDelay();
+                singleCycleDelay();
+                end = Platform::isBurstLast();
+                signalReady();
+                if (end) {
+                    break;
+                }
+            } 
+        } else {
+            // if it starts on an odd cycle then we need to just work like normal
+            // for now, perhaps align and then send off after that.
+            for(;;) {
+                // figure out which word we are currently looking at
+                auto lowest = *addressLines & 0b1111;
+                volatile auto& targetElement = theView[(lowest) >> 2];
+                auto* theBytes = targetElement.bytes;
+                if ((lowest & 0b0010)) {
+                    // upper half
+                    dataLines[2] = theBytes[2];
+                    dataLines[3] = theBytes[3];
+                } else {
+                    // lower half
+                    dataLines[0] = theBytes[0];
+                    dataLines[1] = theBytes[1];
+                }
+                auto end = Platform::isBurstLast();
+                signalReady();
+                if (end) {
+                    break;
+                }
+            } 
+        }
+    }
+    static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         for(;;) {
             // figure out which word we are currently looking at
             auto lowest = *addressLines & 0b1111;
@@ -258,21 +247,40 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             auto* theBytes = targetElement.bytes;
             if ((lowest & 0b0010)) {
                 // upper half
-                dataLines[2] = theBytes[2];
-                dataLines[3] = theBytes[3];
+                if (digitalRead<Pin::BE2>() == LOW) {
+                    theBytes[2] = dataLines[2];
+                }
+                if (digitalRead<Pin::BE3>() == LOW) {
+                    theBytes[3] = dataLines[3];
+                }
             } else {
                 // lower half
-                dataLines[0] = theBytes[0];
-                dataLines[1] = theBytes[1];
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[0] = dataLines[0];
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[1] = dataLines[1];
+                }
             }
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
                 break;
             }
-        } 
+        }
     }
-}
+
+public:
+    static void
+    doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
+        /// @todo check the start position as that will describe the cycle shape
+        if constexpr (isReadOperation) {
+            doReadOperation(theView, addressLines, dataLines);
+        } else {
+            doWriteOperation(theView, addressLines, dataLines);
+
+        }
+    }
 };
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void

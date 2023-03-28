@@ -157,20 +157,40 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             }
         } else {
             auto* theBytes = targetElement.bytes;
-            // you must check each enable bit to see if you have to write to that byte
-            // or not. You cannot just do a 32-bit write in all cases, this can
-            // cause memory corruption pretty badly. 
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = dataLines[1];
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[2] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[3] = dataLines[3];
+            if constexpr (width == NativeBusWidth::Sixteen) {
+                if ((lowest & 0b0010)) {
+                    // upper half
+                    if (digitalRead<Pin::BE2>() == LOW) {
+                        theBytes[2] = dataLines[2];
+                    }
+                    if (digitalRead<Pin::BE3>() == LOW) {
+                        theBytes[3] = dataLines[3];
+                    }
+                } else {
+                    // lower half
+                    if (digitalRead<Pin::BE0>() == LOW) {
+                        theBytes[0] = dataLines[0];
+                    }
+                    if (digitalRead<Pin::BE1>() == LOW) {
+                        theBytes[1] = dataLines[1];
+                    }
+                }
+            } else {
+                // you must check each enable bit to see if you have to write to that byte
+                // or not. You cannot just do a 32-bit write in all cases, this can
+                // cause memory corruption pretty badly. 
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[0] = dataLines[0];
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[1] = dataLines[1];
+                }
+                if (digitalRead<Pin::BE2>() == LOW) {
+                    theBytes[2] = dataLines[2];
+                }
+                if (digitalRead<Pin::BE3>() == LOW) {
+                    theBytes[3] = dataLines[3];
+                }
             }
         }
         auto end = Platform::isBurstLast();

@@ -329,6 +329,26 @@ setup() {
     // setup the IO Expanders
     Platform::begin();
     delay(1000);
+    switch (Platform::getInstalledCPUKind()) {
+        case CPUKind::Sx:
+            Serial.println(F("i960Sx CPU detected!"));
+            break;
+        case CPUKind::Kx:
+            Serial.println(F("i960Kx CPU detected!"));
+            break;
+        case CPUKind::Jx:
+            Serial.println(F("i960Jx CPU detected!"));
+            break;
+        case CPUKind::Hx:
+            Serial.println(F("i960Hx CPU detected!"));
+            break;
+        case CPUKind::Cx:
+            Serial.println(F("i960Cx CPU detected!"));
+            break;
+        default:
+            Serial.println(F("Unknown i960 cpu detected!"));
+            break;
+    }
     // find firmware.bin and install it into the 512k block of memory
     installMemoryImage();
     pullCPUOutOfReset();
@@ -359,16 +379,20 @@ discoveryDebugKindAndDispatch() {
         executionBody<false, width>();
     }
 }
+[[noreturn]]
 void 
 loop() {
     switch (getBusWidth(Platform::getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
+            Serial.println(F("16-bit bus width detected"));
             discoveryDebugKindAndDispatch<NativeBusWidth::Sixteen>();
             break;
         case NativeBusWidth::ThirtyTwo:
+            Serial.println(F("32-bit bus width detected"));
             discoveryDebugKindAndDispatch<NativeBusWidth::ThirtyTwo>();
             break;
         default:
+            Serial.println(F("Undefined bus width detected (fallback to 32-bit)"));
             discoveryDebugKindAndDispatch<NativeBusWidth::Unknown>();
             break;
     }

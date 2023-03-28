@@ -239,29 +239,53 @@ private:
         }
     }
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-        for(;;) {
-            // figure out which word we are currently looking at
-            auto lowest = *addressLines & 0b1111;
-            volatile auto& targetElement = theView[(lowest) >> 2];
+        /// @todo handle supporting on upper 16-bits specially to align to lower 16-bits start
+        // What I mean is:
+        // Handle the starting upper 16-bit value specially
+        // then we are aligned to 32-bit boundaries so then start looping if it
+        // makes sense
+        if ((*addressLines & 0b0010) != 0) {
+            volatile auto& targetElement = theView[(*addressLines & 0b1100) >> 2];
             auto* theBytes = targetElement.bytes;
-            if ((lowest & 0b0010)) {
-                // upper half
-                if (digitalRead<Pin::BE2>() == LOW) {
-                    theBytes[2] = dataLines[2];
-                }
-                if (digitalRead<Pin::BE3>() == LOW) {
-                    theBytes[3] = dataLines[3];
-                }
-            } else {
-                // lower half
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[0] = dataLines[0];
-                }
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    theBytes[1] = dataLines[1];
-                }
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[2] = dataLines[2];
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[3] = dataLines[3];
             }
             auto end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
+        }
+        // now we are aligned so start execution as needed
+        for(uint8_t idx = (*addressLines & 0b1100) >> 2;;++idx) {
+            // figure out which word we are currently looking at
+            volatile auto& targetElement = theView[idx];
+            auto* theBytes = targetElement.bytes;
+            // lower half
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[0] = dataLines[0];
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[1] = dataLines[1];
+            }
+            auto end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
+            // upper half
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[2] = dataLines[2];
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[3] = dataLines[3];
+            }
+            end = Platform::isBurstLast();
             signalReady();
             if (end) {
                 break;

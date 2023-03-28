@@ -338,25 +338,24 @@ bool
 isDebuggingSession() noexcept {
     return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;
 }
-void 
-loop() {
+template<bool dataModeActive> 
+[[noreturn]] void executionBody() noexcept {
     DataRegister8 AddressLinesPtr = reinterpret_cast<DataRegister8>(0x2200);
     DataRegister8 DataLinesPtr = reinterpret_cast<DataRegister8>(0x2208);
     DataRegister32 AddressLines32Ptr = reinterpret_cast<DataRegister32>(0x2200);
+    while (true) {
+        waitForDataState();
+        //AddressStorage.full = *AddressLines32Ptr;
+        handleTransaction<true>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
+    }
+}
+void 
+loop() {
     //SplitWord32 AddressStorage{0};
     if (isDebuggingSession()) {
-        while (true) {
-            waitForDataState();
-            //AddressStorage.full = *AddressLines32Ptr;
-            handleTransaction<true>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
-        }
+        executionBody<true>();
     } else {
-        while (true) {
-            waitForDataState();
-            //AddressStorage.full = *AddressLines32Ptr;
-            handleTransaction<false>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
-        }
-
+        executionBody<false>();
     }
 }
 

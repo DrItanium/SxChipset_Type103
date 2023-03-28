@@ -190,10 +190,9 @@ private:
         if ((*addressLines & 0b0010) == 0) {
             // since we started at the lower half of a 32-bit word we can just
             // assign the 32-bit word and pulse twice
-            for(;;) {
+            for(uint8_t idx = ((*addressLines & 0b1100) >> 2);;++idx) {
                 // figure out which word we are currently looking at
-                auto lowest = *addressLines & 0b1111;
-                volatile auto& targetElement = theView[(lowest) >> 2];
+                volatile auto& targetElement = theView[idx];
                 auto* theBytes = targetElement.bytes;
                 dataLines[0] = theBytes[0];
                 dataLines[1] = theBytes[1];

@@ -359,7 +359,9 @@ isDebuggingSession() noexcept {
     return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;
 }
 template<bool inDebugMode, NativeBusWidth width> 
-[[noreturn]] void executionBody() noexcept {
+[[noreturn]] 
+void 
+executionBody() noexcept {
     DataRegister8 AddressLinesPtr = reinterpret_cast<DataRegister8>(0x2200);
     DataRegister8 DataLinesPtr = reinterpret_cast<DataRegister8>(0x2208);
     DataRegister32 AddressLines32Ptr = reinterpret_cast<DataRegister32>(0x2200);
@@ -370,16 +372,17 @@ template<bool inDebugMode, NativeBusWidth width>
     }
 }
 template<NativeBusWidth width>
-[[noreturn]]
 void
 discoveryDebugKindAndDispatch() {
+    Serial.print(F("Chipset Debugging: "));
     if (isDebuggingSession()) {
+        Serial.println(F("ENABLED"));
         executionBody<true, width>();
     } else {
+        Serial.println(F("DISABLED"));
         executionBody<false, width>();
     }
 }
-[[noreturn]]
 void 
 loop() {
     switch (getBusWidth(Platform::getInstalledCPUKind())) {

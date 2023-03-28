@@ -294,7 +294,6 @@ handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const Spl
         Serial.println(F("END TRANSACTION"));
     }
     // need this delay to synchronize everything :)
-    singleCycleDelay();
 }
 
 template<bool inDebugMode = true, uint32_t maxFileSize = 2048ul * 1024ul, auto BufferSize = 16384>

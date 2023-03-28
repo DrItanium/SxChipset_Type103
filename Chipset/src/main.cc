@@ -264,10 +264,10 @@ handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const Spl
     singleCycleDelay();
 }
 
-template<bool inDebugMode = true>
+template<bool inDebugMode = true, uint32_t maxFileSize = 2048ul * 1024ul, auto BufferSize = 16384>
 void
 installMemoryImage() noexcept {
-    static constexpr uint32_t MaximumFileSize = 512ul * 1024ul;
+    static constexpr uint32_t MaximumFileSize = maxFileSize;
     while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD!"));
         delay(1000);
@@ -285,7 +285,6 @@ installMemoryImage() noexcept {
             delay(1000);
         }
     } else {
-        constexpr auto BufferSize = 8192;
         auto previousBank = Platform::getBank(AccessFromIBUS{});
         Serial.println(F("TRANSFERRING!!"));
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {

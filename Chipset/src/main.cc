@@ -244,8 +244,10 @@ private:
         // Handle the starting upper 16-bit value specially
         // then we are aligned to 32-bit boundaries so then start looping if it
         // makes sense
-        if ((*addressLines & 0b0010) != 0) {
-            volatile auto& targetElement = theView[(*addressLines & 0b1100) >> 2];
+        uint8_t lowest = *addressLines & 0b1111;
+        uint8_t loc = (lowest & 0b1100) >> 2;
+        if (lowest != 0) {
+            volatile auto& targetElement = theView[loc];
             auto* theBytes = targetElement.bytes;
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[2] = dataLines[2];
@@ -258,9 +260,10 @@ private:
             if (end) {
                 return;
             }
+            ++loc;
         }
         // now we are aligned so start execution as needed
-        for(uint8_t idx = (*addressLines & 0b1100) >> 2;;++idx) {
+        for(uint8_t idx = loc;;++idx) {
             // figure out which word we are currently looking at
             volatile auto& targetElement = theView[idx];
             auto* theBytes = targetElement.bytes;

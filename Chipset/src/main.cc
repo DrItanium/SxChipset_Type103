@@ -118,6 +118,13 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister32 = volatile uint32_t*;
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
+    using Self = CommunicationKernel<inDebugMode, isReadOperation, width>;
+    CommunicationKernel() = delete;
+    ~CommunicationKernel() = delete;
+    CommunicationKernel(const Self&) = delete;
+    CommunicationKernel(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
 static void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
     // We do direct byte writes on AVR to accelerate the operations

@@ -400,8 +400,8 @@ executionBody() noexcept {
     DataRegister32 AddressLines32Ptr = reinterpret_cast<DataRegister32>(0x2200);
     while (true) {
         waitForDataState();
-        //AddressStorage.full = *AddressLines32Ptr;
         handleTransaction<inDebugMode, width>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
+        singleCycleDelay();
     }
 }
 template<NativeBusWidth width>

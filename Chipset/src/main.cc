@@ -135,13 +135,26 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
     // computing the current word. 
     for(;;) {
         // figure out which word we are currently looking at
-        if constexpr (volatile auto& targetElement = theView[(*addressLines & 0b1111) >> 2]; isReadOperation) {
+        auto lowest = *addressLines & 0b1111;
+        if constexpr (volatile auto& targetElement = theView[(lowest) >> 2]; isReadOperation) {
             auto* theBytes = targetElement.bytes;
-            //*reinterpret_cast<DataRegister32>(dataLines) = targetElement.full;
-            dataLines[0] = theBytes[0];
-            dataLines[1] = theBytes[1];
-            dataLines[2] = theBytes[2];
-            dataLines[3] = theBytes[3];
+            if constexpr (width == NativeBusWidth::Sixteen) {
+                if ((lowest & 0b0010)) {
+                    // upper half
+                    dataLines[2] = theBytes[2];
+                    dataLines[3] = theBytes[3];
+                } else {
+                    // lower half
+                    dataLines[0] = theBytes[0];
+                    dataLines[1] = theBytes[1];
+                }
+            } else {
+                // in all other cases do the whole thing
+                dataLines[0] = theBytes[0];
+                dataLines[1] = theBytes[1];
+                dataLines[2] = theBytes[2];
+                dataLines[3] = theBytes[3];
+            }
         } else {
             auto* theBytes = targetElement.bytes;
             // you must check each enable bit to see if you have to write to that byte

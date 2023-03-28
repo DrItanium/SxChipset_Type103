@@ -208,6 +208,41 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
     } 
 }
 };
+
+template<bool inDebugMode>
+struct CommunicationKernel<inDebugMode, true, NativeBusWidth::Sixteen> {
+    using Self = CommunicationKernel<inDebugMode, true, NativeBusWidth::Sixteen>;
+    CommunicationKernel() = delete;
+    ~CommunicationKernel() = delete;
+    CommunicationKernel(const Self&) = delete;
+    CommunicationKernel(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+static void
+doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
+    /// @todo check the start position as that will describe the cycle shape
+    for(;;) {
+        // figure out which word we are currently looking at
+        auto lowest = *addressLines & 0b1111;
+        volatile auto& targetElement = theView[(lowest) >> 2];
+        auto* theBytes = targetElement.bytes;
+        if ((lowest & 0b0010)) {
+            // upper half
+            dataLines[2] = theBytes[2];
+            dataLines[3] = theBytes[3];
+        } else {
+            // lower half
+            dataLines[0] = theBytes[0];
+            dataLines[1] = theBytes[1];
+        }
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            break;
+        }
+    } 
+}
+};
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void
 talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, TreatAsInstruction) noexcept {

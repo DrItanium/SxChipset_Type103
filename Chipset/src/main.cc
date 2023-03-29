@@ -186,9 +186,28 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
+    /**
+     * @brief An override implementation that uses hand written assembly to fix
+     * the fact that gcc-7 seems to ignore me when I ask for 8-bit operations;
+     * the assembly code listed here is what gcc_11 generates
+     */
+    template<bool useHandwrittenAssembly = true>
+    static inline uint8_t getWordOffset(uint8_t value) noexcept {
+        if constexpr (useHandwrittenAssembly) {
+            asm volatile (
+                    "lsr %0" "\n\t"
+                    "lsr %0" "\n\t"
+                    "andi %0, 0x03" "\n\t"
+                    : "=r"(value) 
+                    : "0" (value));
+            return value;
+        } else {
+            return (value >> 2) & 0b11;
+        }
+    }
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         uint8_t value = *addressLines;
-        uint8_t loc = (value & 0b1100) >> 2;
+        uint8_t loc = getWordOffset(value);
         if (value & 0b0010) {
             volatile auto& targetElement = theView[loc];
             auto* theBytes = targetElement.bytes;
@@ -233,9 +252,9 @@ private:
         // Handle the starting upper 16-bit value specially
         // then we are aligned to 32-bit boundaries so then start looping if it
         // makes sense
-        uint8_t lowest = *addressLines & 0b1111;
-        uint8_t loc = (lowest & 0b1100) >> 2;
-        if ((lowest & 0b0010) != 0) {
+        uint8_t value = *addressLines;
+        uint8_t loc = getWordOffset(value);
+        if (value & 0b0010) {
             volatile auto& targetElement = theView[loc];
             auto* theBytes = targetElement.bytes;
             if (digitalRead<Pin::BE2>() == LOW) {
@@ -287,6 +306,7 @@ private:
     }
 
 public:
+    [[gnu::noinline]]
     static void
     doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo check the start position as that will describe the cycle shape

@@ -187,56 +187,46 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(Self&&) = delete;
 private:
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-        if ((*addressLines & 0b0010) == 0) {
-            // since we started at the lower half of a 32-bit word we can just
-            // assign the 32-bit word and pulse twice
-            for(uint8_t idx = ((*addressLines & 0b1100) >> 2);;++idx) {
-                // figure out which word we are currently looking at
-                volatile auto& targetElement = theView[idx];
-                auto* theBytes = targetElement.bytes;
-                dataLines[0] = theBytes[0];
-                dataLines[1] = theBytes[1];
-                dataLines[2] = theBytes[2];
-                dataLines[3] = theBytes[3];
-                auto end = Platform::isBurstLast();
-                signalReady();
-                if (end) {
-                    break;
-                }
-                // put in some amount of wait states before just signalling again
-                // since we started on the lower half of a 32-bit word
-                singleCycleDelay();
-                singleCycleDelay();
-                end = Platform::isBurstLast();
-                signalReady();
-                if (end) {
-                    break;
-                }
-            } 
-        } else {
-            // if it starts on an odd cycle then we need to just work like normal
-            // for now, perhaps align and then send off after that.
-            for(;;) {
-                // figure out which word we are currently looking at
-                auto lowest = *addressLines & 0b1111;
-                volatile auto& targetElement = theView[(lowest) >> 2];
-                auto* theBytes = targetElement.bytes;
-                if ((lowest & 0b0010)) {
-                    // upper half
-                    dataLines[2] = theBytes[2];
-                    dataLines[3] = theBytes[3];
-                } else {
-                    // lower half
-                    dataLines[0] = theBytes[0];
-                    dataLines[1] = theBytes[1];
-                }
-                auto end = Platform::isBurstLast();
-                signalReady();
-                if (end) {
-                    break;
-                }
-            } 
+        uint8_t lowest = *addressLines & 0b1111;
+        uint8_t loc = (lowest & 0b1100) >> 2;
+        if ((*addressLines & 0b0010) != 0) {
+            auto lowest = *addressLines & 0b1111;
+            volatile auto& targetElement = theView[(lowest) >> 2];
+            auto* theBytes = targetElement.bytes;
+            dataLines[2] = theBytes[2];
+            dataLines[3] = theBytes[3];
+            auto end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
+            ++loc;
         }
+        // since we started at the lower half of a 32-bit word we can just
+        // assign the 32-bit word and pulse twice
+        for(uint8_t idx = loc;;++idx) {
+            // figure out which word we are currently looking at
+            volatile auto& targetElement = theView[idx];
+            auto* theBytes = targetElement.bytes;
+            dataLines[0] = theBytes[0];
+            dataLines[1] = theBytes[1];
+            dataLines[2] = theBytes[2];
+            dataLines[3] = theBytes[3];
+            auto end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            // put in some amount of wait states before just signalling again
+            // since we started on the lower half of a 32-bit word
+            singleCycleDelay();
+            singleCycleDelay();
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+        } 
     }
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo handle supporting on upper 16-bits specially to align to lower 16-bits start
@@ -246,7 +236,7 @@ private:
         // makes sense
         uint8_t lowest = *addressLines & 0b1111;
         uint8_t loc = (lowest & 0b1100) >> 2;
-        if (lowest != 0) {
+        if ((lowest & 0b0010) != 0) {
             volatile auto& targetElement = theView[loc];
             auto* theBytes = targetElement.bytes;
             if (digitalRead<Pin::BE2>() == LOW) {

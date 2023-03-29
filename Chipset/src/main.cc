@@ -144,7 +144,6 @@ struct CommunicationKernel {
     CommunicationKernel(Self&&) = delete;
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
-[[gnu::noinline]]
 static void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
     // We do direct byte writes on AVR to accelerate the operations
@@ -206,7 +205,6 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    [[gnu::noinline]]
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         uint8_t value = *addressLines;
         uint8_t loc = getWordOffset(value);
@@ -248,7 +246,6 @@ private:
             }
         } 
     }
-    [[gnu::noinline]]
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo handle supporting on upper 16-bits specially to align to lower 16-bits start
         // What I mean is:
@@ -309,7 +306,6 @@ private:
     }
 
 public:
-    [[gnu::noinline]]
     static void
     doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo check the start position as that will describe the cycle shape

@@ -189,7 +189,7 @@ private:
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         uint8_t lowest = *addressLines & 0b1111;
         uint8_t loc = (lowest & 0b1100) >> 2;
-        if ((*addressLines & 0b0010) != 0) {
+        if ((lowest & 0b0010) != 0) {
             auto lowest = *addressLines & 0b1111;
             volatile auto& targetElement = theView[(lowest) >> 2];
             auto* theBytes = targetElement.bytes;
@@ -255,8 +255,9 @@ private:
         // now we are aligned so start execution as needed
         for(uint8_t idx = loc;;++idx) {
             // figure out which word we are currently looking at
-            volatile auto& targetElement = theView[idx];
-            auto* theBytes = targetElement.bytes;
+            DataRegister8 theBytes = theView[idx].bytes; 
+            //volatile auto& targetElement = theView[idx];
+            //auto* theBytes = targetElement.bytes;
             // lower half
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = dataLines[0];

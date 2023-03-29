@@ -306,7 +306,6 @@ private:
     }
 
 public:
-    [[gnu::noinline]]
     static void
     doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo check the start position as that will describe the cycle shape

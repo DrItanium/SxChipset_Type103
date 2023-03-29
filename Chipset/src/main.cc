@@ -186,13 +186,11 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    inline
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-        uint8_t lowest = *addressLines & 0b1111;
-        uint8_t loc = (lowest & 0b1100) >> 2;
-        if ((lowest & 0b0010) != 0) {
-            auto lowest = *addressLines & 0b1111;
-            volatile auto& targetElement = theView[(lowest) >> 2];
+        uint8_t value = *addressLines;
+        uint8_t loc = (value & 0b1100) >> 2;
+        if (value & 0b0010) {
+            volatile auto& targetElement = theView[loc];
             auto* theBytes = targetElement.bytes;
             dataLines[2] = theBytes[2];
             dataLines[3] = theBytes[3];

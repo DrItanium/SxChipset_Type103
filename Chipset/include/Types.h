@@ -80,7 +80,7 @@ union SplitWord16 {
     [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
 };
 
-union [[gnu::packed]] SplitWord32 {
+union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
     ElementContainer<uint32_t, uint8_t> bytes;

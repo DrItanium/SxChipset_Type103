@@ -161,8 +161,8 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
     // just want to reduce the amount of extra work required on each iteration
     // computing the current word. 
     for(;;) {
-        // figure out which word we are currently looking at
-        if constexpr (volatile auto& targetElement = theView[getWordOffset(*addressLines)]; isReadOperation) {
+        /// @todo optimize through assembly since gcc_7 generates some pretty bad code here
+        if constexpr (volatile auto& targetElement = theView.contents[getWordOffset(*addressLines)]; isReadOperation) {
             DataRegister8 theBytes = targetElement.bytes;
             // in all other cases do the whole thing
             dataLines[0] = theBytes[0];

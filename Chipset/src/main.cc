@@ -116,6 +116,25 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 }
 using DataRegister8 = volatile uint8_t*;
 using DataRegister32 = volatile uint32_t*;
+    /**
+     * @brief An override implementation that uses hand written assembly to fix
+     * the fact that gcc-7 seems to ignore me when I ask for 8-bit operations;
+     * the assembly code listed here is what gcc_11 generates
+     */
+    template<bool useHandwrittenAssembly = true>
+    inline uint8_t getWordOffset(uint8_t value) noexcept {
+        if constexpr (useHandwrittenAssembly) {
+            asm volatile (
+                    "lsr %0" "\n\t"
+                    "lsr %0" "\n\t"
+                    "andi %0, 0x03" "\n\t"
+                    : "=r"(value) 
+                    : "0" (value));
+            return value;
+        } else {
+            return (value >> 2) & 0b11;
+        }
+    }
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
     using Self = CommunicationKernel<inDebugMode, isReadOperation, width>;
@@ -125,6 +144,7 @@ struct CommunicationKernel {
     CommunicationKernel(Self&&) = delete;
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
+[[gnu::noinline]]
 static void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
     // We do direct byte writes on AVR to accelerate the operations
@@ -142,8 +162,8 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
     // computing the current word. 
     for(;;) {
         // figure out which word we are currently looking at
-        if constexpr (volatile auto& targetElement = theView[(*addressLines & 0b1111) >> 2]; isReadOperation) {
-            auto* theBytes = targetElement.bytes;
+        if constexpr (volatile auto& targetElement = theView[getWordOffset(*addressLines)]; isReadOperation) {
+            DataRegister8 theBytes = targetElement.bytes;
             // in all other cases do the whole thing
             dataLines[0] = theBytes[0];
             dataLines[1] = theBytes[1];
@@ -186,25 +206,7 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    /**
-     * @brief An override implementation that uses hand written assembly to fix
-     * the fact that gcc-7 seems to ignore me when I ask for 8-bit operations;
-     * the assembly code listed here is what gcc_11 generates
-     */
-    template<bool useHandwrittenAssembly = true>
-    static inline uint8_t getWordOffset(uint8_t value) noexcept {
-        if constexpr (useHandwrittenAssembly) {
-            asm volatile (
-                    "lsr %0" "\n\t"
-                    "lsr %0" "\n\t"
-                    "andi %0, 0x03" "\n\t"
-                    : "=r"(value) 
-                    : "0" (value));
-            return value;
-        } else {
-            return (value >> 2) & 0b11;
-        }
-    }
+    [[gnu::noinline]]
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         uint8_t value = *addressLines;
         uint8_t loc = getWordOffset(value);
@@ -246,6 +248,7 @@ private:
             }
         } 
     }
+    [[gnu::noinline]]
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo handle supporting on upper 16-bits specially to align to lower 16-bits start
         // What I mean is:
@@ -306,6 +309,7 @@ private:
     }
 
 public:
+    [[gnu::noinline]]
     static void
     doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo check the start position as that will describe the cycle shape
@@ -381,13 +385,13 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void
 handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
-        for (byte i = 4; i < 8; ++i) {
-            if constexpr (isReadOperation) {
-                dataLines[i] = 0xFF;
-            } else {
-                dataLines[i] = 0;
-            }
+    for (byte i = 4; i < 8; ++i) {
+        if constexpr (isReadOperation) {
+            dataLines[i] = 0xFF;
+        } else {
+            dataLines[i] = 0;
         }
+    }
     if (addr.bytes[3] >= 0xF0) {
         talkToi960<inDebugMode, isReadOperation, width>(addressLines, dataLines, addr, TreatAsInstruction{});
     } else {

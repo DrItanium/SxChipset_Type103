@@ -230,10 +230,13 @@ struct [[gnu::packed]] ProcessorInterface {
 };
 
 struct SplitWord128 {
-    SplitWord32 contents[4];
-    [[nodiscard]] SplitWord32& operator[](uint8_t index) noexcept { return contents[index]; }
-    [[nodiscard]] volatile SplitWord32& operator[](uint8_t index) volatile noexcept { return contents[index]; }
-    [[nodiscard]] const SplitWord32& operator[](uint8_t index) const noexcept { return contents[index]; }
+    uint8_t bytes[16];
+    SplitWord32& getWord(uint8_t index) noexcept { return reinterpret_cast<SplitWord32*>(bytes)[index]; }
+    const SplitWord32& getWord(uint8_t index) const noexcept { return reinterpret_cast<const SplitWord32*>(bytes)[index]; }
+    volatile SplitWord32& getWord(uint8_t index) volatile noexcept { return reinterpret_cast<volatile SplitWord32*>(bytes)[index]; }
+    [[nodiscard]] SplitWord32& operator[](uint8_t index) noexcept { return getWord(index); }
+    [[nodiscard]] volatile SplitWord32& operator[](uint8_t index) volatile noexcept { return getWord(index); }
+    [[nodiscard]] const SplitWord32& operator[](uint8_t index) const noexcept { return getWord(index); }
 };
 
 

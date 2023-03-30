@@ -135,6 +135,9 @@ using DataRegister32 = volatile uint32_t*;
             return (value >> 2) & 0b11;
         }
     }
+inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
+    return value & 0b1100;
+}
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
     using Self = CommunicationKernel<inDebugMode, isReadOperation, width>;
@@ -161,15 +164,13 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
     // computing the current word. 
     for(;;) {
         /// @todo optimize through assembly since gcc_7 generates some pretty bad code here
-        if constexpr (volatile auto& targetElement = theView.contents[getWordOffset(*addressLines)]; isReadOperation) {
-            DataRegister8 theBytes = targetElement.bytes;
+        if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
             // in all other cases do the whole thing
             dataLines[0] = theBytes[0];
             dataLines[1] = theBytes[1];
             dataLines[2] = theBytes[2];
             dataLines[3] = theBytes[3];
         } else {
-            auto* theBytes = targetElement.bytes;
             // you must check each enable bit to see if you have to write to that byte
             // or not. You cannot just do a 32-bit write in all cases, this can
             // cause memory corruption pretty badly. 

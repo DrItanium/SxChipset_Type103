@@ -561,12 +561,9 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void
 handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
+    static constexpr uint8_t targetDirection = isReadOperation ? 0xFF : 0;
     for (byte i = 4; i < 8; ++i) {
-        if constexpr (isReadOperation) {
-            dataLines[i] = 0xFF;
-        } else {
-            dataLines[i] = 0;
-        }
+        dataLines[i] = targetDirection;
     }
     if (addr.bytes[3] >= 0xF0) {
         talkToi960<inDebugMode, isReadOperation, width>(addressLines, dataLines, addr, TreatAsInstruction{});

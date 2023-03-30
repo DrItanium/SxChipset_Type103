@@ -321,6 +321,7 @@ private:
         for(;;) {
             // figure out which word we are currently looking at
             DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; 
+            bool end = false;
             // lower half
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = dataLines[0];
@@ -328,7 +329,7 @@ private:
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[1] = dataLines[1];
             }
-            auto end = Platform::isBurstLast();
+            end = Platform::isBurstLast();
             signalReady();
             if (end) {
                 break;
@@ -436,10 +437,21 @@ public:
     doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo check the start position as that will describe the cycle shape
         if constexpr (isReadOperation) {
+            if constexpr (inDebugMode) {
+                Serial.println(F("Starting Read Operation Proper"));
+            }
             doReadOperation(theView, addressLines, dataLines);
+            if constexpr (inDebugMode) {
+                Serial.println(F("Ending Read Operation Proper"));
+            }
         } else {
+            if constexpr (inDebugMode) {
+                Serial.println(F("Starting Write Operation Proper"));
+            }
             doWriteOperation(theView, addressLines, dataLines);
-
+            if constexpr (inDebugMode) {
+                Serial.println(F("Ending Write Operation Proper"));
+            }
         }
     }
 };

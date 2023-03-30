@@ -275,12 +275,11 @@ private:
         for(;;) {
             // just skip over the lowest 16-bits if we start unaligned
             uint8_t value = *addressLines;
-            bool end = false;
             DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
             if ((value & 0b0010) == 0) {
                 dataLines[0] = theBytes[0];
                 dataLines[1] = theBytes[1];
-                end = Platform::isBurstLast();
+                auto end = Platform::isBurstLast();
                 signalReady();
                 if (end) {
                     return;
@@ -290,7 +289,7 @@ private:
             // since we started on the lower half of a 32-bit word
             dataLines[2] = theBytes[2];
             dataLines[3] = theBytes[3];
-            end = Platform::isBurstLast();
+            auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
                 break;
@@ -351,7 +350,18 @@ private:
             // figure out which word we are currently looking at
             uint8_t value = *addressLines;
             DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)]; 
-            bool end = false;
+            // if we are aligned to 32-bit word boundaries then just assume we
+            // are at the start of the 16-byte block (the processor will stop
+            // when it doesn't need data anymore). If we are not then skip over
+            // this first two bytes and start at the upper two bytes of the
+            // current word.
+            //
+            // I am also exploiting the fact that the processor can only ever
+            // accept up to 16-bytes at a time if it is aligned to 16-byte
+            // boundaries. If it is unaligned then the operation is broken up
+            // into multiple transactions within the i960 itself. So yes, this
+            // code will go out of bounds but it doesn't matter because the
+            // processor will never go out of bounds.
             if ((value & 0b0010) == 0) {
                 // lower half
                 if (digitalRead<Pin::BE0>() == LOW) {
@@ -360,7 +370,7 @@ private:
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[1] = dataLines[1];
                 }
-                end = Platform::isBurstLast();
+                auto end = Platform::isBurstLast();
                 signalReady();
                 if (end) {
                     return;
@@ -375,7 +385,7 @@ private:
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[3] = dataLines[3];
             }
-            end = Platform::isBurstLast();
+            auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
                 break;
@@ -461,6 +471,9 @@ private:
             if (end) {
                 break;
             }
+            // we should never get here as transactions are at most 16 bytes in
+            // size. However, if we did get here then we would just start the
+            // transaction again at the top!
         }
     }
 

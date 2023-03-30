@@ -130,7 +130,7 @@ struct CommunicationKernel {
     Self& operator=(Self&&) = delete;
 static void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-    for(;;) {
+    //for(;;) {
         if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
             // in all other cases do the whole thing
             dataLines[0] = theBytes[0];
@@ -140,7 +140,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -152,7 +152,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -164,7 +164,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -176,7 +176,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
         } else {
             // you must check each enable bit to see if you have to write to that byte
@@ -197,7 +197,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -216,7 +216,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -235,7 +235,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -254,10 +254,10 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
         }
-    } 
+    //} 
 }
 };
 
@@ -272,7 +272,7 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(Self&&) = delete;
 private:
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-        for(;;) {
+        //for(;;) {
             // just skip over the lowest 16-bits if we start unaligned
             uint8_t value = *addressLines;
             DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
@@ -292,14 +292,14 @@ private:
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             dataLines[0] = theBytes[4];
             dataLines[1] = theBytes[5];
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
@@ -308,14 +308,14 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             dataLines[0] = theBytes[8];
             dataLines[1] = theBytes[9];
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
@@ -324,14 +324,14 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             dataLines[0] = theBytes[12];
             dataLines[1] = theBytes[13];
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
@@ -340,9 +340,9 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
-        } 
+        //} 
     }
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         // now we are aligned so start execution as needed

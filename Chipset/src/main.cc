@@ -634,6 +634,7 @@ isDebuggingSession() noexcept {
     return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;
 }
 template<bool inDebugMode, NativeBusWidth width> 
+[[gnu::noinline]]
 [[noreturn]] 
 void 
 executionBody() noexcept {

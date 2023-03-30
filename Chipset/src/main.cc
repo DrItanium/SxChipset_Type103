@@ -346,7 +346,7 @@ private:
     }
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         // now we are aligned so start execution as needed
-        for(;;) {
+        //for(;;) {
             // figure out which word we are currently looking at
             uint8_t value = *addressLines;
             DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)]; 
@@ -388,7 +388,7 @@ private:
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -401,7 +401,7 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -415,7 +415,7 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -428,7 +428,7 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -442,7 +442,7 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -455,7 +455,7 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             singleCycleDelay();
             singleCycleDelay();
@@ -469,12 +469,12 @@ private:
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                break;
+                return;
             }
             // we should never get here as transactions are at most 16 bytes in
             // size. However, if we did get here then we would just start the
             // transaction again at the top!
-        }
+        //}
     }
 
 public:

@@ -208,10 +208,8 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
 private:
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         uint8_t value = *addressLines;
-        uint8_t loc = getWordOffset(value);
         if (value & 0b0010) {
-            volatile auto& targetElement = theView[loc];
-            auto* theBytes = targetElement.bytes;
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
             dataLines[2] = theBytes[2];
             dataLines[3] = theBytes[3];
             auto end = Platform::isBurstLast();
@@ -219,14 +217,11 @@ private:
             if (end) {
                 return;
             }
-            ++loc;
         }
         // since we started at the lower half of a 32-bit word we can just
         // assign the 32-bit word and pulse twice
-        for(uint8_t idx = loc;;++idx) {
-            // figure out which word we are currently looking at
-            volatile auto& targetElement = theView[idx];
-            auto* theBytes = targetElement.bytes;
+        for(;;) {
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)];
             dataLines[0] = theBytes[0];
             dataLines[1] = theBytes[1];
             dataLines[2] = theBytes[2];
@@ -254,10 +249,8 @@ private:
         // then we are aligned to 32-bit boundaries so then start looping if it
         // makes sense
         uint8_t value = *addressLines;
-        uint8_t loc = getWordOffset(value);
         if (value & 0b0010) {
-            volatile auto& targetElement = theView[loc];
-            auto* theBytes = targetElement.bytes;
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[2] = dataLines[2];
             }
@@ -269,14 +262,11 @@ private:
             if (end) {
                 return;
             }
-            ++loc;
         }
         // now we are aligned so start execution as needed
-        for(uint8_t idx = loc;;++idx) {
+        for(;;) {
             // figure out which word we are currently looking at
-            DataRegister8 theBytes = theView[idx].bytes; 
-            //volatile auto& targetElement = theView[idx];
-            //auto* theBytes = targetElement.bytes;
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; 
             // lower half
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = dataLines[0];

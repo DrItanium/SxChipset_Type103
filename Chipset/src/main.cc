@@ -240,6 +240,60 @@ private:
             if (end) {
                 break;
             }
+            dataLines[0] = theBytes[4];
+            dataLines[1] = theBytes[5];
+            dataLines[2] = theBytes[6];
+            dataLines[3] = theBytes[7];
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            // put in some amount of wait states before just signalling again
+            // since we started on the lower half of a 32-bit word
+            singleCycleDelay();
+            singleCycleDelay();
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            dataLines[0] = theBytes[8];
+            dataLines[1] = theBytes[9];
+            dataLines[2] = theBytes[10];
+            dataLines[3] = theBytes[11];
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            // put in some amount of wait states before just signalling again
+            // since we started on the lower half of a 32-bit word
+            singleCycleDelay();
+            singleCycleDelay();
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            dataLines[0] = theBytes[12];
+            dataLines[1] = theBytes[13];
+            dataLines[2] = theBytes[14];
+            dataLines[3] = theBytes[15];
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            // put in some amount of wait states before just signalling again
+            // since we started on the lower half of a 32-bit word
+            singleCycleDelay();
+            singleCycleDelay();
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
         } 
     }
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
@@ -287,6 +341,87 @@ private:
             }
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[3] = dataLines[3];
+            }
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[4] = dataLines[0];
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[5] = dataLines[1];
+            }
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
+            // upper half
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[6] = dataLines[2];
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[7] = dataLines[3];
+            }
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[8] = dataLines[0];
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[9] = dataLines[1];
+            }
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
+            // upper half
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[10] = dataLines[2];
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[11] = dataLines[3];
+            }
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[12] = dataLines[0];
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[13] = dataLines[1];
+            }
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                break;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
+            // upper half
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[14] = dataLines[2];
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[15] = dataLines[3];
             }
             end = Platform::isBurstLast();
             signalReady();

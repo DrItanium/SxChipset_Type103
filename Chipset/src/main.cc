@@ -173,6 +173,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             dataLines[1] = theBytes[13];
             dataLines[2] = theBytes[14];
             dataLines[3] = theBytes[15];
+            /// @todo do not sample blast at the end of a 16-byte transaction
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -251,6 +252,7 @@ doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, Data
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[15] = dataLines[3];
             }
+            /// @todo do not sample blast at the end of a 16-byte transaction
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -337,6 +339,7 @@ private:
             // since we started on the lower half of a 32-bit word
             dataLines[2] = theBytes[14];
             dataLines[3] = theBytes[15];
+            /// @todo do not sample blast at the end of a 16-byte transaction
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -466,6 +469,7 @@ private:
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[15] = dataLines[3];
             }
+            /// @todo do not sample blast at the end of a 16-byte transaction
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -513,34 +517,27 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
     // ignores a huge class of problems. Instead, we just process
     Instruction operation;
     operation.opcode_ = addr;
-    if constexpr (isReadOperation) {
-        // We perform the read operation _ahead_ of sending it back to the i960
-        // The result of the read operation is stored in the args of the
-        // instruction. 
-        // that is what's performed here
-        switch (operation.getGroup()) {
-            case 0xF0: // only group 0 is active right now
+    switch (operation.getGroup()) {
+        case 0xF0: // only group 0 is active right now
+            if constexpr (isReadOperation) {
+                // We perform the read operation _ahead_ of sending it back to the i960
+                // The result of the read operation is stored in the args of the
+                // instruction. 
                 performIOReadGroup0<inDebugMode>(operation);
-                break;
-            default:
-                // just ignore the data and return what we have inside of
-                // the operation object itself. 
-                //
-                // This greatly simplifies everything!
-                break;
-        }
-    }
-    CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation.args_, addressLines, dataLines);
-    if constexpr (!isReadOperation) {
-        switch (operation.getGroup()) {
-            case 0xF0:
+            }
+            CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation.args_, addressLines, dataLines);
+            if constexpr (!isReadOperation) {
+                // we process the data after we get it off the bus
                 performIOWriteGroup0<inDebugMode>(operation);
-                break;
-            default:
-                // if we got here then do nothing, usually that means the
-                // group hasn't been fully implemented yet
-                break;
-        }
+            }
+            break;
+        default:
+            CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation.args_, addressLines, dataLines);
+            // just ignore the data and return what we have inside of
+            // the operation object itself. 
+            //
+            // This greatly simplifies everything!
+            break;
     }
 }
 

@@ -174,27 +174,19 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(Self&&) = delete;
 private:
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-        uint8_t value = *addressLines;
-        if (value & 0b0010) {
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
-            dataLines[2] = theBytes[2];
-            dataLines[3] = theBytes[3];
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-        }
-        // since we started at the lower half of a 32-bit word we can just
-        // assign the 32-bit word and pulse twice
         for(;;) {
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)];
-            dataLines[0] = theBytes[0];
-            dataLines[1] = theBytes[1];
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                break;
+            // just skip over the lowest 16-bits if we start unaligned
+            uint8_t value = *addressLines;
+            bool end = false;
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
+            if ((value & 0b0010) == 0) {
+                dataLines[0] = theBytes[0];
+                dataLines[1] = theBytes[1];
+                end = Platform::isBurstLast();
+                signalReady();
+                if (end) {
+                    return;
+                }
             }
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
@@ -256,11 +248,6 @@ private:
         } 
     }
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-        /// @todo handle supporting on upper 16-bits specially to align to lower 16-bits start
-        // What I mean is:
-        // Handle the starting upper 16-bit value specially
-        // then we are aligned to 32-bit boundaries so then start looping if it
-        // makes sense
         uint8_t value = *addressLines;
         if (value & 0b0010) {
             DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];

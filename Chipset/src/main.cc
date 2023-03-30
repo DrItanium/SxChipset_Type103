@@ -248,37 +248,25 @@ private:
         } 
     }
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-        uint8_t value = *addressLines;
-        if (value & 0b0010) {
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[2] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[3] = dataLines[3];
-            }
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-        }
         // now we are aligned so start execution as needed
         for(;;) {
             // figure out which word we are currently looking at
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; 
+            uint8_t value = *addressLines;
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)]; 
             bool end = false;
-            // lower half
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = dataLines[1];
-            }
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                break;
+            if ((value & 0b0010) == 0) {
+                // lower half
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[0] = dataLines[0];
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[1] = dataLines[1];
+                }
+                end = Platform::isBurstLast();
+                signalReady();
+                if (end) {
+                    return;
+                }
             }
             singleCycleDelay();
             singleCycleDelay();

@@ -116,25 +116,6 @@ performIOWriteGroup0(const Instruction& instruction) noexcept {
 }
 using DataRegister8 = volatile uint8_t*;
 using DataRegister32 = volatile uint32_t*;
-    /**
-     * @brief An override implementation that uses hand written assembly to fix
-     * the fact that gcc-7 seems to ignore me when I ask for 8-bit operations;
-     * the assembly code listed here is what gcc_11 generates
-     */
-    template<bool useHandwrittenAssembly = true>
-    inline uint8_t getWordOffset(uint8_t value) noexcept {
-        if constexpr (useHandwrittenAssembly) {
-            asm volatile (
-                    "lsr %0" "\n\t"
-                    "lsr %0" "\n\t"
-                    "andi %0, 0x03" "\n\t"
-                    : "=r"(value) 
-                    : "0" (value));
-            return value;
-        } else {
-            return (value >> 2) & 0b11;
-        }
-    }
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
@@ -149,21 +130,7 @@ struct CommunicationKernel {
     Self& operator=(Self&&) = delete;
 static void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-    // We do direct byte writes on AVR to accelerate the operations
-    // we pass the pointers in as well to also prevent constant recomputation
-    // of the destination or source addresses in extended memory.
-    // 
-    /// @todo eliminate the right shift by two using the byte offset instead of the view offset! Maintain word alignment
-    // A SplitWord128 is actually a 16-byte block, so we could just view it as
-    // that without any problems! What we would be doing is just masking out
-    // the lower two bits and just returning the pointer 
-    //
-    // At the pointer we are here, instructions have already been interpreted
-    // or have yet to be written to. This is a view change, nothing more. We
-    // just want to reduce the amount of extra work required on each iteration
-    // computing the current word. 
     for(;;) {
-        /// @todo optimize through assembly since gcc_7 generates some pretty bad code here
         if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
             // in all other cases do the whole thing
             dataLines[0] = theBytes[0];

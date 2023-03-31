@@ -78,24 +78,24 @@ public:
     bool begin() noexcept { return static_cast<Child*>(this)->init(); }
     [[nodiscard]] bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
     [[nodiscard]] constexpr uint8_t size() const noexcept { return size_; }
-    void performRead(Instruction& instruction) const noexcept {
-        auto theOpcode = instruction.getFunction<E>();
+    void performRead(const SplitWord32 opcode, SplitWord128& instruction) const noexcept {
+        auto theOpcode = opcode.getIOFunction<E>();
         switch (theOpcode) {
             case E::Available:
-                instruction[0].bytes[0] = available();
+                instruction.bytes[0] = available();
                 break;
             case E::Size:
-                instruction.args_[0].bytes[0] = size();
+                instruction.bytes[0] = size();
                 break;
             default:
                 if (validOperation(theOpcode)) {
-                    static_cast<const Child*>(this)->extendedRead(theOpcode, instruction);
+                    static_cast<const Child*>(this)->extendedRead(theOpcode, opcode, instruction);
                 }
                 break;
         }
     }
-    void performWrite(const Instruction& instruction) noexcept {
-        auto theOpcode = instruction.getFunction<E>();
+    void performWrite(const SplitWord32 opcode, const SplitWord128& instruction) noexcept {
+        auto theOpcode = opcode.getIOFunction<E>();
         switch (theOpcode) {
             case E::Available:
             case E::Size:
@@ -103,7 +103,7 @@ public:
                 break;
             default:
                 if (validOperation(theOpcode)) {
-                    static_cast<Child*>(this)->extendedWrite(theOpcode, instruction);
+                    static_cast<Child*>(this)->extendedWrite(theOpcode, opcode, instruction);
                 }
                 break;
         }

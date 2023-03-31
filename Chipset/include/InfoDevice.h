@@ -37,8 +37,8 @@ class InfoDevice : public OperatorPeripheral<InfoDeviceOperations, InfoDevice> {
 public:
     bool init() noexcept  { return true; }
     bool isAvailable() const noexcept { return true; }
-    void extendedRead(InfoDeviceOperations opcode, Instruction& instruction) const noexcept;
-    void extendedWrite(InfoDeviceOperations opcode, const Instruction& instruction) noexcept { }
+    void extendedRead(InfoDeviceOperations opcode, const SplitWord32 op, SplitWord128& instruction) const noexcept;
+    void extendedWrite(InfoDeviceOperations opcode, const SplitWord32 op, const SplitWord128& instruction) noexcept { }
 };
 
 #endif //CHIPSET_INFODEVICE_H

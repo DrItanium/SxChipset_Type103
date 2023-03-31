@@ -41,7 +41,7 @@ public:
     using Parent = OperatorPeripheral<TimerDeviceOperations, TimerDevice>;
     bool init() noexcept ;
     bool isAvailable() const noexcept { return true; }
-    void extendedRead(TimerDeviceOperations opcode, Instruction& instruction) const noexcept;
-    void extendedWrite(TimerDeviceOperations opcode, const Instruction& instruction) noexcept;
+    void extendedRead(TimerDeviceOperations opcode, const SplitWord32 op, SplitWord128& instruction) const noexcept;
+    void extendedWrite(TimerDeviceOperations opcode, const SplitWord32 op, const SplitWord128& instruction) noexcept;
 };
 #endif //CHIPSET_TIMERDEVICE_H

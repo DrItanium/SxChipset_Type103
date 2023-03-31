@@ -54,34 +54,34 @@ SerialDevice::init() noexcept {
 
 
 void
-SerialDevice::extendedRead(SerialDeviceOperations opcode, Instruction& instruction) const noexcept {
+SerialDevice::extendedRead(SerialDeviceOperations opcode, const SplitWord32 addr, SplitWord128& instruction) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (opcode) {
         case SerialDeviceOperations::RW:
-            instruction.args_[0].assignHalf(0, performSerialRead());
+            instruction[0].assignHalf(0, performSerialRead());
             break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
             break;
         case SerialDeviceOperations::Baud:
-            instruction.args_[0].setWholeValue(baud_);
+            instruction[0].setWholeValue(baud_);
         default:
             break;
     }
 }
 void 
-SerialDevice::extendedWrite(SerialDeviceOperations opcode, const Instruction& instruction) noexcept {
+SerialDevice::extendedWrite(SerialDeviceOperations opcode, const SplitWord32 addr, const SplitWord128& instruction) noexcept {
     // do nothing
     switch (opcode) {
         case SerialDeviceOperations::RW:
-            performSerialWrite(instruction.args_[0].getWholeValue());
+            performSerialWrite(instruction[0].getWholeValue());
             break;
         case SerialDeviceOperations::Flush:
             Serial.flush();
             break;
         case SerialDeviceOperations::Baud:
-            setBaudRate(instruction.args_[0].getWholeValue());
+            setBaudRate(instruction[0].getWholeValue());
             break;
         default:
             break;

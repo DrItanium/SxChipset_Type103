@@ -72,20 +72,20 @@ struct TreatAsInstruction final {
 template<bool inDebugMode>
 inline
 void
-performIOReadGroup0(Instruction& instruction) noexcept {
+performIOReadGroup0(const SplitWord32 opcode, SplitWord128& body) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
     // about out of the packet when performing a read operation so at this
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
-    switch (instruction.getDevice()) {
+    switch (opcode.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            infoDevice.performRead(instruction);
+            infoDevice.performRead(opcode, body);
             break;
         case TargetPeripheral::Serial:
-            theSerial.performRead(instruction);
+            theSerial.performRead(opcode, body);
             break;
         case TargetPeripheral::Timer:
-            timerInterface.performRead(instruction);
+            timerInterface.performRead(opcode, body);
             break;
         default:
             // unknown device so do not do anything
@@ -95,19 +95,19 @@ performIOReadGroup0(Instruction& instruction) noexcept {
 template<bool inDebugMode>
 inline
 void
-performIOWriteGroup0(const Instruction& instruction) noexcept {
+performIOWriteGroup0(const SplitWord32 opcode, const SplitWord128& body) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
-    switch (instruction.getDevice()) {
+    switch (opcode.getIODevice<TargetPeripheral>()) {
         case TargetPeripheral::Info:
-            infoDevice.performWrite(instruction);
+            infoDevice.performWrite(opcode, body);
             break;
         case TargetPeripheral::Serial:
-            theSerial.performWrite(instruction);
+            theSerial.performWrite(opcode, body);
             break;
         case TargetPeripheral::Timer:
-            timerInterface.performWrite(instruction);
+            timerInterface.performWrite(opcode, body);
             break;
         default:
             // unknown device so do not do anything
@@ -515,24 +515,23 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
     // of the i960. For example, if you started in the middle of the 16-byte
     // block then the data will still be valid just not what you wanted. This
     // ignores a huge class of problems. Instead, we just process
-    Instruction operation;
-    operation.opcode_ = addr;
-    switch (operation.getGroup()) {
+    SplitWord128 operation;
+    switch (addr.getIOGroup()) {
         case 0xF0: // only group 0 is active right now
             if constexpr (isReadOperation) {
                 // We perform the read operation _ahead_ of sending it back to the i960
                 // The result of the read operation is stored in the args of the
                 // instruction. 
-                performIOReadGroup0<inDebugMode>(operation);
+                performIOReadGroup0<inDebugMode>(addr, operation);
             }
-            CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation.args_, addressLines, dataLines);
+            CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation, addressLines, dataLines);
             if constexpr (!isReadOperation) {
                 // we process the data after we get it off the bus
-                performIOWriteGroup0<inDebugMode>(operation);
+                performIOWriteGroup0<inDebugMode>(addr, operation);
             }
             break;
         default:
-            CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation.args_, addressLines, dataLines);
+            CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation, addressLines, dataLines);
             // just ignore the data and return what we have inside of
             // the operation object itself. 
             //

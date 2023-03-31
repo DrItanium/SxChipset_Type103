@@ -33,13 +33,13 @@ namespace {
 }
 
 void
-InfoDevice::extendedRead(InfoDeviceOperations opcode, Instruction& instruction) const noexcept {
+InfoDevice::extendedRead(InfoDeviceOperations opcode, const SplitWord32 addr, SplitWord128& instruction) const noexcept {
     switch (opcode) {
         case InfoDeviceOperations::GetChipsetClock:
-            instruction.args_[0] = systemRateExpose;
+            instruction[0] = systemRateExpose;
             break;
         case InfoDeviceOperations::GetCPUClock:
-            instruction.args_[0] = cpuClockRateExpose;
+            instruction[0] = cpuClockRateExpose;
             break;
         default:
             break;

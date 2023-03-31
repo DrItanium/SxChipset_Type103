@@ -40,8 +40,8 @@ public:
     bool isAvailable() const noexcept { return true; }
     void setBaudRate(uint32_t baudRate) noexcept;
     [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
-    void extendedRead(SerialDeviceOperations opcode, Instruction& instruction) const noexcept;
-    void extendedWrite(SerialDeviceOperations opcode, const Instruction& instruction) noexcept;
+    void extendedRead(SerialDeviceOperations opcode, const SplitWord32 op, SplitWord128& instruction) const noexcept;
+    void extendedWrite(SerialDeviceOperations opcode, const SplitWord32 op, const SplitWord128& instruction) noexcept;
 private:
     uint32_t baud_ = 115200;
 };

@@ -57,18 +57,18 @@ TimerDevice::init() noexcept {
 }
 
 void
-TimerDevice::extendedRead(TimerDeviceOperations opcode, Instruction& instruction) const noexcept {
+TimerDevice::extendedRead(TimerDeviceOperations opcode, const SplitWord32 addr, SplitWord128& instruction) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (opcode) {
 #if defined(TCCR2B)
         case TimerDeviceOperations::SystemTimerPrescalar:
-            instruction.args_[0].setWholeValue(static_cast<uint32_t>(TCCR2B & 0b111));
+            instruction[0].setWholeValue(static_cast<uint32_t>(TCCR2B & 0b111));
             break;
 #endif
 #if defined(OCR2A)
         case TimerDeviceOperations::SystemTimerComparisonValue:
-            instruction.args_[0].setWholeValue(static_cast<uint32_t>(OCR2A));
+            instruction[0].setWholeValue(static_cast<uint32_t>(OCR2A));
             break;
 #endif
         default:
@@ -76,7 +76,7 @@ TimerDevice::extendedRead(TimerDeviceOperations opcode, Instruction& instruction
     }
 }
 void 
-TimerDevice::extendedWrite(TimerDeviceOperations opcode, const Instruction& instruction) noexcept {
+TimerDevice::extendedWrite(TimerDeviceOperations opcode, const SplitWord32 addr, const SplitWord128& instruction) noexcept {
     // do nothing
     switch (opcode) {
 #if defined(TCCR2A) && defined(TCCR2B) && defined(TIMSK2)
@@ -85,7 +85,7 @@ TimerDevice::extendedWrite(TimerDeviceOperations opcode, const Instruction& inst
                 // Previously, we were using the compare output mode of Timer
                 // 2 but with the use of the CH351s I have to use the interrupt
                 // instead
-                auto value = instruction.args_[0].bytes[0];
+                auto value = instruction.bytes[0];
                 auto maskedValue = value & 0b111;
                 if constexpr (OutputCompareModeForTimer2) {
                     // enable toggle mode
@@ -117,7 +117,7 @@ TimerDevice::extendedWrite(TimerDeviceOperations opcode, const Instruction& inst
 #endif
 #ifdef OCR2A
         case TimerDeviceOperations::SystemTimerComparisonValue:
-            OCR2A = static_cast<uint8_t>(instruction.args_[0].bytes[0]);
+            OCR2A = static_cast<uint8_t>(instruction.bytes[0]);
             break;
 #endif
         default:

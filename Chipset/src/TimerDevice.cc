@@ -81,26 +81,13 @@ TimerDevice::extendedWrite(TimerDeviceOperations opcode, const SplitWord32 addr,
                 // instead
                 auto value = instruction.bytes[0];
                 auto maskedValue = value & 0b111;
-                if constexpr (OutputCompareModeForTimer2) {
-                    // enable toggle mode
-                    if (value != 0) {
-                        bitSet(TCCR2A, COM2A0);
-                        bitClear(TCCR2A, COM2A1);
-                    } else {
-                        bitClear(TCCR2A, COM2A0);
-                        bitClear(TCCR2A, COM2A1);
-                    }
+                // enable toggle mode
+                if (value != 0) {
+                    bitSet(TCCR2A, COM2A0);
+                    bitClear(TCCR2A, COM2A1);
                 } else {
-                    // We are currently using the CH351 for interaction with
-                    // the i960 so we use interrupts instead to trigger all of
-                    // this. However, we can still treat the value of zero as a
-                    // disable and anything else as an enable!
-                    /// @todo disable interrupts while doing this?
-                    if (value != 0) {
-                        bitSet(TIMSK2, OCIE2A);
-                    } else {
-                        bitClear(TIMSK2, OCIE2A);
-                    }
+                    bitClear(TCCR2A, COM2A0);
+                    bitClear(TCCR2A, COM2A1);
                 }
                 // make sure we activate the prescalar value
                 uint8_t result = TCCR2B & 0b1111'1000;

@@ -73,7 +73,7 @@ void
 TimerDevice::extendedWrite(TimerDeviceOperations opcode, const SplitWord32 addr, const SplitWord128& instruction) noexcept {
     // do nothing
     switch (opcode) {
-#if defined(TCCR2A) && defined(TCCR2B) && defined(TIMSK2)
+#if defined(TCCR2A) && defined(TCCR2B)
         case TimerDeviceOperations::SystemTimerPrescalar:
             {
                 // Previously, we were using the compare output mode of Timer

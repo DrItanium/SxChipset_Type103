@@ -29,14 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TimerDevice.h"
 #include "Setup.h"
 
-constexpr bool OutputCompareModeForTimer2 = XINT0DirectConnect;
-constexpr bool OutputCompareModeForTimer1 = false;
 bool
 TimerDevice::init() noexcept {
     // make sure that INT0 is enabled as an output. Make it high
-    if constexpr (OutputCompareModeForTimer2) {
-        pinMode<Pin::INT0_960_>(OUTPUT);
-    } 
+    pinMode<Pin::INT0_960_>(OUTPUT);
 #if defined(TCCR2A) && defined(TCCR2B) && defined(TCNT2)
     // enable CTC (OCR2A) mode
     // right now, we are doing everything through the CH351 chips so do not use
@@ -50,9 +46,7 @@ TimerDevice::init() noexcept {
     bitClear(TCCR2B, CS22);
     TCNT2 = 0;
 #endif
-    if constexpr (OutputCompareModeForTimer2) {
-        digitalWrite<Pin::INT0_960_, HIGH>();
-    } 
+    digitalWrite<Pin::INT0_960_, HIGH>();
     return true;
 }
 
@@ -124,19 +118,4 @@ TimerDevice::extendedWrite(TimerDeviceOperations opcode, const SplitWord32 addr,
             break;
     }
 }
-
-#ifdef TIMER2_COMPA_vect
-ISR(TIMER2_COMPA_vect) {
-    // to emulate the output compare match behavior, we are going to be toggling XINT0 on each trigger
-    if constexpr (!OutputCompareModeForTimer2) {
-        Platform::toggleXINT0();
-    }
-}
-#endif
-
-#ifdef TIMER1_COMPA_vect
-ISR(TIMER1_COMPA_vect) {
-    /// @todo implement output compare match behavior if it makes sense
-}
-#endif
 

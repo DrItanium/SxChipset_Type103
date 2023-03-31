@@ -82,7 +82,7 @@ TimerDevice::extendedWrite(TimerDeviceOperations opcode, const SplitWord32 addr,
                 auto value = instruction.bytes[0];
                 auto maskedValue = value & 0b111;
                 // enable toggle mode
-                if (value != 0) {
+                if (maskedValue != 0) {
                     bitSet(TCCR2A, COM2A0);
                     bitClear(TCCR2A, COM2A1);
                 } else {

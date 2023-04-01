@@ -88,7 +88,9 @@ public:
                 instruction.bytes[0] = size();
                 break;
             default:
-                static_cast<const Child*>(this)->extendedRead(theOpcode, opcode, instruction);
+                if (validOperation(theOpcode)) {
+                    static_cast<const Child*>(this)->extendedRead(theOpcode, opcode, instruction);
+                }
                 break;
         }
     }

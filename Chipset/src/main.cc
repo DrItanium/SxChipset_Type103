@@ -402,7 +402,8 @@ private:
         };
         // just skip over the lowest 16-bits if we start unaligned
         uint8_t value = *addressLines;
-        const uint8_t* theBytes = &contents.bytes[getWordByteOffset(*addressLines)];
+        uint8_t offset = getWordByteOffset(value);
+        const uint8_t* theBytes = &contents.bytes[offset];
         if ((value & 0b0010) == 0) {
             dataLines[0] = theBytes[0];
             dataLines[1] = theBytes[1];
@@ -477,7 +478,9 @@ private:
         //for(;;) {
             // just skip over the lowest 16-bits if we start unaligned
             uint8_t value = *addressLines;
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
+            uint8_t offset = getWordByteOffset(value);
+            DataRegister8 theBytes = &theView.bytes[offset];
+            __builtin_avr_nops(4);
             if ((value & 0b0010) == 0) {
                 dataLines[0] = theBytes[0];
                 dataLines[1] = theBytes[1];
@@ -554,7 +557,10 @@ private:
         //for(;;) {
             // figure out which word we are currently looking at
             uint8_t value = *addressLines;
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)]; 
+            uint8_t offset = getWordByteOffset(value);
+            DataRegister8 base = theView.bytes;
+            DataRegister8 theBytes = &base[offset];
+            __builtin_avr_nops(5);
             // if we are aligned to 32-bit word boundaries then just assume we
             // are at the start of the 16-byte block (the processor will stop
             // when it doesn't need data anymore). If we are not then skip over
@@ -825,14 +831,13 @@ executionBody() noexcept {
         if constexpr (inDebugMode) {
             Serial.println(F("NEW TRANSACTION"));
         }
-        SplitWord32 addr{*AddressLines32Ptr};
         if (Platform::isWriteOperation()) {
             for (byte i = 4; i < 8; ++i) {
                 dataLines[i] = 0;
             }
-            switch (addr.bytes[3]) {
+            switch (addressLines[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, false, width>(addressLines, dataLines, addr);
+                    performIOGroup0Operation<inDebugMode, false, width>(addressLines, dataLines, SplitWord32{*AddressLines32Ptr});
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -851,19 +856,21 @@ executionBody() noexcept {
                 case 0xFF:
                     CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(addressLines, dataLines);
                     break;
-                default:
-                    Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
-                    CommunicationKernel<inDebugMode, false, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
-                            addressLines, dataLines);
-                    break;
+                default: {
+                             SplitWord32 addr{*AddressLines32Ptr};
+                             Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
+                             CommunicationKernel<inDebugMode, false, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                                     addressLines, dataLines);
+                             break;
+                         }
             }
         } else {
             for (byte i = 4; i < 8; ++i) {
                 dataLines[i] = 0xff;
             }
-            switch (addr.bytes[3]) {
+            switch (addressLines[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, true, width>(addressLines, dataLines, addr);
+                    performIOGroup0Operation<inDebugMode, true, width>(addressLines, dataLines, SplitWord32{*AddressLines32Ptr});
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -882,11 +889,13 @@ executionBody() noexcept {
                 case 0xFF:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(addressLines, dataLines);
                     break;
-                default:
-                    Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
-                            addressLines, dataLines);
-                    break;
+                default: {
+                             SplitWord32 addr{*AddressLines32Ptr};
+                             Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
+                             CommunicationKernel<inDebugMode, true, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                                     addressLines, dataLines);
+                             break;
+                         }
             }
         }
         if constexpr (inDebugMode) {

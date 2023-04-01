@@ -81,8 +81,6 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 [[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
 [[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
 [[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
-[[gnu::address(0x4000)]] volatile SplitWord128 IBUSWindow[16384 / sizeof(SplitWord128)];
-[[gnu::address(0x8000)]] volatile SplitWord128 XBUSWindow[32767 / sizeof(SplitWord128)];
 
 /**
  * @brief Just go through the motions of a write operation but do not capture

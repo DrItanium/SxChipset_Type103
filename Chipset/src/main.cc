@@ -824,7 +824,7 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
             break;
         default:
             // just return zeroes
-            CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0,0,0,0>(addressLines, dataLines);
+            CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0>(addressLines, dataLines);
             break;
     }
 }

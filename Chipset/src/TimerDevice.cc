@@ -57,12 +57,14 @@ TimerDevice::extendedRead(TimerDeviceOperations opcode, const SplitWord32 addr, 
     switch (opcode) {
 #if defined(TCCR2B)
         case TimerDeviceOperations::SystemTimerPrescalar:
-            instruction[0].setWholeValue(static_cast<uint32_t>(TCCR2B & 0b111));
+            instruction.bytes[0] = (TCCR2B & 0b111);
+            //instruction[0].setWholeValue(static_cast<uint32_t>(TCCR2B & 0b111));
             break;
 #endif
 #if defined(OCR2A)
         case TimerDeviceOperations::SystemTimerComparisonValue:
-            instruction[0].setWholeValue(static_cast<uint32_t>(OCR2A));
+            instruction.bytes[0] = OCR2A;
+            //instruction[0].setWholeValue(static_cast<uint32_t>(OCR2A));
             break;
 #endif
         default:

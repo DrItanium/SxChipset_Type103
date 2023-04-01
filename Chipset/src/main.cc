@@ -76,9 +76,11 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
-[[gnu::address(0x2208)]] volatile uint8_t dataLines[8];
+[[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
+[[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
 [[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
-[[gnu::address(0x2200)]] volatile uint32_t AddressLines16Ptr[2];
+[[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
+[[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
 
 /**
  * @brief Just go through the motions of a write operation but do not capture
@@ -739,14 +741,14 @@ template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
-performIOReadGroup0(SplitWord128& body) noexcept {
+performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t offset) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
     // about out of the packet when performing a read operation so at this
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
-    switch (static_cast<TargetPeripheral>(addressLines[2])) {
+    switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Info:
-            switch (static_cast<InfoDeviceOperations>(addressLines[1])) {
+            switch (static_cast<InfoDeviceOperations>(function)) {
                 case InfoDeviceOperations::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>();
                     break;
@@ -766,11 +768,11 @@ performIOReadGroup0(SplitWord128& body) noexcept {
             }
             return;
         case TargetPeripheral::Serial:
-            theSerial.performRead(addressLines[1], addressLines[0], body);
+            theSerial.performRead(function, offset, body);
             CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
             break;
         case TargetPeripheral::Timer:
-            timerInterface.performRead(addressLines[1], addressLines[0], body);
+            timerInterface.performRead(function, offset, body);
             CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
             break;
         default:
@@ -783,22 +785,20 @@ template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
-performIOWriteGroup0(SplitWord128& body) noexcept {
+performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t offset) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
-    uint8_t functionCode = addressLines[1];
-    uint8_t lowest = addressLines[0];
-    switch (static_cast<TargetPeripheral>(addressLines[2])) {
+    switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
-            theSerial.performWrite(functionCode, lowest, body);
+            theSerial.performWrite(function, offset, body);
             break;
         case TargetPeripheral::Timer:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
-            timerInterface.performWrite(functionCode, lowest, body);
+            timerInterface.performWrite(function, offset, body);
             break;
         default:
             CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>();
@@ -811,15 +811,15 @@ template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 [[gnu::always_inline]]
 inline 
 void
-performIOGroup0Operation() noexcept {
+performIOGroup0Operation(uint8_t group, uint8_t func, uint8_t offset) noexcept {
     if constexpr (inDebugMode) {
         Serial.println(F("Perform IOGroup0 Operation"));
     }
     SplitWord128 operation;
     if constexpr (isReadOperation) {
-        performIOReadGroup0<inDebugMode, width>(operation);
+        performIOReadGroup0<inDebugMode, width>(operation, group, func, offset);
     } else {
-        performIOWriteGroup0<inDebugMode, width>(operation);
+        performIOWriteGroup0<inDebugMode, width>(operation, group, func, offset);
     }
 }
 
@@ -848,23 +848,17 @@ template<bool inDebugMode, NativeBusWidth width>
 [[noreturn]] 
 void 
 executionBody() noexcept {
-    //volatile uint8_t dataLines [[gnu::address(0x2208)]];
-    //volatile uint16_t AddressLines16Ptr [[gnu::address(0x2200)]];
-    //DataRegister8 addressLines = reinterpret_cast<DataRegister8>(0x2200);
-    //DataRegister8 dataLines = reinterpret_cast<DataRegister8>(0x2208);
-    //DataRegister16 AddressLines16Ptr = reinterpret_cast<DataRegister16>(0x2200);
     while (true) {
         waitForDataState();
         if constexpr (inDebugMode) {
             Serial.println(F("NEW TRANSACTION"));
         }
-        if (Platform::isWriteOperation()) {
-            for (byte i = 4; i < 8; ++i) {
-                dataLines[i] = 0;
-            }
-            switch (addressLines[3]) {
+        if (SplitWord32 al{addressLinesValue32}; Platform::isWriteOperation()) {
+            dataLinesDirection = 0;
+            __builtin_avr_nops(3);
+            switch (al.bytes[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, false, width>();
+                    performIOGroup0Operation<inDebugMode, false, width>(al.bytes[2], al.bytes[1], al.bytes[0]);
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -884,19 +878,17 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>();
                     break;
                 default: 
-                    Platform::setBank(computeBankIndex(addressLines[1], addressLines[2]), typename TreatAsOnChipAccess::AccessMethod{});
+                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
-                            getTransactionWindow(*AddressLines16Ptr, typename TreatAsOnChipAccess::AccessMethod{})
+                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{})
                             );
                     break;
             }
         } else {
-            for (byte i = 4; i < 8; ++i) {
-                dataLines[i] = 0xff;
-            }
-            switch (addressLines[3]) {
+            dataLinesDirection = 0xFFFF'FFFF;
+            switch (al.bytes[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, true, width>();
+                    performIOGroup0Operation<inDebugMode, true, width>(al.bytes[2], al.bytes[1], al.bytes[0]);
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -916,9 +908,9 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
                     break;
                 default:
-                    Platform::setBank(computeBankIndex(addressLines[1], addressLines[2]), typename TreatAsOnChipAccess::AccessMethod{});
+                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
-                            getTransactionWindow(*AddressLines16Ptr, typename TreatAsOnChipAccess::AccessMethod{}));
+                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}));
                     break;
             }
         }

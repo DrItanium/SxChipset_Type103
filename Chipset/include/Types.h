@@ -109,8 +109,12 @@ union SplitWord32 {
     [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
     [[nodiscard]] constexpr auto retrieveHalf(byte offset) const noexcept { return halves[offset & 0b1]; }
     [[nodiscard]] constexpr uint8_t getIBUSBankIndex() const noexcept {
-        uint8_t lower = (bytes[1] & 0b11000000) >> 6;
-        uint8_t upper = (bytes[2] & 0b00111111) << 2;
+        // the problem is that we are spanning two bytes in the _middle_ of an
+        // address... so we have to treat them separately and merge them
+        // together later on. So far, this seems to be the most optimal
+        // implementation
+        uint8_t lower = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
+        uint8_t upper = static_cast<uint8_t>(bytes[2] << 2) & 0b1111'1100;
         return lower | upper;
     }
     [[nodiscard]] constexpr uint32_t getXBUSBankIndex() const noexcept {

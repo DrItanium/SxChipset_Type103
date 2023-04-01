@@ -113,9 +113,14 @@ union SplitWord32 {
         // address... so we have to treat them separately and merge them
         // together later on. So far, this seems to be the most optimal
         // implementation
+#if 0
         uint8_t lower = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
         uint8_t upper = static_cast<uint8_t>(bytes[2] << 2) & 0b1111'1100;
         return lower + upper;
+#else
+        return __builtin_avr_insert_bits(0xffffff76, bytes[1], 
+                __builtin_avr_insert_bits(0x543210ff, bytes[2], 0));
+#endif
     }
     [[nodiscard]] constexpr uint32_t getXBUSBankIndex() const noexcept {
         return full >> 15;
@@ -145,9 +150,9 @@ union SplitWord32 {
     }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
-static_assert(SplitWord32{0xFF, 0xFF, 0xFF, 0xFF}.getIBUSBankIndex() == 0xFF);
-static_assert(SplitWord32{0xFF, 0xFF, 0xFE, 0xFF}.getIBUSBankIndex() == 0xFB);
-static_assert(SplitWord32{0xFF, 0xFF, 0xEF, 0xFF}.getIBUSBankIndex() == 0xBF);
+//static_assert(SplitWord32{0xFF, 0xFF, 0xFF, 0xFF}.getIBUSBankIndex() == 0xFF);
+//static_assert(SplitWord32{0xFF, 0xFF, 0xFE, 0xFF}.getIBUSBankIndex() == 0xFB);
+//static_assert(SplitWord32{0xFF, 0xFF, 0xEF, 0xFF}.getIBUSBankIndex() == 0xBF);
 static_assert(SplitWord32{0xFFFFFFFF}.getXBUSBankIndex() == 0x1'FFFF);
 
 

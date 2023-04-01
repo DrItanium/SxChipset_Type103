@@ -249,7 +249,9 @@ Platform::getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept {
 
 void 
 Platform::setBank(const SplitWord32& addr, AccessFromIBUS) noexcept {
+    //__builtin_avr_nops(3);
     setBank(addr.getIBUSBankIndex(), AccessFromIBUS{});
+    //__builtin_avr_nops(3);
 }
 void 
 Platform::setBank(const SplitWord32& addr, AccessFromXBUS) noexcept {

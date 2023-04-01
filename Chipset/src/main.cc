@@ -74,6 +74,77 @@ using DataRegister32 = volatile uint32_t*;
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
+
+/**
+ * @brief Just go through the motions of a write operation but do not capture
+ * anything being sent by the i960
+ */
+[[gnu::always_inline]]
+inline void 
+idleWrite() noexcept {
+    // even though it is eight entries in here, it doesn't actually matter
+    // since this works for four entries (32-bit) as well
+    singleCycleDelay();
+    singleCycleDelay();
+    auto end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    // upper half
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    // upper half
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    // upper half
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    // upper half
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+}
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
     using Self = CommunicationKernel<inDebugMode, isReadOperation, width>;
@@ -105,6 +176,9 @@ doFixedCommunication(DataRegister8 addressLines, DataRegister8 dataLines) noexce
         static_cast<uint8_t>(d >> 16),
         static_cast<uint8_t>(d >> 24),
     };
+    // we cannot hardcode the positions because we have no idea what the
+    // offset is. So we have to do it this way, it is slower but it also means
+    // the code is very straightforward
     if constexpr (const uint8_t* theBytes = &contents.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
         // in all other cases do the whole thing
         dataLines[0] = theBytes[0];
@@ -154,35 +228,7 @@ doFixedCommunication(DataRegister8 addressLines, DataRegister8 dataLines) noexce
             return;
         }
     } else {
-        // just ignore since the fixed values make no sense
-        singleCycleDelay();
-        singleCycleDelay();
-        auto end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
+        idleWrite();
     }
 }
 static void
@@ -419,68 +465,6 @@ private:
             return;
         }
     }
-    static void doFixedWriteOperation() noexcept {
-        singleCycleDelay();
-        singleCycleDelay();
-        auto end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        // upper half
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        // upper half
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        // upper half
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        // upper half
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-    }
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         //for(;;) {
             // just skip over the lowest 16-bits if we start unaligned
@@ -697,9 +681,7 @@ public:
         if constexpr (isReadOperation) {
             doFixedReadOperation<a, b, c, d>(addressLines, dataLines);
         } else {
-            // a fixed write operation doesn't actually care about updating
-            // anything since it doesn't make sense at all
-            doFixedWriteOperation();
+            idleWrite();
         }
     }
     static void
@@ -800,6 +782,9 @@ template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 inline 
 void
 performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode) noexcept {
+    if constexpr (inDebugMode) {
+        Serial.println(F("Perform IOGroup0 Operation"));
+    }
     SplitWord128 operation;
     if constexpr (isReadOperation) {
         performIOReadGroup0<inDebugMode, width>(addressLines, dataLines, opcode, operation);

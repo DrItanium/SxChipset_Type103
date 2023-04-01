@@ -737,7 +737,7 @@ BeginDeviceOperationsList(InfoDevice)
 EndDeviceOperationsList(InfoDevice)
 
 template<bool inDebugMode, NativeBusWidth width>
-//[[gnu::always_inline]]
+[[gnu::always_inline]]
 inline
 void
 performIOReadGroup0(SplitWord128& body) noexcept {
@@ -781,21 +781,25 @@ performIOReadGroup0(SplitWord128& body) noexcept {
     }
 }
 template<bool inDebugMode, NativeBusWidth width>
-//[[gnu::always_inline]]
+[[gnu::always_inline]]
 inline
 void
 performIOWriteGroup0(SplitWord128& body) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
+    //
+    // need to sample the address lines prior to grabbing data off the bus
+    uint8_t functionCode = addressLines[1];
+    uint8_t lowest = addressLines[0];
     switch (static_cast<TargetPeripheral>(addressLines[2])) {
         case TargetPeripheral::Serial:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
-            theSerial.performWrite(addressLines[1], addressLines[0], body);
+            theSerial.performWrite(functionCode, lowest, body);
             break;
         case TargetPeripheral::Timer:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
-            theSerial.performWrite(addressLines[1], addressLines[0], body);
+            timerInterface.performWrite(functionCode, lowest, body);
             break;
         default:
             CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>();
@@ -805,7 +809,7 @@ performIOWriteGroup0(SplitWord128& body) noexcept {
 }
 
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
-//[[gnu::always_inline]]
+[[gnu::always_inline]]
 inline 
 void
 performIOGroup0Operation() noexcept {

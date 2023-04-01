@@ -737,14 +737,14 @@ template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
-performIOReadGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode, SplitWord128& body) noexcept {
+performIOReadGroup0(DataRegister8 addressLines, DataRegister8 dataLines, SplitWord128& body) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
     // about out of the packet when performing a read operation so at this
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
-    switch (opcode.getIODevice<TargetPeripheral>()) {
+    switch (static_cast<TargetPeripheral>(addressLines[2])) {
         case TargetPeripheral::Info:
-            switch (opcode.getIOFunction<InfoDeviceOperations>()) {
+            switch (static_cast<InfoDeviceOperations>(addressLines[1])) {
                 case InfoDeviceOperations::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(addressLines, dataLines);
                     break;
@@ -764,11 +764,11 @@ performIOReadGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const S
             }
             return;
         case TargetPeripheral::Serial:
-            theSerial.performRead(opcode, body);
+            theSerial.performRead(addressLines[1], addressLines[0], body);
             CommunicationKernel<inDebugMode, true, width>::doCommunication(body, addressLines, dataLines);
             break;
         case TargetPeripheral::Timer:
-            timerInterface.performRead(opcode, body);
+            timerInterface.performRead(addressLines[1], addressLines[0], body);
             CommunicationKernel<inDebugMode, true, width>::doCommunication(body, addressLines, dataLines);
             break;
         default:
@@ -781,18 +781,18 @@ template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
-performIOWriteGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode, SplitWord128& body) noexcept {
+performIOWriteGroup0(DataRegister8 addressLines, DataRegister8 dataLines, SplitWord128& body) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
-    switch (opcode.getIODevice<TargetPeripheral>()) {
+    switch (static_cast<TargetPeripheral>(addressLines[2])) {
         case TargetPeripheral::Serial:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body, addressLines, dataLines);
-            theSerial.performWrite(opcode, body);
+            theSerial.performWrite(addressLines[1], addressLines[0], body);
             break;
         case TargetPeripheral::Timer:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body, addressLines, dataLines);
-            timerInterface.performWrite(opcode, body);
+            theSerial.performWrite(addressLines[1], addressLines[0], body);
             break;
         default:
             CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(addressLines, dataLines);
@@ -805,15 +805,15 @@ template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 [[gnu::always_inline]]
 inline 
 void
-performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode) noexcept {
+performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
     if constexpr (inDebugMode) {
         Serial.println(F("Perform IOGroup0 Operation"));
     }
     SplitWord128 operation;
     if constexpr (isReadOperation) {
-        performIOReadGroup0<inDebugMode, width>(addressLines, dataLines, opcode, operation);
+        performIOReadGroup0<inDebugMode, width>(addressLines, dataLines, operation);
     } else {
-        performIOWriteGroup0<inDebugMode, width>(addressLines, dataLines, opcode, operation);
+        performIOWriteGroup0<inDebugMode, width>(addressLines, dataLines, operation);
     }
 }
 
@@ -844,7 +844,6 @@ void
 executionBody() noexcept {
     DataRegister8 addressLines = reinterpret_cast<DataRegister8>(0x2200);
     DataRegister8 dataLines = reinterpret_cast<DataRegister8>(0x2208);
-    DataRegister32 AddressLines32Ptr = reinterpret_cast<DataRegister32>(0x2200);
     DataRegister16 AddressLines16Ptr = reinterpret_cast<DataRegister16>(0x2200);
     while (true) {
         waitForDataState();
@@ -857,7 +856,7 @@ executionBody() noexcept {
             }
             switch (addressLines[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, false, width>(addressLines, dataLines, SplitWord32{*AddressLines32Ptr});
+                    performIOGroup0Operation<inDebugMode, false, width>(addressLines, dataLines);
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -889,7 +888,7 @@ executionBody() noexcept {
             }
             switch (addressLines[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, true, width>(addressLines, dataLines, SplitWord32{*AddressLines32Ptr});
+                    performIOGroup0Operation<inDebugMode, true, width>(addressLines, dataLines);
                     break;
                 case 0xF1:
                 case 0xF2:

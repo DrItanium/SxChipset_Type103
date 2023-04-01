@@ -54,7 +54,7 @@ SerialDevice::init() noexcept {
 
 
 void
-SerialDevice::extendedRead(SerialDeviceOperations opcode, const SplitWord32, SplitWord128& instruction) const noexcept {
+SerialDevice::extendedRead(SerialDeviceOperations opcode, uint8_t, SplitWord128& instruction) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (opcode) {
@@ -71,7 +71,7 @@ SerialDevice::extendedRead(SerialDeviceOperations opcode, const SplitWord32, Spl
     }
 }
 void 
-SerialDevice::extendedWrite(SerialDeviceOperations opcode, const SplitWord32, const SplitWord128& instruction) noexcept {
+SerialDevice::extendedWrite(SerialDeviceOperations opcode, uint8_t, const SplitWord128& instruction) noexcept {
     // do nothing
     switch (opcode) {
         case SerialDeviceOperations::RW:

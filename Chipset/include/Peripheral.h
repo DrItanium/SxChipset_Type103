@@ -78,8 +78,8 @@ public:
     bool begin() noexcept { return static_cast<Child*>(this)->init(); }
     [[nodiscard]] bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
     [[nodiscard]] constexpr uint8_t size() const noexcept { return size_; }
-    void performRead(const SplitWord32 opcode, SplitWord128& instruction) const noexcept {
-        auto theOpcode = opcode.getIOFunction<E>();
+    void performRead(byte opcode, byte lowest, SplitWord128& instruction) const noexcept {
+        auto theOpcode = static_cast<E>(opcode);
         switch (theOpcode) {
             case E::Available:
                 instruction.bytes[0] = available();
@@ -89,13 +89,13 @@ public:
                 break;
             default:
                 if (validOperation(theOpcode)) {
-                    static_cast<const Child*>(this)->extendedRead(theOpcode, opcode, instruction);
+                    static_cast<const Child*>(this)->extendedRead(theOpcode, lowest, instruction);
                 }
                 break;
         }
     }
-    void performWrite(const SplitWord32 opcode, const SplitWord128& instruction) noexcept {
-        static_cast<Child*>(this)->extendedWrite(opcode.getIOFunction<E>(), opcode, instruction);
+    void performWrite(byte opcode, byte lowest, const SplitWord128& instruction) noexcept {
+        static_cast<Child*>(this)->extendedWrite(static_cast<E>(opcode), lowest, instruction);
     }
 private:
     uint8_t size_{static_cast<uint8_t>(E::Count) };

@@ -51,7 +51,7 @@ TimerDevice::init() noexcept {
 }
 
 void
-TimerDevice::extendedRead(TimerDeviceOperations opcode, const SplitWord32 addr, SplitWord128& instruction) const noexcept {
+TimerDevice::extendedRead(TimerDeviceOperations opcode, uint8_t, SplitWord128& instruction) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (opcode) {
@@ -72,7 +72,7 @@ TimerDevice::extendedRead(TimerDeviceOperations opcode, const SplitWord32 addr, 
     }
 }
 void 
-TimerDevice::extendedWrite(TimerDeviceOperations opcode, const SplitWord32 addr, const SplitWord128& instruction) noexcept {
+TimerDevice::extendedWrite(TimerDeviceOperations opcode, uint8_t, const SplitWord128& instruction) noexcept {
     // do nothing
     switch (opcode) {
 #if defined(TCCR2A) && defined(TCCR2B)

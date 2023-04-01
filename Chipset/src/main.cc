@@ -70,6 +70,7 @@ struct TreatAsInstruction final {
 };
 
 using DataRegister8 = volatile uint8_t*;
+using DataRegister16 = volatile uint16_t*;
 using DataRegister32 = volatile uint32_t*;
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
@@ -816,7 +817,25 @@ performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines, co
     }
 }
 
+uint8_t computeBankIndex(uint8_t lower, uint8_t upper) noexcept {
+#ifndef __BUILTIN_AVR_INSERT_BITS
+        uint8_t a = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
+        uint8_t b = static_cast<uint8_t>(bytes[2] << 2) & 0b1111'1100;
+        return a + b;
+#else
+        return __builtin_avr_insert_bits(0xffffff76, lower, 
+                __builtin_avr_insert_bits(0x543210ff, upper, 0));
+#endif
+}
 
+uint16_t 
+computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
+        return 0x4000 + (offset & 0x3FF0);
+}
+volatile SplitWord128&
+getTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
+    return memory<SplitWord128>(computeTransactionWindow(offset, typename TreatAsOnChipAccess::AccessMethod{}));
+}
 
 template<bool inDebugMode, NativeBusWidth width> 
 [[gnu::noinline]]
@@ -826,6 +845,7 @@ executionBody() noexcept {
     DataRegister8 addressLines = reinterpret_cast<DataRegister8>(0x2200);
     DataRegister8 dataLines = reinterpret_cast<DataRegister8>(0x2208);
     DataRegister32 AddressLines32Ptr = reinterpret_cast<DataRegister32>(0x2200);
+    DataRegister16 AddressLines16Ptr = reinterpret_cast<DataRegister16>(0x2200);
     while (true) {
         waitForDataState();
         if constexpr (inDebugMode) {
@@ -856,13 +876,12 @@ executionBody() noexcept {
                 case 0xFF:
                     CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(addressLines, dataLines);
                     break;
-                default: {
-                             SplitWord32 addr{*AddressLines32Ptr};
-                             Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
-                             CommunicationKernel<inDebugMode, false, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
-                                     addressLines, dataLines);
-                             break;
-                         }
+                default: 
+                    Platform::setBank(computeBankIndex(addressLines[1], addressLines[2]), typename TreatAsOnChipAccess::AccessMethod{});
+                    CommunicationKernel<inDebugMode, false, width>::doCommunication(
+                            getTransactionWindow(*AddressLines16Ptr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                            addressLines, dataLines);
+                    break;
             }
         } else {
             for (byte i = 4; i < 8; ++i) {
@@ -889,13 +908,12 @@ executionBody() noexcept {
                 case 0xFF:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(addressLines, dataLines);
                     break;
-                default: {
-                             SplitWord32 addr{*AddressLines32Ptr};
-                             Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
-                             CommunicationKernel<inDebugMode, true, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
-                                     addressLines, dataLines);
-                             break;
-                         }
+                default:
+                    Platform::setBank(computeBankIndex(addressLines[1], addressLines[2]), typename TreatAsOnChipAccess::AccessMethod{});
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(
+                            getTransactionWindow(*AddressLines16Ptr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                            addressLines, dataLines);
+                    break;
             }
         }
         if constexpr (inDebugMode) {

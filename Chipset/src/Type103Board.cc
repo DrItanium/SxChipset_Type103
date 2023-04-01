@@ -134,6 +134,7 @@ void
 Platform::doHold(decltype(LOW) value) noexcept {
     getProcessorInterface().control_.ctl.hold = value;
 }
+[[gnu::always_inline]]
 void
 Platform::signalReady() noexcept {
     if constexpr (MCUHasDirectAccess) {
@@ -192,6 +193,7 @@ Platform::signalNMI() noexcept {
     getProcessorInterface().control_.ctl.nmi = 1;
 }
 
+[[gnu::always_inline]]
 bool
 Platform::isBurstLast() noexcept {
     if constexpr (MCUHasDirectAccess) {

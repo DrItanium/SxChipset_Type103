@@ -30,11 +30,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "Setup.h"
 #include "SerialDevice.h"
-#include "InfoDevice.h"
+//#include "InfoDevice.h"
 #include "TimerDevice.h"
 
 SerialDevice theSerial;
-InfoDevice infoDevice;
+//InfoDevice infoDevice;
 TimerDevice timerInterface;
 
 void 
@@ -69,51 +69,6 @@ struct TreatAsInstruction final {
     using AccessMethod = AccessFromInstruction;
 };
 
-template<bool inDebugMode>
-inline
-void
-performIOReadGroup0(const SplitWord32 opcode, SplitWord128& body) noexcept {
-    // unlike standard i960 operations, we only encode the data we actually care
-    // about out of the packet when performing a read operation so at this
-    // point it doesn't matter what kind of data the i960 is requesting.
-    // This maintains consistency and makes the implementation much simpler
-    switch (opcode.getIODevice<TargetPeripheral>()) {
-        case TargetPeripheral::Info:
-            infoDevice.performRead(opcode, body);
-            break;
-        case TargetPeripheral::Serial:
-            theSerial.performRead(opcode, body);
-            break;
-        case TargetPeripheral::Timer:
-            timerInterface.performRead(opcode, body);
-            break;
-        default:
-            // unknown device so do not do anything
-            break;
-    }
-}
-template<bool inDebugMode>
-inline
-void
-performIOWriteGroup0(const SplitWord32 opcode, const SplitWord128& body) noexcept {
-    // unlike standard i960 operations, we only decode the data we actually care
-    // about out of the packet when performing a write operation so at this
-    // point it doesn't matter what kind of data we were actually given
-    switch (opcode.getIODevice<TargetPeripheral>()) {
-        case TargetPeripheral::Info:
-            infoDevice.performWrite(opcode, body);
-            break;
-        case TargetPeripheral::Serial:
-            theSerial.performWrite(opcode, body);
-            break;
-        case TargetPeripheral::Timer:
-            timerInterface.performWrite(opcode, body);
-            break;
-        default:
-            // unknown device so do not do anything
-            break;
-    }
-}
 using DataRegister8 = volatile uint8_t*;
 using DataRegister32 = volatile uint32_t*;
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
@@ -770,38 +725,106 @@ public:
     }
 };
 
+BeginDeviceOperationsList(InfoDevice)
+    GetChipsetClock,
+    GetCPUClock,
+EndDeviceOperationsList(InfoDevice)
+
+template<bool inDebugMode, NativeBusWidth width>
+inline
+void
+performIOReadGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode, SplitWord128& body) noexcept {
+    // unlike standard i960 operations, we only encode the data we actually care
+    // about out of the packet when performing a read operation so at this
+    // point it doesn't matter what kind of data the i960 is requesting.
+    // This maintains consistency and makes the implementation much simpler
+    switch (opcode.getIODevice<TargetPeripheral>()) {
+        case TargetPeripheral::Info:
+            switch (opcode.getIOFunction<InfoDeviceOperations>()) {
+                case InfoDeviceOperations::Available:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(addressLines, dataLines);
+                    break;
+                case InfoDeviceOperations::Size:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(InfoDeviceOperations::Count)>(addressLines, dataLines);
+                    break;
+                case InfoDeviceOperations::GetChipsetClock:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU>(addressLines, dataLines);
+                    break;
+                case InfoDeviceOperations::GetCPUClock:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>(addressLines, dataLines);
+                    break;
+                default:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(addressLines, dataLines);
+                    // unknown device so do not do anything
+                    break;
+            }
+            return;
+        case TargetPeripheral::Serial:
+            theSerial.performRead(opcode, body);
+            CommunicationKernel<inDebugMode, true, width>::doCommunication(body, addressLines, dataLines);
+            break;
+        case TargetPeripheral::Timer:
+            timerInterface.performRead(opcode, body);
+            CommunicationKernel<inDebugMode, true, width>::doCommunication(body, addressLines, dataLines);
+            break;
+        default:
+            CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(addressLines, dataLines);
+            // unknown device so do not do anything
+            break;
+    }
+}
+template<bool inDebugMode, NativeBusWidth width>
+inline
+void
+performIOWriteGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode, SplitWord128& body) noexcept {
+    // unlike standard i960 operations, we only decode the data we actually care
+    // about out of the packet when performing a write operation so at this
+    // point it doesn't matter what kind of data we were actually given
+    switch (opcode.getIODevice<TargetPeripheral>()) {
+        case TargetPeripheral::Serial:
+            CommunicationKernel<inDebugMode, false, width>::doCommunication(body, addressLines, dataLines);
+            theSerial.performWrite(opcode, body);
+            break;
+        case TargetPeripheral::Timer:
+            CommunicationKernel<inDebugMode, false, width>::doCommunication(body, addressLines, dataLines);
+            timerInterface.performWrite(opcode, body);
+            break;
+        default:
+            CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(addressLines, dataLines);
+            // unknown device so do not do anything
+            break;
+    }
+}
+
+template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+inline 
+void
+performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode) noexcept {
+    SplitWord128 operation;
+    if constexpr (isReadOperation) {
+        performIOReadGroup0<inDebugMode, width>(addressLines, dataLines, opcode, operation);
+    } else {
+        performIOWriteGroup0<inDebugMode, width>(addressLines, dataLines, opcode, operation);
+    }
+}
+
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void
 talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
         Serial.println(F("INSTRUCTION REQUESTED!"));
     }
-    //SplitWord32 addr{Platform::readAddress()};
     // If the lowest four bits are not zero then that is a problem on the side
     // of the i960. For example, if you started in the middle of the 16-byte
     // block then the data will still be valid just not what you wanted. This
     // ignores a huge class of problems. Instead, we just process
-    SplitWord128 operation;
     switch (addr.getIOGroup()) {
         case 0xF0: // only group 0 is active right now
-            if constexpr (isReadOperation) {
-                // We perform the read operation _ahead_ of sending it back to the i960
-                // The result of the read operation is stored in the args of the
-                // instruction. 
-                performIOReadGroup0<inDebugMode>(addr, operation);
-            }
-            CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation, addressLines, dataLines);
-            if constexpr (!isReadOperation) {
-                // we process the data after we get it off the bus
-                performIOWriteGroup0<inDebugMode>(addr, operation);
-            }
+            performIOGroup0Operation<inDebugMode, isReadOperation, width>(addressLines, dataLines, addr);
             break;
         default:
+            // just return zeroes
             CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0,0,0,0>(addressLines, dataLines);
-            // just ignore the data and return what we have inside of
-            // the operation object itself. 
-            //
-            // This greatly simplifies everything!
             break;
     }
 }
@@ -913,7 +936,6 @@ void
 setup() {
     setupPins();
     theSerial.begin();
-    infoDevice.begin();
     timerInterface.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz

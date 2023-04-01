@@ -88,25 +88,12 @@ public:
                 instruction.bytes[0] = size();
                 break;
             default:
-                if (validOperation(theOpcode)) {
-                    static_cast<const Child*>(this)->extendedRead(theOpcode, opcode, instruction);
-                }
+                static_cast<const Child*>(this)->extendedRead(theOpcode, opcode, instruction);
                 break;
         }
     }
     void performWrite(const SplitWord32 opcode, const SplitWord128& instruction) noexcept {
-        auto theOpcode = opcode.getIOFunction<E>();
-        switch (theOpcode) {
-            case E::Available:
-            case E::Size:
-                // do nothing
-                break;
-            default:
-                if (validOperation(theOpcode)) {
-                    static_cast<Child*>(this)->extendedWrite(theOpcode, opcode, instruction);
-                }
-                break;
-        }
+        static_cast<Child*>(this)->extendedWrite(opcode.getIOFunction<E>(), opcode, instruction);
     }
 private:
     uint8_t size_{static_cast<uint8_t>(E::Count) };

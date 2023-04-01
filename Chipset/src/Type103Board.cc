@@ -137,12 +137,7 @@ Platform::doHold(decltype(LOW) value) noexcept {
 [[gnu::always_inline]]
 void
 Platform::signalReady() noexcept {
-    if constexpr (MCUHasDirectAccess) {
-        toggle<Pin::READY>();
-    } else {
-        getProcessorInterface().control_.ctl.ready = ~getProcessorInterface().control_.ctl.ready;
-    }
-
+    toggle<Pin::READY>();
 }
 
 bool
@@ -196,20 +191,12 @@ Platform::signalNMI() noexcept {
 [[gnu::always_inline]]
 bool
 Platform::isBurstLast() noexcept {
-    if constexpr (MCUHasDirectAccess) {
-        return digitalRead<Pin::BLAST>() == LOW;
-    } else {
-        return getProcessorInterface().control_.ctl.blast == 0;
-    }
+    return digitalRead<Pin::BLAST>() == LOW;
 }
 
 uint8_t
 Platform::getByteEnable() noexcept {
-    if constexpr (MCUHasDirectAccess) {
-        return getInputRegister<Port::SignalCTL>() & 0b1111;
-    } else {
-        return getProcessorInterface().control_.ctl.byteEnable;
-    }
+    return getInputRegister<Port::SignalCTL>() & 0b1111;
 }
 
 uint16_t 
@@ -222,12 +209,10 @@ Platform::getLowerDataBits() noexcept {
 }
 void 
 Platform::setUpperDataBits(uint16_t value) noexcept {
-
     getProcessorInterface().dataLines_.view16.data[1] = value;
 }
 void 
 Platform::setLowerDataBits(uint16_t value) noexcept {
-
     getProcessorInterface().dataLines_.view16.data[0] = value;
 }
 void 

@@ -777,8 +777,18 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             }
             return;
         case TargetPeripheral::Serial:
-            theSerial.performRead(function, offset, body);
-            CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+            switch (static_cast<SerialDeviceOperations>(function)) {
+                case SerialDeviceOperations::Available:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>();
+                    return;
+                case SerialDeviceOperations::Size:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(SerialDeviceOperations::Count)>();
+                    return;
+                default:
+                    theSerial.extendedRead(static_cast<SerialDeviceOperations>(function), offset, body);
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    break;
+            }
             break;
         case TargetPeripheral::Timer:
             timerInterface.performRead(function, offset, body);

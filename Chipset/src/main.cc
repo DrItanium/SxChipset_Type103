@@ -156,6 +156,8 @@ struct CommunicationKernel {
     Self& operator=(Self&&) = delete;
 
 template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
+[[gnu::always_inline]]
+inline
 static void 
 doFixedCommunication(DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
     static constexpr SplitWord128 contents {
@@ -231,6 +233,8 @@ doFixedCommunication(DataRegister8 addressLines, DataRegister8 dataLines) noexce
         idleWrite();
     }
 }
+[[gnu::always_inline]]
+inline
 static void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
     if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
@@ -375,6 +379,8 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(Self&&) = delete;
 private:
     template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
+    [[gnu::always_inline]]
+    inline
     static void doFixedReadOperation(DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         static constexpr SplitWord128 contents{
             static_cast<uint8_t>(a),
@@ -465,6 +471,8 @@ private:
             return;
         }
     }
+    [[gnu::always_inline]]
+    inline
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         //for(;;) {
             // just skip over the lowest 16-bits if we start unaligned
@@ -539,6 +547,8 @@ private:
             }
         //} 
     }
+    [[gnu::always_inline]]
+    inline
     static void doWriteOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         // now we are aligned so start execution as needed
         //for(;;) {
@@ -675,6 +685,8 @@ private:
 
 public:
     template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
+    [[gnu::always_inline]]
+    inline
     static void
     doFixedCommunication(DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo check the start position as that will describe the cycle shape
@@ -684,6 +696,8 @@ public:
             idleWrite();
         }
     }
+    [[gnu::always_inline]]
+    inline
     static void
     doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo check the start position as that will describe the cycle shape
@@ -713,6 +727,7 @@ BeginDeviceOperationsList(InfoDevice)
 EndDeviceOperationsList(InfoDevice)
 
 template<bool inDebugMode, NativeBusWidth width>
+[[gnu::always_inline]]
 inline
 void
 performIOReadGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode, SplitWord128& body) noexcept {
@@ -756,6 +771,7 @@ performIOReadGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const S
     }
 }
 template<bool inDebugMode, NativeBusWidth width>
+[[gnu::always_inline]]
 inline
 void
 performIOWriteGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode, SplitWord128& body) noexcept {
@@ -779,6 +795,7 @@ performIOWriteGroup0(DataRegister8 addressLines, DataRegister8 dataLines, const 
 }
 
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+[[gnu::always_inline]]
 inline 
 void
 performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 opcode) noexcept {
@@ -794,6 +811,8 @@ performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines, co
 }
 
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+[[gnu::always_inline]]
+inline
 void
 talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, TreatAsInstruction) noexcept {
     if (inDebugMode) {
@@ -815,37 +834,8 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
 }
 
 
-template<bool inDebugMode, bool isReadOperation, NativeBusWidth width, typename T>
-void
-talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, T) noexcept {
-    if constexpr (inDebugMode) {
-        Serial.println(F("Direct memory access begin!"));
-    }
-    // only need to set this once, it is literally impossible for this to span
-    // banks
-    Platform::setBank(addr, typename T::AccessMethod{});
-    CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(Platform::getTransactionWindow(addr, typename T::AccessMethod{}), 
-            addressLines, dataLines);
-    if constexpr (inDebugMode) {
-        Serial.println(F("Direct memory access end!"));
-    }
-}
-
-template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
-void
-handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
-    static constexpr uint8_t targetDirection = isReadOperation ? 0xFF : 0;
-    for (byte i = 4; i < 8; ++i) {
-        dataLines[i] = targetDirection;
-    }
-    if (addr.bytes[3] >= 0xF0) {
-        talkToi960<inDebugMode, isReadOperation, width>(addressLines, dataLines, addr, TreatAsInstruction{});
-    } else {
-        talkToi960<inDebugMode, isReadOperation, width>(addressLines, dataLines, addr, TreatAsOnChipAccess{});
-    }
-}
-
 template<bool inDebugMode, NativeBusWidth width>
+inline
 void
 handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
     // first we need to extract the address from the CH351s
@@ -853,9 +843,27 @@ handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const Spl
         Serial.println(F("NEW TRANSACTION"));
     }
     if (Platform::isWriteOperation()) {
-        handleTransaction<inDebugMode, false, width>(addressLines, dataLines, addr, LoadFromIBUS{});
+        for (byte i = 4; i < 8; ++i) {
+            dataLines[i] = 0;
+        }
+        if (addr.bytes[3] >= 0xF0) {
+            talkToi960<inDebugMode, false, width>(addressLines, dataLines, addr, TreatAsInstruction{});
+        } else {
+            Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
+            CommunicationKernel<inDebugMode, false, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                    addressLines, dataLines);
+        }
     } else {
-        handleTransaction<inDebugMode, true, width>(addressLines, dataLines, addr, LoadFromIBUS{});
+        for (byte i = 4; i < 8; ++i) {
+            dataLines[i] = 0xff;
+        }
+        if (addr.bytes[3] >= 0xF0) {
+            talkToi960<inDebugMode, true, width>(addressLines, dataLines, addr, TreatAsInstruction{});
+        } else {
+            Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
+            CommunicationKernel<inDebugMode, true, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                    addressLines, dataLines);
+        }
     }
     if constexpr (inDebugMode) {
         Serial.println(F("END TRANSACTION"));

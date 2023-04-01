@@ -115,7 +115,7 @@ union SplitWord32 {
         // implementation
         uint8_t lower = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
         uint8_t upper = static_cast<uint8_t>(bytes[2] << 2) & 0b1111'1100;
-        return lower | upper;
+        return lower + upper;
     }
     [[nodiscard]] constexpr uint32_t getXBUSBankIndex() const noexcept {
         return full >> 15;

@@ -43,14 +43,13 @@ constexpr bool XINT7DirectConnect = false;
 [[gnu::always_inline]]
 inline void
 singleCycleDelay() noexcept {
-    asm volatile ("nop");
-    asm volatile ("nop");
+    __builtin_avr_nops(2);
 }
 
 [[gnu::always_inline]]
 inline void
 halfCycleDelay() noexcept {
-    asm volatile ("nop");
+    __builtin_avr_nops(1);
 }
 
 [[gnu::always_inline]]

@@ -810,28 +810,6 @@ performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines, co
     }
 }
 
-template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
-[[gnu::always_inline]]
-inline
-void
-talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, TreatAsInstruction) noexcept {
-    if (inDebugMode) {
-        Serial.println(F("INSTRUCTION REQUESTED!"));
-    }
-    // If the lowest four bits are not zero then that is a problem on the side
-    // of the i960. For example, if you started in the middle of the 16-byte
-    // block then the data will still be valid just not what you wanted. This
-    // ignores a huge class of problems. Instead, we just process
-    switch (addr.getIOGroup()) {
-        case 0xF0: // only group 0 is active right now
-            performIOGroup0Operation<inDebugMode, isReadOperation, width>(addressLines, dataLines, addr);
-            break;
-        default:
-            // just return zeroes
-            CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0>(addressLines, dataLines);
-            break;
-    }
-}
 
 
 template<bool inDebugMode, NativeBusWidth width>
@@ -846,23 +824,63 @@ handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const Spl
         for (byte i = 4; i < 8; ++i) {
             dataLines[i] = 0;
         }
-        if (addr.bytes[3] >= 0xF0) {
-            talkToi960<inDebugMode, false, width>(addressLines, dataLines, addr, TreatAsInstruction{});
-        } else {
-            Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
-            CommunicationKernel<inDebugMode, false, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
-                    addressLines, dataLines);
+        switch (addr.bytes[3]) {
+            case 0xF0:
+                performIOGroup0Operation<inDebugMode, false, width>(addressLines, dataLines, addr);
+                break;
+            case 0xF1:
+            case 0xF2:
+            case 0xF3:
+            case 0xF4:
+            case 0xF5:
+            case 0xF6:
+            case 0xF7:
+            case 0xF8:
+            case 0xF9:
+            case 0xFA:
+            case 0xFB:
+            case 0xFC:
+            case 0xFD:
+            case 0xFE:
+            case 0xFF:
+                CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(addressLines, dataLines);
+                break;
+            default:
+                Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
+                CommunicationKernel<inDebugMode, false, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                        addressLines, dataLines);
+                break;
         }
     } else {
         for (byte i = 4; i < 8; ++i) {
             dataLines[i] = 0xff;
         }
-        if (addr.bytes[3] >= 0xF0) {
-            talkToi960<inDebugMode, true, width>(addressLines, dataLines, addr, TreatAsInstruction{});
-        } else {
-            Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
-            CommunicationKernel<inDebugMode, true, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
-                    addressLines, dataLines);
+        switch (addr.bytes[3]) {
+            case 0xF0:
+                performIOGroup0Operation<inDebugMode, true, width>(addressLines, dataLines, addr);
+                break;
+            case 0xF1:
+            case 0xF2:
+            case 0xF3:
+            case 0xF4:
+            case 0xF5:
+            case 0xF6:
+            case 0xF7:
+            case 0xF8:
+            case 0xF9:
+            case 0xFA:
+            case 0xFB:
+            case 0xFC:
+            case 0xFD:
+            case 0xFE:
+            case 0xFF:
+                CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(addressLines, dataLines);
+                break;
+            default:
+                Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
+                CommunicationKernel<inDebugMode, true, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                        addressLines, dataLines);
+                break;
         }
     }
     if constexpr (inDebugMode) {

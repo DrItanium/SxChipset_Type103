@@ -78,6 +78,7 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[8];
 [[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
+[[gnu::address(0x2200)]] volatile uint32_t AddressLines16Ptr[2];
 
 /**
  * @brief Just go through the motions of a write operation but do not capture
@@ -484,7 +485,6 @@ private:
             uint8_t value = *addressLines;
             uint8_t offset = getWordByteOffset(value);
             DataRegister8 theBytes = &theView.bytes[offset];
-            __builtin_avr_nops(4);
             if ((value & 0b0010) == 0) {
                 dataLines[0] = theBytes[0];
                 dataLines[1] = theBytes[1];
@@ -564,7 +564,6 @@ private:
             uint8_t offset = getWordByteOffset(value);
             DataRegister8 base = theView.bytes;
             DataRegister8 theBytes = &base[offset];
-            __builtin_avr_nops(5);
             // if we are aligned to 32-bit word boundaries then just assume we
             // are at the start of the 16-byte block (the processor will stop
             // when it doesn't need data anymore). If we are not then skip over

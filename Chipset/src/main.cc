@@ -812,81 +812,88 @@ performIOGroup0Operation(DataRegister8 addressLines, DataRegister8 dataLines, co
 
 
 
-template<bool inDebugMode, NativeBusWidth width>
-inline
-void
-handleTransaction(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, LoadFromIBUS) noexcept {
-    // first we need to extract the address from the CH351s
-    if constexpr (inDebugMode) {
-        Serial.println(F("NEW TRANSACTION"));
+template<bool inDebugMode, NativeBusWidth width> 
+[[gnu::noinline]]
+[[noreturn]] 
+void 
+executionBody() noexcept {
+    DataRegister8 addressLines = reinterpret_cast<DataRegister8>(0x2200);
+    DataRegister8 dataLines = reinterpret_cast<DataRegister8>(0x2208);
+    DataRegister32 AddressLines32Ptr = reinterpret_cast<DataRegister32>(0x2200);
+    while (true) {
+        waitForDataState();
+        if constexpr (inDebugMode) {
+            Serial.println(F("NEW TRANSACTION"));
+        }
+        SplitWord32 addr{*AddressLines32Ptr};
+        if (Platform::isWriteOperation()) {
+            for (byte i = 4; i < 8; ++i) {
+                dataLines[i] = 0;
+            }
+            switch (addr.bytes[3]) {
+                case 0xF0:
+                    performIOGroup0Operation<inDebugMode, false, width>(addressLines, dataLines, addr);
+                    break;
+                case 0xF1:
+                case 0xF2:
+                case 0xF3:
+                case 0xF4:
+                case 0xF5:
+                case 0xF6:
+                case 0xF7:
+                case 0xF8:
+                case 0xF9:
+                case 0xFA:
+                case 0xFB:
+                case 0xFC:
+                case 0xFD:
+                case 0xFE:
+                case 0xFF:
+                    CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(addressLines, dataLines);
+                    break;
+                default:
+                    Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
+                    CommunicationKernel<inDebugMode, false, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                            addressLines, dataLines);
+                    break;
+            }
+        } else {
+            for (byte i = 4; i < 8; ++i) {
+                dataLines[i] = 0xff;
+            }
+            switch (addr.bytes[3]) {
+                case 0xF0:
+                    performIOGroup0Operation<inDebugMode, true, width>(addressLines, dataLines, addr);
+                    break;
+                case 0xF1:
+                case 0xF2:
+                case 0xF3:
+                case 0xF4:
+                case 0xF5:
+                case 0xF6:
+                case 0xF7:
+                case 0xF8:
+                case 0xF9:
+                case 0xFA:
+                case 0xFB:
+                case 0xFC:
+                case 0xFD:
+                case 0xFE:
+                case 0xFF:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(addressLines, dataLines);
+                    break;
+                default:
+                    Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
+                            addressLines, dataLines);
+                    break;
+            }
+        }
+        if constexpr (inDebugMode) {
+            Serial.println(F("END TRANSACTION"));
+        }
+        singleCycleDelay();
     }
-    if (Platform::isWriteOperation()) {
-        for (byte i = 4; i < 8; ++i) {
-            dataLines[i] = 0;
-        }
-        switch (addr.bytes[3]) {
-            case 0xF0:
-                performIOGroup0Operation<inDebugMode, false, width>(addressLines, dataLines, addr);
-                break;
-            case 0xF1:
-            case 0xF2:
-            case 0xF3:
-            case 0xF4:
-            case 0xF5:
-            case 0xF6:
-            case 0xF7:
-            case 0xF8:
-            case 0xF9:
-            case 0xFA:
-            case 0xFB:
-            case 0xFC:
-            case 0xFD:
-            case 0xFE:
-            case 0xFF:
-                CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(addressLines, dataLines);
-                break;
-            default:
-                Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
-                CommunicationKernel<inDebugMode, false, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
-                        addressLines, dataLines);
-                break;
-        }
-    } else {
-        for (byte i = 4; i < 8; ++i) {
-            dataLines[i] = 0xff;
-        }
-        switch (addr.bytes[3]) {
-            case 0xF0:
-                performIOGroup0Operation<inDebugMode, true, width>(addressLines, dataLines, addr);
-                break;
-            case 0xF1:
-            case 0xF2:
-            case 0xF3:
-            case 0xF4:
-            case 0xF5:
-            case 0xF6:
-            case 0xF7:
-            case 0xF8:
-            case 0xF9:
-            case 0xFA:
-            case 0xFB:
-            case 0xFC:
-            case 0xFD:
-            case 0xFE:
-            case 0xFF:
-                CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(addressLines, dataLines);
-                break;
-            default:
-                Platform::setBank(addr, typename TreatAsOnChipAccess::AccessMethod{});
-                CommunicationKernel<inDebugMode, true, width>::doCommunication(Platform::getTransactionWindow(addr, typename TreatAsOnChipAccess::AccessMethod{}), 
-                        addressLines, dataLines);
-                break;
-        }
-    }
-    if constexpr (inDebugMode) {
-        Serial.println(F("END TRANSACTION"));
-    }
-    // need this delay to synchronize everything :)
 }
 
 template<bool inDebugMode = true, uint32_t maxFileSize = 2048ul * 1024ul, auto BufferSize = 16384>
@@ -981,20 +988,6 @@ template<bool ForceEnterDebugMode = EnableDebugMode>
 bool 
 isDebuggingSession() noexcept {
     return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;
-}
-template<bool inDebugMode, NativeBusWidth width> 
-[[gnu::noinline]]
-[[noreturn]] 
-void 
-executionBody() noexcept {
-    DataRegister8 AddressLinesPtr = reinterpret_cast<DataRegister8>(0x2200);
-    DataRegister8 DataLinesPtr = reinterpret_cast<DataRegister8>(0x2208);
-    DataRegister32 AddressLines32Ptr = reinterpret_cast<DataRegister32>(0x2200);
-    while (true) {
-        waitForDataState();
-        handleTransaction<inDebugMode, width>(AddressLinesPtr, DataLinesPtr, SplitWord32{*AddressLines32Ptr}, SelectedLogic{});
-        singleCycleDelay();
-    }
 }
 template<NativeBusWidth width>
 void

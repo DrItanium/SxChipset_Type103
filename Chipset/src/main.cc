@@ -128,138 +128,238 @@ struct CommunicationKernel {
     CommunicationKernel(Self&&) = delete;
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
+
+template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
+static void 
+doFixedCommunication(DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
+    static constexpr SplitWord128 contents {
+        static_cast<uint8_t>(a),
+        static_cast<uint8_t>(a >> 8),
+        static_cast<uint8_t>(a >> 16),
+        static_cast<uint8_t>(a >> 24),
+        static_cast<uint8_t>(b),
+        static_cast<uint8_t>(b >> 8),
+        static_cast<uint8_t>(b >> 16),
+        static_cast<uint8_t>(b >> 24),
+        static_cast<uint8_t>(c),
+        static_cast<uint8_t>(c >> 8),
+        static_cast<uint8_t>(c >> 16),
+        static_cast<uint8_t>(c >> 24),
+        static_cast<uint8_t>(d),
+        static_cast<uint8_t>(d >> 8),
+        static_cast<uint8_t>(d >> 16),
+        static_cast<uint8_t>(d >> 24),
+    };
+    if constexpr (const uint8_t* theBytes = &contents.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
+        // in all other cases do the whole thing
+        dataLines[0] = theBytes[0];
+        dataLines[1] = theBytes[1];
+        dataLines[2] = theBytes[2];
+        dataLines[3] = theBytes[3];
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+
+        dataLines[0] = theBytes[4];
+        dataLines[1] = theBytes[5];
+        dataLines[2] = theBytes[6];
+        dataLines[3] = theBytes[7];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+
+        dataLines[0] = theBytes[8];
+        dataLines[1] = theBytes[9];
+        dataLines[2] = theBytes[10];
+        dataLines[3] = theBytes[11];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+
+        dataLines[0] = theBytes[12];
+        dataLines[1] = theBytes[13];
+        dataLines[2] = theBytes[14];
+        dataLines[3] = theBytes[15];
+        /// @todo do not sample blast at the end of a 16-byte transaction
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+    } else {
+        // just ignore since the fixed values make no sense
+        singleCycleDelay();
+        singleCycleDelay();
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+    }
+}
 static void
 doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
-    //for(;;) {
-        if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
-            // in all other cases do the whole thing
-            dataLines[0] = theBytes[0];
-            dataLines[1] = theBytes[1];
-            dataLines[2] = theBytes[2];
-            dataLines[3] = theBytes[3];
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-
-            dataLines[0] = theBytes[4];
-            dataLines[1] = theBytes[5];
-            dataLines[2] = theBytes[6];
-            dataLines[3] = theBytes[7];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-
-            dataLines[0] = theBytes[8];
-            dataLines[1] = theBytes[9];
-            dataLines[2] = theBytes[10];
-            dataLines[3] = theBytes[11];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-
-            dataLines[0] = theBytes[12];
-            dataLines[1] = theBytes[13];
-            dataLines[2] = theBytes[14];
-            dataLines[3] = theBytes[15];
-            /// @todo do not sample blast at the end of a 16-byte transaction
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-        } else {
-            // you must check each enable bit to see if you have to write to that byte
-            // or not. You cannot just do a 32-bit write in all cases, this can
-            // cause memory corruption pretty badly. 
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = dataLines[1];
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[2] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[3] = dataLines[3];
-            }
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[4] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[5] = dataLines[1];
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[6] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[7] = dataLines[3];
-            }
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[8] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[9] = dataLines[1];
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[10] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[11] = dataLines[3];
-            }
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[12] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[13] = dataLines[1];
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[14] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[15] = dataLines[3];
-            }
-            /// @todo do not sample blast at the end of a 16-byte transaction
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
+    if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
+        // in all other cases do the whole thing
+        dataLines[0] = theBytes[0];
+        dataLines[1] = theBytes[1];
+        dataLines[2] = theBytes[2];
+        dataLines[3] = theBytes[3];
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
         }
-    //} 
+        singleCycleDelay();
+        singleCycleDelay();
+
+        dataLines[0] = theBytes[4];
+        dataLines[1] = theBytes[5];
+        dataLines[2] = theBytes[6];
+        dataLines[3] = theBytes[7];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+
+        dataLines[0] = theBytes[8];
+        dataLines[1] = theBytes[9];
+        dataLines[2] = theBytes[10];
+        dataLines[3] = theBytes[11];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+
+        dataLines[0] = theBytes[12];
+        dataLines[1] = theBytes[13];
+        dataLines[2] = theBytes[14];
+        dataLines[3] = theBytes[15];
+        /// @todo do not sample blast at the end of a 16-byte transaction
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+    } else {
+        // you must check each enable bit to see if you have to write to that byte
+        // or not. You cannot just do a 32-bit write in all cases, this can
+        // cause memory corruption pretty badly. 
+        if (digitalRead<Pin::BE0>() == LOW) {
+            theBytes[0] = dataLines[0];
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            theBytes[1] = dataLines[1];
+        }
+        if (digitalRead<Pin::BE2>() == LOW) {
+            theBytes[2] = dataLines[2];
+        }
+        if (digitalRead<Pin::BE3>() == LOW) {
+            theBytes[3] = dataLines[3];
+        }
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            theBytes[4] = dataLines[0];
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            theBytes[5] = dataLines[1];
+        }
+        if (digitalRead<Pin::BE2>() == LOW) {
+            theBytes[6] = dataLines[2];
+        }
+        if (digitalRead<Pin::BE3>() == LOW) {
+            theBytes[7] = dataLines[3];
+        }
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            theBytes[8] = dataLines[0];
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            theBytes[9] = dataLines[1];
+        }
+        if (digitalRead<Pin::BE2>() == LOW) {
+            theBytes[10] = dataLines[2];
+        }
+        if (digitalRead<Pin::BE3>() == LOW) {
+            theBytes[11] = dataLines[3];
+        }
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            theBytes[12] = dataLines[0];
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            theBytes[13] = dataLines[1];
+        }
+        if (digitalRead<Pin::BE2>() == LOW) {
+            theBytes[14] = dataLines[2];
+        }
+        if (digitalRead<Pin::BE3>() == LOW) {
+            theBytes[15] = dataLines[3];
+        }
+        /// @todo do not sample blast at the end of a 16-byte transaction
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+    }
 }
 };
 
@@ -273,6 +373,159 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
+    template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
+    static void doFixedReadOperation(DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
+        static constexpr SplitWord128 contents{
+            static_cast<uint8_t>(a),
+                static_cast<uint8_t>(a >> 8),
+                static_cast<uint8_t>(a >> 16),
+                static_cast<uint8_t>(a >> 24),
+                static_cast<uint8_t>(b),
+                static_cast<uint8_t>(b >> 8),
+                static_cast<uint8_t>(b >> 16),
+                static_cast<uint8_t>(b >> 24),
+                static_cast<uint8_t>(c),
+                static_cast<uint8_t>(c >> 8),
+                static_cast<uint8_t>(c >> 16),
+                static_cast<uint8_t>(c >> 24),
+                static_cast<uint8_t>(d),
+                static_cast<uint8_t>(d >> 8),
+                static_cast<uint8_t>(d >> 16),
+                static_cast<uint8_t>(d >> 24),
+        };
+        // just skip over the lowest 16-bits if we start unaligned
+        uint8_t value = *addressLines;
+        const uint8_t* theBytes = &contents.bytes[getWordByteOffset(*addressLines)];
+        if ((value & 0b0010) == 0) {
+            dataLines[0] = theBytes[0];
+            dataLines[1] = theBytes[1];
+            auto end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
+        }
+        // put in some amount of wait states before just signalling again
+        // since we started on the lower half of a 32-bit word
+        dataLines[2] = theBytes[2];
+        dataLines[3] = theBytes[3];
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        dataLines[0] = theBytes[4];
+        dataLines[1] = theBytes[5];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        // put in some amount of wait states before just signalling again
+        // since we started on the lower half of a 32-bit word
+        dataLines[2] = theBytes[6];
+        dataLines[3] = theBytes[7];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        dataLines[0] = theBytes[8];
+        dataLines[1] = theBytes[9];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        // put in some amount of wait states before just signalling again
+        // since we started on the lower half of a 32-bit word
+        dataLines[2] = theBytes[10];
+        dataLines[3] = theBytes[11];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        dataLines[0] = theBytes[12];
+        dataLines[1] = theBytes[13];
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        // put in some amount of wait states before just signalling again
+        // since we started on the lower half of a 32-bit word
+        dataLines[2] = theBytes[14];
+        dataLines[3] = theBytes[15];
+        /// @todo do not sample blast at the end of a 16-byte transaction
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+    }
+    static void doFixedWriteOperation() noexcept {
+        singleCycleDelay();
+        singleCycleDelay();
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        // upper half
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        // upper half
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        // upper half
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+        singleCycleDelay();
+        singleCycleDelay();
+        // upper half
+        end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            return;
+        }
+    }
     static void doReadOperation(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         //for(;;) {
             // just skip over the lowest 16-bits if we start unaligned
@@ -482,6 +735,18 @@ private:
     }
 
 public:
+    template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
+    static void
+    doFixedCommunication(DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
+        /// @todo check the start position as that will describe the cycle shape
+        if constexpr (isReadOperation) {
+            doFixedReadOperation<a, b, c, d>(addressLines, dataLines);
+        } else {
+            // a fixed write operation doesn't actually care about updating
+            // anything since it doesn't make sense at all
+            doFixedWriteOperation();
+        }
+    }
     static void
     doCommunication(volatile SplitWord128& theView, DataRegister8 addressLines, DataRegister8 dataLines) noexcept {
         /// @todo check the start position as that will describe the cycle shape
@@ -504,6 +769,7 @@ public:
         }
     }
 };
+
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 void
 talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord32 addr, TreatAsInstruction) noexcept {
@@ -531,7 +797,7 @@ talkToi960(DataRegister8 addressLines, DataRegister8 dataLines, const SplitWord3
             }
             break;
         default:
-            CommunicationKernel<inDebugMode, isReadOperation, width>::doCommunication(operation, addressLines, dataLines);
+            CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0,0,0,0>(addressLines, dataLines);
             // just ignore the data and return what we have inside of
             // the operation object itself. 
             //

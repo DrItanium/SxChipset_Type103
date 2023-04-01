@@ -79,6 +79,7 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
+[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
 
 [[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
 [[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
@@ -856,13 +857,17 @@ template<bool inDebugMode, NativeBusWidth width>
 void 
 executionBody() noexcept {
     SplitWord128 operation;
+    uint8_t currentDirection = dataLinesDirection_LSB;
     while (true) {
         waitForDataState();
         if constexpr (inDebugMode) {
             Serial.println(F("NEW TRANSACTION"));
         }
         if (SplitWord32 al{addressLinesValue32}; Platform::isWriteOperation()) {
-            dataLinesDirection = 0;
+            if (currentDirection != 0) {
+                dataLinesDirection = 0;
+                currentDirection = 0;
+            }
             switch (al.bytes[3]) {
                 case 0xF0:
                     performIOGroup0Operation<inDebugMode, false, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
@@ -892,7 +897,10 @@ executionBody() noexcept {
                     break;
             }
         } else {
-            dataLinesDirection = 0xFFFF'FFFF;
+            if (currentDirection != 0xFF) {
+                dataLinesDirection = 0xFFFF'FFFF;
+                currentDirection = 0xFF;
+            }
             switch (al.bytes[3]) {
                 case 0xF0:
                     performIOGroup0Operation<inDebugMode, true, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);

@@ -110,7 +110,6 @@ Platform::setDataLines(uint32_t value) noexcept {
     getProcessorInterface().setDataLines(value);
 }
 
-[[gnu::noinline]]
 void
 Platform::waitForDataState() noexcept {
     if constexpr (MCUHasDirectAccess) {

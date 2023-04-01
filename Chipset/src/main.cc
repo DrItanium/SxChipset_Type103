@@ -77,7 +77,9 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 }
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
+[[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
+
 [[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
 [[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
 [[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
@@ -88,7 +90,7 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
  */
 [[gnu::always_inline]]
 inline void 
-idleWrite() noexcept {
+idleTransaction() noexcept {
     // even though it is eight entries in here, it doesn't actually matter
     // since this works for four entries (32-bit) as well
     singleCycleDelay();
@@ -238,7 +240,7 @@ doFixedCommunication() noexcept {
             return;
         }
     } else {
-        idleWrite();
+        idleTransaction();
     }
 }
 [[gnu::always_inline]]
@@ -391,66 +393,8 @@ private:
     inline
     static void doFixedReadOperation() noexcept {
         if constexpr (a == b && b == c && c == d) {
-            dataLines[0] = static_cast<uint8_t>(a);
-            dataLines[1] = static_cast<uint8_t>(a >> 8);
-            dataLines[2] = static_cast<uint8_t>(a >> 16);
-            dataLines[3] = static_cast<uint8_t>(a >> 24);
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
+            dataLinesFull = a;
+            idleTransaction();
         } else {
             static constexpr SplitWord128 contents{
                 static_cast<uint8_t>(a),
@@ -768,7 +712,7 @@ public:
         if constexpr (isReadOperation) {
             doFixedReadOperation<a, b, c, d>();
         } else {
-            idleWrite();
+            idleTransaction();
         }
     }
     [[gnu::always_inline]]

@@ -811,15 +811,14 @@ template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 [[gnu::always_inline]]
 inline 
 void
-performIOGroup0Operation(uint8_t group, uint8_t func, uint8_t offset) noexcept {
+performIOGroup0Operation(SplitWord128& container, uint8_t group, uint8_t func, uint8_t offset) noexcept {
     if constexpr (inDebugMode) {
         Serial.println(F("Perform IOGroup0 Operation"));
     }
-    SplitWord128 operation;
     if constexpr (isReadOperation) {
-        performIOReadGroup0<inDebugMode, width>(operation, group, func, offset);
+        performIOReadGroup0<inDebugMode, width>(container, group, func, offset);
     } else {
-        performIOWriteGroup0<inDebugMode, width>(operation, group, func, offset);
+        performIOWriteGroup0<inDebugMode, width>(container, group, func, offset);
     }
 }
 
@@ -848,6 +847,7 @@ template<bool inDebugMode, NativeBusWidth width>
 [[noreturn]] 
 void 
 executionBody() noexcept {
+    SplitWord128 operation;
     while (true) {
         waitForDataState();
         if constexpr (inDebugMode) {
@@ -855,10 +855,9 @@ executionBody() noexcept {
         }
         if (SplitWord32 al{addressLinesValue32}; Platform::isWriteOperation()) {
             dataLinesDirection = 0;
-            __builtin_avr_nops(3);
             switch (al.bytes[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, false, width>(al.bytes[2], al.bytes[1], al.bytes[0]);
+                    performIOGroup0Operation<inDebugMode, false, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -888,7 +887,7 @@ executionBody() noexcept {
             dataLinesDirection = 0xFFFF'FFFF;
             switch (al.bytes[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, true, width>(al.bytes[2], al.bytes[1], al.bytes[0]);
+                    performIOGroup0Operation<inDebugMode, true, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
                     break;
                 case 0xF1:
                 case 0xF2:

@@ -110,10 +110,6 @@ Platform::doHold(decltype(LOW) value) noexcept {
     getProcessorInterface().control_.ctl.hold = value;
 }
 
-bool
-Platform::isIOOperation() noexcept {
-    return getProcessorInterface().address_.view8.data[3] == 0xF0;
-}
 #define X(index)  \
 void  \
 Platform::signalXINT ## index () noexcept { \

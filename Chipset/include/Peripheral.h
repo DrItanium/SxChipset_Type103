@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Detect.h"
 #include "Types.h"
-#include "MCP23S17.h"
 #include "Pinout.h"
 #include "Setup.h"
 

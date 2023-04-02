@@ -49,24 +49,63 @@ TimerDevice::init() noexcept {
     digitalWrite<Pin::INT0_960_, HIGH>();
     return true;
 }
+void
+TimerDevice::setSystemTimerPrescalar(uint8_t value) noexcept {
+#if defined(TCCR2A) && defined(TCCR2B)
+    // Previously, we were using the compare output mode of Timer
+    // 2 but with the use of the CH351s I have to use the interrupt
+    // instead
+    auto maskedValue = value & 0b111;
+    // enable toggle mode
+    if (maskedValue != 0) {
+        bitSet(TCCR2A, COM2A0);
+        bitClear(TCCR2A, COM2A1);
+    } else {
+        bitClear(TCCR2A, COM2A0);
+        bitClear(TCCR2A, COM2A1);
+    }
+    // make sure we activate the prescalar value
+    uint8_t result = TCCR2B & 0b1111'1000;
+    result |= static_cast<uint8_t>(maskedValue);
+    TCCR2B = result;
+#endif
+}
+void
+TimerDevice::setSystemTimerComparisonValue(uint8_t value) noexcept {
+#ifdef OCR2A
+    OCR2A = value;
+#endif
+}
 
+uint8_t 
+TimerDevice::getSystemTimerPrescalar() const noexcept {
+#if defined(TCCR2B)
+    return (TCCR2B & 0b111);
+#else
+    return 0;
+#endif
+}
+
+uint8_t
+TimerDevice::getSystemTimerComparisonValue() const noexcept {
+
+#if defined(OCR2A)
+    return OCR2A;
+#else
+    return 0;
+#endif
+}
 void
 TimerDevice::extendedRead(TimerDeviceOperations opcode, uint8_t, SplitWord128& instruction) const noexcept {
     /// @todo implement support for caching the target info field so we don't
     /// need to keep looking up the dispatch address
     switch (opcode) {
-#if defined(TCCR2B)
         case TimerDeviceOperations::SystemTimerPrescalar:
-            instruction.bytes[0] = (TCCR2B & 0b111);
-            //instruction[0].setWholeValue(static_cast<uint32_t>(TCCR2B & 0b111));
+            instruction.bytes[0] = getSystemTimerPrescalar();
             break;
-#endif
-#if defined(OCR2A)
         case TimerDeviceOperations::SystemTimerComparisonValue:
-            instruction.bytes[0] = OCR2A;
-            //instruction[0].setWholeValue(static_cast<uint32_t>(OCR2A));
+            instruction.bytes[0] = getSystemTimerComparisonValue();
             break;
-#endif
         default:
             break;
     }
@@ -75,34 +114,12 @@ void
 TimerDevice::extendedWrite(TimerDeviceOperations opcode, uint8_t, const SplitWord128& instruction) noexcept {
     // do nothing
     switch (opcode) {
-#if defined(TCCR2A) && defined(TCCR2B)
         case TimerDeviceOperations::SystemTimerPrescalar:
-            {
-                // Previously, we were using the compare output mode of Timer
-                // 2 but with the use of the CH351s I have to use the interrupt
-                // instead
-                auto value = instruction.bytes[0];
-                auto maskedValue = value & 0b111;
-                // enable toggle mode
-                if (maskedValue != 0) {
-                    bitSet(TCCR2A, COM2A0);
-                    bitClear(TCCR2A, COM2A1);
-                } else {
-                    bitClear(TCCR2A, COM2A0);
-                    bitClear(TCCR2A, COM2A1);
-                }
-                // make sure we activate the prescalar value
-                uint8_t result = TCCR2B & 0b1111'1000;
-                result |= static_cast<uint8_t>(maskedValue);
-                TCCR2B = result;
-                break;
-            }
-#endif
-#ifdef OCR2A
-        case TimerDeviceOperations::SystemTimerComparisonValue:
-            OCR2A = static_cast<uint8_t>(instruction.bytes[0]);
+            setSystemTimerPrescalar(instruction.bytes[0]);
             break;
-#endif
+        case TimerDeviceOperations::SystemTimerComparisonValue:
+            setSystemTimerComparisonValue(instruction.bytes[0]);
+            break;
         default:
             break;
     }

@@ -41,6 +41,10 @@ public:
     using Parent = OperatorPeripheral<TimerDeviceOperations, TimerDevice>;
     bool init() noexcept ;
     bool isAvailable() const noexcept { return true; }
+    [[nodiscard]] uint8_t getSystemTimerPrescalar() const noexcept;
+    [[nodiscard]] uint8_t getSystemTimerComparisonValue() const noexcept;
+    void setSystemTimerPrescalar(uint8_t value) noexcept;
+    void setSystemTimerComparisonValue(uint8_t value) noexcept;
     void extendedRead(TimerDeviceOperations opcode, uint8_t lowest, SplitWord128& instruction) const noexcept;
     void extendedWrite(TimerDeviceOperations opcode, uint8_t lowest, const SplitWord128& instruction) noexcept;
 };

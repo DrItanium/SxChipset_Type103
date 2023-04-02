@@ -31,24 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using uint24_t = __uint24;
 using int24_t = __int24;
-template<bool, typename T, typename F>
-struct Conditional {
-    using SelectedType = F;
-};
 
-template<typename T, typename F>
-struct Conditional<true, T, F> {
-    using SelectedType = T;
-};
-
-template<bool C, typename T, typename F>
-using Conditional_t = typename Conditional<C, T, F>::SelectedType;
-
-template<uint8_t numberOfBits>
-using SmallestAvailableType_t = Conditional_t<numberOfBits <= 8, uint8_t,
-                                    Conditional_t<numberOfBits <= 16, uint16_t,
-                                    Conditional_t<numberOfBits <= 24, uint24_t,
-                                    Conditional_t<numberOfBits <= 32, uint32_t, uint64_t>>>>;
 template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
@@ -63,22 +46,6 @@ using TreatAsOrdinal = TreatAs<uint32_t>;
 struct AccessFromIBUS final { };
 struct AccessFromXBUS final { };
 struct AccessFromInstruction final { };
-union SplitWord16 {
-    uint16_t full;
-    ElementContainer<uint16_t, uint8_t> bytes;
-    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint16_t, uint8_t>; }
-    constexpr explicit SplitWord16(uint16_t value = 0) : full(value) { }
-    constexpr explicit SplitWord16(uint8_t a, uint8_t b) : bytes{a, b} { }
-    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
-    [[nodiscard]] constexpr bool operator==(const SplitWord16& other) const noexcept { return full == other.full; }
-    [[nodiscard]] constexpr bool operator!=(const SplitWord16& other) const noexcept { return full != other.full; }
-    [[nodiscard]] constexpr bool operator==(uint16_t other) const noexcept { return full == other; }
-    [[nodiscard]] constexpr bool operator!=(uint16_t other) const noexcept { return full != other; }
-    [[nodiscard]] constexpr bool operator<(const SplitWord16& other) const noexcept { return full < other.full; }
-    [[nodiscard]] constexpr bool operator<=(const SplitWord16& other) const noexcept { return full <= other.full; }
-    [[nodiscard]] constexpr bool operator>(const SplitWord16& other) const noexcept { return full > other.full; }
-    [[nodiscard]] constexpr bool operator>=(const SplitWord16& other) const noexcept { return full >= other.full; }
-};
 
 union SplitWord32 {
     uint32_t full;
@@ -107,12 +74,6 @@ union SplitWord32 {
         return (bytes[0] & 0b1110) >> 1; 
 #endif
     }
-    [[nodiscard]] constexpr bool operator==(const SplitWord32& other) const noexcept { return full == other.full; }
-    [[nodiscard]] constexpr bool operator!=(const SplitWord32& other) const noexcept { return full != other.full; }
-    [[nodiscard]] constexpr bool operator<(const SplitWord32& other) const noexcept { return full < other.full; }
-    [[nodiscard]] constexpr bool operator<=(const SplitWord32& other) const noexcept { return full <= other.full; }
-    [[nodiscard]] constexpr bool operator>(const SplitWord32& other) const noexcept { return full > other.full; }
-    [[nodiscard]] constexpr bool operator>=(const SplitWord32& other) const noexcept { return full >= other.full; }
     [[nodiscard]] constexpr auto retrieveHalf(byte offset) const noexcept { return halves[offset & 0b1]; }
     [[nodiscard]] constexpr uint8_t getIBUSBankIndex() const noexcept {
         // the problem is that we are spanning two bytes in the _middle_ of an

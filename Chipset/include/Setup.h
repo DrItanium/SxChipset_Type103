@@ -220,14 +220,6 @@ static_assert(isUpper16bitValue(0b10), "is 16-bit upper half check is broken");
 static_assert(!isUpper16bitValue(0), "is 16-bit upper half check is broken");
 static_assert(isLower16bitValue(0), "is 16-bit lower half check is broken");
 static_assert(!isLower16bitValue(0b10), "is 16-bit lower half check is broken");
-/**
- * @brief Generated as part of write operations
- */
-struct WritePacket {
-    uint32_t address;
-    ByteEnableKind mask;
-    uint32_t value;
-};
 
 class Platform final {
     public:

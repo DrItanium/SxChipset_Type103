@@ -824,9 +824,10 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
+            asm volatile ("nop");
             switch (static_cast<SerialDeviceOperations>(function)) {
                 case SerialDeviceOperations::RW:
-                    Serial.write(body.bytes[0]);
+                    Serial.write(static_cast<uint8_t>(body[0].getWholeValue()));
                     break;
                 case SerialDeviceOperations::Flush:
                     Serial.flush();

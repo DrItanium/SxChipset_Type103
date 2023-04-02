@@ -49,56 +49,7 @@ inline void
 signalReady() noexcept {
     Platform::signalReady();
 }
-/**
- * @brief An opcode combined with arguments that we pass to Peripherals to parse
- */
-struct Instruction {
-    SplitWord32 opcode_;
-    // there are up to four 32-bit words so we need to stash information
-    // important to this here, the byte enable bits should _not_ be included
-    SplitWord128 args_; // a single transaction is up to 16-bytes or four 32-bit
-                        // words in size
-    [[nodiscard]] constexpr auto getGroup() const noexcept { return opcode_.getIOGroup(); }
-    [[nodiscard]] constexpr auto getDevice() const noexcept { return opcode_.getIODevice<TargetPeripheral>(); }
-    [[nodiscard]] constexpr auto getMinor() const noexcept { return opcode_.getIOMinorCode(); }
-    template<typename T>
-    [[nodiscard]] constexpr auto getFunction() const noexcept { return opcode_.getIOFunction<T>(); }
-    [[nodiscard]] SplitWord32& operator[](int index) noexcept { return args_[index]; }
-    [[nodiscard]] volatile SplitWord32& operator[](int index) volatile noexcept { return args_[index]; }
-    [[nodiscard]] const SplitWord32& operator[](int index) const noexcept { return args_[index]; }
-};
 
-template<typename E, typename T>
-class OperatorPeripheral {
-public:
-    using OperationList = E;
-    using Child = T;
-    //~OperatorPeripheral() override = default;
-    bool begin() noexcept { return static_cast<Child*>(this)->init(); }
-    [[nodiscard]] bool available() const noexcept { return static_cast<const Child*>(this)->isAvailable(); }
-    [[nodiscard]] constexpr uint8_t size() const noexcept { return size_; }
-    void performRead(byte opcode, byte lowest, SplitWord128& instruction) const noexcept {
-        auto theOpcode = static_cast<E>(opcode);
-        switch (theOpcode) {
-            case E::Available:
-                instruction.bytes[0] = available();
-                break;
-            case E::Size:
-                instruction.bytes[0] = size();
-                break;
-            default:
-                if (validOperation(theOpcode)) {
-                    static_cast<const Child*>(this)->extendedRead(theOpcode, lowest, instruction);
-                }
-                break;
-        }
-    }
-    void performWrite(byte opcode, byte lowest, const SplitWord128& instruction) noexcept {
-        static_cast<Child*>(this)->extendedWrite(static_cast<E>(opcode), lowest, instruction);
-    }
-private:
-    uint8_t size_{static_cast<uint8_t>(E::Count) };
-};
 
 #define BeginDeviceOperationsList(name) enum class name ## Operations : byte { Available, Size,
 #define EndDeviceOperationsList(name) Count, }; static_assert(static_cast<byte>( name ## Operations :: Count ) <= 256, "Too many " #name "Operations entries defined!");

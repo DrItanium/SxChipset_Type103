@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Setup.h"
 
 bool
-TimerDevice::init() noexcept {
+TimerDevice::begin() noexcept {
     // make sure that INT0 is enabled as an output. Make it high
     pinMode<Pin::INT0_960_>(OUTPUT);
 #if defined(TCCR2A) && defined(TCCR2B) && defined(TCNT2)
@@ -95,33 +95,3 @@ TimerDevice::getSystemTimerComparisonValue() const noexcept {
     return 0;
 #endif
 }
-void
-TimerDevice::extendedRead(TimerDeviceOperations opcode, uint8_t, SplitWord128& instruction) const noexcept {
-    /// @todo implement support for caching the target info field so we don't
-    /// need to keep looking up the dispatch address
-    switch (opcode) {
-        case TimerDeviceOperations::SystemTimerPrescalar:
-            instruction.bytes[0] = getSystemTimerPrescalar();
-            break;
-        case TimerDeviceOperations::SystemTimerComparisonValue:
-            instruction.bytes[0] = getSystemTimerComparisonValue();
-            break;
-        default:
-            break;
-    }
-}
-void 
-TimerDevice::extendedWrite(TimerDeviceOperations opcode, uint8_t, const SplitWord128& instruction) noexcept {
-    // do nothing
-    switch (opcode) {
-        case TimerDeviceOperations::SystemTimerPrescalar:
-            setSystemTimerPrescalar(instruction.bytes[0]);
-            break;
-        case TimerDeviceOperations::SystemTimerComparisonValue:
-            setSystemTimerComparisonValue(instruction.bytes[0]);
-            break;
-        default:
-            break;
-    }
-}
-

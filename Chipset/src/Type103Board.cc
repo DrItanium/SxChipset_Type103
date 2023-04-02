@@ -51,74 +51,73 @@ Platform::begin() noexcept {
         // state is necessary! When I replace the interface chip with the
         // AHC573, I'll get rid of the single cycle delay from the lower sector
         XMCRA=0b1'010'01'01;  
-        volatile auto& proc = getProcessorInterface();
-        proc.address_.view32.direction = 0;
-        proc.dataLines_.view32.direction = 0xFFFF'FFFF;
-        proc.dataLines_.view32.data = 0;
-        proc.control_.view32.direction = ControlSignalDirection;
+        AddressLinesInterface.view32.direction = 0;
+        DataLinesInterface.view32.direction = 0xFFFF'FFFF;
+        DataLinesInterface.view32.data = 0;
+        ControlSignals.view32.direction = ControlSignalDirection;
         if constexpr (MCUHasDirectAccess) {
-            proc.control_.view8.direction[1] &= 0b11101111;
+            ControlSignals.view8.direction[1] &= 0b11101111;
         }
         if constexpr (XINT0DirectConnect) {
-            proc.control_.view8.direction[2] &= 0b11111110;
+            ControlSignals.view8.direction[2] &= 0b11111110;
         }
         if constexpr (XINT1DirectConnect) {
-            proc.control_.view8.direction[2] &= 0b11111101;
+            ControlSignals.view8.direction[2] &= 0b11111101;
         }
         if constexpr (XINT2DirectConnect) {
-            proc.control_.view8.direction[2] &= 0b11111011;
+            ControlSignals.view8.direction[2] &= 0b11111011;
         }
         if constexpr (XINT3DirectConnect) {
-            proc.control_.view8.direction[2] &= 0b11110111;
+            ControlSignals.view8.direction[2] &= 0b11110111;
         }
         if constexpr (XINT4DirectConnect) {
-            proc.control_.view8.direction[2] &= 0b11101111;
+            ControlSignals.view8.direction[2] &= 0b11101111;
         }
         if constexpr (XINT5DirectConnect) {
-            proc.control_.view8.direction[2] &= 0b11011111;
+            ControlSignals.view8.direction[2] &= 0b11011111;
         }
         if constexpr (XINT6DirectConnect) {
-            proc.control_.view8.direction[2] &= 0b10111111;
+            ControlSignals.view8.direction[2] &= 0b10111111;
         }
         if constexpr (XINT7DirectConnect) {
-            proc.control_.view8.direction[2] &= 0b01111111;
+            ControlSignals.view8.direction[2] &= 0b01111111;
         }
-        proc.control_.view32.data = 0;
-        proc.control_.ctl.hold = 0;
-        proc.control_.ctl.reset = 0; // put i960 in reset
-        proc.control_.ctl.backOff = 1;
-        proc.control_.ctl.ready = 0;
-        proc.control_.ctl.nmi = 1;
-        proc.control_.ctl.xint0 = 1;
-        proc.control_.ctl.xint1 = 1;
-        proc.control_.ctl.xint2 = 1;
-        proc.control_.ctl.xint3 = 1;
-        proc.control_.ctl.xint4 = 1;
-        proc.control_.ctl.xint5 = 1;
-        proc.control_.ctl.xint6 = 1;
-        proc.control_.ctl.xint7 = 1;
-        proc.control_.ctl.bankSelect = 0;
+        ControlSignals.view32.data = 0;
+        ControlSignals.ctl.hold = 0;
+        ControlSignals.ctl.reset = 0; // put i960 in reset
+        ControlSignals.ctl.backOff = 1;
+        ControlSignals.ctl.ready = 0;
+        ControlSignals.ctl.nmi = 1;
+        ControlSignals.ctl.xint0 = 1;
+        ControlSignals.ctl.xint1 = 1;
+        ControlSignals.ctl.xint2 = 1;
+        ControlSignals.ctl.xint3 = 1;
+        ControlSignals.ctl.xint4 = 1;
+        ControlSignals.ctl.xint5 = 1;
+        ControlSignals.ctl.xint6 = 1;
+        ControlSignals.ctl.xint7 = 1;
+        ControlSignals.ctl.bankSelect = 0;
     }
 }
 
 void 
 Platform::doReset(decltype(LOW) value) noexcept {
-    getProcessorInterface().control_.ctl.reset = value;
+    ControlSignals.ctl.reset = value;
 }
 void 
 Platform::doHold(decltype(LOW) value) noexcept {
-    getProcessorInterface().control_.ctl.hold = value;
+    ControlSignals.ctl.hold = value;
 }
 
 #define X(index)  \
 void  \
 Platform::signalXINT ## index () noexcept { \
-    getProcessorInterface().control_.ctl.xint ## index  = 0; \
-    getProcessorInterface().control_.ctl.xint ## index  = 1; \
+    ControlSignals.ctl.xint ## index = 0; \
+    ControlSignals.ctl.xint ## index = 1; \
 } \
 void \
 Platform::toggleXINT ## index () noexcept { \
-    getProcessorInterface().control_.ctl.xint ## index = ~ getProcessorInterface().control_.ctl.xint ## index ; \
+    ControlSignals.ctl.xint ## index = ~ControlSignals.ctl.xint ## index ; \
 }
 X(0);
 X(1);
@@ -132,8 +131,8 @@ X(7);
 
 void
 Platform::signalNMI() noexcept {
-    getProcessorInterface().control_.ctl.nmi = 0;
-    getProcessorInterface().control_.ctl.nmi = 1;
+    ControlSignals.ctl.nmi = 0;
+    ControlSignals.ctl.nmi = 1;
 }
 
 
@@ -162,7 +161,7 @@ Platform::setBank(uint8_t bankId, AccessFromIBUS) noexcept {
 }
 void 
 Platform::setBank(uint32_t bankAddress, AccessFromXBUS) noexcept {
-    getProcessorInterface().bank_.view32.data = bankAddress;
+    XBUSBankRegister.view32.data = bankAddress;
 }
 uint8_t 
 Platform::getBank(AccessFromIBUS) noexcept {
@@ -170,7 +169,7 @@ Platform::getBank(AccessFromIBUS) noexcept {
 }
 uint32_t 
 Platform::getBank(AccessFromXBUS) noexcept {
-    return getProcessorInterface().bank_.view32.data;
+    return XBUSBankRegister.view32.data;
 }
 
 volatile uint8_t*

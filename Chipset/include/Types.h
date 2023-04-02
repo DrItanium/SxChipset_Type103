@@ -117,24 +117,6 @@ static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the 
 
 
 
-#ifndef _BV
-#define _BV(value) (1 << value)
-#endif
-constexpr auto pow2(uint8_t value) noexcept {
-    return _BV(value);
-}
-static_assert(pow2(0) == 1);
-static_assert(pow2(1) == 2);
-static_assert(pow2(2) == 4);
-static_assert(pow2(3) == 8);
-static_assert(pow2(4) == 16);
-static_assert(pow2(5) == 32);
-static_assert(pow2(6) == 64);
-static_assert(pow2(7) == 128);
-static_assert(pow2(8) == 256);
-static_assert(pow2(9) == 512);
-static_assert(pow2(10) == 1024);
-
 union [[gnu::packed]] CH351 {
     uint8_t registers[8];
     struct {
@@ -176,27 +158,6 @@ union [[gnu::packed]] CH351 {
         uint8_t bankSelect : 1;
     } ctl;
 };
-struct [[gnu::packed]] ProcessorInterface {
-    volatile CH351 address_;
-    volatile CH351 dataLines_;
-    volatile CH351 control_;
-    volatile CH351 bank_;
-    void waitForDataState() const noexcept {
-        while (control_.ctl.den != 0);
-    }
-    bool checksumFailure() const noexcept {
-        return control_.ctl.fail == 0;
-    }
-    uint32_t getAddress() const noexcept {
-        return address_.view32.data;
-    }
-    uint32_t getDataLines() const noexcept {
-        return dataLines_.view32.data;
-    }
-    void setDataLines(uint32_t value) noexcept {
-        dataLines_.view32.data = value;
-    }
-};
 
 struct SplitWord128 {
     uint8_t bytes[16];
@@ -208,7 +169,10 @@ struct SplitWord128 {
     [[nodiscard]] const SplitWord32& operator[](uint8_t index) const noexcept { return getWord(index); }
 };
 
-
+[[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
+[[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
+[[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
+[[gnu::address(0x2218)]] inline volatile CH351 XBUSBankRegister;
 
 
 #endif //SXCHIPSET_TYPE103_TYPES_H__

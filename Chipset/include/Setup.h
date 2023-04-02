@@ -53,12 +53,6 @@ halfCycleDelay() noexcept {
     __builtin_avr_nops(1);
 }
 
-[[gnu::always_inline]]
-inline 
-volatile ProcessorInterface&
-getProcessorInterface() noexcept {
-    return adjustedMemory<ProcessorInterface>(0);
-}
 /**
  * @brief The CPU Module kind as described in the Cyclone SDK manual
  */
@@ -260,7 +254,7 @@ class Platform final {
         [[gnu::always_inline]] inline static bool isBurstLast() noexcept { return digitalRead<Pin::BLAST>() == LOW; }
         static uint8_t getByteEnable() noexcept;
         [[gnu::always_inline]] inline static bool isWriteOperation() noexcept { return digitalRead<Pin::WR>(); }
-        static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(getProcessorInterface().control_.ctl.cfg); }
+        static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(ControlSignals.ctl.cfg); }
         static void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept;
         static void setBank(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static void setBank(uint8_t bankId, AccessFromIBUS) noexcept;

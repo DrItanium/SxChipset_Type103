@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Detect.h"
 #include "Types.h"
+#include "Pinout.h"
 
 constexpr bool EnableDebugMode = false;
 constexpr bool MCUHasDirectAccess = true;
@@ -260,16 +261,13 @@ class Platform final {
         static void toggleXINT5() noexcept;
         static void toggleXINT6() noexcept;
         static void toggleXINT7() noexcept;
-        static uint32_t getDataLines() noexcept;
-        static void setDataLines(uint32_t value) noexcept;
-        static void waitForDataState() noexcept;
+        [[gnu::always_inline]] inline static void waitForDataState() noexcept { while (digitalRead<Pin::DEN>() == HIGH); }
         static void setBankConfiguration(bool value) noexcept;
-        static uint32_t readAddress() noexcept;
-        static void signalReady() noexcept;
+        [[gnu::always_inline]] inline static void signalReady() noexcept { toggle<Pin::READY>(); }
         static bool checksumFailure() noexcept;
-        static bool isBurstLast() noexcept;
+        [[gnu::always_inline]] inline static bool isBurstLast() noexcept { return digitalRead<Pin::BLAST>() == LOW; }
         static uint8_t getByteEnable() noexcept;
-        static bool isWriteOperation() noexcept;
+        [[gnu::always_inline]] inline static bool isWriteOperation() noexcept { return digitalRead<Pin::WR>(); }
         static void configureDataLinesForWrite() noexcept;
         static void configureDataLinesForRead() noexcept;
         static bool isIOOperation() noexcept;

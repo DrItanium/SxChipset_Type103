@@ -101,31 +101,7 @@ Platform::begin() noexcept {
         configureDataLinesForRead();
     }
 }
-uint32_t
-Platform::getDataLines() noexcept {
-    return getProcessorInterface().getDataLines();
-}
-void
-Platform::setDataLines(uint32_t value) noexcept {
-    getProcessorInterface().setDataLines(value);
-}
 
-void
-Platform::waitForDataState() noexcept {
-    if constexpr (MCUHasDirectAccess) {
-        while (digitalRead<Pin::DEN>() == HIGH) {
-            // yield time since we are waiting
-            yield();
-        }
-    } else {
-        getProcessorInterface().waitForDataState();
-    }
-}
-
-uint32_t
-Platform::readAddress() noexcept {
-    return getProcessorInterface().getAddress();
-}
 void 
 Platform::doReset(decltype(LOW) value) noexcept {
     getProcessorInterface().control_.ctl.reset = value;
@@ -134,20 +110,7 @@ void
 Platform::doHold(decltype(LOW) value) noexcept {
     getProcessorInterface().control_.ctl.hold = value;
 }
-[[gnu::always_inline]]
-void
-Platform::signalReady() noexcept {
-    toggle<Pin::READY>();
-}
 
-bool
-Platform::isWriteOperation() noexcept {
-    if constexpr (MCUHasDirectAccess) {
-        return digitalRead<Pin::WR>();
-    } else {
-        return getProcessorInterface().control_.ctl.wr;
-    }
-}
 bool
 Platform::isIOOperation() noexcept {
     return getProcessorInterface().address_.view8.data[3] == 0xF0;
@@ -188,11 +151,6 @@ Platform::signalNMI() noexcept {
     getProcessorInterface().control_.ctl.nmi = 1;
 }
 
-[[gnu::always_inline]]
-bool
-Platform::isBurstLast() noexcept {
-    return digitalRead<Pin::BLAST>() == LOW;
-}
 
 uint8_t
 Platform::getByteEnable() noexcept {

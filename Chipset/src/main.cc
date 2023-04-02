@@ -879,21 +879,6 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     }
 }
 
-template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
-[[gnu::always_inline]]
-inline 
-void
-performIOGroup0Operation(SplitWord128& container, uint8_t group, uint8_t func, uint8_t offset) noexcept {
-    if constexpr (inDebugMode) {
-        Serial.println(F("Perform IOGroup0 Operation"));
-    }
-    if constexpr (isReadOperation) {
-        performIOReadGroup0<inDebugMode, width>(container, group, func, offset);
-    } else {
-        performIOWriteGroup0<inDebugMode, width>(container, group, func, offset);
-    }
-}
-
 uint8_t computeBankIndex(uint8_t lower, uint8_t upper) noexcept {
 #ifndef __BUILTIN_AVR_INSERT_BITS
         uint8_t a = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
@@ -921,19 +906,22 @@ void
 executionBody() noexcept {
     SplitWord128 operation;
     uint8_t currentDirection = dataLinesDirection_LSB;
+    Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     while (true) {
         waitForDataState();
         if constexpr (inDebugMode) {
             Serial.println(F("NEW TRANSACTION"));
         }
-        if (SplitWord32 al{addressLinesValue32}; Platform::isWriteOperation()) {
-            if (currentDirection != 0) {
+        SplitWord32 al{addressLinesValue32};
+        /// @todo figure out the best way to only update the Bank index when needed
+        if (Platform::isWriteOperation()) {
+            if (currentDirection) {
                 dataLinesDirection = 0;
                 currentDirection = 0;
             }
             switch (al.bytes[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, false, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
+                    performIOWriteGroup0<inDebugMode, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -953,20 +941,21 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>();
                     break;
                 default: 
-                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), typename TreatAsOnChipAccess::AccessMethod{});
+                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
+                            typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
                             getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{})
                             );
                     break;
             }
         } else {
-            if (currentDirection != 0xFF) {
+            if (!currentDirection) {
                 dataLinesDirection = 0xFFFF'FFFF;
                 currentDirection = 0xFF;
             }
             switch (al.bytes[3]) {
                 case 0xF0:
-                    performIOGroup0Operation<inDebugMode, true, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
+                    performIOReadGroup0<inDebugMode, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -986,7 +975,8 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
                     break;
                 default:
-                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), typename TreatAsOnChipAccess::AccessMethod{});
+                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
+                            typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
                             getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}));
                     break;

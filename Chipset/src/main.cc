@@ -780,12 +780,23 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (static_cast<SerialDeviceOperations>(function)) {
                 case SerialDeviceOperations::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>();
-                    return;
+                    break;
                 case SerialDeviceOperations::Size:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(SerialDeviceOperations::Count)>();
-                    return;
+                    break;;
+                case SerialDeviceOperations::RW:
+                    body[0].halves[0] = Serial.read();
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    break;
+                case SerialDeviceOperations::Flush:
+                    Serial.flush();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
+                    break;
+                case SerialDeviceOperations::Baud:
+                    body[0].full = theSerial.getBaudRate();
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    break;
                 default:
-                    theSerial.extendedRead(static_cast<SerialDeviceOperations>(function), offset, body);
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
                     break;
             }
@@ -813,7 +824,20 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
-            theSerial.performWrite(function, offset, body);
+            switch (static_cast<SerialDeviceOperations>(function)) {
+                case SerialDeviceOperations::RW:
+                    Serial.write(body.bytes[0]);
+                    break;
+                case SerialDeviceOperations::Flush:
+                    Serial.flush();
+                    break;
+                case SerialDeviceOperations::Baud:
+                    theSerial.setBaudRate(body[0].full);
+                    break;
+                default:
+                    break;
+            }
+            //theSerial.performWrite(function, offset, body);
             break;
         case TargetPeripheral::Timer:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body);

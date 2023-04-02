@@ -260,8 +260,6 @@ class Platform final {
         [[gnu::always_inline]] inline static bool isBurstLast() noexcept { return digitalRead<Pin::BLAST>() == LOW; }
         static uint8_t getByteEnable() noexcept;
         [[gnu::always_inline]] inline static bool isWriteOperation() noexcept { return digitalRead<Pin::WR>(); }
-        static void configureDataLinesForWrite() noexcept;
-        static void configureDataLinesForRead() noexcept;
         static bool isIOOperation() noexcept;
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(getProcessorInterface().control_.ctl.cfg); }
         static void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept;
@@ -282,15 +280,6 @@ class Platform final {
         static volatile SplitWord128& getTransactionWindow(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept;
         static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept;
-        static uint16_t getUpperDataBits() noexcept;
-        static uint16_t getLowerDataBits() noexcept;
-        static void setUpperDataBits(uint16_t value) noexcept;
-        static void setLowerDataBits(uint16_t value) noexcept;
-        static void setDataByte(uint8_t index, uint8_t value) noexcept;
-        static uint8_t getDataByte(uint8_t index) noexcept;
-        static uint8_t getAddressOffset() noexcept;
-        static uint8_t getAddressLSB() noexcept;
-        static uint8_t getAddressMSB() noexcept;
 };
 
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

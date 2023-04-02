@@ -53,7 +53,7 @@ Platform::begin() noexcept {
         XMCRA=0b1'010'01'01;  
         volatile auto& proc = getProcessorInterface();
         proc.address_.view32.direction = 0;
-        configureDataLinesForRead();
+        proc.dataLines_.view32.direction = 0xFFFF'FFFF;
         proc.dataLines_.view32.data = 0;
         proc.control_.view32.direction = ControlSignalDirection;
         if constexpr (MCUHasDirectAccess) {
@@ -98,7 +98,6 @@ Platform::begin() noexcept {
         proc.control_.ctl.xint6 = 1;
         proc.control_.ctl.xint7 = 1;
         proc.control_.ctl.bankSelect = 0;
-        configureDataLinesForRead();
     }
 }
 
@@ -114,16 +113,6 @@ Platform::doHold(decltype(LOW) value) noexcept {
 bool
 Platform::isIOOperation() noexcept {
     return getProcessorInterface().address_.view8.data[3] == 0xF0;
-}
-void
-Platform::configureDataLinesForRead() noexcept {
-    // output
-    getProcessorInterface().dataLines_.view32.direction = 0xFFFF'FFFF;
-}
-void
-Platform::configureDataLinesForWrite() noexcept {
-    // input
-    getProcessorInterface().dataLines_.view32.direction = 0;
 }
 #define X(index)  \
 void  \
@@ -151,36 +140,6 @@ Platform::signalNMI() noexcept {
     getProcessorInterface().control_.ctl.nmi = 1;
 }
 
-
-uint8_t
-Platform::getByteEnable() noexcept {
-    return getInputRegister<Port::SignalCTL>() & 0b1111;
-}
-
-uint16_t 
-Platform::getUpperDataBits() noexcept {
-    return getProcessorInterface().dataLines_.view16.data[1];
-}
-uint16_t 
-Platform::getLowerDataBits() noexcept {
-    return getProcessorInterface().dataLines_.view16.data[0];
-}
-void 
-Platform::setUpperDataBits(uint16_t value) noexcept {
-    getProcessorInterface().dataLines_.view16.data[1] = value;
-}
-void 
-Platform::setLowerDataBits(uint16_t value) noexcept {
-    getProcessorInterface().dataLines_.view16.data[0] = value;
-}
-void 
-Platform::setDataByte(uint8_t index, uint8_t value) noexcept {
-    getProcessorInterface().dataLines_.view8.data[index] = value;
-}
-uint8_t 
-Platform::getDataByte(uint8_t index) noexcept {
-    return getProcessorInterface().dataLines_.view8.data[index];
-}
 
 volatile SplitWord32& 
 Platform::getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept {
@@ -217,15 +176,6 @@ uint32_t
 Platform::getBank(AccessFromXBUS) noexcept {
     return getProcessorInterface().bank_.view32.data;
 }
-uint8_t
-Platform::getAddressLSB() noexcept {
-    return getProcessorInterface().address_.view8.data[0];
-}
-
-uint8_t
-Platform::getAddressOffset() noexcept {
-    return getAddressLSB() & 0b1111;
-}
 
 volatile uint8_t*
 Platform::viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept {
@@ -247,8 +197,4 @@ Platform::getTransactionWindow(const SplitWord32& addr, AccessFromIBUS) noexcept
 volatile SplitWord128& 
 Platform::getTransactionWindow(const SplitWord32& addr, AccessFromXBUS) noexcept {
     return memory<SplitWord128>(addr.transactionAlignedBankAddress(AccessFromXBUS{}));
-}
-uint8_t 
-Platform::getAddressMSB() noexcept {
-    return getProcessorInterface().address_.view8.data[3];
 }

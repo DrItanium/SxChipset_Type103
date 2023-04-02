@@ -797,13 +797,31 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
                     break;
                 default:
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
                     break;
             }
             break;
         case TargetPeripheral::Timer:
-            timerInterface.performRead(function, offset, body);
-            CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+            switch (static_cast<TimerDeviceOperations>(function)) {
+                case TimerDeviceOperations::Available:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>();
+                    break;
+                case TimerDeviceOperations::Size:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(TimerDeviceOperations::Count)>();
+                    break;
+                case TimerDeviceOperations::SystemTimerPrescalar:
+                    body[0].bytes[0] = timerInterface.getSystemTimerPrescalar();
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    break;
+                case TimerDeviceOperations::SystemTimerComparisonValue:
+                    body[0].bytes[0] = timerInterface.getSystemTimerComparisonValue();
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    break;
+                default:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
+                    break;
+
+            }
             break;
         default:
             CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();

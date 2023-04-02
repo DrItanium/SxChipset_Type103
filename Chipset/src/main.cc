@@ -810,11 +810,11 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(TimerDeviceOperations::Count)>();
                     break;
                 case TimerDeviceOperations::SystemTimerPrescalar:
-                    body[0].bytes[0] = timerInterface.getSystemTimerPrescalar();
+                    body.bytes[0] = timerInterface.getSystemTimerPrescalar();
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
                     break;
                 case TimerDeviceOperations::SystemTimerComparisonValue:
-                    body[0].bytes[0] = timerInterface.getSystemTimerComparisonValue();
+                    body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
                     break;
                 default:
@@ -860,7 +860,17 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             break;
         case TargetPeripheral::Timer:
             CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
-            timerInterface.performWrite(function, offset, body);
+            asm volatile ("nop");
+            switch (static_cast<TimerDeviceOperations>(function)) {
+                case TimerDeviceOperations::SystemTimerPrescalar:
+                    timerInterface.setSystemTimerPrescalar(body.bytes[0]);
+                    break;
+                case TimerDeviceOperations::SystemTimerComparisonValue:
+                    timerInterface.setSystemTimerComparisonValue(body.bytes[0]);
+                    break;
+                default:
+                    break;
+            }
             break;
         default:
             CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>();

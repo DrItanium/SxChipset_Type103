@@ -92,68 +92,16 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 [[gnu::always_inline]]
 inline void 
 idleTransaction() noexcept {
-    // even though it is eight entries in here, it doesn't actually matter
-    // since this works for four entries (32-bit) as well
-    singleCycleDelay();
-    singleCycleDelay();
-    auto end = Platform::isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    // upper half
-    end = Platform::isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    end = Platform::isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    // upper half
-    end = Platform::isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    end = Platform::isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    // upper half
-    end = Platform::isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    end = Platform::isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    // upper half
-    end = Platform::isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
+    // just keep going until we are done
+    do {
+        singleCycleDelay();
+        singleCycleDelay();
+        auto end = Platform::isBurstLast();
+        signalReady();
+        if (end) {
+            break;
+        }
+    } while (true);
 }
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {

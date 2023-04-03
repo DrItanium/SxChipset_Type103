@@ -195,8 +195,8 @@ doFixedCommunication(uint8_t lowest) noexcept {
 [[gnu::always_inline]]
 inline
 static void
-doCommunication(volatile SplitWord128& theView) noexcept {
-    if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(*addressLines)]; isReadOperation) {
+doCommunication(volatile SplitWord128& theView, uint8_t lowest) noexcept {
+    if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(lowest)]; isReadOperation) {
         // in all other cases do the whole thing
         dataLines[0] = theBytes[0];
         dataLines[1] = theBytes[1];
@@ -438,10 +438,10 @@ private:
     }
     [[gnu::always_inline]]
     inline
-    static void doReadOperation(volatile SplitWord128& theView) noexcept {
+    static void doReadOperation(volatile SplitWord128& theView, uint8_t lowest) noexcept {
         //for(;;) {
             // just skip over the lowest 16-bits if we start unaligned
-            uint8_t value = *addressLines;
+            uint8_t value = lowest;
             uint8_t offset = getWordByteOffset(value);
             DataRegister8 theBytes = &theView.bytes[offset];
             if ((value & 0b0010) == 0) {
@@ -515,11 +515,11 @@ private:
     }
     [[gnu::always_inline]]
     inline
-    static void doWriteOperation(volatile SplitWord128& theView) noexcept {
+    static void doWriteOperation(volatile SplitWord128& theView, uint8_t lowest) noexcept {
         // now we are aligned so start execution as needed
         //for(;;) {
             // figure out which word we are currently looking at
-            uint8_t value = *addressLines;
+            uint8_t value = lowest;
             uint8_t offset = getWordByteOffset(value);
             DataRegister8 base = theView.bytes;
             DataRegister8 theBytes = &base[offset];
@@ -667,13 +667,13 @@ public:
     [[gnu::always_inline]]
     inline
     static void
-    doCommunication(volatile SplitWord128& theView) noexcept {
+    doCommunication(volatile SplitWord128& theView, uint8_t lowest) noexcept {
         /// @todo check the start position as that will describe the cycle shape
         if constexpr (isReadOperation) {
             if constexpr (inDebugMode) {
                 Serial.println(F("Starting Read Operation Proper"));
             }
-            doReadOperation(theView);
+            doReadOperation(theView, lowest);
             if constexpr (inDebugMode) {
                 Serial.println(F("Ending Read Operation Proper"));
             }
@@ -681,7 +681,7 @@ public:
             if constexpr (inDebugMode) {
                 Serial.println(F("Starting Write Operation Proper"));
             }
-            doWriteOperation(theView);
+            doWriteOperation(theView, lowest);
             if constexpr (inDebugMode) {
                 Serial.println(F("Ending Write Operation Proper"));
             }
@@ -734,7 +734,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     break;;
                 case SerialDeviceOperations::RW:
                     body[0].halves[0] = Serial.read();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 case SerialDeviceOperations::Flush:
                     Serial.flush();
@@ -742,7 +742,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     break;
                 case SerialDeviceOperations::Baud:
                     body[0].full = theSerial.getBaudRate();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 default:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
@@ -759,11 +759,11 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     break;
                 case TimerDeviceOperations::SystemTimerPrescalar:
                     body.bytes[0] = timerInterface.getSystemTimerPrescalar();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 case TimerDeviceOperations::SystemTimerComparisonValue:
                     body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 default:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
@@ -789,7 +789,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     // need to sample the address lines prior to grabbing data off the bus
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
-            CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
+            CommunicationKernel<inDebugMode, false, width>::doCommunication(body, offset);
             asm volatile ("nop");
             switch (static_cast<SerialDeviceOperations>(function)) {
                 case SerialDeviceOperations::RW:
@@ -807,7 +807,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             //theSerial.performWrite(function, offset, body);
             break;
         case TargetPeripheral::Timer:
-            CommunicationKernel<inDebugMode, false, width>::doCommunication(body);
+            CommunicationKernel<inDebugMode, false, width>::doCommunication(body, offset);
             asm volatile ("nop");
             switch (static_cast<TimerDeviceOperations>(function)) {
                 case TimerDeviceOperations::SystemTimerPrescalar:
@@ -892,7 +892,8 @@ executionBody() noexcept {
                     Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
                             typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
-                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{})
+                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
+                            al.bytes[0]
                             );
                     break;
             }
@@ -926,7 +927,9 @@ executionBody() noexcept {
                     Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
                             typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
-                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}));
+                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
+                            al.bytes[0]
+                            );
                     break;
             }
         }

@@ -552,6 +552,7 @@ private:
             // code will go out of bounds but it doesn't matter because the
             // processor will never go out of bounds.
             if ((value & 0b0010) == 0) {
+                enterPhase();
                 // lower half
                 if (digitalRead<Pin::BE0>() == LOW) {
                     theBytes[0] = dataLines[0];
@@ -559,6 +560,7 @@ private:
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[1] = dataLines[1];
                 }
+                exitPhase();
                 auto end = Platform::isBurstLast();
                 signalReady();
                 if (end) {
@@ -568,12 +570,14 @@ private:
             singleCycleDelay();
             singleCycleDelay();
             // upper half
+            enterPhase();
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[2] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[3] = dataLines[3];
             }
+            exitPhase();
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -581,12 +585,14 @@ private:
             }
             singleCycleDelay();
             singleCycleDelay();
+            enterPhase();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[4] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[5] = dataLines[1];
             }
+            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -595,12 +601,14 @@ private:
             singleCycleDelay();
             singleCycleDelay();
             // upper half
+            enterPhase();
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[6] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[7] = dataLines[3];
             }
+            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -608,19 +616,23 @@ private:
             }
             singleCycleDelay();
             singleCycleDelay();
+            enterPhase();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[8] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[9] = dataLines[1];
             }
+            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
                 return;
             }
+            exitPhase();
             singleCycleDelay();
             singleCycleDelay();
+            enterPhase();
             // upper half
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[10] = dataLines[2];
@@ -628,6 +640,7 @@ private:
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[11] = dataLines[3];
             }
+            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -635,12 +648,14 @@ private:
             }
             singleCycleDelay();
             singleCycleDelay();
+            enterPhase();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[12] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[13] = dataLines[1];
             }
+            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -648,6 +663,7 @@ private:
             }
             singleCycleDelay();
             singleCycleDelay();
+            enterPhase();
             // upper half
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[14] = dataLines[2];
@@ -655,6 +671,7 @@ private:
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[15] = dataLines[3];
             }
+            exitPhase();
             /// @todo do not sample blast at the end of a 16-byte transaction
             end = Platform::isBurstLast();
             signalReady();

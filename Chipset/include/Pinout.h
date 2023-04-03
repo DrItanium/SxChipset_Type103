@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_PINOUT_H
 #define SXCHIPSET_TYPE103_PINOUT_H
 #include <Arduino.h>
+#define PHASE_DETECT_BEHAVIOR
 /**
  * @brief Wrapper around the AVR Pins to make templating easier and cleaner
  */
@@ -77,6 +78,9 @@ Count = NUM_DIGITAL_PINS,
     X(6),
     X(7),
 #undef X
+#ifdef PHASE_DETECT_BEHAVIOR
+    PhaseDetect = PortH5,
+#endif
 };
 enum class Port : byte {
     // stop at mega2560 tier
@@ -350,4 +354,16 @@ constexpr bool hasPWM(Pin pin) noexcept {
 template<Pin p>
 constexpr auto HasPWM_v = hasPWM(p);
 
+[[gnu::always_inline]]
+inline void enterPhase() noexcept {
+#ifdef PHASE_DETECT_BEHAVIOR
+    digitalWrite<Pin::PhaseDetect, LOW>();
+#endif
+}
+[[gnu::always_inline]]
+inline void exitPhase() noexcept {
+#ifdef PHASE_DETECT_BEHAVIOR
+    digitalWrite<Pin::PhaseDetect, HIGH>();
+#endif
+}
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

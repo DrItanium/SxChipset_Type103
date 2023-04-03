@@ -860,11 +860,15 @@ executionBody() noexcept {
         if constexpr (inDebugMode) {
             Serial.println(F("NEW TRANSACTION"));
         }
+        enterPhase();
         SplitWord32 al{addressLinesValue32};
+        exitPhase();
         /// @todo figure out the best way to only update the Bank index when needed
         if (Platform::isWriteOperation()) {
             if (currentDirection) {
+                enterPhase();
                 dataLinesDirection = 0;
+                exitPhase();
                 currentDirection = 0;
             }
             switch (al.bytes[3]) {
@@ -889,8 +893,10 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(al.bytes[0]);
                     break;
                 default: 
+                    enterPhase();
                     Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
                             typename TreatAsOnChipAccess::AccessMethod{});
+                    exitPhase();
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
                             getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
                             al.bytes[0]
@@ -899,7 +905,9 @@ executionBody() noexcept {
             }
         } else {
             if (!currentDirection) {
+                enterPhase();
                 dataLinesDirection = 0xFFFF'FFFF;
+                exitPhase();
                 currentDirection = 0xFF;
             }
             switch (al.bytes[3]) {
@@ -924,8 +932,10 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(al.bytes[0]);
                     break;
                 default:
+                enterPhase();
                     Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
                             typename TreatAsOnChipAccess::AccessMethod{});
+                exitPhase();
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
                             getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
                             al.bytes[0]
@@ -989,6 +999,10 @@ setupPins() noexcept {
     pinMode(Pin::DEN, INPUT);
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
+#ifdef PHASE_DETECT_BEHAVIOR
+    pinMode(Pin::PhaseDetect, OUTPUT);
+    digitalWrite<Pin::PhaseDetect, HIGH>();
+#endif
     if constexpr (MCUHasDirectAccess) {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();

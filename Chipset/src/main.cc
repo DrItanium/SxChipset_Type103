@@ -117,7 +117,7 @@ template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
 [[gnu::always_inline]]
 inline
 static void 
-doFixedCommunication() noexcept {
+doFixedCommunication(uint8_t lowest) noexcept {
     // we cannot hardcode the positions because we have no idea what the
     // offset is. So we have to do it this way, it is slower but it also means
     // the code is very straightforward
@@ -140,7 +140,7 @@ doFixedCommunication() noexcept {
                 static_cast<uint8_t>(d >> 16),
                 static_cast<uint8_t>(d >> 24),
         };
-        const uint8_t* theBytes = &contents.bytes[getWordByteOffset(*addressLines)]; 
+        const uint8_t* theBytes = &contents.bytes[getWordByteOffset(lowest)]; 
         // in all other cases do the whole thing
         dataLines[0] = theBytes[0];
         dataLines[1] = theBytes[1];
@@ -340,7 +340,7 @@ private:
     template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
     [[gnu::always_inline]]
     inline
-    static void doFixedReadOperation() noexcept {
+    static void doFixedReadOperation(uint8_t lowest) noexcept {
         if constexpr (a == b && b == c && c == d) {
             dataLinesFull = a;
             idleTransaction();
@@ -364,7 +364,7 @@ private:
                     static_cast<uint8_t>(d >> 24),
             };
             // just skip over the lowest 16-bits if we start unaligned
-            uint8_t value = *addressLines;
+            uint8_t value = lowest;
             uint8_t offset = getWordByteOffset(value);
             const uint8_t* theBytes = &contents.bytes[offset];
             if ((value & 0b0010) == 0) {
@@ -656,10 +656,10 @@ public:
     [[gnu::always_inline]]
     inline
     static void
-    doFixedCommunication() noexcept {
+    doFixedCommunication(uint8_t lowest) noexcept {
         /// @todo check the start position as that will describe the cycle shape
         if constexpr (isReadOperation) {
-            doFixedReadOperation<a, b, c, d>();
+            doFixedReadOperation<a, b, c, d>(lowest);
         } else {
             idleTransaction();
         }
@@ -707,19 +707,19 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
         case TargetPeripheral::Info:
             switch (static_cast<InfoDeviceOperations>(function)) {
                 case InfoDeviceOperations::Available:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     break;
                 case InfoDeviceOperations::Size:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(InfoDeviceOperations::Count)>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(InfoDeviceOperations::Count)>(offset);
                     break;
                 case InfoDeviceOperations::GetChipsetClock:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU>(offset);
                     break;
                 case InfoDeviceOperations::GetCPUClock:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>(offset);
                     break;
                 default:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     // unknown device so do not do anything
                     break;
             }
@@ -727,10 +727,10 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
         case TargetPeripheral::Serial:
             switch (static_cast<SerialDeviceOperations>(function)) {
                 case SerialDeviceOperations::Available:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     break;
                 case SerialDeviceOperations::Size:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(SerialDeviceOperations::Count)>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(SerialDeviceOperations::Count)>(offset);
                     break;;
                 case SerialDeviceOperations::RW:
                     body[0].halves[0] = Serial.read();
@@ -738,24 +738,24 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     break;
                 case SerialDeviceOperations::Flush:
                     Serial.flush();
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     break;
                 case SerialDeviceOperations::Baud:
                     body[0].full = theSerial.getBaudRate();
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
                     break;
                 default:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     break;
             }
             break;
         case TargetPeripheral::Timer:
             switch (static_cast<TimerDeviceOperations>(function)) {
                 case TimerDeviceOperations::Available:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     break;
                 case TimerDeviceOperations::Size:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(TimerDeviceOperations::Count)>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(TimerDeviceOperations::Count)>(offset);
                     break;
                 case TimerDeviceOperations::SystemTimerPrescalar:
                     body.bytes[0] = timerInterface.getSystemTimerPrescalar();
@@ -766,13 +766,13 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(body);
                     break;
                 default:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     break;
 
             }
             break;
         default:
-            CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
+            CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
             // unknown device so do not do anything
             break;
     }
@@ -821,7 +821,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             }
             break;
         default:
-            CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>();
+            CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(offset);
             // unknown device so do not do anything
             break;
     }
@@ -886,7 +886,7 @@ executionBody() noexcept {
                 case 0xFD:
                 case 0xFE:
                 case 0xFF:
-                    CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>();
+                    CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(al.bytes[0]);
                     break;
                 default: 
                     Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
@@ -920,7 +920,7 @@ executionBody() noexcept {
                 case 0xFD:
                 case 0xFE:
                 case 0xFF:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>();
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(al.bytes[0]);
                     break;
                 default:
                     Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 

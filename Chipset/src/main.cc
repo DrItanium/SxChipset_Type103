@@ -860,6 +860,7 @@ executionBody() noexcept {
         if constexpr (inDebugMode) {
             Serial.println(F("NEW TRANSACTION"));
         }
+        startTransaction();
         enterPhase();
         SplitWord32 al{addressLinesValue32};
         exitPhase();
@@ -893,10 +894,8 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(al.bytes[0]);
                     break;
                 default: 
-                    enterPhase();
                     Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
                             typename TreatAsOnChipAccess::AccessMethod{});
-                    exitPhase();
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
                             getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
                             al.bytes[0]
@@ -932,10 +931,8 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(al.bytes[0]);
                     break;
                 default:
-                enterPhase();
                     Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
                             typename TreatAsOnChipAccess::AccessMethod{});
-                exitPhase();
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
                             getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
                             al.bytes[0]
@@ -943,6 +940,7 @@ executionBody() noexcept {
                     break;
             }
         }
+        endTransaction();
         if constexpr (inDebugMode) {
             Serial.println(F("END TRANSACTION"));
         }
@@ -1001,7 +999,9 @@ setupPins() noexcept {
     pinMode(Pin::WR, INPUT);
 #ifdef PHASE_DETECT_BEHAVIOR
     pinMode(Pin::PhaseDetect, OUTPUT);
+    pinMode(Pin::TransactionDetect, OUTPUT);
     digitalWrite<Pin::PhaseDetect, HIGH>();
+    digitalWrite<Pin::TransactionDetect, HIGH>();
 #endif
     if constexpr (MCUHasDirectAccess) {
         pinMode(Pin::READY, OUTPUT);

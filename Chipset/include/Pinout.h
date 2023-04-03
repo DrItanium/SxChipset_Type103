@@ -80,6 +80,7 @@ Count = NUM_DIGITAL_PINS,
 #undef X
 #ifdef PHASE_DETECT_BEHAVIOR
     PhaseDetect = PortH5,
+    TransactionDetect = PortH4,
 #endif
 };
 enum class Port : byte {
@@ -364,6 +365,18 @@ inline void enterPhase() noexcept {
 inline void exitPhase() noexcept {
 #ifdef PHASE_DETECT_BEHAVIOR
     digitalWrite<Pin::PhaseDetect, HIGH>();
+#endif
+}
+[[gnu::always_inline]]
+inline void startTransaction() noexcept {
+#ifdef PHASE_DETECT_BEHAVIOR
+    digitalWrite<Pin::TransactionDetect, LOW>();
+#endif
+}
+[[gnu::always_inline]]
+inline void endTransaction() noexcept {
+#ifdef PHASE_DETECT_BEHAVIOR
+    digitalWrite<Pin::TransactionDetect, HIGH>();
 #endif
 }
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

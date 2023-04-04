@@ -439,95 +439,67 @@ private:
     [[gnu::always_inline]]
     inline
     static void doReadOperation(volatile SplitWord128& theView, uint8_t lowest) noexcept {
-        //for(;;) {
+        do {
             // just skip over the lowest 16-bits if we start unaligned
             uint8_t value = lowest;
-            uint8_t offset = getWordByteOffset(value);
-            DataRegister8 theBytes = &theView.bytes[offset];
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
             if ((value & 0b0010) == 0) {
-                enterPhase();
                 dataLines[0] = theBytes[0];
                 dataLines[1] = theBytes[1];
-                exitPhase();
                 auto end = Platform::isBurstLast();
                 signalReady();
                 if (end) {
-                    return;
+                    break;
                 }
             }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-                enterPhase();
             dataLines[2] = theBytes[2];
             dataLines[3] = theBytes[3];
-            exitPhase();
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
-                enterPhase();
             dataLines[0] = theBytes[4];
             dataLines[1] = theBytes[5];
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-                enterPhase();
             dataLines[2] = theBytes[6];
             dataLines[3] = theBytes[7];
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
-            enterPhase();
             dataLines[0] = theBytes[8];
             dataLines[1] = theBytes[9];
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            enterPhase();
             dataLines[2] = theBytes[10];
             dataLines[3] = theBytes[11];
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
-            enterPhase();
             dataLines[0] = theBytes[12];
             dataLines[1] = theBytes[13];
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
-            enterPhase();
             dataLines[2] = theBytes[14];
             dataLines[3] = theBytes[15];
-            exitPhase();
-            /// @todo do not sample blast at the end of a 16-byte transaction
-            end = Platform::isBurstLast();
             signalReady();
-            if (end) {
-                return;
-            }
-        //} 
+        }  while (false);
     }
     [[gnu::always_inline]]
     inline

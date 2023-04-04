@@ -906,6 +906,14 @@ executionBody() noexcept {
                 currentDirection = 0;
             }
             switch (al.bytes[3]) {
+                case 0x00:
+                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
+                            typename TreatAsOnChipAccess::AccessMethod{});
+                    CommunicationKernel<inDebugMode, false, width>::doCommunication(
+                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
+                            al.bytes[0]
+                            );
+                    break;
                 case 0xF0:
                     performIOWriteGroup0<inDebugMode, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
                     break;
@@ -927,10 +935,10 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(al.bytes[0]);
                     break;
                 default: 
-                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
-                            typename TreatAsOnChipAccess::AccessMethod{});
+                    Platform::setBank(al,
+                            typename TreatAsOffChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
-                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
+                            Platform::getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
                             al.bytes[0]
                             );
                     break;
@@ -943,6 +951,14 @@ executionBody() noexcept {
                 currentDirection = 0xFF;
             }
             switch (al.bytes[3]) {
+                case 0x00:
+                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
+                            typename TreatAsOnChipAccess::AccessMethod{});
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(
+                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
+                            al.bytes[0]
+                            );
+                    break;
                 case 0xF0:
                     performIOReadGroup0<inDebugMode, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
                     break;
@@ -964,10 +980,10 @@ executionBody() noexcept {
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(al.bytes[0]);
                     break;
                 default:
-                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
-                            typename TreatAsOnChipAccess::AccessMethod{});
+                    Platform::setBank(al,
+                            typename TreatAsOffChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
-                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
+                            Platform::getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
                             al.bytes[0]
                             );
                     break;

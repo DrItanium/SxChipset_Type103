@@ -446,60 +446,53 @@ private:
             if ((value & 0b0010) == 0) {
                 dataLines[0] = theBytes[0];
                 dataLines[1] = theBytes[1];
-                auto end = Platform::isBurstLast();
-                signalReady();
-                if (end) {
+                if (Platform::isBurstLast()) { 
                     break;
                 }
+                signalReady();
             }
             dataLines[2] = theBytes[2];
             dataLines[3] = theBytes[3];
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
+            signalReady();
             dataLines[0] = theBytes[4];
             dataLines[1] = theBytes[5];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
+            signalReady();
             dataLines[2] = theBytes[6];
             dataLines[3] = theBytes[7];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
+            signalReady();
             dataLines[0] = theBytes[8];
             dataLines[1] = theBytes[9];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
+            signalReady();
             dataLines[2] = theBytes[10];
             dataLines[3] = theBytes[11];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
+            signalReady();
             dataLines[0] = theBytes[12];
             dataLines[1] = theBytes[13];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
+            signalReady();
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
             dataLines[2] = theBytes[14];
             dataLines[3] = theBytes[15];
-            signalReady();
         }  while (false);
+        signalReady();
     }
     [[gnu::always_inline]]
     inline
@@ -529,14 +522,12 @@ private:
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[1] = dataLines[1];
                 }
-                auto end = Platform::isBurstLast();
-                signalReady();
-                if (end) {
+                if (Platform::isBurstLast()) {
                     break;
                 }
+                signalReady();
             }
-            singleCycleDelay();
-            singleCycleDelay();
+            insertCustomNopCount<4>();
             // upper half
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[2] = dataLines[2];
@@ -544,92 +535,74 @@ private:
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[3] = dataLines[3];
             }
-            auto end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
-            singleCycleDelay();
-            singleCycleDelay();
+            signalReady();
+            insertCustomNopCount<4>();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[4] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[5] = dataLines[1];
             }
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
-            singleCycleDelay();
-            singleCycleDelay();
-            // upper half
+            signalReady();
+            insertCustomNopCount<4>();
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[6] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[7] = dataLines[3];
             }
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
-            singleCycleDelay();
-            singleCycleDelay();
+            signalReady();
+            insertCustomNopCount<4>();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[8] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[9] = dataLines[1];
             }
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
-            singleCycleDelay();
-            singleCycleDelay();
-            // upper half
+            signalReady();
+            insertCustomNopCount<4>();
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[10] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[11] = dataLines[3];
             }
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
-            singleCycleDelay();
-            singleCycleDelay();
+            signalReady();
+            insertCustomNopCount<4>();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[12] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[13] = dataLines[1];
             }
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
+            if (Platform::isBurstLast()) {
                 break;
             }
-            singleCycleDelay();
-            singleCycleDelay();
-            // upper half
+            signalReady();
+            insertCustomNopCount<4>();
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[14] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[15] = dataLines[3];
             }
-            signalReady();
-            // we should never get here as transactions are at most 16 bytes in
-            // size. However, if we did get here then we would just start the
-            // transaction again at the top!
         } while (false);
+        signalReady();
 
     }
 

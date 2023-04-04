@@ -41,16 +41,22 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 
+template<uint8_t count>
+[[gnu::always_inline]]
+inline void
+insertCustomNopCount() noexcept {
+    __builtin_avr_nops(count);
+}
 [[gnu::always_inline]]
 inline void
 singleCycleDelay() noexcept {
-    __builtin_avr_nops(2);
+    insertCustomNopCount<2>();
 }
 
 [[gnu::always_inline]]
 inline void
 halfCycleDelay() noexcept {
-    __builtin_avr_nops(1);
+    insertCustomNopCount<1>();
 }
 
 /**
@@ -252,7 +258,7 @@ class Platform final {
         [[gnu::always_inline]] inline static void signalReady() noexcept { toggle<Pin::READY>(); }
         static bool checksumFailure() noexcept;
         [[gnu::always_inline]] inline static bool isBurstLast() noexcept { return digitalRead<Pin::BLAST>() == LOW; }
-        static uint8_t getByteEnable() noexcept;
+        [[gnu::always_inline]] inline static uint8_t getByteEnable() noexcept { return getInputRegister<Port::SignalCTL>(); }
         [[gnu::always_inline]] inline static bool isWriteOperation() noexcept { return digitalRead<Pin::WR>(); }
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(ControlSignals.ctl.cfg); }
         static void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept;

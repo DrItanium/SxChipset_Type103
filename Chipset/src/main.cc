@@ -526,8 +526,8 @@ private:
                     break;
                 }
                 signalReady();
+                insertCustomNopCount<4>();
             }
-            insertCustomNopCount<4>();
             // upper half
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[2] = dataLines[2];

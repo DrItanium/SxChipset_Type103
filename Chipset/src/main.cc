@@ -533,12 +533,10 @@ private:
     inline
     static void doWriteOperation(volatile SplitWord128& theView, uint8_t lowest) noexcept {
         // now we are aligned so start execution as needed
-        //for(;;) {
+        do {
             // figure out which word we are currently looking at
             uint8_t value = lowest;
-            uint8_t offset = getWordByteOffset(value);
-            DataRegister8 base = theView.bytes;
-            DataRegister8 theBytes = &base[offset];
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
             // if we are aligned to 32-bit word boundaries then just assume we
             // are at the start of the 16-byte block (the processor will stop
             // when it doesn't need data anymore). If we are not then skip over
@@ -552,7 +550,6 @@ private:
             // code will go out of bounds but it doesn't matter because the
             // processor will never go out of bounds.
             if ((value & 0b0010) == 0) {
-                enterPhase();
                 // lower half
                 if (digitalRead<Pin::BE0>() == LOW) {
                     theBytes[0] = dataLines[0];
@@ -560,79 +557,68 @@ private:
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[1] = dataLines[1];
                 }
-                exitPhase();
                 auto end = Platform::isBurstLast();
                 signalReady();
                 if (end) {
-                    return;
+                    break;
                 }
             }
             singleCycleDelay();
             singleCycleDelay();
             // upper half
-            enterPhase();
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[2] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[3] = dataLines[3];
             }
-            exitPhase();
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
             singleCycleDelay();
             singleCycleDelay();
-            enterPhase();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[4] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[5] = dataLines[1];
             }
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
             singleCycleDelay();
             singleCycleDelay();
             // upper half
-            enterPhase();
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[6] = dataLines[2];
             }
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[7] = dataLines[3];
             }
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
             singleCycleDelay();
             singleCycleDelay();
-            enterPhase();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[8] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[9] = dataLines[1];
             }
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
-            exitPhase();
             singleCycleDelay();
             singleCycleDelay();
-            enterPhase();
             // upper half
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[10] = dataLines[2];
@@ -640,30 +626,26 @@ private:
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[11] = dataLines[3];
             }
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
             singleCycleDelay();
             singleCycleDelay();
-            enterPhase();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[12] = dataLines[0];
             }
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[13] = dataLines[1];
             }
-            exitPhase();
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
-                return;
+                break;
             }
             singleCycleDelay();
             singleCycleDelay();
-            enterPhase();
             // upper half
             if (digitalRead<Pin::BE2>() == LOW) {
                 theBytes[14] = dataLines[2];
@@ -671,17 +653,12 @@ private:
             if (digitalRead<Pin::BE3>() == LOW) {
                 theBytes[15] = dataLines[3];
             }
-            exitPhase();
-            /// @todo do not sample blast at the end of a 16-byte transaction
-            end = Platform::isBurstLast();
             signalReady();
-            if (end) {
-                return;
-            }
             // we should never get here as transactions are at most 16 bytes in
             // size. However, if we did get here then we would just start the
             // transaction again at the top!
-        //}
+        } while (false);
+
     }
 
 public:

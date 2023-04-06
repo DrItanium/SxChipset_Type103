@@ -792,15 +792,26 @@ uint8_t computeBankIndex(uint8_t lower, uint8_t upper) noexcept {
                 __builtin_avr_insert_bits(0x543210ff, upper, 0));
 #endif
 }
+uint8_t computeBankIndex(uint32_t address) noexcept {
+    return computeBankIndex(static_cast<uint8_t>(address >> 8),
+                            static_cast<uint8_t>(address >> 16));
+}
 
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
         return 0x4000 + (offset & 0x3FF0);
 }
-volatile SplitWord128&
-getTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return memory<SplitWord128>(computeTransactionWindow(offset, typename TreatAsOnChipAccess::AccessMethod{}));
+uint16_t 
+computeTransactionWindow(uint16_t offset, typename TreatAsOffChipAccess::AccessMethod) noexcept {
+        return 0x8000 + (offset & 0x7FF0);
 }
+
+template<typename T>
+volatile SplitWord128&
+getTransactionWindow(uint16_t offset, T) noexcept {
+    return memory<SplitWord128>(computeTransactionWindow(offset, T{}));
+}
+
 
 template<bool inDebugMode, NativeBusWidth width> 
 [[gnu::noinline]]
@@ -817,27 +828,31 @@ executionBody() noexcept {
         }
         startTransaction();
         enterPhase();
-        SplitWord32 al{addressLinesValue32};
+        uint32_t al = addressLinesValue32;
+        //SplitWord32 al{addressLinesValue32};
         exitPhase();
         /// @todo figure out the best way to only update the Bank index when needed
-        if (Platform::isWriteOperation()) {
+        if (auto majorCode = static_cast<uint8_t>(al >> 24), offset = static_cast<uint8_t>(al); Platform::isWriteOperation()) {
             if (currentDirection) {
                 enterPhase();
                 dataLinesDirection = 0;
                 exitPhase();
                 currentDirection = 0;
             }
-            switch (al.bytes[3]) {
+            switch (majorCode) {
                 case 0x00:
-                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
+                    Platform::setBank(computeBankIndex(al),
                             typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
-                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
-                            al.bytes[0]
+                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                            offset
                             );
                     break;
                 case 0xF0:
-                    performIOWriteGroup0<inDebugMode, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
+                    performIOWriteGroup0<inDebugMode, width>(operation, 
+                            static_cast<uint8_t>(al >> 16),
+                            static_cast<uint8_t>(al >> 8),
+                            offset);
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -854,14 +869,14 @@ executionBody() noexcept {
                 case 0xFD:
                 case 0xFE:
                 case 0xFF:
-                    CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(al.bytes[0]);
+                    CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(offset);
                     break;
                 default: 
                     Platform::setBank(al,
                             typename TreatAsOffChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
-                            Platform::getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
-                            al.bytes[0]
+                            getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
+                            offset
                             );
                     break;
             }
@@ -872,17 +887,20 @@ executionBody() noexcept {
                 exitPhase();
                 currentDirection = 0xFF;
             }
-            switch (al.bytes[3]) {
+            switch (majorCode) {
                 case 0x00:
-                    Platform::setBank(computeBankIndex(al.bytes[1], al.bytes[2]), 
+                    Platform::setBank(computeBankIndex(al),
                             typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
-                            getTransactionWindow(al.halves[0], typename TreatAsOnChipAccess::AccessMethod{}),
-                            al.bytes[0]
+                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                            offset
                             );
                     break;
                 case 0xF0:
-                    performIOReadGroup0<inDebugMode, width>(operation, al.bytes[2], al.bytes[1], al.bytes[0]);
+                    performIOReadGroup0<inDebugMode, width>(operation, 
+                            static_cast<uint8_t>(al >> 16),
+                            static_cast<uint8_t>(al >> 8),
+                            offset);
                     break;
                 case 0xF1:
                 case 0xF2:
@@ -899,14 +917,14 @@ executionBody() noexcept {
                 case 0xFD:
                 case 0xFE:
                 case 0xFF:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(al.bytes[0]);
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     break;
                 default:
                     Platform::setBank(al,
                             typename TreatAsOffChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
-                            Platform::getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
-                            al.bytes[0]
+                            getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
+                            offset
                             );
                     break;
             }

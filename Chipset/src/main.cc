@@ -1061,9 +1061,3 @@ loop() {
 }
 
 
-#ifdef INT7_vect
-ISR(INT7_vect) {
-    // since we are using PE7 as CLKO, this vector can be leveraged for some
-    // sort of internal operation if desired
-}
-#endif

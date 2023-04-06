@@ -79,6 +79,7 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
+[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
 [[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
 
 [[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
@@ -878,8 +879,11 @@ executionBody() noexcept {
             }
         } else {
             if (!currentDirection) {
-                dataLinesDirection = 0xFFFF'FFFF;
                 currentDirection = 0xFF;
+                dataLinesDirection_bytes[0] = currentDirection;
+                dataLinesDirection_bytes[1] = currentDirection;
+                dataLinesDirection_bytes[2] = currentDirection;
+                dataLinesDirection_bytes[3] = currentDirection;
             }
             switch (majorCode) {
                 case 0x00:

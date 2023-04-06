@@ -782,7 +782,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     }
 }
 
-uint8_t computeBankIndex(uint8_t lower, uint8_t upper) noexcept {
+uint8_t computeBankIndex(uint8_t lower, uint8_t upper, typename TreatAsOnChipAccess::AccessMethod) noexcept {
 #ifndef __BUILTIN_AVR_INSERT_BITS
         uint8_t a = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
         uint8_t b = static_cast<uint8_t>(bytes[2] << 2) & 0b1111'1100;
@@ -792,9 +792,10 @@ uint8_t computeBankIndex(uint8_t lower, uint8_t upper) noexcept {
                 __builtin_avr_insert_bits(0x543210ff, upper, 0));
 #endif
 }
-uint8_t computeBankIndex(uint32_t address) noexcept {
+uint8_t computeBankIndex(uint32_t address, typename TreatAsOnChipAccess::AccessMethod) noexcept {
     return computeBankIndex(static_cast<uint8_t>(address >> 8),
-                            static_cast<uint8_t>(address >> 16));
+                            static_cast<uint8_t>(address >> 16),
+                            typename TreatAsOnChipAccess::AccessMethod{});
 }
 
 uint16_t 
@@ -841,7 +842,7 @@ executionBody() noexcept {
             }
             switch (majorCode) {
                 case 0x00:
-                    Platform::setBank(computeBankIndex(al),
+                    Platform::setBank(computeBankIndex(al, typename TreatAsOnChipAccess::AccessMethod{}),
                             typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
                             getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
@@ -889,7 +890,7 @@ executionBody() noexcept {
             }
             switch (majorCode) {
                 case 0x00:
-                    Platform::setBank(computeBankIndex(al),
+                    Platform::setBank(computeBankIndex(al, typename TreatAsOnChipAccess::AccessMethod {}),
                             typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
                             getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),

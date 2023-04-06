@@ -828,16 +828,11 @@ executionBody() noexcept {
             Serial.println(F("NEW TRANSACTION"));
         }
         startTransaction();
-        enterPhase();
         uint32_t al = addressLinesValue32;
-        //SplitWord32 al{addressLinesValue32};
-        exitPhase();
         /// @todo figure out the best way to only update the Bank index when needed
         if (auto majorCode = static_cast<uint8_t>(al >> 24), offset = static_cast<uint8_t>(al); Platform::isWriteOperation()) {
             if (currentDirection) {
-                enterPhase();
                 dataLinesDirection = 0;
-                exitPhase();
                 currentDirection = 0;
             }
             switch (majorCode) {
@@ -883,9 +878,7 @@ executionBody() noexcept {
             }
         } else {
             if (!currentDirection) {
-                enterPhase();
                 dataLinesDirection = 0xFFFF'FFFF;
-                exitPhase();
                 currentDirection = 0xFF;
             }
             switch (majorCode) {

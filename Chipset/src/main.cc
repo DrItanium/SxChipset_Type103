@@ -78,6 +78,7 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
+[[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
 [[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
 [[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
 [[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
@@ -437,175 +438,6 @@ private:
             }
         }
     }
-    [[gnu::always_inline]]
-    inline
-    static void doReadOperation(volatile SplitWord128& theView, uint8_t lowest) noexcept {
-        do {
-            // just skip over the lowest 16-bits if we start unaligned
-            uint8_t value = lowest;
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
-            if ((value & 0b0010) == 0) {
-                dataLines[0] = theBytes[0];
-                dataLines[1] = theBytes[1];
-                if (Platform::isBurstLast()) { 
-                    break;
-                }
-                signalReady();
-            }
-            dataLines[2] = theBytes[2];
-            dataLines[3] = theBytes[3];
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            dataLines[0] = theBytes[4];
-            dataLines[1] = theBytes[5];
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            dataLines[2] = theBytes[6];
-            dataLines[3] = theBytes[7];
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            dataLines[0] = theBytes[8];
-            dataLines[1] = theBytes[9];
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            dataLines[2] = theBytes[10];
-            dataLines[3] = theBytes[11];
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            dataLines[0] = theBytes[12];
-            dataLines[1] = theBytes[13];
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            dataLines[2] = theBytes[14];
-            dataLines[3] = theBytes[15];
-        }  while (false);
-        signalReady();
-    }
-    [[gnu::always_inline]]
-    inline
-    static void doWriteOperation(volatile SplitWord128& theView, uint8_t lowest) noexcept {
-        // now we are aligned so start execution as needed
-        do {
-            // figure out which word we are currently looking at
-            uint8_t value = lowest;
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
-            // if we are aligned to 32-bit word boundaries then just assume we
-            // are at the start of the 16-byte block (the processor will stop
-            // when it doesn't need data anymore). If we are not then skip over
-            // this first two bytes and start at the upper two bytes of the
-            // current word.
-            //
-            // I am also exploiting the fact that the processor can only ever
-            // accept up to 16-bytes at a time if it is aligned to 16-byte
-            // boundaries. If it is unaligned then the operation is broken up
-            // into multiple transactions within the i960 itself. So yes, this
-            // code will go out of bounds but it doesn't matter because the
-            // processor will never go out of bounds.
-            if ((value & 0b0010) == 0) {
-                // lower half
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[0] = dataLines[0];
-                }
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    theBytes[1] = dataLines[1];
-                }
-                if (Platform::isBurstLast()) {
-                    break;
-                }
-                signalReady();
-                insertCustomNopCount<4>();
-            }
-            // upper half
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[2] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[3] = dataLines[3];
-            }
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            insertCustomNopCount<4>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[4] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[5] = dataLines[1];
-            }
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            insertCustomNopCount<4>();
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[6] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[7] = dataLines[3];
-            }
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            insertCustomNopCount<4>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[8] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[9] = dataLines[1];
-            }
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            insertCustomNopCount<4>();
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[10] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[11] = dataLines[3];
-            }
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            insertCustomNopCount<4>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[12] = dataLines[0];
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[13] = dataLines[1];
-            }
-            if (Platform::isBurstLast()) {
-                break;
-            }
-            signalReady();
-            insertCustomNopCount<4>();
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[14] = dataLines[2];
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[15] = dataLines[3];
-            }
-        } while (false);
-        signalReady();
-
-    }
 
 public:
     template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
@@ -624,24 +456,54 @@ public:
     inline
     static void
     doCommunication(volatile SplitWord128& theView, uint8_t lowest) noexcept {
-        /// @todo check the start position as that will describe the cycle shape
-        if constexpr (isReadOperation) {
-            if constexpr (inDebugMode) {
-                Serial.println(F("Starting Read Operation Proper"));
+        do {
+            // figure out which word we are currently looking at
+            uint8_t value = lowest;
+            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
+            // if we are aligned to 32-bit word boundaries then just assume we
+            // are at the start of the 16-byte block (the processor will stop
+            // when it doesn't need data anymore). If we are not then skip over
+            // this first two bytes and start at the upper two bytes of the
+            // current word.
+            //
+            // I am also exploiting the fact that the processor can only ever
+            // accept up to 16-bytes at a time if it is aligned to 16-byte
+            // boundaries. If it is unaligned then the operation is broken up
+            // into multiple transactions within the i960 itself. So yes, this
+            // code will go out of bounds but it doesn't matter because the
+            // processor will never go out of bounds.
+#define X(dli, d0, b0, d1, b1) \
+            { \
+                if constexpr (isReadOperation) { \
+                    dataLines[d0] = theBytes[b0]; \
+                    dataLines[d1] = theBytes[b1]; \
+                } else { \
+                    uint16_t val = dataLinesHalves[dli]; \
+                    if (digitalRead<Pin:: BE ## d0 >() == LOW) { \
+                        theBytes[b0] = val; \
+                    } \
+                    if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
+                        theBytes[b1] = static_cast<uint8_t>(val >> 8); \
+                    } \
+                } \
+                if (Platform::isBurstLast()) { \
+                    break; \
+                } \
+                signalReady(); \
             }
-            doReadOperation(theView, lowest);
-            if constexpr (inDebugMode) {
-                Serial.println(F("Ending Read Operation Proper"));
+            if ((value & 0b0010) == 0) {
+                X(0,0,0,1,1);
             }
-        } else {
-            if constexpr (inDebugMode) {
-                Serial.println(F("Starting Write Operation Proper"));
-            }
-            doWriteOperation(theView, lowest);
-            if constexpr (inDebugMode) {
-                Serial.println(F("Ending Write Operation Proper"));
-            }
-        }
+            X(1,2,2,3,3);
+            X(0,0,4,1,5);
+            X(1,2,6,3,7);
+            X(0,0,8,1,9);
+            X(1,2,10,3,11);
+            X(0,0,12,1,13);
+            X(1,2,14,3,15);
+#undef X
+        } while (false);
+        signalReady();
     }
 };
 

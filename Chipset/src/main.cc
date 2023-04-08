@@ -504,26 +504,27 @@ public:
                             break; \
                         } \
                     } else { \
-                        if (digitalRead<Pin:: BE ## d0 >() == LOW) { \
-                            theBytes[b0] = dataLines[d0]; \
-                            if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
-                                /* Keep in contiguous sequences to allow the
-                                 * cpu to chain into the next operation. 
-                                 * I observed through testing that this really
-                                 * seemed to help keep the throughput up. The
-                                 * AVR core will chain the operations using the
-                                 * pipeline so there is no downtime. 
-                                 */ \
-                                theBytes[b1] = dataLines[d1]; \
-                            } else { \
-                                break; \
+                        /*
+                         * First time through, we want to actually check the
+                         * upper byte enable bit first and if it is then
+                         * check the lower bits
+                         */ \
+                        if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
+                            theBytes[b1] = dataLines[d1]; \
+                            if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
+                                theBytes[b0] = dataLines[d0]; \
                             } \
                         } else { \
-                            /* in this case we know that the upper bits must be
-                             * the starting location. So perform the operation
-                             * without checking the byte enable bits
+                            /*
+                             * In this case, we know that the lower 8-bits are
+                             * the starting location and the ending location so
+                             * assign and then break out!
+                             * 
+                             * The only way we get here is if the upper byte
+                             * enable bit is high!
                              */ \
-                            theBytes[b1] = dataLines[d1]; \
+                            theBytes[b0] = dataLines[d0]; \
+                            break; \
                         } \
                     } \
                 } \

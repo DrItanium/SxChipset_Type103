@@ -505,9 +505,25 @@ public:
                         } \
                     } else { \
                         if (digitalRead<Pin:: BE ## d0 >() == LOW) { \
-                            theBytes[b0] = dataLines[d0]; \
-                        } \
-                        if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
+                            if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
+                                /* Keep in contiguous sequences to allow the
+                                 * cpu to chain into the next operation. 
+                                 * I observed through testing that this really
+                                 * seemed to help keep the throughput up. The
+                                 * AVR core will chain the operations using the
+                                 * pipeline so there is no downtime. 
+                                 */ \
+                                theBytes[b0] = dataLines[d0]; \
+                                theBytes[b1] = dataLines[d1]; \
+                            } else { \
+                                theBytes[b0] = dataLines[d0]; \
+                                break; \
+                            } \
+                        } else { \
+                            /* in this case we know that the upper bits must be
+                             * the starting location. So perform the operation
+                             * without checking the byte enable bits
+                             */ \
                             theBytes[b1] = dataLines[d1]; \
                         } \
                     } \

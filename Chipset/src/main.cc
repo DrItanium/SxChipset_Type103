@@ -472,18 +472,44 @@ public:
             // into multiple transactions within the i960 itself. So yes, this
             // code will go out of bounds but it doesn't matter because the
             // processor will never go out of bounds.
-#define X(dli, d0, b0, d1, b1) \
+
+
+            // The later field is used to denote if the given part of the
+            // transaction is later on in burst. If it is then we will
+            // terminate early without evaluating BLAST if the upper byte
+            // enable is high. This is because if we hit 0b1001 this would be
+            // broken up into two 16-bit values (0b1101 and 0b1011) which is
+            // fine but in all cases the first 1 we encounter after finding the
+            // first zero in the byte enable bits we are going to terminate
+            // anyway. So don't waste time evaluating BLAST at all!
+#define X(dli, d0, b0, d1, b1, later) \
             { \
                 if constexpr (isReadOperation) { \
                     dataLines[d0] = theBytes[b0]; \
                     dataLines[d1] = theBytes[b1]; \
                 } else { \
-                    uint16_t val = dataLinesHalves[dli]; \
-                    if (digitalRead<Pin:: BE ## d0 >() == LOW) { \
-                        theBytes[b0] = val; \
-                    } \
-                    if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
-                        theBytes[b1] = static_cast<uint8_t>(val >> 8); \
+                    insertCustomNopCount<4>(); /* The delay for the ready signal */ \
+                    if constexpr (later) { \
+                        /* in this case, we will immediately terminate if the 
+                         * upper byte enable bit is 1
+                         *
+                         * Also, since this is later on in the process, it
+                         * should be safe to just propagate without performing
+                         * the check itself
+                         */ \
+                        theBytes[b0] = dataLines[d0]; \
+                        if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
+                            theBytes[b1] = dataLines[d1]; \
+                        } else { \
+                            break; \
+                        } \
+                    } else { \
+                        if (digitalRead<Pin:: BE ## d0 >() == LOW) { \
+                            theBytes[b0] = dataLines[d0]; \
+                        } \
+                        if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
+                            theBytes[b1] = dataLines[d1]; \
+                        } \
                     } \
                 } \
                 if (Platform::isBurstLast()) { \
@@ -492,15 +518,15 @@ public:
                 signalReady(); \
             }
             if ((value & 0b0010) == 0) {
-                X(0,0,0,1,1);
+                X(0,0,0,1,1, false);
             }
-            X(1,2,2,3,3);
-            X(0,0,4,1,5);
-            X(1,2,6,3,7);
-            X(0,0,8,1,9);
-            X(1,2,10,3,11);
-            X(0,0,12,1,13);
-            X(1,2,14,3,15);
+            X(1,2,2,3,3, false);
+            X(0,0,4,1,5, true);
+            X(1,2,6,3,7, true);
+            X(0,0,8,1,9, true);
+            X(1,2,10,3,11, true);
+            X(0,0,12,1,13, true);
+            X(1,2,14,3,15, true);
 #undef X
         } while (false);
         signalReady();

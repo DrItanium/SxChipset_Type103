@@ -79,8 +79,7 @@ Count = NUM_DIGITAL_PINS,
     X(7),
 #undef X
 #ifdef PHASE_DETECT_BEHAVIOR
-    PhaseDetect = PortH5,
-    TransactionDetect = PortH4,
+    TransactionDetect = PortG3,
 #endif
 };
 enum class Port : byte {
@@ -356,18 +355,6 @@ constexpr bool hasPWM(Pin pin) noexcept {
 template<Pin p>
 constexpr auto HasPWM_v = hasPWM(p);
 
-[[gnu::always_inline]]
-inline void enterPhase() noexcept {
-#ifdef PHASE_DETECT_BEHAVIOR
-    digitalWrite<Pin::PhaseDetect, LOW>();
-#endif
-}
-[[gnu::always_inline]]
-inline void exitPhase() noexcept {
-#ifdef PHASE_DETECT_BEHAVIOR
-    digitalWrite<Pin::PhaseDetect, HIGH>();
-#endif
-}
 [[gnu::always_inline]]
 inline void startTransaction() noexcept {
 #ifdef PHASE_DETECT_BEHAVIOR

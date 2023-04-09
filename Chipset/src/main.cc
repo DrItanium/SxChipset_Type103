@@ -716,6 +716,7 @@ executionBody() noexcept {
     SplitWord128 operation;
     uint8_t currentDirection = dataLinesDirection_LSB;
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
+    Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
     while (true) {
         waitForDataState();
         if constexpr (inDebugMode) {
@@ -892,9 +893,7 @@ setupPins() noexcept {
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
 #ifdef PHASE_DETECT_BEHAVIOR
-    pinMode(Pin::PhaseDetect, OUTPUT);
     pinMode(Pin::TransactionDetect, OUTPUT);
-    digitalWrite<Pin::PhaseDetect, HIGH>();
     digitalWrite<Pin::TransactionDetect, HIGH>();
 #endif
     if constexpr (MCUHasDirectAccess) {

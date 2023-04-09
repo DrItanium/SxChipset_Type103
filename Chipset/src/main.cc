@@ -472,7 +472,6 @@ public:
                     dataLines[d0] = theBytes[b0]; \
                     dataLines[d1] = theBytes[b1]; \
                 } else { \
-                    insertCustomNopCount<4>(); /* The delay for the ready signal */ \
                     if constexpr (later) { \
                         /* in this case, we will immediately terminate if the 
                          * upper byte enable bit is 1
@@ -517,6 +516,9 @@ public:
                         break; \
                     } \
                     signalReady(); \
+                    if constexpr (!isReadOperation) { \
+                        insertCustomNopCount<4>(); /* The delay for the ready signal */ \
+                    } \
                 } \
             }
             if ((value & 0b0010) == 0) {

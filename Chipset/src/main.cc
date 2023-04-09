@@ -96,8 +96,7 @@ inline void
 idleTransaction() noexcept {
     // just keep going until we are done
     do {
-        singleCycleDelay();
-        singleCycleDelay();
+        insertCustomNopCount<4>();
         auto end = Platform::isBurstLast();
         signalReady();
         if (end) {
@@ -115,7 +114,7 @@ struct CommunicationKernel {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 
-template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
+template<uint32_t a, uint32_t b = a, uint32_t c = a, uint32_t d = a>
 [[gnu::always_inline]]
 inline
 static void 
@@ -339,7 +338,7 @@ struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
+    template<uint32_t a, uint32_t b = a, uint32_t c = a, uint32_t d = a>
     [[gnu::always_inline]]
     inline
     static void doFixedReadOperation(uint8_t lowest) noexcept {

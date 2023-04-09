@@ -158,7 +158,6 @@ doFixedCommunication(uint8_t lowest) noexcept {
             }
             singleCycleDelay();
             singleCycleDelay();
-
             dataLines[0] = theBytes[4];
             dataLines[1] = theBytes[5];
             dataLines[2] = theBytes[6];
@@ -170,7 +169,6 @@ doFixedCommunication(uint8_t lowest) noexcept {
             }
             singleCycleDelay();
             singleCycleDelay();
-
             dataLines[0] = theBytes[8];
             dataLines[1] = theBytes[9];
             dataLines[2] = theBytes[10];
@@ -182,17 +180,11 @@ doFixedCommunication(uint8_t lowest) noexcept {
             }
             singleCycleDelay();
             singleCycleDelay();
-
             dataLines[0] = theBytes[12];
             dataLines[1] = theBytes[13];
             dataLines[2] = theBytes[14];
             dataLines[3] = theBytes[15];
-            /// @todo do not sample blast at the end of a 16-byte transaction
-            end = Platform::isBurstLast();
             signalReady();
-            if (end) {
-                return;
-            }
         }
     } else {
         idleTransaction();
@@ -244,12 +236,8 @@ doCommunication(volatile SplitWord128& theView, uint8_t lowest) noexcept {
         dataLines[1] = theBytes[13];
         dataLines[2] = theBytes[14];
         dataLines[3] = theBytes[15];
-        /// @todo do not sample blast at the end of a 16-byte transaction
-        end = Platform::isBurstLast();
+        // do not sample blast at the end of a 16-byte transaction
         signalReady();
-        if (end) {
-            return;
-        }
     } else {
         // you must check each enable bit to see if you have to write to that byte
         // or not. You cannot just do a 32-bit write in all cases, this can
@@ -323,12 +311,8 @@ doCommunication(volatile SplitWord128& theView, uint8_t lowest) noexcept {
         if (digitalRead<Pin::BE3>() == LOW) {
             theBytes[15] = dataLines[3];
         }
-        /// @todo do not sample blast at the end of a 16-byte transaction
-        end = Platform::isBurstLast();
+        // don't sample blast at the end since we know we will be done
         signalReady();
-        if (end) {
-            return;
-        }
     }
 }
 };
@@ -434,12 +418,8 @@ private:
             // since we started on the lower half of a 32-bit word
             dataLines[2] = theBytes[14];
             dataLines[3] = theBytes[15];
-            /// @todo do not sample blast at the end of a 16-byte transaction
-            end = Platform::isBurstLast();
+            // don't sample at the end!
             signalReady();
-            if (end) {
-                return;
-            }
         }
     }
 
@@ -532,10 +512,12 @@ public:
                         } \
                     } \
                 } \
-                if (Platform::isBurstLast()) { \
-                    break; \
+                if constexpr (b0 != 14 && b1 != 15) { \
+                    if (Platform::isBurstLast()) { \
+                        break; \
+                    } \
+                    signalReady(); \
                 } \
-                signalReady(); \
             }
             if ((value & 0b0010) == 0) {
                 X(0,0,0,1,1, false);

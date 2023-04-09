@@ -123,71 +123,76 @@ doFixedCommunication(uint8_t lowest) noexcept {
     // offset is. So we have to do it this way, it is slower but it also means
     // the code is very straightforward
     if constexpr (isReadOperation) {
-        static constexpr SplitWord128 contents {
-            static_cast<uint8_t>(a),
-                static_cast<uint8_t>(a >> 8),
-                static_cast<uint8_t>(a >> 16),
-                static_cast<uint8_t>(a >> 24),
-                static_cast<uint8_t>(b),
-                static_cast<uint8_t>(b >> 8),
-                static_cast<uint8_t>(b >> 16),
-                static_cast<uint8_t>(b >> 24),
-                static_cast<uint8_t>(c),
-                static_cast<uint8_t>(c >> 8),
-                static_cast<uint8_t>(c >> 16),
-                static_cast<uint8_t>(c >> 24),
-                static_cast<uint8_t>(d),
-                static_cast<uint8_t>(d >> 8),
-                static_cast<uint8_t>(d >> 16),
-                static_cast<uint8_t>(d >> 24),
-        };
-        const uint8_t* theBytes = &contents.bytes[getWordByteOffset(lowest)]; 
-        // in all other cases do the whole thing
-        dataLines[0] = theBytes[0];
-        dataLines[1] = theBytes[1];
-        dataLines[2] = theBytes[2];
-        dataLines[3] = theBytes[3];
-        auto end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
+        if constexpr (a == b && b == c && c == d) {
+            dataLinesFull = a;
+            idleTransaction();
+        } else {
+            static constexpr SplitWord128 contents {
+                static_cast<uint8_t>(a),
+                    static_cast<uint8_t>(a >> 8),
+                    static_cast<uint8_t>(a >> 16),
+                    static_cast<uint8_t>(a >> 24),
+                    static_cast<uint8_t>(b),
+                    static_cast<uint8_t>(b >> 8),
+                    static_cast<uint8_t>(b >> 16),
+                    static_cast<uint8_t>(b >> 24),
+                    static_cast<uint8_t>(c),
+                    static_cast<uint8_t>(c >> 8),
+                    static_cast<uint8_t>(c >> 16),
+                    static_cast<uint8_t>(c >> 24),
+                    static_cast<uint8_t>(d),
+                    static_cast<uint8_t>(d >> 8),
+                    static_cast<uint8_t>(d >> 16),
+                    static_cast<uint8_t>(d >> 24),
+            };
+            const uint8_t* theBytes = &contents.bytes[getWordByteOffset(lowest)]; 
+            // in all other cases do the whole thing
+            dataLines[0] = theBytes[0];
+            dataLines[1] = theBytes[1];
+            dataLines[2] = theBytes[2];
+            dataLines[3] = theBytes[3];
+            auto end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
 
-        dataLines[0] = theBytes[4];
-        dataLines[1] = theBytes[5];
-        dataLines[2] = theBytes[6];
-        dataLines[3] = theBytes[7];
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
+            dataLines[0] = theBytes[4];
+            dataLines[1] = theBytes[5];
+            dataLines[2] = theBytes[6];
+            dataLines[3] = theBytes[7];
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
 
-        dataLines[0] = theBytes[8];
-        dataLines[1] = theBytes[9];
-        dataLines[2] = theBytes[10];
-        dataLines[3] = theBytes[11];
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
+            dataLines[0] = theBytes[8];
+            dataLines[1] = theBytes[9];
+            dataLines[2] = theBytes[10];
+            dataLines[3] = theBytes[11];
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
+            singleCycleDelay();
+            singleCycleDelay();
 
-        dataLines[0] = theBytes[12];
-        dataLines[1] = theBytes[13];
-        dataLines[2] = theBytes[14];
-        dataLines[3] = theBytes[15];
-        /// @todo do not sample blast at the end of a 16-byte transaction
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
+            dataLines[0] = theBytes[12];
+            dataLines[1] = theBytes[13];
+            dataLines[2] = theBytes[14];
+            dataLines[3] = theBytes[15];
+            /// @todo do not sample blast at the end of a 16-byte transaction
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
         }
     } else {
         idleTransaction();

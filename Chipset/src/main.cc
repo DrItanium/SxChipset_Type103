@@ -687,13 +687,9 @@ uint8_t computeBankIndex(uint8_t lower, uint8_t upper, typename TreatAsOnChipAcc
 }
 inline
 uint8_t computeBankIndex(uint32_t address, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    if constexpr (PortKUsedForIBUSBankTransfer) {
-        return PINK;
-    } else {
-        return computeBankIndex(static_cast<uint8_t>(address >> 8),
-                static_cast<uint8_t>(address >> 16),
-                typename TreatAsOnChipAccess::AccessMethod{});
-    }
+    return computeBankIndex(static_cast<uint8_t>(address >> 8),
+            static_cast<uint8_t>(address >> 16),
+            typename TreatAsOnChipAccess::AccessMethod{});
 }
 
 uint16_t 
@@ -734,14 +730,21 @@ executionBody() noexcept {
                 currentDirection = 0;
             }
             switch (majorCode) {
-                case 0x00:
-                    Platform::setBank(computeBankIndex(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            typename TreatAsOnChipAccess::AccessMethod{});
-                    CommunicationKernel<inDebugMode, false, width>::doCommunication(
-                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            offset
-                            );
+                case 0x00: {
+                               if constexpr (PortKUsedForIBUSBankTransfer) {
+                                   PORTJ = PINK;
+                               } else {
+                                   Platform::setBank(computeBankIndex(al, typename TreatAsOnChipAccess::AccessMethod {}),
+                                           typename TreatAsOnChipAccess::AccessMethod{});
+                               }
+                               CommunicationKernel<inDebugMode, false, width>::doCommunication(
+                                       getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                                       offset
+                                       );
+                           }
                     break;
+
+
                 case 0xF0:
                     performIOWriteGroup0<inDebugMode, width>(operation, 
                             static_cast<uint8_t>(al >> 16),
@@ -783,13 +786,18 @@ executionBody() noexcept {
                 dataLinesDirection_bytes[3] = currentDirection;
             }
             switch (majorCode) {
-                case 0x00:
-                    Platform::setBank(computeBankIndex(al, typename TreatAsOnChipAccess::AccessMethod {}),
-                            typename TreatAsOnChipAccess::AccessMethod{});
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(
-                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            offset
-                            );
+                case 0x00: {
+                               if constexpr (PortKUsedForIBUSBankTransfer) {
+                                   PORTJ = PINK;
+                               } else {
+                                   Platform::setBank(computeBankIndex(al, typename TreatAsOnChipAccess::AccessMethod {}),
+                                           typename TreatAsOnChipAccess::AccessMethod{});
+                               }
+                               CommunicationKernel<inDebugMode, true, width>::doCommunication(
+                                       getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                                       offset
+                                       );
+                           }
                     break;
                 case 0xF0:
                     performIOReadGroup0<inDebugMode, width>(operation, 

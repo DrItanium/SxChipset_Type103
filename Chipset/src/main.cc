@@ -686,9 +686,13 @@ uint8_t computeBankIndex(uint8_t lower, uint8_t upper, typename TreatAsOnChipAcc
 #endif
 }
 uint8_t computeBankIndex(uint32_t address, typename TreatAsOnChipAccess::AccessMethod) noexcept {
+    if constexpr (PortKUsedForIBUSBankTransfer) {
+        return PINK;
+    } else {
     return computeBankIndex(static_cast<uint8_t>(address >> 8),
                             static_cast<uint8_t>(address >> 16),
                             typename TreatAsOnChipAccess::AccessMethod{});
+    }
 }
 
 uint16_t 
@@ -869,6 +873,8 @@ setupPins() noexcept {
     // setup the IBUS bank
     DDRJ = 0xFF;
     PORTJ = 0x00;
+    DDRK = 0x00;
+    PORTK = 0;
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BE2, INPUT);

@@ -91,6 +91,7 @@ enum class Port : byte {
     None,
     SignalCTL = F,
     IBUSBank = J,
+    IBUSBankIn = K,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

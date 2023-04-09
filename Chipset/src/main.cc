@@ -635,10 +635,10 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
+    CommunicationKernel<inDebugMode, false, width>::doCommunication(body, offset);
+    asm volatile ("nop");
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
-            CommunicationKernel<inDebugMode, false, width>::doCommunication(body, offset);
-            asm volatile ("nop");
             switch (static_cast<SerialDeviceOperations>(function)) {
                 case SerialDeviceOperations::RW:
                     Serial.write(static_cast<uint8_t>(body.bytes[0]));
@@ -655,8 +655,6 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             //theSerial.performWrite(function, offset, body);
             break;
         case TargetPeripheral::Timer:
-            CommunicationKernel<inDebugMode, false, width>::doCommunication(body, offset);
-            asm volatile ("nop");
             switch (static_cast<TimerDeviceOperations>(function)) {
                 case TimerDeviceOperations::SystemTimerPrescalar:
                     timerInterface.setSystemTimerPrescalar(body.bytes[0]);
@@ -669,7 +667,6 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             }
             break;
         default:
-            CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(offset);
             // unknown device so do not do anything
             break;
     }
@@ -707,6 +704,18 @@ getTransactionWindow(uint16_t offset, T) noexcept {
     return memory<SplitWord128>(computeTransactionWindow(offset, T{}));
 }
 
+[[gnu::always_inline]]
+inline
+void 
+updateBank(uint32_t addr, typename TreatAsOnChipAccess::AccessMethod) noexcept {
+    if constexpr (PortKUsedForIBUSBankTransfer) {
+        PORTJ = PINK;
+    } else {
+        Platform::setBank(computeBankIndex(addr, typename TreatAsOnChipAccess::AccessMethod {}),
+                typename TreatAsOnChipAccess::AccessMethod{});
+    }
+}
+
 
 template<bool inDebugMode, NativeBusWidth width> 
 [[gnu::noinline]]
@@ -731,18 +740,12 @@ executionBody() noexcept {
                 currentDirection = 0;
             }
             switch (majorCode) {
-                case 0x00: {
-                               if constexpr (PortKUsedForIBUSBankTransfer) {
-                                   PORTJ = PINK;
-                               } else {
-                                   Platform::setBank(computeBankIndex(al, typename TreatAsOnChipAccess::AccessMethod {}),
-                                           typename TreatAsOnChipAccess::AccessMethod{});
-                               }
-                               CommunicationKernel<inDebugMode, false, width>::doCommunication(
-                                       getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                                       offset
-                                       );
-                           }
+                case 0x00: 
+                    updateBank(al, typename TreatAsOnChipAccess::AccessMethod{});
+                    CommunicationKernel<inDebugMode, false, width>::doCommunication(
+                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                            offset
+                            );
                     break;
 
 
@@ -776,18 +779,12 @@ executionBody() noexcept {
                 dataLinesDirection_bytes[3] = currentDirection;
             }
             switch (majorCode) {
-                case 0x00: {
-                               if constexpr (PortKUsedForIBUSBankTransfer) {
-                                   PORTJ = PINK;
-                               } else {
-                                   Platform::setBank(computeBankIndex(al, typename TreatAsOnChipAccess::AccessMethod {}),
-                                           typename TreatAsOnChipAccess::AccessMethod{});
-                               }
-                               CommunicationKernel<inDebugMode, true, width>::doCommunication(
-                                       getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                                       offset
-                                       );
-                           }
+                case 0x00: 
+                    updateBank(al, typename TreatAsOnChipAccess::AccessMethod{});
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(
+                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                            offset
+                            );
                     break;
                 case 0xF0:
                     performIOReadGroup0<inDebugMode, width>(operation, 

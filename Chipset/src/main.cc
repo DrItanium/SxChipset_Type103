@@ -641,7 +641,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             asm volatile ("nop");
             switch (static_cast<SerialDeviceOperations>(function)) {
                 case SerialDeviceOperations::RW:
-                    Serial.write(static_cast<uint8_t>(body[0].getWholeValue()));
+                    Serial.write(static_cast<uint8_t>(body.bytes[0]));
                     break;
                 case SerialDeviceOperations::Flush:
                     Serial.flush();
@@ -752,21 +752,10 @@ executionBody() noexcept {
                             static_cast<uint8_t>(al >> 8),
                             offset);
                     break;
-                case 0xF1:
-                case 0xF2:
-                case 0xF3:
-                case 0xF4:
-                case 0xF5:
-                case 0xF6:
-                case 0xF7:
-                case 0xF8:
-                case 0xF9:
-                case 0xFA:
-                case 0xFB:
-                case 0xFC:
-                case 0xFD:
-                case 0xFE:
-                case 0xFF:
+                case 0xF1: case 0xF2: case 0xF3: 
+                case 0xF4: case 0xF5: case 0xF6: case 0xF7: 
+                case 0xF8: case 0xF9: case 0xFA: case 0xFB:
+                case 0xFC: case 0xFD: case 0xFE: case 0xFF:
                     CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(offset);
                     break;
                 default: 
@@ -806,21 +795,10 @@ executionBody() noexcept {
                             static_cast<uint8_t>(al >> 8),
                             offset);
                     break;
-                case 0xF1:
-                case 0xF2:
-                case 0xF3:
-                case 0xF4:
-                case 0xF5:
-                case 0xF6:
-                case 0xF7:
-                case 0xF8:
-                case 0xF9:
-                case 0xFA:
-                case 0xFB:
-                case 0xFC:
-                case 0xFD:
-                case 0xFE:
-                case 0xFF:
+                case 0xF1: case 0xF2: case 0xF3:
+                case 0xF4: case 0xF5: case 0xF6: case 0xF7:
+                case 0xF8: case 0xF9: case 0xFA: case 0xFB:
+                case 0xFC: case 0xFD: case 0xFE: case 0xFF:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     break;
                 default:

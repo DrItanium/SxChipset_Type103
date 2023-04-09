@@ -693,12 +693,10 @@ uint16_t
 computeTransactionWindow_Generic(uint16_t offset) noexcept {
     return sectionMask | (offset & offsetMask);
 }
-[[gnu::used]]
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
     return computeTransactionWindow_Generic<0x4000, 0x3ff0>(offset);
 }
-[[gnu::used]]
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOffChipAccess::AccessMethod) noexcept {
     return computeTransactionWindow_Generic<0x8000, 0x7ff0>(offset);

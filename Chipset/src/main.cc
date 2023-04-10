@@ -565,6 +565,13 @@ BeginDeviceOperationsList(InfoDevice)
     GetCPUClock,
 EndDeviceOperationsList(InfoDevice)
 
+BeginDeviceOperationsList(TFTDevice)
+    GetWidth,
+    GetHeight,
+    GetDimensions,
+    Reset,
+EndDeviceOperationsList(TFTDevice)
+
 template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
@@ -907,13 +914,29 @@ setupPins() noexcept {
     }
 }
 void
+setupDisplay() noexcept {
+    tft.begin();
+    auto x = tft.readcommand8(ILI9341_RDMODE);
+    Serial.println(F("DISPLAY INFORMATION"));
+    Serial.print(F("Display Power Mode: 0x")); Serial.println(x, HEX);
+    x = tft.readcommand8(ILI9341_RDMADCTL);
+    Serial.print(F("MADCTL Mode: 0x")); Serial.println(x, HEX);
+    x = tft.readcommand8(ILI9341_RDPIXFMT);
+    Serial.print(F("Pixel Format: 0x")); Serial.println(x, HEX);
+    x = tft.readcommand8(ILI9341_RDIMGFMT);
+    Serial.print(F("Image Format: 0x")); Serial.println(x, HEX);
+    x = tft.readcommand8(ILI9341_RDSELFDIAG);
+    Serial.print(F("Self Diagnostic: 0x")); Serial.println(x, HEX);
+    tft.fillScreen(ILI9341_BLACK);
+}
+void
 setup() {
     setupPins();
     theSerial.begin();
     timerInterface.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    tft.begin();
+    setupDisplay();
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

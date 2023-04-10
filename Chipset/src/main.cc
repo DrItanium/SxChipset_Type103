@@ -193,8 +193,8 @@ doFixedCommunication(uint8_t lowest) noexcept {
 [[gnu::always_inline]]
 inline
 static void
-doCommunication(volatile SplitWord128& theView, uint8_t lowest) noexcept {
-    if constexpr (DataRegister8 theBytes = &theView.bytes[getWordByteOffset(lowest)]; isReadOperation) {
+doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
+    if constexpr (isReadOperation) {
         // in all other cases do the whole thing
         dataLines[0] = theBytes[0];
         dataLines[1] = theBytes[1];
@@ -439,11 +439,11 @@ public:
     [[gnu::always_inline]]
     inline
     static void
-    doCommunication(volatile SplitWord128& theView, uint8_t lowest) noexcept {
+    doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         do {
             // figure out which word we are currently looking at
             uint8_t value = lowest;
-            DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
+            //DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
             // if we are aligned to 32-bit word boundaries then just assume we
             // are at the start of the 16-byte block (the processor will stop
             // when it doesn't need data anymore). If we are not then skip over

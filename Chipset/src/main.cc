@@ -703,14 +703,17 @@ uint8_t computeBankIndex(uint32_t address, typename TreatAsOnChipAccess::AccessM
             typename TreatAsOnChipAccess::AccessMethod{});
 }
 template<uint16_t sectionMask, uint16_t offsetMask>
+constexpr
 uint16_t
 computeTransactionWindow_Generic(uint16_t offset) noexcept {
     return sectionMask | (offset & offsetMask);
 }
+constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
     return computeTransactionWindow_Generic<0x4000, 0x3ffc>(offset);
 }
+constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOffChipAccess::AccessMethod) noexcept {
     return computeTransactionWindow_Generic<0x8000, 0x7ffc>(offset);

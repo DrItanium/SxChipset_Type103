@@ -562,14 +562,44 @@ BeginDeviceOperationsList(InfoDevice)
 EndDeviceOperationsList(InfoDevice)
 
 BeginDeviceOperationsList(DisplayDevice)
-    GetDisplayDimensions,
-    SetRotation,
+    DisplayWidthHeight,
+    Rotation,
     InvertDisplay,
     ScrollTo,
     SetScrollMargins,
     SetAddressWindow,
     ReadCommand8,
-    /// @todo add the different exposed registers from the ILI9341
+    DrawPixel,
+    DrawFastVLine,
+    DrawFastHLine,
+    FillRect,
+    FillScreen,
+    DrawLine,
+    DrawRect,
+    DrawCircle,
+    FillCircle,
+    DrawTriangle,
+    FillTriangle,
+    DrawRoundRect,
+    FillRoundRect,
+    DrawChar_Square,
+    DrawChar_Rectangle,
+    SetTextSize_Square,
+    SetTextSize_Rectangle,
+    SetCursor,
+    SetTextColor0,
+    SetTextColor1,
+    SetTextWrap,
+    // Transaction parts
+    StartWrite,
+    WritePixel,
+    WriteFillRect,
+    WriteFastVLine,
+    WriteFastHLine,
+    WriteLine,
+    EndWrite,
+    /// @todo add drawBitmap support
+
 EndDeviceOperationsList(DisplayDevice)
 
 template<bool inDebugMode, NativeBusWidth width>
@@ -657,8 +687,14 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                 case DisplayDeviceOperations::Size:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(DisplayDeviceOperations::Count)>(offset);
                     break;
-                case DisplayDeviceOperations::GetDisplayDimensions:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint32_t>(ILI9341_TFTHEIGHT) | (static_cast<uint32_t>(ILI9341_TFTWIDTH) << 16)>(offset);
+                case DisplayDeviceOperations::DisplayWidthHeight:
+                    body[0].halves[0] = tft.width();
+                    body[0].halves[1] = tft.height();
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
+                    break;
+                case DisplayDeviceOperations::Rotation:
+                    body.bytes[0] = tft.getRotation();
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 case DisplayDeviceOperations::ReadCommand8:
                     // use the offset in the instruction to determine where to
@@ -738,7 +774,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                 case DisplayDeviceOperations::InvertDisplay:
                     tft.invertDisplay(body.bytes[0] != 0);
                     break;
-                case DisplayDeviceOperations::SetRotation:
+                case DisplayDeviceOperations::Rotation:
                     tft.setRotation(body.bytes[0]);
                     break;
                 default:

@@ -568,6 +568,7 @@ BeginDeviceOperationsList(DisplayDevice)
     ScrollTo,
     SetScrollMargins,
     SetAddressWindow,
+    ReadCommand8,
     /// @todo add the different exposed registers from the ILI9341
 EndDeviceOperationsList(DisplayDevice)
 
@@ -659,6 +660,12 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                 case DisplayDeviceOperations::GetDisplayDimensions:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint32_t>(ILI9341_TFTHEIGHT) | (static_cast<uint32_t>(ILI9341_TFTWIDTH) << 16)>(offset);
                     break;
+                case DisplayDeviceOperations::ReadCommand8:
+                    // use the offset in the instruction to determine where to
+                    // place the result and what to request from the tft
+                    // display
+                    body.bytes[offset & 0b1111] = tft.readcommand8(offset);
+                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                 default:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     break;

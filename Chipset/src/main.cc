@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SerialDevice.h"
 //#include "InfoDevice.h"
 #include "TimerDevice.h"
+#include <Adafruit_GFX.h>
 
 SerialDevice theSerial;
 //InfoDevice infoDevice;

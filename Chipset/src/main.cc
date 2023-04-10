@@ -728,6 +728,12 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                 case DisplayDeviceOperations::ScrollTo:
                     tft.scrollTo(body[0].halves[0]);
                     break;
+                case DisplayDeviceOperations::InvertDisplay:
+                    tft.invertDisplay(body.bytes[0] != 0);
+                    break;
+                case DisplayDeviceOperations::SetRotation:
+                    tft.setRotation(body.bytes[0]);
+                    break;
                 default:
                     break;
             }

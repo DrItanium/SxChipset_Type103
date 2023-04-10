@@ -905,7 +905,6 @@ setupPins() noexcept {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();
     }
-    tft.begin();
 }
 void
 setup() {
@@ -914,6 +913,7 @@ setup() {
     timerInterface.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+    tft.begin();
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

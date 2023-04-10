@@ -561,12 +561,15 @@ BeginDeviceOperationsList(InfoDevice)
     GetCPUClock,
 EndDeviceOperationsList(InfoDevice)
 
-BeginDeviceOperationsList(TFTDevice)
-    GetWidth,
-    GetHeight,
-    GetDimensions,
-    Reset,
-EndDeviceOperationsList(TFTDevice)
+BeginDeviceOperationsList(DisplayDevice)
+    GetDisplayDimensions,
+    SetRotation,
+    InvertDisplay,
+    ScrollTo,
+    SetScrollMargins,
+    SetAddressWindow,
+    /// @todo add the different exposed registers from the ILI9341
+EndDeviceOperationsList(DisplayDevice)
 
 template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
@@ -645,6 +648,22 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
 
             }
             break;
+        case TargetPeripheral::Display:
+            switch (static_cast<DisplayDeviceOperations>(function)) {
+                case DisplayDeviceOperations::Available:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
+                    break;
+                case DisplayDeviceOperations::Size:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(DisplayDeviceOperations::Count)>(offset);
+                    break;
+                case DisplayDeviceOperations::GetDisplayDimensions:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint32_t>(ILI9341_TFTHEIGHT) | (static_cast<uint32_t>(ILI9341_TFTWIDTH) << 16)>(offset);
+                    break;
+                default:
+                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
+                    break;
+            }
+            break;
         default:
             CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
             // unknown device so do not do anything
@@ -687,6 +706,27 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                     break;
                 case TimerDeviceOperations::SystemTimerComparisonValue:
                     timerInterface.setSystemTimerComparisonValue(body.bytes[0]);
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case TargetPeripheral::Display:
+            switch (static_cast<DisplayDeviceOperations>(function)) {
+                case DisplayDeviceOperations::SetScrollMargins:
+                    tft.setScrollMargins(
+                            body[0].halves[0],
+                            body[0].halves[1]);
+                    break;
+                case DisplayDeviceOperations::SetAddressWindow:
+                    tft.setAddrWindow(
+                            body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1]);
+                    break;
+                case DisplayDeviceOperations::ScrollTo:
+                    tft.scrollTo(body[0].halves[0]);
                     break;
                 default:
                     break;

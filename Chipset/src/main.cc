@@ -40,11 +40,7 @@ TimerDevice timerInterface;
 
 Adafruit_ILI9341 tft(
         static_cast<uint8_t>(Pin::TFTCS),
-        static_cast<uint8_t>(Pin::TFTDC),
-        static_cast<uint8_t>(Pin::TFTMOSI),
-        static_cast<uint8_t>(Pin::TFTSCK),
-        static_cast<uint8_t>(Pin::TFTReset),
-        static_cast<uint8_t>(Pin::TFTMISO));
+        static_cast<uint8_t>(Pin::TFTDC));
 
 void 
 putCPUInReset() noexcept {

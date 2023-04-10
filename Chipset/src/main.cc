@@ -315,6 +315,12 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         signalReady();
     }
 }
+    [[gnu::always_inline]]
+    inline
+    static void
+    doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
+        doCommunication(&body.bytes[getWordByteOffset(lowest)], lowest);
+    }
 };
 
 template<bool inDebugMode, bool isReadOperation>
@@ -535,6 +541,14 @@ public:
         } while (false);
         signalReady();
     }
+
+
+    [[gnu::always_inline]]
+    inline
+    static void
+    doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
+        doCommunication(&body.bytes[getWordByteOffset(lowest)], lowest);
+    }
 };
 
 BeginDeviceOperationsList(InfoDevice)
@@ -695,17 +709,17 @@ computeTransactionWindow_Generic(uint16_t offset) noexcept {
 }
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x4000, 0x3ff0>(offset);
+    return computeTransactionWindow_Generic<0x4000, 0x3ffc>(offset);
 }
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOffChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x8000, 0x7ff0>(offset);
+    return computeTransactionWindow_Generic<0x8000, 0x7ffc>(offset);
 }
 
 template<typename T>
-volatile SplitWord128&
+DataRegister8
 getTransactionWindow(uint16_t offset, T) noexcept {
-    return memory<SplitWord128>(computeTransactionWindow(offset, T{}));
+    return memoryPointer<uint8_t>(computeTransactionWindow(offset, T{}));
 }
 
 [[gnu::always_inline]]

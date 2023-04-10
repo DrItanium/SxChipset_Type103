@@ -81,6 +81,12 @@ Count = NUM_DIGITAL_PINS,
 #ifdef PHASE_DETECT_BEHAVIOR
     TransactionDetect = PortG3,
 #endif
+    TFTDC = PortD6,
+    TFTCS = PortD7,
+    TFTReset = PortG4,
+    TFTSCK = SPI_SCK,
+    TFTMOSI = SPI_MOSI,
+    TFTMISO = SPI_MISO,
 };
 enum class Port : byte {
     // stop at mega2560 tier

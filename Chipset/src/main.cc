@@ -33,10 +33,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "InfoDevice.h"
 #include "TimerDevice.h"
 #include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
 
 SerialDevice theSerial;
-//InfoDevice infoDevice;
 TimerDevice timerInterface;
+
+Adafruit_ILI9341 tft(
+        static_cast<uint8_t>(Pin::TFTCS),
+        static_cast<uint8_t>(Pin::TFTDC),
+        static_cast<uint8_t>(Pin::TFTMOSI),
+        static_cast<uint8_t>(Pin::TFTSCK),
+        static_cast<uint8_t>(Pin::TFTReset),
+        static_cast<uint8_t>(Pin::TFTMISO));
 
 void 
 putCPUInReset() noexcept {
@@ -897,6 +905,7 @@ setupPins() noexcept {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();
     }
+    tft.begin();
 }
 void
 setup() {

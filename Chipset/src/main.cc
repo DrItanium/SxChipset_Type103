@@ -692,6 +692,7 @@ EndDeviceOperationsList(RTCDevice)
 
 ConnectPeripheral(TargetPeripheral::RTC, RTCDeviceOperations);
 
+
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width, TargetPeripheral p>
 [[gnu::always_inline]]
 inline
@@ -717,6 +718,18 @@ void sendBoolean(bool value, uint8_t offset) noexcept {
     }
 }
 
+BeginDeviceOperationsList(ClockGenerator)
+    SetupPLLFull,
+    SetupPLLInt,
+    SetupMultisynth,
+    SetupMultisynthInt,
+    EnableSpreadSpectrum,
+    EnableOutputs,
+    SetupRDiv,
+EndDeviceOperationsList(ClockGenerator)
+
+ConnectPeripheral(TargetPeripheral::ClockGenerator, ClockGeneratorOperations);
+
 
 template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
@@ -728,6 +741,20 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     switch (static_cast<TargetPeripheral>(group)) {
+        case TargetPeripheral::ClockGenerator:
+            switch(getFunctionCode<TargetPeripheral::ClockGenerator>(function)) {
+                using K = ConnectedOpcode_t<TargetPeripheral::ClockGenerator>;
+                case K::Available:
+                    sendBoolean<inDebugMode, true, width>(clockGeneratorAvailable, offset);
+                    return;
+                case K::Size:
+                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::ClockGenerator>(offset);
+                    return;
+                default:
+                    sendZero<inDebugMode, true, width>(offset);
+                    return;
+            }
+            break;
         case TargetPeripheral::RTC:
             switch(getFunctionCode<TargetPeripheral::RTC>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::RTC>;
@@ -772,7 +799,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
                 case K::Available:
-                    sendBoolean<inDebugMode, true, width>(true, offset);
+                    sendBoolean<inDebugMode, true, width>(theSerial.isAvailable(), offset);
                     return;
                 case K::Size:
                     sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Serial>(offset);
@@ -795,7 +822,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
                 case K::Available:
-                    sendBoolean<inDebugMode, true, width>(true, offset);
+                    sendBoolean<inDebugMode, true, width>(timerInterface.isAvailable(), offset);
                     return;
                 case K::Size:
                     sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Timer>(offset);

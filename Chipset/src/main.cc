@@ -872,14 +872,15 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     asm volatile ("nop");
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
-            switch (static_cast<SerialDeviceOperations>(function)) {
-                case SerialDeviceOperations::RW:
+            switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
+                using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
+                case K::RW:
                     Serial.write(static_cast<uint8_t>(body.bytes[0]));
                     break;
-                case SerialDeviceOperations::Flush:
+                case K::Flush:
                     Serial.flush();
                     break;
-                case SerialDeviceOperations::Baud:
+                case K::Baud:
                     theSerial.setBaudRate(body[0].full);
                     break;
                 default:
@@ -888,11 +889,12 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             //theSerial.performWrite(function, offset, body);
             break;
         case TargetPeripheral::Timer:
-            switch (static_cast<TimerDeviceOperations>(function)) {
-                case TimerDeviceOperations::SystemTimerPrescalar:
+            switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
+                using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
+                case K::SystemTimerPrescalar:
                     timerInterface.setSystemTimerPrescalar(body.bytes[0]);
                     break;
-                case TimerDeviceOperations::SystemTimerComparisonValue:
+                case K::SystemTimerComparisonValue:
                     timerInterface.setSystemTimerComparisonValue(body.bytes[0]);
                     break;
                 default:
@@ -900,48 +902,49 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             }
             break;
         case TargetPeripheral::Display:
-            switch (static_cast<DisplayDeviceOperations>(function)) {
-                case DisplayDeviceOperations::SetScrollMargins:
+            switch (getFunctionCode<TargetPeripheral::Display>(function)) {
+                using K = ConnectedOpcode_t<TargetPeripheral::Display>;
+                case K::SetScrollMargins:
                     tft.setScrollMargins(body[0].halves[0],
                             body[0].halves[1]);
                     break;
-                case DisplayDeviceOperations::SetAddressWindow:
+                case K::SetAddressWindow:
                     tft.setAddrWindow(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case DisplayDeviceOperations::ScrollTo:
+                case K::ScrollTo:
                     tft.scrollTo(body[0].halves[0]);
                     break;
-                case DisplayDeviceOperations::InvertDisplay:
+                case K::InvertDisplay:
                     tft.invertDisplay(body.bytes[0] != 0);
                     break;
-                case DisplayDeviceOperations::Rotation:
+                case K::Rotation:
                     tft.setRotation(body.bytes[0]);
                     break;
-                case DisplayDeviceOperations::RW:
+                case K::RW:
                     tft.print(static_cast<uint8_t>(body.bytes[0]));
                     break;
-                case DisplayDeviceOperations::Flush:
+                case K::Flush:
                     tft.flush();
                     break;
-                case DisplayDeviceOperations::DrawPixel:
+                case K::DrawPixel:
                     tft.drawPixel(body[0].halves[0], body[0].halves[1], body[1].halves[0]);
                     break;
-                case DisplayDeviceOperations::DrawFastHLine:
+                case K::DrawFastHLine:
                     tft.drawFastHLine(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case DisplayDeviceOperations::DrawFastVLine:
+                case K::DrawFastVLine:
                     tft.drawFastVLine(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case DisplayDeviceOperations::FillRect:
+                case K::FillRect:
                     tft.fillRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -949,38 +952,38 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[2].halves[0]);
                     break;
 
-                case DisplayDeviceOperations::FillScreen:
+                case K::FillScreen:
                     tft.fillScreen(body[0].halves[0]);
                     break;
-                case DisplayDeviceOperations::DrawLine:
+                case K::DrawLine:
                     tft.drawLine( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1],
                             body[2].halves[0]);
                     break;
-                case DisplayDeviceOperations::DrawRect:
+                case K::DrawRect:
                     tft.drawRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1],
                             body[2].halves[0]);
                     break;
-                case DisplayDeviceOperations::DrawCircle:
+                case K::DrawCircle:
                     tft.drawCircle(
                             body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case DisplayDeviceOperations::FillCircle:
+                case K::FillCircle:
                     tft.fillCircle(
                             body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case DisplayDeviceOperations::DrawTriangle:
+                case K::DrawTriangle:
                     tft.drawTriangle( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -989,7 +992,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[2].halves[1],
                             body[3].halves[0]);
                     break;
-                case DisplayDeviceOperations::FillTriangle:
+                case K::FillTriangle:
                     tft.fillTriangle( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -998,7 +1001,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[2].halves[1],
                             body[3].halves[0]);
                     break;
-                case DisplayDeviceOperations::DrawRoundRect:
+                case K::DrawRoundRect:
                     tft.drawRoundRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -1006,7 +1009,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[2].halves[0],
                             body[2].halves[1]);
                     break;
-                case DisplayDeviceOperations::FillRoundRect:
+                case K::FillRoundRect:
                     tft.fillRoundRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -1014,19 +1017,19 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[2].halves[0],
                             body[2].halves[1]);
                     break;
-                case DisplayDeviceOperations::SetTextWrap:
+                case K::SetTextWrap:
                     tft.setTextWrap(body.bytes[0]);
                     break;
-                case DisplayDeviceOperations::CursorX: 
+                case K::CursorX: 
                     tft.setCursor(body[0].halves[0], tft.getCursorY());
                     break;
-                case DisplayDeviceOperations::CursorY: 
+                case K::CursorY: 
                     tft.setCursor(tft.getCursorX(), body[0].halves[0]);
                     break;
-                case DisplayDeviceOperations::CursorXY:
+                case K::CursorXY:
                     tft.setCursor(body[0].halves[0], body[0].halves[1]);
                     break;
-                case DisplayDeviceOperations::DrawChar_Square:
+                case K::DrawChar_Square:
                     tft.drawChar(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -1034,7 +1037,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[2].halves[0],
                             body[2].halves[1]);
                     break;
-                case DisplayDeviceOperations::DrawChar_Rectangle:
+                case K::DrawChar_Rectangle:
                     tft.drawChar(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -1043,28 +1046,28 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[2].halves[1],
                             body[3].halves[0]);
                     break;
-                case DisplayDeviceOperations::SetTextSize_Square:
+                case K::SetTextSize_Square:
                     tft.setTextSize(body[0].halves[0]);
                     break;
-                case DisplayDeviceOperations::SetTextSize_Rectangle:
+                case K::SetTextSize_Rectangle:
                     tft.setTextSize(body[0].halves[0],
                                     body[0].halves[1]);
                     break;
-                case DisplayDeviceOperations::SetTextColor0:
+                case K::SetTextColor0:
                     tft.setTextColor(body[0].halves[0]);
                     break;
-                case DisplayDeviceOperations::SetTextColor1:
+                case K::SetTextColor1:
                     tft.setTextColor(body[0].halves[0], body[0].halves[1]);
                     break;
-                case DisplayDeviceOperations::StartWrite:
+                case K::StartWrite:
                     tft.startWrite();
                     break;
-                case DisplayDeviceOperations::WritePixel:
+                case K::WritePixel:
                     tft.writePixel(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0]);
                     break;
-                case DisplayDeviceOperations::WriteFillRect:
+                case K::WriteFillRect:
                     tft.writeFillRect(
                             body[0].halves[0],
                             body[0].halves[1],
@@ -1072,21 +1075,21 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[1].halves[1],
                             body[2].halves[0]);
                     break;
-                case DisplayDeviceOperations::WriteFastVLine:
+                case K::WriteFastVLine:
                     tft.writeFastVLine(
                             body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case DisplayDeviceOperations::WriteFastHLine:
+                case K::WriteFastHLine:
                     tft.writeFastHLine(
                             body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case DisplayDeviceOperations::WriteLine:
+                case K::WriteLine:
                     tft.writeLine(
                             body[0].halves[0],
                             body[0].halves[1],
@@ -1094,7 +1097,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[1].halves[1],
                             body[2].halves[0]);
                     break;
-                case DisplayDeviceOperations::EndWrite:
+                case K::EndWrite:
                     tft.endWrite();
                     break;
                 default:

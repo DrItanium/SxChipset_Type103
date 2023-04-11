@@ -75,6 +75,9 @@ constexpr auto getFunctionCode(uint8_t value) noexcept {
     return static_cast<ConnectedOpcode_t<p>>(value);
 }
 
+template<TargetPeripheral p>
+constexpr uint8_t OpcodeCount_v = static_cast<uint8_t>(ConnectedOpcode_t<p>::Count);
+
 #define BeginDeviceOperationsList(name) enum class name ## Operations : byte { Available, Size,
 #define EndDeviceOperationsList(name) Count, }; static_assert(static_cast<byte>( name ## Operations :: Count ) <= 256, "Too many " #name "Operations entries defined!");
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

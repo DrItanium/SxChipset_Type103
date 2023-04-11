@@ -683,6 +683,13 @@ BeginDeviceOperationsList(DisplayDevice)
 
 EndDeviceOperationsList(DisplayDevice)
 
+ConnectPeripheral(TargetPeripheral::Display, DisplayDeviceOperations);
+
+template<bool inDebugMode, bool isReadOperation, NativeBusWidth width, TargetPeripheral p>
+void sendOpcodeSize(uint8_t offset) noexcept {
+    CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<OpcodeCount_v<p>>(offset);
+}
+
 template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
@@ -700,7 +707,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     break;
                 case K::Size:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(InfoDeviceOperations::Count)>(offset);
+                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Info>(offset);
                     break;
                 case K::GetChipsetClock:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU>(offset);
@@ -720,7 +727,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     return;
                 case K::Size:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(SerialDeviceOperations::Count)>(offset);
+                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Serial>(offset);
                     return;
                 case K::RW:
                     body[0].halves[0] = Serial.read();
@@ -738,16 +745,17 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             break;
         case TargetPeripheral::Timer:
             switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
-                case TimerDeviceOperations::Available:
+                using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
+                case K::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     return;
-                case TimerDeviceOperations::Size:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(TimerDeviceOperations::Count)>(offset);
+                case K::Size:
+                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Timer>(offset);
                     return;
-                case TimerDeviceOperations::SystemTimerPrescalar:
+                case K::SystemTimerPrescalar:
                     body.bytes[0] = timerInterface.getSystemTimerPrescalar();
                     break;
-                case TimerDeviceOperations::SystemTimerComparisonValue:
+                case K::SystemTimerComparisonValue:
                     body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
                     break;
                 default:
@@ -757,38 +765,39 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             }
             break;
         case TargetPeripheral::Display:
-            switch (static_cast<DisplayDeviceOperations>(function)) {
-                case DisplayDeviceOperations::Available:
-                case DisplayDeviceOperations::RW:
+            switch (getFunctionCode<TargetPeripheral::Display>(function)) {
+                using K = ConnectedOpcode_t<TargetPeripheral::Display>;
+                case K::Available:
+                case K::RW:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     return;
-                case DisplayDeviceOperations::Size:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(DisplayDeviceOperations::Count)>(offset);
+                case K::Size:
+                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Display>(offset);
                     return;
-                case DisplayDeviceOperations::DisplayWidthHeight:
+                case K::DisplayWidthHeight:
                     body[0].halves[0] = tft.width();
                     body[0].halves[1] = tft.height();
                     break;
-                case DisplayDeviceOperations::Rotation:
+                case K::Rotation:
                     body.bytes[0] = tft.getRotation();
                     break;
-                case DisplayDeviceOperations::ReadCommand8:
+                case K::ReadCommand8:
                     // use the offset in the instruction to determine where to
                     // place the result and what to request from the tft
                     // display
                     body.bytes[offset & 0b1111] = tft.readcommand8(offset);
                     break;
-                case DisplayDeviceOperations::CursorX: 
+                case K::CursorX: 
                     body[0].halves[0] = tft.getCursorX(); 
                     break;
-                case DisplayDeviceOperations::CursorY: 
+                case K::CursorY: 
                     body[0].halves[0] = tft.getCursorY(); 
                     break;
-                case DisplayDeviceOperations::CursorXY: 
+                case K::CursorXY: 
                     body[0].halves[0] = tft.getCursorX();
                     body[0].halves[1] = tft.getCursorY(); 
                     break;
-                case DisplayDeviceOperations::Flush:
+                case K::Flush:
                     // fallthrough
                     tft.flush();
                 default:

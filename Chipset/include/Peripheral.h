@@ -43,12 +43,6 @@ enum class TargetPeripheral {
 };
 static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");
 
-template<typename E>
-constexpr bool validOperation(E value) noexcept {
-    return static_cast<int>(value) >= 0 && (static_cast<int>(value) < static_cast<int>(E::Count));
-}
-
-
 #define BeginDeviceOperationsList(name) enum class name ## Operations : byte { Available, Size,
 #define EndDeviceOperationsList(name) Count, }; static_assert(static_cast<byte>( name ## Operations :: Count ) <= 256, "Too many " #name "Operations entries defined!");
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

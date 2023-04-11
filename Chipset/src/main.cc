@@ -588,20 +588,20 @@ BeginDeviceOperationsList(DisplayDevice)
     DrawRoundRect,
     FillRoundRect,
     SetTextWrap,
-    //DrawChar_Square,
-    //DrawChar_Rectangle,
-    //SetTextSize_Square,
-    //SetTextSize_Rectangle,
-    //SetTextColor0,
-    //SetTextColor1,
+    DrawChar_Square,
+    DrawChar_Rectangle,
+    SetTextSize_Square,
+    SetTextSize_Rectangle,
+    SetTextColor0,
+    SetTextColor1,
     // Transaction parts
-    //StartWrite,
-    //WritePixel,
-    //WriteFillRect,
-    //WriteFastVLine,
-    //WriteFastHLine,
-    //WriteLine,
-    //EndWrite,
+    StartWrite,
+    WritePixel,
+    WriteFillRect,
+    WriteFastVLine,
+    WriteFastHLine,
+    WriteLine,
+    EndWrite,
     /// @todo add drawBitmap support
 
 EndDeviceOperationsList(DisplayDevice)
@@ -889,6 +889,77 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                     break;
                 case DisplayDeviceOperations::CursorXY:
                     tft.setCursor(body[0].halves[0], body[0].halves[1]);
+                    break;
+                case DisplayDeviceOperations::DrawChar_Square:
+                    tft.drawChar(body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0],
+                            body[2].halves[1]);
+                    break;
+                case DisplayDeviceOperations::DrawChar_Rectangle:
+                    tft.drawChar(body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0],
+                            body[2].halves[1],
+                            body[3].halves[0]);
+                    break;
+                case DisplayDeviceOperations::SetTextSize_Square:
+                    tft.setTextSize(body[0].halves[0]);
+                    break;
+                case DisplayDeviceOperations::SetTextSize_Rectangle:
+                    tft.setTextSize(body[0].halves[0],
+                                    body[0].halves[1]);
+                    break;
+                case DisplayDeviceOperations::SetTextColor0:
+                    tft.setTextColor(body[0].halves[0]);
+                    break;
+                case DisplayDeviceOperations::SetTextColor1:
+                    tft.setTextColor(body[0].halves[0], body[0].halves[1]);
+                    break;
+                case DisplayDeviceOperations::StartWrite:
+                    tft.startWrite();
+                    break;
+                case DisplayDeviceOperations::WritePixel:
+                    tft.writePixel(body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0]);
+                    break;
+                case DisplayDeviceOperations::WriteFillRect:
+                    tft.writeFillRect(
+                            body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0]);
+                    break;
+                case DisplayDeviceOperations::WriteFastVLine:
+                    tft.writeFastVLine(
+                            body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1]);
+                    break;
+                case DisplayDeviceOperations::WriteFastHLine:
+                    tft.writeFastHLine(
+                            body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1]);
+                    break;
+                case DisplayDeviceOperations::WriteLine:
+                    tft.writeLine(
+                            body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0]);
+                    break;
+                case DisplayDeviceOperations::EndWrite:
+                    tft.endWrite();
                     break;
                 default:
                     break;

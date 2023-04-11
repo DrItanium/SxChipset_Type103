@@ -690,6 +690,11 @@ void sendOpcodeSize(uint8_t offset) noexcept {
     CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<OpcodeCount_v<p>>(offset);
 }
 
+template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+void sendZero(uint8_t offset) noexcept {
+    CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0>(offset);
+}
+
 template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
@@ -716,7 +721,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>(offset);
                     break;
                 default:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
+                    sendZero<inDebugMode, true, width>(offset);
                     break;
             }
             return;
@@ -739,7 +744,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     body[0].full = theSerial.getBaudRate();
                     break;
                 default:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
+                    sendZero<inDebugMode, true, width>(offset);
                     return;
             }
             break;
@@ -759,7 +764,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
                     break;
                 default:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
+                    sendZero<inDebugMode, true, width>(offset);
                     return;
 
             }
@@ -801,7 +806,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     // fallthrough
                     tft.flush();
                 default:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
+                    sendZero<inDebugMode, true, width>(offset);
                     return;
             }
             break;

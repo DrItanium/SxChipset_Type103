@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
-#include <RTClib.h>
 #include <Adafruit_SI5351.h>
 #include <Adafruit_seesaw.h>
 
@@ -39,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SerialDevice.h"
 //#include "InfoDevice.h"
 #include "TimerDevice.h"
+#include "RTCDevice.h"
 
 SerialDevice theSerial;
 TimerDevice timerInterface;
@@ -47,46 +47,14 @@ Adafruit_ILI9341 tft(
         static_cast<uint8_t>(Pin::TFTCS),
         static_cast<uint8_t>(Pin::TFTDC));
 
-RTC_PCF8523 rtc;
-bool rtcAvailable = false;
+RTCDevice theRTC;
 Adafruit_SI5351 clockGen;
 bool clockGeneratorAvailable = false;
 Adafruit_seesaw seesaw0;
 bool seesaw0Available = false;
 void
 setupRTC() noexcept {
-    rtcAvailable = rtc.begin();
-    if (!rtcAvailable) {
-        Serial.println(F("NO PCF8523 RTC found!"));
-    } else {
-        Serial.println(F("Found PCF8523 RTC!"));
-        if (!rtc.initialized() || rtc.lostPower()) {
-            Serial.println(F("RTC is not initialized, setting time!"));
-            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        }
-
-        rtc.start();
-        Serial.println(F("Enabling calibration to prevent rtc drift of 43 seconds in 1 week!"));
-        // taken from the pcf8523.ino example sketch:
-        // The PCF8523 can be calibrated for:
-        //        - Aging adjustment
-        //        - Temperature compensation
-        //        - Accuracy tuning
-        // The offset mode to use, once every two hours or once every minute.
-        // The offset Offset value from -64 to +63. See the Application Note for calculation of offset values.
-        // https://www.nxp.com/docs/en/application-note/AN11247.pdf
-        // The deviation in parts per million can be calculated over a period of observation. Both the drift (which can be negative)
-        // and the observation period must be in seconds. For accuracy the variation should be observed over about 1 week.
-        // Note: any previous calibration should cancelled prior to any new observation period.
-        // Example - RTC gaining 43 seconds in 1 week
-        float drift = 43; // seconds plus or minus over oservation period - set to 0 to cancel previous calibration.
-        float period_sec = (7 * 86400);  // total obsevation period in seconds (86400 = seconds in 1 day:  7 days = (7 * 86400) seconds )
-        float deviation_ppm = (drift / period_sec * 1000000); //  deviation in parts per million (μs)
-        float drift_unit = 4.34; // use with offset mode PCF8523_TwoHours
-                                 // float drift_unit = 4.069; //For corrections every min the drift_unit is 4.069 ppm (use with offset mode PCF8523_OneMinute)
-        int offset = round(deviation_ppm / drift_unit);
-        rtc.calibrate(PCF8523_TwoHours, offset); // Un-comment to perform calibration once drift (seconds) and observation period (seconds) are correct
-    }
+    theRTC.begin();
 }
 
 void
@@ -685,12 +653,6 @@ EndDeviceOperationsList(DisplayDevice)
 
 ConnectPeripheral(TargetPeripheral::Display, DisplayDeviceOperations);
 
-BeginDeviceOperationsList(RTCDevice)
-    UnixTime,
-    SecondsTime,
-EndDeviceOperationsList(RTCDevice)
-
-ConnectPeripheral(TargetPeripheral::RTC, RTCDeviceOperations);
 
 
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width, TargetPeripheral p>
@@ -759,16 +721,16 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch(getFunctionCode<TargetPeripheral::RTC>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::RTC>;
                 case K::Available:
-                    sendBoolean<inDebugMode, true, width>(rtcAvailable, offset);
+                    sendBoolean<inDebugMode, true, width>(theRTC.isAvailable(), offset);
                     return;
                 case K::Size:
                     sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::RTC>(offset);
                     return;
                 case K::UnixTime:
-                    body[0].full = rtc.now().unixtime();
+                    body[0].full = theRTC.getUnixTime();
                     break;
                 case K::SecondsTime:
-                    body[0].full = rtc.now().secondstime();
+                    body[0].full = theRTC.getSecondsTime();
                     break;
                 default:
                     sendZero<inDebugMode, true, width>(offset);

@@ -577,8 +577,8 @@ BeginDeviceOperationsList(DisplayDevice)
     DrawFastHLine,
     FillRect,
     FillScreen,
-    //DrawLine,
-    //DrawRect,
+    DrawLine,
+    DrawRect,
     //DrawCircle,
     //FillCircle,
     //DrawTriangle,
@@ -806,7 +806,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[1].halves[1]);
                     break;
                 case DisplayDeviceOperations::FillRect:
-                    tft.fillRect(body[0].halves[0],
+                    tft.fillRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1],
@@ -815,6 +815,20 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
 
                 case DisplayDeviceOperations::FillScreen:
                     tft.fillScreen(body[0].halves[0]);
+                    break;
+                case DisplayDeviceOperations::DrawLine:
+                    tft.drawLine( body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0]);
+                    break;
+                case DisplayDeviceOperations::DrawRect:
+                    tft.drawRect( body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0]);
                     break;
                 default:
                     break;

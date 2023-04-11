@@ -575,8 +575,8 @@ BeginDeviceOperationsList(DisplayDevice)
     DrawPixel,
     DrawFastVLine,
     DrawFastHLine,
-    //FillRect,
-    //FillScreen,
+    FillRect,
+    FillScreen,
     //DrawLine,
     //DrawRect,
     //DrawCircle,
@@ -707,6 +707,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     // display
                     body.bytes[offset & 0b1111] = tft.readcommand8(offset);
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
+                    break;
                 default:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     break;
@@ -762,13 +763,11 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
         case TargetPeripheral::Display:
             switch (static_cast<DisplayDeviceOperations>(function)) {
                 case DisplayDeviceOperations::SetScrollMargins:
-                    tft.setScrollMargins(
-                            body[0].halves[0],
+                    tft.setScrollMargins(body[0].halves[0],
                             body[0].halves[1]);
                     break;
                 case DisplayDeviceOperations::SetAddressWindow:
-                    tft.setAddrWindow(
-                            body[0].halves[0],
+                    tft.setAddrWindow(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
@@ -805,6 +804,17 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
+                    break;
+                case DisplayDeviceOperations::FillRect:
+                    tft.fillRect(body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0]);
+                    break;
+
+                case DisplayDeviceOperations::FillScreen:
+                    tft.fillScreen(body[0].halves[0]);
                     break;
                 default:
                     break;

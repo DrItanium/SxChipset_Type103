@@ -41,14 +41,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 SerialDevice theSerial;
 TimerDevice timerInterface;
-
-
 RTCDevice theRTC;
 DisplayInterface theDisplay;
+
 Adafruit_SI5351 clockGen;
 bool clockGeneratorAvailable = false;
-Adafruit_seesaw seesaw0;
-bool seesaw0Available = false;
 void
 setupRTC() noexcept {
     theRTC.begin();
@@ -64,19 +61,6 @@ setupClockGenerator() noexcept {
     }
 }
 
-void
-setupSeesaw0() noexcept {
-    seesaw0Available = seesaw0.begin();
-    if (!seesaw0Available) {
-        Serial.println(F("seesaw0 not found!"));
-    } else {
-        Serial.println(F("seesaw0 found!"));
-    }
-}
-void
-setupSeesaws() noexcept {
-    setupSeesaw0();
-}
 
 [[gnu::always_inline]] 
 inline void 
@@ -997,7 +981,6 @@ setup() {
     setupDisplay();
     setupRTC();
     setupClockGenerator();
-    setupSeesaws();
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

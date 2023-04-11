@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SD.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
 #include <Adafruit_SI5351.h>
 #include <Adafruit_seesaw.h>
 
@@ -39,15 +37,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "InfoDevice.h"
 #include "TimerDevice.h"
 #include "RTCDevice.h"
+#include "DisplayPeripheral.h"
 
 SerialDevice theSerial;
 TimerDevice timerInterface;
 
-Adafruit_ILI9341 tft(
-        static_cast<uint8_t>(Pin::TFTCS),
-        static_cast<uint8_t>(Pin::TFTDC));
 
 RTCDevice theRTC;
+DisplayInterface theDisplay;
 Adafruit_SI5351 clockGen;
 bool clockGeneratorAvailable = false;
 Adafruit_seesaw seesaw0;
@@ -606,52 +603,6 @@ BeginDeviceOperationsList(InfoDevice)
 EndDeviceOperationsList(InfoDevice)
 ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
 
-BeginDeviceOperationsList(DisplayDevice)
-    RW, // for the "serial" aspect so we can print out to the screen
-    Flush,
-    DisplayWidthHeight,
-    Rotation,
-    InvertDisplay,
-    ScrollTo,
-    SetScrollMargins,
-    SetAddressWindow,
-    ReadCommand8,
-    CursorX,
-    CursorY,
-    CursorXY,
-    DrawPixel,
-    DrawFastVLine,
-    DrawFastHLine,
-    FillRect,
-    FillScreen,
-    DrawLine,
-    DrawRect,
-    DrawCircle,
-    FillCircle,
-    DrawTriangle,
-    FillTriangle,
-    DrawRoundRect,
-    FillRoundRect,
-    SetTextWrap,
-    DrawChar_Square,
-    DrawChar_Rectangle,
-    SetTextSize_Square,
-    SetTextSize_Rectangle,
-    SetTextColor0,
-    SetTextColor1,
-    // Transaction parts
-    StartWrite,
-    WritePixel,
-    WriteFillRect,
-    WriteFastVLine,
-    WriteFastHLine,
-    WriteLine,
-    EndWrite,
-    /// @todo add drawBitmap support
-
-EndDeviceOperationsList(DisplayDevice)
-
-ConnectPeripheral(TargetPeripheral::Display, DisplayDeviceOperations);
 
 
 
@@ -785,45 +736,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             }
             break;
         case TargetPeripheral::Display:
-            switch (getFunctionCode<TargetPeripheral::Display>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::Display>;
-                case K::Available:
-                case K::RW:
-                    sendBoolean<inDebugMode, true, width>(true, offset);
-                    return;
-                case K::Size:
-                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Display>(offset);
-                    return;
-                case K::DisplayWidthHeight:
-                    body[0].halves[0] = tft.width();
-                    body[0].halves[1] = tft.height();
-                    break;
-                case K::Rotation:
-                    body.bytes[0] = tft.getRotation();
-                    break;
-                case K::ReadCommand8:
-                    // use the offset in the instruction to determine where to
-                    // place the result and what to request from the tft
-                    // display
-                    body.bytes[offset & 0b1111] = tft.readcommand8(offset);
-                    break;
-                case K::CursorX: 
-                    body[0].halves[0] = tft.getCursorX(); 
-                    break;
-                case K::CursorY: 
-                    body[0].halves[0] = tft.getCursorY(); 
-                    break;
-                case K::CursorXY: 
-                    body[0].halves[0] = tft.getCursorX();
-                    body[0].halves[1] = tft.getCursorY(); 
-                    break;
-                case K::Flush:
-                    // fallthrough
-                    tft.flush();
-                default:
-                    sendZero<inDebugMode, true, width>(offset);
-                    return;
-            }
+            theDisplay.handleReadOperations(body, function, offset);
             break;
         default:
             break;
@@ -850,207 +763,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
             timerInterface.handleWriteOperations(body, function, offset);
             break;
         case TargetPeripheral::Display:
-            switch (getFunctionCode<TargetPeripheral::Display>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::Display>;
-                case K::SetScrollMargins:
-                    tft.setScrollMargins(body[0].halves[0],
-                            body[0].halves[1]);
-                    break;
-                case K::SetAddressWindow:
-                    tft.setAddrWindow(body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1]);
-                    break;
-                case K::ScrollTo:
-                    tft.scrollTo(body[0].halves[0]);
-                    break;
-                case K::InvertDisplay:
-                    tft.invertDisplay(body.bytes[0] != 0);
-                    break;
-                case K::Rotation:
-                    tft.setRotation(body.bytes[0]);
-                    break;
-                case K::RW:
-                    tft.print(static_cast<uint8_t>(body.bytes[0]));
-                    break;
-                case K::Flush:
-                    tft.flush();
-                    break;
-                case K::DrawPixel:
-                    tft.drawPixel(body[0].halves[0], body[0].halves[1], body[1].halves[0]);
-                    break;
-                case K::DrawFastHLine:
-                    tft.drawFastHLine(body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1]);
-                    break;
-                case K::DrawFastVLine:
-                    tft.drawFastVLine(body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1]);
-                    break;
-                case K::FillRect:
-                    tft.fillRect( body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0]);
-                    break;
-
-                case K::FillScreen:
-                    tft.fillScreen(body[0].halves[0]);
-                    break;
-                case K::DrawLine:
-                    tft.drawLine( body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0]);
-                    break;
-                case K::DrawRect:
-                    tft.drawRect( body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0]);
-                    break;
-                case K::DrawCircle:
-                    tft.drawCircle(
-                            body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1]);
-                    break;
-                case K::FillCircle:
-                    tft.fillCircle(
-                            body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1]);
-                    break;
-                case K::DrawTriangle:
-                    tft.drawTriangle( body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0],
-                            body[2].halves[1],
-                            body[3].halves[0]);
-                    break;
-                case K::FillTriangle:
-                    tft.fillTriangle( body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0],
-                            body[2].halves[1],
-                            body[3].halves[0]);
-                    break;
-                case K::DrawRoundRect:
-                    tft.drawRoundRect( body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0],
-                            body[2].halves[1]);
-                    break;
-                case K::FillRoundRect:
-                    tft.fillRoundRect( body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0],
-                            body[2].halves[1]);
-                    break;
-                case K::SetTextWrap:
-                    tft.setTextWrap(body.bytes[0]);
-                    break;
-                case K::CursorX: 
-                    tft.setCursor(body[0].halves[0], tft.getCursorY());
-                    break;
-                case K::CursorY: 
-                    tft.setCursor(tft.getCursorX(), body[0].halves[0]);
-                    break;
-                case K::CursorXY:
-                    tft.setCursor(body[0].halves[0], body[0].halves[1]);
-                    break;
-                case K::DrawChar_Square:
-                    tft.drawChar(body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0],
-                            body[2].halves[1]);
-                    break;
-                case K::DrawChar_Rectangle:
-                    tft.drawChar(body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0],
-                            body[2].halves[1],
-                            body[3].halves[0]);
-                    break;
-                case K::SetTextSize_Square:
-                    tft.setTextSize(body[0].halves[0]);
-                    break;
-                case K::SetTextSize_Rectangle:
-                    tft.setTextSize(body[0].halves[0],
-                                    body[0].halves[1]);
-                    break;
-                case K::SetTextColor0:
-                    tft.setTextColor(body[0].halves[0]);
-                    break;
-                case K::SetTextColor1:
-                    tft.setTextColor(body[0].halves[0], body[0].halves[1]);
-                    break;
-                case K::StartWrite:
-                    tft.startWrite();
-                    break;
-                case K::WritePixel:
-                    tft.writePixel(body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0]);
-                    break;
-                case K::WriteFillRect:
-                    tft.writeFillRect(
-                            body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0]);
-                    break;
-                case K::WriteFastVLine:
-                    tft.writeFastVLine(
-                            body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1]);
-                    break;
-                case K::WriteFastHLine:
-                    tft.writeFastHLine(
-                            body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1]);
-                    break;
-                case K::WriteLine:
-                    tft.writeLine(
-                            body[0].halves[0],
-                            body[0].halves[1],
-                            body[1].halves[0],
-                            body[1].halves[1],
-                            body[2].halves[0]);
-                    break;
-                case K::EndWrite:
-                    tft.endWrite();
-                    break;
-                default:
-                    break;
-            }
+            theDisplay.handleWriteOperations(body, function, offset);
             break;
         default:
             // unknown device so do not do anything
@@ -1271,19 +984,7 @@ setupPins() noexcept {
 }
 void
 setupDisplay() noexcept {
-    tft.begin();
-    auto x = tft.readcommand8(ILI9341_RDMODE);
-    Serial.println(F("DISPLAY INFORMATION"));
-    Serial.print(F("Display Power Mode: 0x")); Serial.println(x, HEX);
-    x = tft.readcommand8(ILI9341_RDMADCTL);
-    Serial.print(F("MADCTL Mode: 0x")); Serial.println(x, HEX);
-    x = tft.readcommand8(ILI9341_RDPIXFMT);
-    Serial.print(F("Pixel Format: 0x")); Serial.println(x, HEX);
-    x = tft.readcommand8(ILI9341_RDIMGFMT);
-    Serial.print(F("Image Format: 0x")); Serial.println(x, HEX);
-    x = tft.readcommand8(ILI9341_RDSELFDIAG);
-    Serial.print(F("Self Diagnostic: 0x")); Serial.println(x, HEX);
-    tft.fillScreen(ILI9341_BLACK);
+    theDisplay.begin();
 }
 void
 setup() {

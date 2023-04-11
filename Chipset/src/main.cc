@@ -571,7 +571,9 @@ BeginDeviceOperationsList(DisplayDevice)
     SetScrollMargins,
     SetAddressWindow,
     ReadCommand8,
-    SetCursor,
+    CursorX,
+    CursorY,
+    CursorXY,
     DrawPixel,
     DrawFastVLine,
     DrawFastHLine,
@@ -585,13 +587,13 @@ BeginDeviceOperationsList(DisplayDevice)
     FillTriangle,
     DrawRoundRect,
     FillRoundRect,
+    SetTextWrap,
     //DrawChar_Square,
     //DrawChar_Rectangle,
     //SetTextSize_Square,
     //SetTextSize_Rectangle,
     //SetTextColor0,
     //SetTextColor1,
-    //SetTextWrap,
     // Transaction parts
     //StartWrite,
     //WritePixel,
@@ -630,7 +632,6 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     break;
                 default:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
-                    // unknown device so do not do anything
                     break;
             }
             return;
@@ -638,86 +639,88 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (static_cast<SerialDeviceOperations>(function)) {
                 case SerialDeviceOperations::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
-                    break;
+                    return;
                 case SerialDeviceOperations::Size:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(SerialDeviceOperations::Count)>(offset);
-                    break;;
+                    return;
                 case SerialDeviceOperations::RW:
                     body[0].halves[0] = Serial.read();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 case SerialDeviceOperations::Flush:
                     Serial.flush();
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
                     break;
                 case SerialDeviceOperations::Baud:
                     body[0].full = theSerial.getBaudRate();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 default:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
-                    break;
+                    return;
             }
             break;
         case TargetPeripheral::Timer:
             switch (static_cast<TimerDeviceOperations>(function)) {
                 case TimerDeviceOperations::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
-                    break;
+                    return;
                 case TimerDeviceOperations::Size:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(TimerDeviceOperations::Count)>(offset);
-                    break;
+                    return;
                 case TimerDeviceOperations::SystemTimerPrescalar:
                     body.bytes[0] = timerInterface.getSystemTimerPrescalar();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 case TimerDeviceOperations::SystemTimerComparisonValue:
                     body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 default:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
-                    break;
+                    return;
 
             }
             break;
         case TargetPeripheral::Display:
             switch (static_cast<DisplayDeviceOperations>(function)) {
-                case DisplayDeviceOperations::Flush:
-                    tft.flush();
                 case DisplayDeviceOperations::Available:
                 case DisplayDeviceOperations::RW:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
-                    break;
+                    return;
                 case DisplayDeviceOperations::Size:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(DisplayDeviceOperations::Count)>(offset);
-                    break;
+                    return;
                 case DisplayDeviceOperations::DisplayWidthHeight:
                     body[0].halves[0] = tft.width();
                     body[0].halves[1] = tft.height();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 case DisplayDeviceOperations::Rotation:
                     body.bytes[0] = tft.getRotation();
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
                 case DisplayDeviceOperations::ReadCommand8:
                     // use the offset in the instruction to determine where to
                     // place the result and what to request from the tft
                     // display
                     body.bytes[offset & 0b1111] = tft.readcommand8(offset);
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
                     break;
+                case DisplayDeviceOperations::CursorX: 
+                    body[0].halves[0] = tft.getCursorX(); 
+                    break;
+                case DisplayDeviceOperations::CursorY: 
+                    body[0].halves[0] = tft.getCursorY(); 
+                    break;
+                case DisplayDeviceOperations::CursorXY: 
+                    body[0].halves[0] = tft.getCursorX();
+                    body[0].halves[1] = tft.getCursorY(); 
+                    break;
+                case DisplayDeviceOperations::Flush:
+                    // fallthrough
+                    tft.flush();
                 default:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
-                    break;
+                    return;
             }
             break;
         default:
-            CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
-            // unknown device so do not do anything
             break;
     }
+    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
 }
 template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
@@ -780,9 +783,6 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                     break;
                 case DisplayDeviceOperations::Rotation:
                     tft.setRotation(body.bytes[0]);
-                    break;
-                case DisplayDeviceOperations::SetCursor:
-                    tft.setCursor(body[0].halves[0], body[0].halves[1]);
                     break;
                 case DisplayDeviceOperations::RW:
                     tft.print(static_cast<uint8_t>(body.bytes[0]));
@@ -877,6 +877,18 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[1].halves[1],
                             body[2].halves[0],
                             body[2].halves[1]);
+                    break;
+                case DisplayDeviceOperations::SetTextWrap:
+                    tft.setTextWrap(body.bytes[0]);
+                    break;
+                case DisplayDeviceOperations::CursorX: 
+                    tft.setCursor(body[0].halves[0], tft.getCursorY());
+                    break;
+                case DisplayDeviceOperations::CursorY: 
+                    tft.setCursor(tft.getCursorX(), body[0].halves[0]);
+                    break;
+                case DisplayDeviceOperations::CursorXY:
+                    tft.setCursor(body[0].halves[0], body[0].halves[1]);
                     break;
                 default:
                     break;

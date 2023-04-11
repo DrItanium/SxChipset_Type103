@@ -113,6 +113,11 @@ setupSeesaws() noexcept {
     setupSeesaw0();
 }
 
+[[gnu::always_inline]] 
+inline void 
+signalReady() noexcept {
+    Platform::signalReady();
+}
 void 
 putCPUInReset() noexcept {
     Platform::doReset(LOW);

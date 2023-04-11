@@ -47,11 +47,6 @@ template<typename E>
 constexpr bool validOperation(E value) noexcept {
     return static_cast<int>(value) >= 0 && (static_cast<int>(value) < static_cast<int>(E::Count));
 }
-[[gnu::always_inline]] 
-inline void 
-signalReady() noexcept {
-    Platform::signalReady();
-}
 
 
 #define BeginDeviceOperationsList(name) enum class name ## Operations : byte { Available, Size,

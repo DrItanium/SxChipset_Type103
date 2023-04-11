@@ -33,6 +33,7 @@ BeginDeviceOperationsList(SerialDevice)
     Baud,
 EndDeviceOperationsList(SerialDevice)
 
+ConnectPeripheral(TargetPeripheral::Serial, SerialDeviceOperations);
 
 class SerialDevice {
 public:

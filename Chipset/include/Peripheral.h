@@ -43,6 +43,38 @@ enum class TargetPeripheral {
 };
 static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");
 
+template<TargetPeripheral p>
+struct PeripheralDescription {
+    using Self = PeripheralDescription<p>;
+    PeripheralDescription() = delete;
+    ~PeripheralDescription() = delete;
+    PeripheralDescription(const Self&) = delete;
+    PeripheralDescription(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+};
+
+#define ConnectPeripheral(p, op) \
+    template<> \
+    struct PeripheralDescription< p > { \
+    using Self = PeripheralDescription<p>; \
+    PeripheralDescription() = delete; \
+    ~PeripheralDescription() = delete; \
+    PeripheralDescription(const Self&) = delete; \
+    PeripheralDescription(Self&&) = delete; \
+    Self& operator=(const Self&) = delete; \
+    Self& operator=(Self&&) = delete; \
+        using OpcodeType = op ; \
+    }
+
+template<TargetPeripheral p>
+using ConnectedOpcode_t = typename PeripheralDescription<p>::OpcodeType;
+
+template<TargetPeripheral p>
+constexpr auto convertFunctionCode(uint8_t value) noexcept {
+    return static_cast<ConnectedOpcode_t<p>>(value);
+}
+
 #define BeginDeviceOperationsList(name) enum class name ## Operations : byte { Available, Size,
 #define EndDeviceOperationsList(name) Count, }; static_assert(static_cast<byte>( name ## Operations :: Count ) <= 256, "Too many " #name "Operations entries defined!");
 #endif // end SXCHIPSET_TYPE103_PERIPHERAL_H

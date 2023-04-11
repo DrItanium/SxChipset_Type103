@@ -36,6 +36,8 @@ BeginDeviceOperationsList(TimerDevice)
     SystemTimerPrescalar,
 EndDeviceOperationsList(TimerDevice)
 
+ConnectPeripheral(TargetPeripheral::Timer, TimerDeviceOperations);
+
 class TimerDevice {
 public:
     bool begin() noexcept ;

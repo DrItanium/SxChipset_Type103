@@ -636,6 +636,7 @@ BeginDeviceOperationsList(InfoDevice)
     GetChipsetClock,
     GetCPUClock,
 EndDeviceOperationsList(InfoDevice)
+ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
 
 BeginDeviceOperationsList(DisplayDevice)
     RW, // for the serial aspects of this
@@ -693,17 +694,18 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
     // This maintains consistency and makes the implementation much simpler
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Info:
-            switch (static_cast<InfoDeviceOperations>(function)) {
-                case InfoDeviceOperations::Available:
+            switch (getFunctionCode<TargetPeripheral::Info>(function)) {
+                using K = ConnectedOpcode_t<TargetPeripheral::Info>;
+                case K::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     break;
-                case InfoDeviceOperations::Size:
+                case K::Size:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(InfoDeviceOperations::Count)>(offset);
                     break;
-                case InfoDeviceOperations::GetChipsetClock:
+                case K::GetChipsetClock:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU>(offset);
                     break;
-                case InfoDeviceOperations::GetCPUClock:
+                case K::GetCPUClock:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>(offset);
                     break;
                 default:
@@ -712,20 +714,21 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             }
             return;
         case TargetPeripheral::Serial:
-            switch (static_cast<SerialDeviceOperations>(function)) {
-                case SerialDeviceOperations::Available:
+            switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
+                using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
+                case K::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     return;
-                case SerialDeviceOperations::Size:
+                case K::Size:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<static_cast<uint8_t>(SerialDeviceOperations::Count)>(offset);
                     return;
-                case SerialDeviceOperations::RW:
+                case K::RW:
                     body[0].halves[0] = Serial.read();
                     break;
-                case SerialDeviceOperations::Flush:
+                case K::Flush:
                     Serial.flush();
                     break;
-                case SerialDeviceOperations::Baud:
+                case K::Baud:
                     body[0].full = theSerial.getBaudRate();
                     break;
                 default:
@@ -734,7 +737,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             }
             break;
         case TargetPeripheral::Timer:
-            switch (static_cast<TimerDeviceOperations>(function)) {
+            switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
                 case TimerDeviceOperations::Available:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     return;

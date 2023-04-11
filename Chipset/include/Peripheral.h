@@ -71,7 +71,7 @@ template<TargetPeripheral p>
 using ConnectedOpcode_t = typename PeripheralDescription<p>::OpcodeType;
 
 template<TargetPeripheral p>
-constexpr auto convertFunctionCode(uint8_t value) noexcept {
+constexpr auto getFunctionCode(uint8_t value) noexcept {
     return static_cast<ConnectedOpcode_t<p>>(value);
 }
 

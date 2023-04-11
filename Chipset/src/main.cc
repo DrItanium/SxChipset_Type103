@@ -692,14 +692,30 @@ EndDeviceOperationsList(RTCDevice)
 ConnectPeripheral(TargetPeripheral::RTC, RTCDeviceOperations);
 
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width, TargetPeripheral p>
+[[gnu::always_inline]]
+inline
 void sendOpcodeSize(uint8_t offset) noexcept {
     CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<OpcodeCount_v<p>>(offset);
 }
 
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+[[gnu::always_inline]]
+inline
 void sendZero(uint8_t offset) noexcept {
     CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0>(offset);
 }
+
+template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+[[gnu::always_inline]]
+inline
+void sendBoolean(bool value, uint8_t offset) noexcept {
+    if (value) {
+        CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
+    } else {
+        sendZero<inDebugMode, isReadOperation, width>(offset);
+    }
+}
+
 
 template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
@@ -711,11 +727,23 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     switch (static_cast<TargetPeripheral>(group)) {
+        case TargetPeripheral::RTC:
+            switch(getFunctionCode<TargetPeripheral::RTC>(function)) {
+                using K = ConnectedOpcode_t<TargetPeripheral::RTC>;
+                case K::Available:
+                    sendBoolean<inDebugMode, true, width>(rtcAvailable, offset);
+                    return;
+                case K::Size:
+                default:
+                    sendZero<inDebugMode, true, width>(offset);
+                    return;
+            }
+            break;
         case TargetPeripheral::Info:
             switch (getFunctionCode<TargetPeripheral::Info>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Info>;
                 case K::Available:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
+                    sendBoolean<inDebugMode, true, width>(true, offset);
                     break;
                 case K::Size:
                     sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Info>(offset);
@@ -735,7 +763,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
                 case K::Available:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
+                    sendBoolean<inDebugMode, true, width>(true, offset);
                     return;
                 case K::Size:
                     sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Serial>(offset);
@@ -758,7 +786,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
                 case K::Available:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
+                    sendBoolean<inDebugMode, true, width>(true, offset);
                     return;
                 case K::Size:
                     sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Timer>(offset);
@@ -780,7 +808,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                 using K = ConnectedOpcode_t<TargetPeripheral::Display>;
                 case K::Available:
                 case K::RW:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
+                    sendBoolean<inDebugMode, true, width>(true, offset);
                     return;
                 case K::Size:
                     sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Display>(offset);

@@ -37,6 +37,8 @@ enum class TargetPeripheral {
     Serial,
     Timer,
     Display,
+    RTC,
+    ClockGenerator,
     Count,
 };
 static_assert(static_cast<byte>(TargetPeripheral::Count) <= 256, "Too many Peripheral devices!");

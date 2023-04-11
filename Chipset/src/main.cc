@@ -562,6 +562,8 @@ BeginDeviceOperationsList(InfoDevice)
 EndDeviceOperationsList(InfoDevice)
 
 BeginDeviceOperationsList(DisplayDevice)
+    RW, // for the serial aspects of this
+    Flush,
     DisplayWidthHeight,
     Rotation,
     InvertDisplay,
@@ -569,35 +571,35 @@ BeginDeviceOperationsList(DisplayDevice)
     SetScrollMargins,
     SetAddressWindow,
     ReadCommand8,
+    SetCursor,
     DrawPixel,
     DrawFastVLine,
     DrawFastHLine,
-    FillRect,
-    FillScreen,
-    DrawLine,
-    DrawRect,
-    DrawCircle,
-    FillCircle,
-    DrawTriangle,
-    FillTriangle,
-    DrawRoundRect,
-    FillRoundRect,
-    DrawChar_Square,
-    DrawChar_Rectangle,
-    SetTextSize_Square,
-    SetTextSize_Rectangle,
-    SetCursor,
-    SetTextColor0,
-    SetTextColor1,
-    SetTextWrap,
+    //FillRect,
+    //FillScreen,
+    //DrawLine,
+    //DrawRect,
+    //DrawCircle,
+    //FillCircle,
+    //DrawTriangle,
+    //FillTriangle,
+    //DrawRoundRect,
+    //FillRoundRect,
+    //DrawChar_Square,
+    //DrawChar_Rectangle,
+    //SetTextSize_Square,
+    //SetTextSize_Rectangle,
+    //SetTextColor0,
+    //SetTextColor1,
+    //SetTextWrap,
     // Transaction parts
-    StartWrite,
-    WritePixel,
-    WriteFillRect,
-    WriteFastVLine,
-    WriteFastHLine,
-    WriteLine,
-    EndWrite,
+    //StartWrite,
+    //WritePixel,
+    //WriteFillRect,
+    //WriteFastVLine,
+    //WriteFastHLine,
+    //WriteLine,
+    //EndWrite,
     /// @todo add drawBitmap support
 
 EndDeviceOperationsList(DisplayDevice)
@@ -681,7 +683,10 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             break;
         case TargetPeripheral::Display:
             switch (static_cast<DisplayDeviceOperations>(function)) {
+                case DisplayDeviceOperations::Flush:
+                    tft.flush();
                 case DisplayDeviceOperations::Available:
+                case DisplayDeviceOperations::RW:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
                     break;
                 case DisplayDeviceOperations::Size:
@@ -776,6 +781,30 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                     break;
                 case DisplayDeviceOperations::Rotation:
                     tft.setRotation(body.bytes[0]);
+                    break;
+                case DisplayDeviceOperations::SetCursor:
+                    tft.setCursor(body[0].halves[0], body[0].halves[1]);
+                    break;
+                case DisplayDeviceOperations::RW:
+                    tft.print(static_cast<uint8_t>(body.bytes[0]));
+                    break;
+                case DisplayDeviceOperations::Flush:
+                    tft.flush();
+                    break;
+                case DisplayDeviceOperations::DrawPixel:
+                    tft.drawPixel(body[0].halves[0], body[0].halves[1], body[1].halves[0]);
+                    break;
+                case DisplayDeviceOperations::DrawFastHLine:
+                    tft.drawFastHLine(body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1]);
+                    break;
+                case DisplayDeviceOperations::DrawFastVLine:
+                    tft.drawFastVLine(body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1]);
                     break;
                 default:
                     break;

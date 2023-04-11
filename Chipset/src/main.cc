@@ -687,6 +687,7 @@ ConnectPeripheral(TargetPeripheral::Display, DisplayDeviceOperations);
 
 BeginDeviceOperationsList(RTCDevice)
     UnixTime,
+    SecondsTime,
 EndDeviceOperationsList(RTCDevice)
 
 ConnectPeripheral(TargetPeripheral::RTC, RTCDeviceOperations);
@@ -734,6 +735,14 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     sendBoolean<inDebugMode, true, width>(rtcAvailable, offset);
                     return;
                 case K::Size:
+                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::RTC>(offset);
+                    return;
+                case K::UnixTime:
+                    body[0].full = rtc.now().unixtime();
+                    break;
+                case K::SecondsTime:
+                    body[0].full = rtc.now().secondstime();
+                    break;
                 default:
                     sendZero<inDebugMode, true, width>(offset);
                     return;

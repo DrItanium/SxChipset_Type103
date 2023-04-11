@@ -46,5 +46,6 @@ public:
     [[nodiscard]] uint8_t getSystemTimerComparisonValue() const noexcept;
     void setSystemTimerPrescalar(uint8_t value) noexcept;
     void setSystemTimerComparisonValue(uint8_t value) noexcept;
+    void handleWriteOperations(const SplitWord128& result, uint8_t function, uint8_t offset) noexcept;
 };
 #endif //CHIPSET_TIMERDEVICE_H

@@ -95,3 +95,18 @@ TimerDevice::getSystemTimerComparisonValue() const noexcept {
     return 0;
 #endif
 }
+
+void
+TimerDevice::handleWriteOperations(const SplitWord128& result, uint8_t function, uint8_t offset) noexcept {
+    using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
+    switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
+        case K::SystemTimerPrescalar:
+            setSystemTimerPrescalar(result.bytes[0]);
+            break;
+        case K::SystemTimerComparisonValue:
+            setSystemTimerComparisonValue(result.bytes[0]);
+            break;
+        default:
+            break;
+    }
+}

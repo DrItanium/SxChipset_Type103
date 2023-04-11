@@ -41,6 +41,7 @@ public:
     bool isAvailable() const noexcept { return true; }
     void setBaudRate(uint32_t baudRate) noexcept;
     [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
+    void handleWriteOperations(const SplitWord128& result, uint8_t function, uint8_t offset) noexcept;
 private:
     uint32_t baud_ = 115200;
 };

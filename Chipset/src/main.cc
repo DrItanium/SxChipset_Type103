@@ -899,34 +899,10 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     asm volatile ("nop");
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
-            switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
-                case K::RW:
-                    Serial.write(static_cast<uint8_t>(body.bytes[0]));
-                    break;
-                case K::Flush:
-                    Serial.flush();
-                    break;
-                case K::Baud:
-                    theSerial.setBaudRate(body[0].full);
-                    break;
-                default:
-                    break;
-            }
-            //theSerial.performWrite(function, offset, body);
+            theSerial.handleWriteOperations(body, function, offset);
             break;
         case TargetPeripheral::Timer:
-            switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
-                case K::SystemTimerPrescalar:
-                    timerInterface.setSystemTimerPrescalar(body.bytes[0]);
-                    break;
-                case K::SystemTimerComparisonValue:
-                    timerInterface.setSystemTimerComparisonValue(body.bytes[0]);
-                    break;
-                default:
-                    break;
-            }
+            timerInterface.handleWriteOperations(body, function, offset);
             break;
         case TargetPeripheral::Display:
             switch (getFunctionCode<TargetPeripheral::Display>(function)) {

@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
 #include <RTClib.h>
+#include <Adafruit_SI5351.h>
 
 SerialDevice theSerial;
 TimerDevice timerInterface;
@@ -45,6 +46,8 @@ Adafruit_ILI9341 tft(
 
 RTC_PCF8523 rtc;
 bool rtcAvailable = false;
+Adafruit_SI5351 clockGen;
+bool clockGeneratorAvailable = false;
 void
 setupRTC() noexcept {
     rtcAvailable = rtc.begin();
@@ -78,6 +81,16 @@ setupRTC() noexcept {
                                  // float drift_unit = 4.069; //For corrections every min the drift_unit is 4.069 ppm (use with offset mode PCF8523_OneMinute)
         int offset = round(deviation_ppm / drift_unit);
         rtc.calibrate(PCF8523_TwoHours, offset); // Un-comment to perform calibration once drift (seconds) and observation period (seconds) are correct
+    }
+}
+
+void
+setupClockGenerator() noexcept {
+    clockGeneratorAvailable = (clockGen.begin() == ERROR_NONE);
+    if (clockGeneratorAvailable) {
+        Serial.println(F("Si5351 Clock Generator detected!"));
+    } else {
+        Serial.println(F("No Si5351 Clock Generator detected!"));
     }
 }
 
@@ -1247,6 +1260,7 @@ setup() {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     setupDisplay();
     setupRTC();
+    setupClockGenerator();
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

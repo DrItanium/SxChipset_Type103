@@ -579,12 +579,12 @@ BeginDeviceOperationsList(DisplayDevice)
     FillScreen,
     DrawLine,
     DrawRect,
-    //DrawCircle,
-    //FillCircle,
-    //DrawTriangle,
-    //FillTriangle,
-    //DrawRoundRect,
-    //FillRoundRect,
+    DrawCircle,
+    FillCircle,
+    DrawTriangle,
+    FillTriangle,
+    DrawRoundRect,
+    FillRoundRect,
     //DrawChar_Square,
     //DrawChar_Rectangle,
     //SetTextSize_Square,
@@ -829,6 +829,54 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
                             body[1].halves[0],
                             body[1].halves[1],
                             body[2].halves[0]);
+                    break;
+                case DisplayDeviceOperations::DrawCircle:
+                    tft.drawCircle(
+                            body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1]);
+                    break;
+                case DisplayDeviceOperations::FillCircle:
+                    tft.fillCircle(
+                            body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1]);
+                    break;
+                case DisplayDeviceOperations::DrawTriangle:
+                    tft.drawTriangle( body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0],
+                            body[2].halves[1],
+                            body[3].halves[0]);
+                    break;
+                case DisplayDeviceOperations::FillTriangle:
+                    tft.fillTriangle( body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0],
+                            body[2].halves[1],
+                            body[3].halves[0]);
+                    break;
+                case DisplayDeviceOperations::DrawRoundRect:
+                    tft.drawRoundRect( body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0],
+                            body[2].halves[1]);
+                    break;
+                case DisplayDeviceOperations::FillRoundRect:
+                    tft.fillRoundRect( body[0].halves[0],
+                            body[0].halves[1],
+                            body[1].halves[0],
+                            body[1].halves[1],
+                            body[2].halves[0],
+                            body[2].halves[1]);
                     break;
                 default:
                     break;

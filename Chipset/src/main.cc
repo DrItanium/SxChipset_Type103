@@ -718,24 +718,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             }
             break;
         case TargetPeripheral::RTC:
-            switch(getFunctionCode<TargetPeripheral::RTC>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::RTC>;
-                case K::Available:
-                    sendBoolean<inDebugMode, true, width>(theRTC.isAvailable(), offset);
-                    return;
-                case K::Size:
-                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::RTC>(offset);
-                    return;
-                case K::UnixTime:
-                    body[0].full = theRTC.getUnixTime();
-                    break;
-                case K::SecondsTime:
-                    body[0].full = theRTC.getSecondsTime();
-                    break;
-                default:
-                    sendZero<inDebugMode, true, width>(offset);
-                    return;
-            }
+            theRTC.handleReadOperations(body, function, offset);
             break;
         case TargetPeripheral::Info:
             switch (getFunctionCode<TargetPeripheral::Info>(function)) {

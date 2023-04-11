@@ -25,6 +25,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SD.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
+#include <RTClib.h>
+#include <Adafruit_SI5351.h>
+#include <Adafruit_seesaw.h>
+
 #include "Types.h"
 #include "Pinout.h"
 #include "Peripheral.h"
@@ -32,10 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SerialDevice.h"
 //#include "InfoDevice.h"
 #include "TimerDevice.h"
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
-#include <RTClib.h>
-#include <Adafruit_SI5351.h>
 
 SerialDevice theSerial;
 TimerDevice timerInterface;
@@ -48,6 +51,8 @@ RTC_PCF8523 rtc;
 bool rtcAvailable = false;
 Adafruit_SI5351 clockGen;
 bool clockGeneratorAvailable = false;
+Adafruit_seesaw seesaw0;
+bool seesaw0Available = false;
 void
 setupRTC() noexcept {
     rtcAvailable = rtc.begin();
@@ -92,6 +97,20 @@ setupClockGenerator() noexcept {
     } else {
         Serial.println(F("No Si5351 Clock Generator detected!"));
     }
+}
+
+void
+setupSeesaw0() noexcept {
+    seesaw0Available = seesaw0.begin();
+    if (!seesaw0Available) {
+        Serial.println(F("seesaw0 not found!"));
+    } else {
+        Serial.println(F("seesaw0 found!"));
+    }
+}
+void
+setupSeesaws() noexcept {
+    setupSeesaw0();
 }
 
 void 
@@ -1261,6 +1280,7 @@ setup() {
     setupDisplay();
     setupRTC();
     setupClockGenerator();
+    setupSeesaws();
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

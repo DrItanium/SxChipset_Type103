@@ -639,7 +639,7 @@ EndDeviceOperationsList(InfoDevice)
 ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
 
 BeginDeviceOperationsList(DisplayDevice)
-    RW, // for the serial aspects of this
+    RW, // for the "serial" aspect so we can print out to the screen
     Flush,
     DisplayWidthHeight,
     Rotation,
@@ -684,6 +684,12 @@ BeginDeviceOperationsList(DisplayDevice)
 EndDeviceOperationsList(DisplayDevice)
 
 ConnectPeripheral(TargetPeripheral::Display, DisplayDeviceOperations);
+
+BeginDeviceOperationsList(RTCDevice)
+    UnixTime,
+EndDeviceOperationsList(RTCDevice)
+
+ConnectPeripheral(TargetPeripheral::RTC, RTCDeviceOperations);
 
 template<bool inDebugMode, bool isReadOperation, NativeBusWidth width, TargetPeripheral p>
 void sendOpcodeSize(uint8_t offset) noexcept {

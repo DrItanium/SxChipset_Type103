@@ -27,7 +27,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SD.h>
 #include <Wire.h>
 #include <Adafruit_SI5351.h>
-#include <Adafruit_seesaw.h>
 
 #include "Types.h"
 #include "Pinout.h"

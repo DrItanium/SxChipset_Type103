@@ -34,17 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SerialDevice.h"
 //#include "InfoDevice.h"
 #include "TimerDevice.h"
-#include "RTCDevice.h"
 #include "DisplayPeripheral.h"
 
 SerialDevice theSerial;
 TimerDevice timerInterface;
-RTCDevice theRTC;
 DisplayInterface theDisplay;
-void
-setupRTC() noexcept {
-    theRTC.begin();
-}
 
 [[gnu::always_inline]] 
 inline void 
@@ -610,9 +604,6 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     switch (static_cast<TargetPeripheral>(group)) {
-        case TargetPeripheral::RTC:
-            theRTC.handleReadOperations(body, function, offset);
-            break;
         case TargetPeripheral::Info:
             switch (getFunctionCode<TargetPeripheral::Info>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Info>;
@@ -937,7 +928,6 @@ setup() {
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     setupDisplay();
-    setupRTC();
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SD.h>
 #include <Wire.h>
-#include <Adafruit_SI5351.h>
 
 #include "Types.h"
 #include "Pinout.h"
@@ -42,24 +41,10 @@ SerialDevice theSerial;
 TimerDevice timerInterface;
 RTCDevice theRTC;
 DisplayInterface theDisplay;
-
-Adafruit_SI5351 clockGen;
-bool clockGeneratorAvailable = false;
 void
 setupRTC() noexcept {
     theRTC.begin();
 }
-
-void
-setupClockGenerator() noexcept {
-    clockGeneratorAvailable = (clockGen.begin() == ERROR_NONE);
-    if (clockGeneratorAvailable) {
-        Serial.println(F("Si5351 Clock Generator detected!"));
-    } else {
-        Serial.println(F("No Si5351 Clock Generator detected!"));
-    }
-}
-
 
 [[gnu::always_inline]] 
 inline void 
@@ -614,18 +599,6 @@ void sendBoolean(bool value, uint8_t offset) noexcept {
     }
 }
 
-BeginDeviceOperationsList(ClockGenerator)
-    SetupPLLFull,
-    SetupPLLInt,
-    SetupMultisynth,
-    SetupMultisynthInt,
-    EnableSpreadSpectrum,
-    EnableOutputs,
-    SetupRDiv,
-EndDeviceOperationsList(ClockGenerator)
-
-ConnectPeripheral(TargetPeripheral::ClockGenerator, ClockGeneratorOperations);
-
 
 template<bool inDebugMode, NativeBusWidth width>
 [[gnu::always_inline]]
@@ -637,20 +610,6 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     switch (static_cast<TargetPeripheral>(group)) {
-        case TargetPeripheral::ClockGenerator:
-            switch(getFunctionCode<TargetPeripheral::ClockGenerator>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::ClockGenerator>;
-                case K::Available:
-                    sendBoolean<inDebugMode, true, width>(clockGeneratorAvailable, offset);
-                    return;
-                case K::Size:
-                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::ClockGenerator>(offset);
-                    return;
-                default:
-                    sendZero<inDebugMode, true, width>(offset);
-                    return;
-            }
-            break;
         case TargetPeripheral::RTC:
             theRTC.handleReadOperations(body, function, offset);
             break;
@@ -979,7 +938,6 @@ setup() {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     setupDisplay();
     setupRTC();
-    setupClockGenerator();
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

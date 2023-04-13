@@ -871,7 +871,7 @@ installMemoryImage() noexcept {
             delay(1000);
         }
     } else if (theFirmware.size() > MaximumFileSize) {
-        Serial.println(F("The firmware image is too large to fit in 512k of sram!"));
+        Serial.println(F("The firmware image is too large to fit in sram!"));
         while (true) {
             delay(1000);
         }

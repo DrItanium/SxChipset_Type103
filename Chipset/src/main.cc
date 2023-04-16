@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 SerialDevice theSerial;
 TimerDevice timerInterface;
 DisplayInterface theDisplay;
+volatile uint8_t lastInterrupt_ = 0;
 
 [[gnu::always_inline]] 
 inline void 
@@ -558,10 +559,10 @@ public:
         doCommunication(&body.bytes[getWordByteOffset(lowest)], lowest);
     }
 };
-
 BeginDeviceOperationsList(InfoDevice)
     GetChipsetClock,
     GetCPUClock,
+    LastInterruptRequest,
 EndDeviceOperationsList(InfoDevice)
 ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
 
@@ -609,19 +610,23 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                 using K = ConnectedOpcode_t<TargetPeripheral::Info>;
                 case K::Available:
                     sendBoolean<inDebugMode, true, width>(true, offset);
-                    break;
+                    return;
                 case K::Size:
                     sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Info>(offset);
-                    break;
+                    return;
                 case K::GetChipsetClock:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU>(offset);
-                    break;
+                    return;
                 case K::GetCPUClock:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>(offset);
+                    return;
+                case K::LastInterruptRequest:
+                    /// @todo figure out how to service multiple interrupt requests at the same time
+                    body.bytes[0] = lastInterrupt_;
                     break;
                 default:
                     sendZero<inDebugMode, true, width>(offset);
-                    break;
+                    return;
             }
             return;
         case TargetPeripheral::Serial:

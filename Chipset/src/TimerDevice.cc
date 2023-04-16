@@ -33,17 +33,17 @@ bool
 TimerDevice::begin() noexcept {
     // make sure that INT0 is enabled as an output. Make it high
     pinMode<Pin::INT0_960_>(OUTPUT);
-#if defined(TCCR2A) && defined(TCCR2B) && defined(TCNT2)
-    // enable CTC (OCR2A) mode
+#if defined(TCCR1A) && defined(TCCR1B) && defined(TCNT1)
+    // enable CTC (OCR1A) mode
     // right now, we are doing everything through the CH351 chips so do not use
     // the output pins, interrupts will have to be used instead!
-    bitClear(TCCR2A, WGM20);
-    bitSet(TCCR2A, WGM21);
-    bitClear(TCCR2B, WGM22);
+    bitClear(TCCR1A, WGM10);
+    bitSet(TCCR1A, WGM11);
+    bitClear(TCCR1B, WGM12);
     // clear the timer counter
-    bitClear(TCCR2B, CS20);
-    bitClear(TCCR2B, CS21);
-    bitClear(TCCR2B, CS22);
+    bitClear(TCCR1B, CS10);
+    bitClear(TCCR1B, CS11);
+    bitClear(TCCR1B, CS12);
     TCNT2 = 0;
 #endif
     digitalWrite<Pin::INT0_960_, HIGH>();
@@ -51,46 +51,46 @@ TimerDevice::begin() noexcept {
 }
 void
 TimerDevice::setSystemTimerPrescalar(uint8_t value) noexcept {
-#if defined(TCCR2A) && defined(TCCR2B)
+#if defined(TCCR1A) && defined(TCCR1B)
     // Previously, we were using the compare output mode of Timer
     // 2 but with the use of the CH351s I have to use the interrupt
     // instead
     auto maskedValue = value & 0b111;
     // enable toggle mode
     if (maskedValue != 0) {
-        bitSet(TCCR2A, COM2A0);
-        bitClear(TCCR2A, COM2A1);
+        bitSet(TCCR1A, COM1A0);
+        bitClear(TCCR1A, COM1A1);
     } else {
-        bitClear(TCCR2A, COM2A0);
-        bitClear(TCCR2A, COM2A1);
+        bitClear(TCCR1A, COM2A0);
+        bitClear(TCCR1A, COM2A1);
     }
     // make sure we activate the prescalar value
-    uint8_t result = TCCR2B & 0b1111'1000;
+    uint8_t result = TCCR1B & 0b1111'1000;
     result |= static_cast<uint8_t>(maskedValue);
-    TCCR2B = result;
+    TCCR1B = result;
 #endif
 }
 void
-TimerDevice::setSystemTimerComparisonValue(uint8_t value) noexcept {
-#ifdef OCR2A
-    OCR2A = value;
+TimerDevice::setSystemTimerComparisonValue(uint16_t value) noexcept {
+#ifdef OCR1A
+    OCR1A = value;
 #endif
 }
 
 uint8_t 
 TimerDevice::getSystemTimerPrescalar() const noexcept {
-#if defined(TCCR2B)
-    return (TCCR2B & 0b111);
+#if defined(TCCR1B)
+    return (TCCR1B & 0b111);
 #else
     return 0;
 #endif
 }
 
-uint8_t
+uint16_t
 TimerDevice::getSystemTimerComparisonValue() const noexcept {
 
-#if defined(OCR2A)
-    return OCR2A;
+#if defined(OCR1A)
+    return OCR1A;
 #else
     return 0;
 #endif
@@ -104,7 +104,7 @@ TimerDevice::handleWriteOperations(const SplitWord128& result, uint8_t function,
             setSystemTimerPrescalar(result.bytes[0]);
             break;
         case K::SystemTimerComparisonValue:
-            setSystemTimerComparisonValue(result.bytes[0]);
+            setSystemTimerComparisonValue(result[0].halves[0]);
             break;
         default:
             break;

@@ -39,7 +39,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 SerialDevice theSerial;
 TimerDevice timerInterface;
 DisplayInterface theDisplay;
-volatile uint32_t interruptStatus_[4];
+struct IAC {
+    uint16_t field2;
+    uint8_t field1;
+    uint8_t messageType;
+    uint32_t field3;
+    uint32_t field4;
+    uint32_t field5;
+};
+volatile IAC iac_;
 
 [[gnu::always_inline]] 
 inline void 
@@ -562,7 +570,7 @@ public:
 BeginDeviceOperationsList(InfoDevice)
     GetChipsetClock,
     GetCPUClock,
-    InterruptStatus,
+    IAC,
 EndDeviceOperationsList(InfoDevice)
 ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
 
@@ -620,12 +628,13 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                 case K::GetCPUClock:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>(offset);
                     return;
-                case K::InterruptStatus:
-                    /// @todo figure out how to service multiple interrupt requests at the same time
-                    body[0].full = interruptStatus_[0];
-                    body[1].full = interruptStatus_[1];
-                    body[2].full = interruptStatus_[2];
-                    body[3].full = interruptStatus_[3];
+                case K::IAC:
+                    body[0].halves[0] = iac_.field2;
+                    body[0].bytes[2] = iac_.field1;
+                    body[0].bytes[3] = iac_.messageType;
+                    body[1].full = iac_.field3;
+                    body[2].full = iac_.field4;
+                    body[3].full = iac_.field5;
                     break;
                 default:
                     sendZero<inDebugMode, true, width>(offset);

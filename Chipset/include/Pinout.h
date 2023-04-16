@@ -58,7 +58,7 @@ Count = NUM_DIGITAL_PINS,
     SPI_MISO = PIN_SPI_MISO,
 #endif
     SD_EN = PortB0,
-    INT0_960_ = PortB4,
+    INT0_960_ = PortB5,
     EnterDebugMode = PortG5,
     BE0 = PortF0,
     BE1 = PortF1,

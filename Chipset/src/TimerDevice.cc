@@ -40,11 +40,12 @@ TimerDevice::begin() noexcept {
     bitClear(TCCR1A, WGM10);
     bitSet(TCCR1A, WGM11);
     bitClear(TCCR1B, WGM12);
+    bitClear(TCCR1B, WGM13);
     // clear the timer counter
     bitClear(TCCR1B, CS10);
     bitClear(TCCR1B, CS11);
     bitClear(TCCR1B, CS12);
-    TCNT2 = 0;
+    TCNT1 = 0;
 #endif
     digitalWrite<Pin::INT0_960_, HIGH>();
     return true;

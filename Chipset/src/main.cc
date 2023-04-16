@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 SerialDevice theSerial;
 TimerDevice timerInterface;
 DisplayInterface theDisplay;
-volatile uint32_t interruptStatus_[4] = 0;
+volatile uint32_t interruptStatus_[4];
 
 [[gnu::always_inline]] 
 inline void 

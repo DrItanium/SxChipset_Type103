@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 SerialDevice theSerial;
 TimerDevice timerInterface;
 DisplayInterface theDisplay;
-volatile uint8_t lastInterrupt_ = 0;
+volatile uint32_t interruptStatus_ = 0;
 
 [[gnu::always_inline]] 
 inline void 
@@ -562,7 +562,7 @@ public:
 BeginDeviceOperationsList(InfoDevice)
     GetChipsetClock,
     GetCPUClock,
-    LastInterruptRequest,
+    InterruptStatus,
 EndDeviceOperationsList(InfoDevice)
 ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
 
@@ -620,9 +620,9 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                 case K::GetCPUClock:
                     CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>(offset);
                     return;
-                case K::LastInterruptRequest:
+                case K::InterruptStatus:
                     /// @todo figure out how to service multiple interrupt requests at the same time
-                    body.bytes[0] = lastInterrupt_;
+                    body[0].full = interruptStatus_;
                     break;
                 default:
                     sendZero<inDebugMode, true, width>(offset);

@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 SerialDevice theSerial;
 TimerDevice timerInterface;
 DisplayInterface theDisplay;
-volatile uint32_t interruptStatus_ = 0;
+volatile uint32_t interruptStatus_[4] = 0;
 
 [[gnu::always_inline]] 
 inline void 
@@ -622,7 +622,10 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     return;
                 case K::InterruptStatus:
                     /// @todo figure out how to service multiple interrupt requests at the same time
-                    body[0].full = interruptStatus_;
+                    body[0].full = interruptStatus_[0];
+                    body[1].full = interruptStatus_[1];
+                    body[2].full = interruptStatus_[2];
+                    body[3].full = interruptStatus_[3];
                     break;
                 default:
                     sendZero<inDebugMode, true, width>(offset);

@@ -59,6 +59,7 @@ Count = NUM_DIGITAL_PINS,
 #endif
     SD_EN = PortB0,
     INT0_960_ = PortB5,
+    Timer1 = PortB6,
     EnterDebugMode = PortG5,
     BE0 = PortF0,
     BE1 = PortF1,

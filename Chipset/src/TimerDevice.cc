@@ -39,7 +39,7 @@ TimerDevice::begin() noexcept {
     // the output pins, interrupts will have to be used instead!
     bitClear(TCCR1A, WGM10);
     bitClear(TCCR1A, WGM11);
-    bitSet(TCCR1B, WGM12);
+    bitClear(TCCR1B, WGM12);
     bitClear(TCCR1B, WGM13);
     // clear the timer counter
     bitClear(TCCR1B, CS10);

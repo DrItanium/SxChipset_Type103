@@ -33,6 +33,7 @@ bool
 TimerDevice::begin() noexcept {
     // make sure that INT0 is enabled as an output. Make it high
     pinMode<Pin::INT0_960_>(OUTPUT);
+    pinMode<Pin::Timer1>(OUTPUT);
 #if defined(TCCR1A) && defined(TCCR1B) && defined(TCNT1)
     // enable CTC (OCR1A) mode
     // right now, we are doing everything through the CH351 chips so do not use
@@ -48,6 +49,7 @@ TimerDevice::begin() noexcept {
     TCNT1 = 0;
 #endif
     digitalWrite<Pin::INT0_960_, HIGH>();
+    digitalWrite<Pin::Timer1, HIGH>();
     return true;
 }
 void
@@ -56,16 +58,18 @@ TimerDevice::setSystemTimerPrescalar(uint8_t value) noexcept {
     // Previously, we were using the compare output mode of Timer
     // 2 but with the use of the CH351s I have to use the interrupt
     // instead
-    Serial.print(F("value: 0x"));
-    Serial.println(value, HEX);
     auto maskedValue = value & 0b111;
     // enable toggle mode
     if (maskedValue != 0) {
         bitSet(TCCR1A, COM1A0);
         bitClear(TCCR1A, COM1A1);
+        bitSet(TCCR1A, COM1B0);
+        bitClear(TCCR1A, COM1B1);
     } else {
         bitClear(TCCR1A, COM1A0);
         bitClear(TCCR1A, COM1A1);
+        bitClear(TCCR1A, COM1B0);
+        bitClear(TCCR1A, COM1B1);
     }
     // make sure we activate the prescalar value
     uint8_t result = TCCR1B & 0b1111'1000;
@@ -76,9 +80,8 @@ TimerDevice::setSystemTimerPrescalar(uint8_t value) noexcept {
 void
 TimerDevice::setSystemTimerComparisonValue(uint16_t value) noexcept {
 #ifdef OCR1A
-    Serial.print(F("OCR1A: 0x"));
-    Serial.println(value, HEX);
     OCR1A = value;
+    OCR1B = value / 2;
 #endif
 }
 

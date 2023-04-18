@@ -760,6 +760,7 @@ getTransactionWindow(uint16_t offset, T) noexcept {
     return memoryPointer<uint8_t>(computeTransactionWindow(offset, T{}));
 }
 
+template<bool i960DirectlyControlsIBUSBank>
 [[gnu::always_inline]]
 inline
 void 
@@ -775,16 +776,18 @@ updateBank(uint32_t addr, typename TreatAsOnChipAccess::AccessMethod) noexcept {
 }
 
 
-template<bool inDebugMode, NativeBusWidth width> 
+template<bool inDebugMode, bool i960DirectlyControlsIBUSBank, NativeBusWidth width> 
 [[gnu::noinline]]
 [[noreturn]] 
 void 
 executionBody() noexcept {
     SplitWord128 operation;
     uint8_t currentDirection = dataLinesDirection_LSB;
-    if constexpr (!i960DirectlyControlsIBUSBank) {
-        Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
-    }
+    if constexpr (i960DirectlyControlsIBUSBank) {
+        DDRJ = 0;
+    } 
+    // disable pullups!
+    Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
     while (true) {
         waitForDataState();
@@ -801,7 +804,7 @@ executionBody() noexcept {
             }
             switch (majorCode) {
                 case 0x00: 
-                    updateBank(al, typename TreatAsOnChipAccess::AccessMethod{});
+                    updateBank<i960DirectlyControlsIBUSBank>(al, typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, false, width>::doCommunication(
                             getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                             offset
@@ -840,7 +843,7 @@ executionBody() noexcept {
             }
             switch (majorCode) {
                 case 0x00: 
-                    updateBank(al, typename TreatAsOnChipAccess::AccessMethod{});
+                    updateBank<i960DirectlyControlsIBUSBank>(al, typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<inDebugMode, true, width>::doCommunication(
                             getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                             offset
@@ -916,6 +919,7 @@ void
 setupPins() noexcept {
     // EnterDebugMode needs to be pulled low to start up in debug mode
     pinMode(Pin::EnterDebugMode, INPUT_PULLUP);
+    pinMode(Pin::I960ControlsIBUSBank, INPUT_PULLUP);
     // setup the IBUS bank
     DDRJ = 0xFF;
     PORTJ = 0x00;
@@ -975,11 +979,6 @@ setup() {
     }
     // find firmware.bin and install it into the 512k block of memory
     installMemoryImage();
-    if constexpr (i960DirectlyControlsIBUSBank) {
-        // put port J into input mode
-        DDRJ = 0;
-        PORTJ = 0;
-    }
     pullCPUOutOfReset();
 }
 template<bool ForceEnterDebugMode = EnableDebugMode>
@@ -987,16 +986,29 @@ bool
 isDebuggingSession() noexcept {
     return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;
 }
+template<bool ForceI960AccessMode = Enablei960DirectlyControlsIBUSBank>
+bool 
+i960ControllingIBUSBankThisSession() noexcept {
+    return ForceI960AccessMode || digitalRead<Pin::I960ControlsIBUSBank>() == LOW;
+}
 template<NativeBusWidth width>
 void
 discoveryDebugKindAndDispatch() {
     Serial.print(F("Chipset Debugging: "));
     if (isDebuggingSession()) {
         Serial.println(F("ENABLED"));
-        executionBody<true, width>();
+        if (i960ControllingIBUSBankThisSession()) {
+            executionBody<true, true, width>();
+        } else {
+            executionBody<true, false, width>();
+        }
     } else {
         Serial.println(F("DISABLED"));
-        executionBody<false, width>();
+        if (i960ControllingIBUSBankThisSession()) {
+            executionBody<false, true, width>();
+        } else {
+            executionBody<false, false, width>();
+        }
     }
 }
 void 

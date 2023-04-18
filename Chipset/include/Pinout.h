@@ -83,6 +83,7 @@ Count = NUM_DIGITAL_PINS,
 #endif
     TFTDC = PortD7,
     TFTCS = PortD6,
+    I960ControlsIBUSBank = PortG4,
 };
 enum class Port : byte {
     // stop at mega2560 tier

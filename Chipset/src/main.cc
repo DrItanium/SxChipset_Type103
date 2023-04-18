@@ -121,9 +121,9 @@ idleTransaction() noexcept {
         }
     } while (true);
 }
-template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
-    using Self = CommunicationKernel<inDebugMode, isReadOperation, width>;
+    using Self = CommunicationKernel<isReadOperation, width>;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
     CommunicationKernel(const Self&) = delete;
@@ -340,9 +340,9 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
     }
 };
 
-template<bool inDebugMode, bool isReadOperation>
-struct CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen> {
-    using Self = CommunicationKernel<inDebugMode, isReadOperation, NativeBusWidth::Sixteen>;
+template<bool isReadOperation>
+struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
+    using Self = CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen>;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
     CommunicationKernel(const Self&) = delete;
@@ -577,33 +577,33 @@ ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
 
 
 
-template<bool inDebugMode, bool isReadOperation, NativeBusWidth width, TargetPeripheral p>
+template<bool isReadOperation, NativeBusWidth width, TargetPeripheral p>
 [[gnu::always_inline]]
 inline
 void sendOpcodeSize(uint8_t offset) noexcept {
-    CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<OpcodeCount_v<p>>(offset);
+    CommunicationKernel<isReadOperation, width>::template doFixedCommunication<OpcodeCount_v<p>>(offset);
 }
 
-template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+template<bool isReadOperation, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void sendZero(uint8_t offset) noexcept {
-    CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0>(offset);
+    CommunicationKernel<isReadOperation, width>::template doFixedCommunication<0>(offset);
 }
 
-template<bool inDebugMode, bool isReadOperation, NativeBusWidth width>
+template<bool isReadOperation, NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void sendBoolean(bool value, uint8_t offset) noexcept {
     if (value) {
-        CommunicationKernel<inDebugMode, isReadOperation, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
+        CommunicationKernel<isReadOperation, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
     } else {
-        sendZero<inDebugMode, isReadOperation, width>(offset);
+        sendZero<isReadOperation, width>(offset);
     }
 }
 
 
-template<bool inDebugMode, NativeBusWidth width>
+template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
@@ -617,16 +617,16 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (getFunctionCode<TargetPeripheral::Info>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Info>;
                 case K::Available:
-                    sendBoolean<inDebugMode, true, width>(true, offset);
+                    sendBoolean<true, width>(true, offset);
                     return;
                 case K::Size:
-                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Info>(offset);
+                    sendOpcodeSize<true, width, TargetPeripheral::Info>(offset);
                     return;
                 case K::GetChipsetClock:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU>(offset);
+                    CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
                     return;
                 case K::GetCPUClock:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<F_CPU/2>(offset);
+                    CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
                     return;
                 case K::IAC:
                     body[0].halves[0] = iac_.field2;
@@ -637,7 +637,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     body[3].full = iac_.field5;
                     break;
                 default:
-                    sendZero<inDebugMode, true, width>(offset);
+                    sendZero<true, width>(offset);
                     return;
             }
             return;
@@ -645,10 +645,10 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
                 case K::Available:
-                    sendBoolean<inDebugMode, true, width>(theSerial.isAvailable(), offset);
+                    sendBoolean<true, width>(theSerial.isAvailable(), offset);
                     return;
                 case K::Size:
-                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Serial>(offset);
+                    sendOpcodeSize<true, width, TargetPeripheral::Serial>(offset);
                     return;
                 case K::RW:
                     body[0].halves[0] = Serial.read();
@@ -660,7 +660,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     body[0].full = theSerial.getBaudRate();
                     break;
                 default:
-                    sendZero<inDebugMode, true, width>(offset);
+                    sendZero<true, width>(offset);
                     return;
             }
             break;
@@ -668,10 +668,10 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
             switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
                 case K::Available:
-                    sendBoolean<inDebugMode, true, width>(timerInterface.isAvailable(), offset);
+                    sendBoolean<true, width>(timerInterface.isAvailable(), offset);
                     return;
                 case K::Size:
-                    sendOpcodeSize<inDebugMode, true, width, TargetPeripheral::Timer>(offset);
+                    sendOpcodeSize<true, width, TargetPeripheral::Timer>(offset);
                     return;
                 case K::SystemTimerPrescalar:
                     body.bytes[0] = timerInterface.getSystemTimerPrescalar();
@@ -680,7 +680,7 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
                     break;
                 default:
-                    sendZero<inDebugMode, true, width>(offset);
+                    sendZero<true, width>(offset);
                     return;
 
             }
@@ -691,9 +691,9 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
         default:
             break;
     }
-    CommunicationKernel<inDebugMode, true, width>::doCommunication(body, offset);
+    CommunicationKernel<true, width>::doCommunication(body, offset);
 }
-template<bool inDebugMode, NativeBusWidth width>
+template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
@@ -703,7 +703,7 @@ performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
-    CommunicationKernel<inDebugMode, false, width>::doCommunication(body, offset);
+    CommunicationKernel<false, width>::doCommunication(body, offset);
     asm volatile ("nop");
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
@@ -760,16 +760,6 @@ getTransactionWindow(uint16_t offset, T) noexcept {
     return memoryPointer<uint8_t>(computeTransactionWindow(offset, T{}));
 }
 
-template<bool i960DirectlyControlsIBUSBank>
-[[gnu::always_inline]]
-inline
-void 
-updateBank(uint32_t addr, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    if constexpr (!i960DirectlyControlsIBUSBank) {
-        Platform::setBank(computeBankIndex(addr, typename TreatAsOnChipAccess::AccessMethod {}),
-                typename TreatAsOnChipAccess::AccessMethod{});
-    }
-}
 inline 
 void 
 updateDataLinesDirection(uint8_t value) noexcept {
@@ -779,24 +769,19 @@ updateDataLinesDirection(uint8_t value) noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 
-template<bool inDebugMode, bool i960DirectlyControlsIBUSBank, NativeBusWidth width> 
+template<NativeBusWidth width> 
 [[gnu::noinline]]
 [[noreturn]] 
 void 
 executionBody() noexcept {
     SplitWord128 operation;
     uint8_t currentDirection = dataLinesDirection_LSB;
-    if constexpr (i960DirectlyControlsIBUSBank) {
-        DDRJ = 0;
-    } 
+    DDRJ = 0;
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
     while (true) {
         waitForDataState();
-        if constexpr (inDebugMode) {
-            Serial.println(F("NEW TRANSACTION"));
-        }
         startTransaction();
         uint32_t al = addressLinesValue32;
         /// @todo figure out the best way to only update the Bank index when needed
@@ -807,8 +792,8 @@ executionBody() noexcept {
             }
             switch (majorCode) {
                 case 0x00: 
-                    updateBank<i960DirectlyControlsIBUSBank>(al, typename TreatAsOnChipAccess::AccessMethod{});
-                    CommunicationKernel<inDebugMode, false, width>::doCommunication(
+                    // the i960 directly controls the bank index of the IBUS
+                    CommunicationKernel<false, width>::doCommunication(
                             getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                             offset
                             );
@@ -816,7 +801,7 @@ executionBody() noexcept {
 
 
                 case 0xF0:
-                    performIOWriteGroup0<inDebugMode, width>(operation, 
+                    performIOWriteGroup0<width>(operation, 
                             static_cast<uint8_t>(al >> 16),
                             static_cast<uint8_t>(al >> 8),
                             offset);
@@ -825,12 +810,12 @@ executionBody() noexcept {
                 case 0xF4: case 0xF5: case 0xF6: case 0xF7: 
                 case 0xF8: case 0xF9: case 0xFA: case 0xFB:
                 case 0xFC: case 0xFD: case 0xFE: case 0xFF:
-                    CommunicationKernel<inDebugMode, false, width>::template doFixedCommunication<0>(offset);
+                    CommunicationKernel<false, width>::template doFixedCommunication<0>(offset);
                     break;
                 default: 
                     Platform::setBank(al,
                             typename TreatAsOffChipAccess::AccessMethod{});
-                    CommunicationKernel<inDebugMode, false, width>::doCommunication(
+                    CommunicationKernel<false, width>::doCommunication(
                             getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
                             offset
                             );
@@ -843,14 +828,14 @@ executionBody() noexcept {
             }
             switch (majorCode) {
                 case 0x00: 
-                    updateBank<i960DirectlyControlsIBUSBank>(al, typename TreatAsOnChipAccess::AccessMethod{});
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(
+                    // the i960 directly controls the bank index of the IBUS
+                    CommunicationKernel<true, width>::doCommunication(
                             getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                             offset
                             );
                     break;
                 case 0xF0:
-                    performIOReadGroup0<inDebugMode, width>(operation, 
+                    performIOReadGroup0<width>(operation, 
                             static_cast<uint8_t>(al >> 16),
                             static_cast<uint8_t>(al >> 8),
                             offset);
@@ -859,12 +844,12 @@ executionBody() noexcept {
                 case 0xF4: case 0xF5: case 0xF6: case 0xF7:
                 case 0xF8: case 0xF9: case 0xFA: case 0xFB:
                 case 0xFC: case 0xFD: case 0xFE: case 0xFF:
-                    CommunicationKernel<inDebugMode, true, width>::template doFixedCommunication<0>(offset);
+                    CommunicationKernel<true, width>::template doFixedCommunication<0>(offset);
                     break;
                 default:
                     Platform::setBank(al,
                             typename TreatAsOffChipAccess::AccessMethod{});
-                    CommunicationKernel<inDebugMode, true, width>::doCommunication(
+                    CommunicationKernel<true, width>::doCommunication(
                             getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
                             offset
                             );
@@ -872,14 +857,11 @@ executionBody() noexcept {
             }
         }
         endTransaction();
-        if constexpr (inDebugMode) {
-            Serial.println(F("END TRANSACTION"));
-        }
         singleCycleDelay();
     }
 }
 
-template<bool inDebugMode = true, uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
+template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;
@@ -917,9 +899,6 @@ installMemoryImage() noexcept {
 }
 void 
 setupPins() noexcept {
-    // EnterDebugMode needs to be pulled low to start up in debug mode
-    pinMode(Pin::EnterDebugMode, INPUT_PULLUP);
-    pinMode(Pin::I960ControlsIBUSBank, INPUT_PULLUP);
     // setup the IBUS bank
     DDRJ = 0xFF;
     PORTJ = 0x00;
@@ -979,46 +958,10 @@ setup() {
     installMemoryImage();
     pullCPUOutOfReset();
 }
-bool
-beInDebugModeThisSession() noexcept {
-    return IncludeDebugModeInFirmware && digitalRead<Pin::EnterDebugMode>() == LOW;
-}
-template<bool ForceEnterDebugMode = EnableDebugMode>
-bool 
-isDebuggingSession() noexcept {
-    return ForceEnterDebugMode || beInDebugModeThisSession();
-}
-template<bool ForceI960AccessMode = Enablei960DirectlyControlsIBUSBank>
-bool 
-i960ControllingIBUSBankThisSession() noexcept {
-    return ForceI960AccessMode || digitalRead<Pin::I960ControlsIBUSBank>() == LOW;
-}
-
 template<NativeBusWidth width>
 void
 discoveryDebugKindAndDispatch() {
-    Serial.print(F("Chipset Debugging: "));
-    if (isDebuggingSession()) {
-        Serial.println(F("ENABLED"));
-        Serial.print(F("IBUS is controlled by: "));
-        if (i960ControllingIBUSBankThisSession()) {
-            Serial.println(F("i960"));
-            executionBody<true, true, width>();
-        } else {
-            Serial.println(F("AVR's PORTJ"));
-            executionBody<true, false, width>();
-        }
-    } else {
-        Serial.println(F("DISABLED"));
-        Serial.print(F("IBUS is controlled by: "));
-        if (i960ControllingIBUSBankThisSession()) {
-            Serial.println(F("i960"));
-            executionBody<false, true, width>();
-        } else {
-            Serial.println(F("AVR's PORTJ"));
-            executionBody<false, false, width>();
-        }
-    }
+    executionBody<width>();
 }
 void 
 loop() {

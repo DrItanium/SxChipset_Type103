@@ -766,12 +766,8 @@ inline
 void 
 updateBank(uint32_t addr, typename TreatAsOnChipAccess::AccessMethod) noexcept {
     if constexpr (!i960DirectlyControlsIBUSBank) {
-        if constexpr (PortKUsedForIBUSBankTransfer) {
-            PORTJ = PINK;
-        } else {
-            Platform::setBank(computeBankIndex(addr, typename TreatAsOnChipAccess::AccessMethod {}),
-                    typename TreatAsOnChipAccess::AccessMethod{});
-        }
+        Platform::setBank(computeBankIndex(addr, typename TreatAsOnChipAccess::AccessMethod {}),
+                typename TreatAsOnChipAccess::AccessMethod{});
     }
 }
 

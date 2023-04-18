@@ -770,7 +770,14 @@ updateBank(uint32_t addr, typename TreatAsOnChipAccess::AccessMethod) noexcept {
                 typename TreatAsOnChipAccess::AccessMethod{});
     }
 }
-
+inline 
+void 
+updateDataLinesDirection(uint8_t value) noexcept {
+    dataLinesDirection_bytes[0] = value;
+    dataLinesDirection_bytes[1] = value;
+    dataLinesDirection_bytes[2] = value;
+    dataLinesDirection_bytes[3] = value;
+}
 
 template<bool inDebugMode, bool i960DirectlyControlsIBUSBank, NativeBusWidth width> 
 [[gnu::noinline]]
@@ -795,8 +802,8 @@ executionBody() noexcept {
         /// @todo figure out the best way to only update the Bank index when needed
         if (auto majorCode = static_cast<uint8_t>(al >> 24), offset = static_cast<uint8_t>(al); Platform::isWriteOperation()) {
             if (currentDirection) {
-                dataLinesDirection = 0;
                 currentDirection = 0;
+                updateDataLinesDirection(currentDirection);
             }
             switch (majorCode) {
                 case 0x00: 
@@ -832,10 +839,7 @@ executionBody() noexcept {
         } else {
             if (!currentDirection) {
                 currentDirection = 0xFF;
-                dataLinesDirection_bytes[0] = currentDirection;
-                dataLinesDirection_bytes[1] = currentDirection;
-                dataLinesDirection_bytes[2] = currentDirection;
-                dataLinesDirection_bytes[3] = currentDirection;
+                updateDataLinesDirection(currentDirection);
             }
             switch (majorCode) {
                 case 0x00: 

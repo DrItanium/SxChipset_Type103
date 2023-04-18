@@ -981,10 +981,18 @@ setup() {
     installMemoryImage();
     pullCPUOutOfReset();
 }
+bool
+beInDebugModeThisSession() noexcept {
+    return digitalRead<Pin::EnterDebugMode>() == LOW;
+}
 template<bool ForceEnterDebugMode = EnableDebugMode>
 bool 
 isDebuggingSession() noexcept {
-    return ForceEnterDebugMode || digitalRead<Pin::EnterDebugMode>() == LOW;
+    if constexpr (IncludeDebugModeInFirmware) {
+        return ForceEnterDebugMode || beInDebugModeThisSession();
+    } else {
+        return false;
+    }
 }
 template<bool ForceI960AccessMode = Enablei960DirectlyControlsIBUSBank>
 bool 

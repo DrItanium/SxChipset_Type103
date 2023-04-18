@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 
+constexpr bool IncludeDebugModeInFirmware = true;
 constexpr bool EnableDebugMode = false;
 constexpr bool Enablei960DirectlyControlsIBUSBank = true;
 constexpr bool MCUHasDirectAccess = true;

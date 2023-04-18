@@ -41,6 +41,7 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool PortKUsedForIBUSBankTransfer = true;
+constexpr bool i960DirectlyControlsIBUSBank = true;
 
 template<uint8_t count>
 [[gnu::always_inline]]

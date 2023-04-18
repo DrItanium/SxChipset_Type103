@@ -872,7 +872,7 @@ executionBody() noexcept {
     }
 }
 
-template<bool inDebugMode = true, uint32_t maxFileSize = 2048ul * 1024ul, auto BufferSize = 16384>
+template<bool inDebugMode = true, uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;
@@ -897,6 +897,7 @@ installMemoryImage() noexcept {
         Serial.println(F("TRANSFERRING!!"));
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
+            // just modify the bank as we go along
             Platform::setBank(view, AccessFromIBUS{});
             auto* theBuffer = Platform::viewAreaAsBytes(view, AccessFromIBUS{});
             theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
@@ -970,6 +971,11 @@ setup() {
     }
     // find firmware.bin and install it into the 512k block of memory
     installMemoryImage();
+    if constexpr (i960DirectlyControlsIBUSBank) {
+        // put port J into input mode
+        DDRJ = 0;
+        PORTJ = 0;
+    }
     pullCPUOutOfReset();
 }
 template<bool ForceEnterDebugMode = EnableDebugMode>

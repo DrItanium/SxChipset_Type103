@@ -981,22 +981,19 @@ setup() {
 }
 bool
 beInDebugModeThisSession() noexcept {
-    return digitalRead<Pin::EnterDebugMode>() == LOW;
+    return IncludeDebugModeInFirmware && digitalRead<Pin::EnterDebugMode>() == LOW;
 }
 template<bool ForceEnterDebugMode = EnableDebugMode>
 bool 
 isDebuggingSession() noexcept {
-    if constexpr (IncludeDebugModeInFirmware) {
-        return ForceEnterDebugMode || beInDebugModeThisSession();
-    } else {
-        return false;
-    }
+    return ForceEnterDebugMode || beInDebugModeThisSession();
 }
 template<bool ForceI960AccessMode = Enablei960DirectlyControlsIBUSBank>
 bool 
 i960ControllingIBUSBankThisSession() noexcept {
     return ForceI960AccessMode || digitalRead<Pin::I960ControlsIBUSBank>() == LOW;
 }
+
 template<NativeBusWidth width>
 void
 discoveryDebugKindAndDispatch() {

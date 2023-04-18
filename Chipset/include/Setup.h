@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 
 constexpr bool EnableDebugMode = false;
-constexpr bool Enablei960DirectlyControlsIBUSBank = false;
+constexpr bool Enablei960DirectlyControlsIBUSBank = true;
 constexpr bool MCUHasDirectAccess = true;
 constexpr bool XINT0DirectConnect = true;
 constexpr bool XINT1DirectConnect = false;

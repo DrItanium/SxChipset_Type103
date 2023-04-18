@@ -764,11 +764,13 @@ getTransactionWindow(uint16_t offset, T) noexcept {
 inline
 void 
 updateBank(uint32_t addr, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    if constexpr (PortKUsedForIBUSBankTransfer) {
-        PORTJ = PINK;
-    } else {
-        Platform::setBank(computeBankIndex(addr, typename TreatAsOnChipAccess::AccessMethod {}),
-                typename TreatAsOnChipAccess::AccessMethod{});
+    if constexpr (!i960DirectlyControlsIBUSBank) {
+        if constexpr (PortKUsedForIBUSBankTransfer) {
+            PORTJ = PINK;
+        } else {
+            Platform::setBank(computeBankIndex(addr, typename TreatAsOnChipAccess::AccessMethod {}),
+                    typename TreatAsOnChipAccess::AccessMethod{});
+        }
     }
 }
 
@@ -780,7 +782,9 @@ void
 executionBody() noexcept {
     SplitWord128 operation;
     uint8_t currentDirection = dataLinesDirection_LSB;
-    Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
+    if constexpr (!i960DirectlyControlsIBUSBank) {
+        Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
+    }
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
     while (true) {
         waitForDataState();

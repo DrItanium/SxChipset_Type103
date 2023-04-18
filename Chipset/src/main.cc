@@ -741,7 +741,7 @@ template<uint16_t sectionMask, uint16_t offsetMask>
 constexpr
 uint16_t
 computeTransactionWindow_Generic(uint16_t offset) noexcept {
-    return sectionMask | (offset & offsetMask);
+    return sectionMask + (offset & offsetMask);
 }
 constexpr
 uint16_t 

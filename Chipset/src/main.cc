@@ -997,16 +997,22 @@ discoveryDebugKindAndDispatch() {
     Serial.print(F("Chipset Debugging: "));
     if (isDebuggingSession()) {
         Serial.println(F("ENABLED"));
+        Serial.print(F("IBUS is controlled by: "));
         if (i960ControllingIBUSBankThisSession()) {
+            Serial.println(F("i960"));
             executionBody<true, true, width>();
         } else {
+            Serial.println(F("AVR's PORTJ"));
             executionBody<true, false, width>();
         }
     } else {
         Serial.println(F("DISABLED"));
+        Serial.print(F("IBUS is controlled by: "));
         if (i960ControllingIBUSBankThisSession()) {
+            Serial.println(F("i960"));
             executionBody<false, true, width>();
         } else {
+            Serial.println(F("AVR's PORTJ"));
             executionBody<false, false, width>();
         }
     }

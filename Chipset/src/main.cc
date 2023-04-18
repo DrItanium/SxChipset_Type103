@@ -919,8 +919,6 @@ setupPins() noexcept {
     // setup the IBUS bank
     DDRJ = 0xFF;
     PORTJ = 0x00;
-    DDRK = 0x00;
-    PORTK = 0;
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BE2, INPUT);

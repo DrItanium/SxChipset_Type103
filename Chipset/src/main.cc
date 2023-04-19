@@ -759,8 +759,16 @@ updateDataLinesDirection(uint8_t value) noexcept {
     } else {
         dataLinesDirection_bytes[1] = value;
     }
-    dataLinesDirection_bytes[2] = value;
-    dataLinesDirection_bytes[3] = value;
+    if constexpr (DirectlyConnectedD16_23) {
+        getDirectionRegister<Port::D16_23>() = value;
+    } else {
+        dataLinesDirection_bytes[2] = value;
+    }
+    if constexpr (DirectlyConnectedD24_31) {
+        getDirectionRegister<Port::D24_31>() = value;
+    } else {
+        dataLinesDirection_bytes[3] = value;
+    }
 }
 
 template<NativeBusWidth width> 
@@ -904,6 +912,14 @@ setupPins() noexcept {
     if constexpr (DirectlyConnectedD8_15) {
         getDirectionRegister<Port::D8_15>() = 0xff;
         getOutputRegister<Port::D8_15>() = 0x00;
+    }
+    if constexpr (DirectlyConnectedD16_23) {
+        getDirectionRegister<Port::D16_23>() = 0xff;
+        getOutputRegister<Port::D16_23>() = 0x00;
+    }
+    if constexpr (DirectlyConnectedD24_31) {
+        getDirectionRegister<Port::D24_31>() = 0xff;
+        getOutputRegister<Port::D24_31>() = 0x00;
     }
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);

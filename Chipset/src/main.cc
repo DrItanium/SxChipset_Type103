@@ -224,10 +224,10 @@ static void
 doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
     if constexpr (isReadOperation) {
         // in all other cases do the whole thing
-        dataLines[0] = theBytes[0];
-        dataLines[1] = theBytes[1];
-        dataLines[2] = theBytes[2];
-        dataLines[3] = theBytes[3];
+        setDataByte<0>(theBytes[0]);
+        setDataByte<1>(theBytes[1]);
+        setDataByte<2>(theBytes[2]);
+        setDataByte<3>(theBytes[3]);
         auto end = Platform::isBurstLast();
         signalReady();
         if (end) {
@@ -236,10 +236,10 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         singleCycleDelay();
         singleCycleDelay();
 
-        dataLines[0] = theBytes[4];
-        dataLines[1] = theBytes[5];
-        dataLines[2] = theBytes[6];
-        dataLines[3] = theBytes[7];
+        setDataByte<0>(theBytes[4]);
+        setDataByte<1>(theBytes[5]);
+        setDataByte<2>(theBytes[6]);
+        setDataByte<3>(theBytes[7]);
         end = Platform::isBurstLast();
         signalReady();
         if (end) {
@@ -247,11 +247,10 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         }
         singleCycleDelay();
         singleCycleDelay();
-
-        dataLines[0] = theBytes[8];
-        dataLines[1] = theBytes[9];
-        dataLines[2] = theBytes[10];
-        dataLines[3] = theBytes[11];
+        setDataByte<0>(theBytes[8]);
+        setDataByte<1>(theBytes[9]);
+        setDataByte<2>(theBytes[10]);
+        setDataByte<3>(theBytes[11]);
         end = Platform::isBurstLast();
         signalReady();
         if (end) {
@@ -259,29 +258,30 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         }
         singleCycleDelay();
         singleCycleDelay();
-
-        dataLines[0] = theBytes[12];
-        dataLines[1] = theBytes[13];
-        dataLines[2] = theBytes[14];
-        dataLines[3] = theBytes[15];
+        setDataByte<0>(theBytes[12]);
+        setDataByte<1>(theBytes[13]);
+        setDataByte<2>(theBytes[14]);
+        setDataByte<3>(theBytes[15]);
         // do not sample blast at the end of a 16-byte transaction
         signalReady();
     } else {
         // you must check each enable bit to see if you have to write to that byte
         // or not. You cannot just do a 32-bit write in all cases, this can
         // cause memory corruption pretty badly. 
-        if (digitalRead<Pin::BE0>() == LOW) {
-            theBytes[0] = dataLines[0];
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            theBytes[1] = dataLines[1];
-        }
-        if (digitalRead<Pin::BE2>() == LOW) {
-            theBytes[2] = dataLines[2];
-        }
-        if (digitalRead<Pin::BE3>() == LOW) {
-            theBytes[3] = dataLines[3];
-        }
+#define X(base) \
+        if (digitalRead<Pin::BE0>() == LOW) { \
+            theBytes[(base + 0)] = getDataByte<0>(); \
+        } \
+        if (digitalRead<Pin::BE1>() == LOW) { \
+            theBytes[(base + 1)] = getDataByte<1>(); \
+        } \
+        if (digitalRead<Pin::BE2>() == LOW) { \
+            theBytes[(base + 2)] = getDataByte<2>(); \
+        } \
+        if (digitalRead<Pin::BE3>() == LOW) { \
+            theBytes[(base + 3)] = getDataByte<3>(); \
+        } 
+        X(0)
         auto end = Platform::isBurstLast();
         signalReady();
         if (end) {
@@ -289,18 +289,7 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         }
         singleCycleDelay();
         singleCycleDelay();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            theBytes[4] = dataLines[0];
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            theBytes[5] = dataLines[1];
-        }
-        if (digitalRead<Pin::BE2>() == LOW) {
-            theBytes[6] = dataLines[2];
-        }
-        if (digitalRead<Pin::BE3>() == LOW) {
-            theBytes[7] = dataLines[3];
-        }
+        X(4)
         end = Platform::isBurstLast();
         signalReady();
         if (end) {
@@ -308,18 +297,7 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         }
         singleCycleDelay();
         singleCycleDelay();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            theBytes[8] = dataLines[0];
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            theBytes[9] = dataLines[1];
-        }
-        if (digitalRead<Pin::BE2>() == LOW) {
-            theBytes[10] = dataLines[2];
-        }
-        if (digitalRead<Pin::BE3>() == LOW) {
-            theBytes[11] = dataLines[3];
-        }
+        X(8)
         end = Platform::isBurstLast();
         signalReady();
         if (end) {
@@ -327,20 +305,10 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         }
         singleCycleDelay();
         singleCycleDelay();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            theBytes[12] = dataLines[0];
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            theBytes[13] = dataLines[1];
-        }
-        if (digitalRead<Pin::BE2>() == LOW) {
-            theBytes[14] = dataLines[2];
-        }
-        if (digitalRead<Pin::BE3>() == LOW) {
-            theBytes[15] = dataLines[3];
-        }
+        X(12)
         // don't sample blast at the end since we know we will be done
         signalReady();
+#undef X
     }
 }
     [[gnu::always_inline]]
@@ -392,8 +360,8 @@ private:
             uint8_t offset = getWordByteOffset(value);
             const uint8_t* theBytes = &contents.bytes[offset];
             if ((value & 0b0010) == 0) {
-                dataLines[0] = theBytes[0];
-                dataLines[1] = theBytes[1];
+                setDataByte<0>(theBytes[0]);
+                setDataByte<1>(theBytes[1]);
                 auto end = Platform::isBurstLast();
                 signalReady();
                 if (end) {
@@ -402,15 +370,15 @@ private:
             }
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
-            dataLines[2] = theBytes[2];
-            dataLines[3] = theBytes[3];
+            setDataByte<2>(theBytes[2]);
+            setDataByte<3>(theBytes[3]);
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
                 return;
             }
-            dataLines[0] = theBytes[4];
-            dataLines[1] = theBytes[5];
+            setDataByte<0>(theBytes[4]);
+            setDataByte<1>(theBytes[5]);
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -418,31 +386,15 @@ private:
             }
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
-            dataLines[2] = theBytes[6];
-            dataLines[3] = theBytes[7];
+            setDataByte<2>(theBytes[6]);
+            setDataByte<3>(theBytes[7]);
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
                 return;
             }
-            dataLines[0] = theBytes[8];
-            dataLines[1] = theBytes[9];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            dataLines[2] = theBytes[10];
-            dataLines[3] = theBytes[11];
-            end = Platform::isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            dataLines[0] = theBytes[12];
-            dataLines[1] = theBytes[13];
+            setDataByte<0>(theBytes[8]);
+            setDataByte<1>(theBytes[9]);
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -450,8 +402,24 @@ private:
             }
             // put in some amount of wait states before just signalling again
             // since we started on the lower half of a 32-bit word
-            dataLines[2] = theBytes[14];
-            dataLines[3] = theBytes[15];
+            setDataByte<2>(theBytes[10]);
+            setDataByte<3>(theBytes[11]);
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
+            setDataByte<0>(theBytes[12]);
+            setDataByte<1>(theBytes[13]);
+            end = Platform::isBurstLast();
+            signalReady();
+            if (end) {
+                return;
+            }
+            // put in some amount of wait states before just signalling again
+            // since we started on the lower half of a 32-bit word
+            setDataByte<2>(theBytes[14]);
+            setDataByte<3>(theBytes[15]);
             // don't sample at the end!
             signalReady();
         }
@@ -503,8 +471,8 @@ public:
 #define X(dli, d0, b0, d1, b1, later) \
             { \
                 if constexpr (isReadOperation) { \
-                    dataLines[d0] = theBytes[b0]; \
-                    dataLines[d1] = theBytes[b1]; \
+                    setDataByte<d0>(theBytes[b0]); \
+                    setDataByte<d1>(theBytes[b1]); \
                 } else { \
                     if constexpr (later) { \
                         /* in this case, we will immediately terminate if the 
@@ -514,9 +482,9 @@ public:
                          * should be safe to just propagate without performing
                          * the check itself
                          */ \
-                        theBytes[b0] = dataLines[d0]; \
+                        theBytes[b0] = getDataByte<d0>(); \
                         if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
-                            theBytes[b1] = dataLines[d1]; \
+                            theBytes[b1] = getDataByte<d1>(); \
                         } else { \
                             break; \
                         } \
@@ -527,9 +495,9 @@ public:
                          * check the lower bits
                          */ \
                         if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            theBytes[b1] = dataLines[d1]; \
+                            theBytes[b1] = getDataByte<d1>(); \
                             if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
-                                theBytes[b0] = dataLines[d0]; \
+                                theBytes[b0] = getDataByte<d0>(); \
                             } \
                         } else { \
                             /*
@@ -540,7 +508,7 @@ public:
                              * The only way we get here is if the upper byte
                              * enable bit is high!
                              */ \
-                            theBytes[b0] = dataLines[d0]; \
+                            theBytes[d0] = getDataByte<d0>(); \
                             break; \
                         } \
                     } \

@@ -103,7 +103,18 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 [[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
 [[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
 [[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
-
+template<uint8_t index>
+inline void setDataByte(uint8_t value) noexcept {
+    if constexpr (index < 4) {
+        dataLines[index] = value;
+    }
+}
+template<uint8_t index>
+inline uint8_t getDataByte() noexcept {
+    if constexpr (index < 4) {
+        return dataLines[index];
+    }
+}
 /**
  * @brief Just go through the motions of a write operation but do not capture
  * anything being sent by the i960
@@ -164,10 +175,10 @@ doFixedCommunication(uint8_t lowest) noexcept {
             };
             const uint8_t* theBytes = &contents.bytes[getWordByteOffset(lowest)]; 
             // in all other cases do the whole thing
-            dataLines[0] = theBytes[0];
-            dataLines[1] = theBytes[1];
-            dataLines[2] = theBytes[2];
-            dataLines[3] = theBytes[3];
+            setDataByte<0>(theBytes[0]);
+            setDataByte<1>(theBytes[1]);
+            setDataByte<2>(theBytes[2]);
+            setDataByte<3>(theBytes[3]);
             auto end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -175,10 +186,10 @@ doFixedCommunication(uint8_t lowest) noexcept {
             }
             singleCycleDelay();
             singleCycleDelay();
-            dataLines[0] = theBytes[4];
-            dataLines[1] = theBytes[5];
-            dataLines[2] = theBytes[6];
-            dataLines[3] = theBytes[7];
+            setDataByte<0>(theBytes[4]);
+            setDataByte<1>(theBytes[5]);
+            setDataByte<2>(theBytes[6]);
+            setDataByte<3>(theBytes[7]);
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -186,10 +197,10 @@ doFixedCommunication(uint8_t lowest) noexcept {
             }
             singleCycleDelay();
             singleCycleDelay();
-            dataLines[0] = theBytes[8];
-            dataLines[1] = theBytes[9];
-            dataLines[2] = theBytes[10];
-            dataLines[3] = theBytes[11];
+            setDataByte<0>(theBytes[8]);
+            setDataByte<1>(theBytes[9]);
+            setDataByte<2>(theBytes[10]);
+            setDataByte<3>(theBytes[11]);
             end = Platform::isBurstLast();
             signalReady();
             if (end) {
@@ -197,10 +208,10 @@ doFixedCommunication(uint8_t lowest) noexcept {
             }
             singleCycleDelay();
             singleCycleDelay();
-            dataLines[0] = theBytes[12];
-            dataLines[1] = theBytes[13];
-            dataLines[2] = theBytes[14];
-            dataLines[3] = theBytes[15];
+            setDataByte<0>(theBytes[12]);
+            setDataByte<1>(theBytes[13]);
+            setDataByte<2>(theBytes[14]);
+            setDataByte<3>(theBytes[15]);
             signalReady();
         }
     } else {

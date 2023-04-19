@@ -106,12 +106,22 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     if constexpr (index < 4) {
+        if constexpr (index == 0) {
+            if constexpr (EnablePortKCapture_D0_7) {
+                PORTK = value;
+            } 
+        } 
         dataLines[index] = value;
     }
 }
 template<uint8_t index>
 inline uint8_t getDataByte() noexcept {
     if constexpr (index < 4) {
+        if constexpr (index == 0) {
+            if constexpr (EnablePortKCapture_D0_7) {
+                return PINK;
+            } 
+        } 
         return dataLines[index];
     }
 }

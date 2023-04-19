@@ -222,53 +222,13 @@ doFixedCommunication(uint8_t lowest) noexcept {
 inline
 static void
 doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
-    if constexpr (isReadOperation) {
-        // in all other cases do the whole thing
-        setDataByte<0>(theBytes[0]);
-        setDataByte<1>(theBytes[1]);
-        setDataByte<2>(theBytes[2]);
-        setDataByte<3>(theBytes[3]);
-        auto end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-
-        setDataByte<0>(theBytes[4]);
-        setDataByte<1>(theBytes[5]);
-        setDataByte<2>(theBytes[6]);
-        setDataByte<3>(theBytes[7]);
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        setDataByte<0>(theBytes[8]);
-        setDataByte<1>(theBytes[9]);
-        setDataByte<2>(theBytes[10]);
-        setDataByte<3>(theBytes[11]);
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        setDataByte<0>(theBytes[12]);
-        setDataByte<1>(theBytes[13]);
-        setDataByte<2>(theBytes[14]);
-        setDataByte<3>(theBytes[15]);
-        // do not sample blast at the end of a 16-byte transaction
-        signalReady();
-    } else {
-        // you must check each enable bit to see if you have to write to that byte
-        // or not. You cannot just do a 32-bit write in all cases, this can
-        // cause memory corruption pretty badly. 
 #define X(base) \
+    if constexpr (isReadOperation) { \
+        setDataByte<0>(theBytes[(base + 0)]); \
+        setDataByte<1>(theBytes[(base + 1)]); \
+        setDataByte<2>(theBytes[(base + 2)]); \
+        setDataByte<3>(theBytes[(base + 3)]); \
+    } else { \
         if (digitalRead<Pin::BE0>() == LOW) { \
             theBytes[(base + 0)] = getDataByte<0>(); \
         } \
@@ -280,36 +240,37 @@ doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
         } \
         if (digitalRead<Pin::BE3>() == LOW) { \
             theBytes[(base + 3)] = getDataByte<3>(); \
-        } 
-        X(0)
-        auto end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        X(4)
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        X(8)
-        end = Platform::isBurstLast();
-        signalReady();
-        if (end) {
-            return;
-        }
-        singleCycleDelay();
-        singleCycleDelay();
-        X(12)
-        // don't sample blast at the end since we know we will be done
-        signalReady();
-#undef X
+        }  \
     }
+    X(0);
+    auto end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    X(4);
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    X(8);
+    end = Platform::isBurstLast();
+    signalReady();
+    if (end) {
+        return;
+    }
+    singleCycleDelay();
+    singleCycleDelay();
+    X(12);
+    // don't sample blast at the end of the transaction
+    signalReady();
+#undef X
+
 }
     [[gnu::always_inline]]
     inline

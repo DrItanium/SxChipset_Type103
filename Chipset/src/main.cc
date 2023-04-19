@@ -198,7 +198,10 @@ doFixedCommunication(uint8_t lowest) noexcept {
     // the code is very straightforward
     if constexpr (isReadOperation) {
         if constexpr (a == b && b == c && c == d) {
-            dataLinesFull = a;
+            setDataByte<0>(static_cast<uint8_t>(a));
+            setDataByte<1>(static_cast<uint8_t>(a >> 8));
+            setDataByte<2>(static_cast<uint8_t>(a >> 16));
+            setDataByte<3>(static_cast<uint8_t>(a >> 24));
             idleTransaction();
         } else {
             static constexpr SplitWord128 contents {
@@ -341,7 +344,10 @@ private:
     inline
     static void doFixedReadOperation(uint8_t lowest) noexcept {
         if constexpr (a == b && b == c && c == d) {
-            dataLinesFull = a;
+            setDataByte<0>(static_cast<uint8_t>(a));
+            setDataByte<1>(static_cast<uint8_t>(a >> 8));
+            setDataByte<2>(static_cast<uint8_t>(a >> 16));
+            setDataByte<3>(static_cast<uint8_t>(a >> 24));
             idleTransaction();
         } else {
             static constexpr SplitWord128 contents{
@@ -746,30 +752,44 @@ getTransactionWindow(uint16_t offset, T) noexcept {
     return memoryPointer<uint8_t>(computeTransactionWindow(offset, T{}));
 }
 
+template<bool clearPullups>
 inline 
 void 
 updateDataLinesDirection(uint8_t value) noexcept {
     if constexpr (DirectlyConnectedD0_7) {
         getDirectionRegister<Port::D0_7>() = value;
+        if constexpr (clearPullups) {
+            getOutputRegister<Port::D0_7>() = 0;
+        }
     } else {
         dataLinesDirection_bytes[0] = value;
     }
     if constexpr (DirectlyConnectedD8_15) {
         getDirectionRegister<Port::D8_15>() = value;
+        if constexpr (clearPullups) {
+            getOutputRegister<Port::D8_15>() = 0;
+        }
     } else {
         dataLinesDirection_bytes[1] = value;
     }
     if constexpr (DirectlyConnectedD16_23) {
         getDirectionRegister<Port::D16_23>() = value;
+        if constexpr (clearPullups) {
+            getOutputRegister<Port::D16_23>() = 0;
+        }
     } else {
         dataLinesDirection_bytes[2] = value;
     }
     if constexpr (DirectlyConnectedD24_31) {
         getDirectionRegister<Port::D24_31>() = value;
+        if constexpr (clearPullups) {
+            getOutputRegister<Port::D24_31>() = 0;
+        }
     } else {
         dataLinesDirection_bytes[3] = value;
     }
 }
+
 
 template<NativeBusWidth width> 
 [[gnu::noinline]]
@@ -778,7 +798,7 @@ void
 executionBody() noexcept {
     SplitWord128 operation;
     uint8_t currentDirection = 0xFF;
-    updateDataLinesDirection(currentDirection);
+    updateDataLinesDirection<false>(currentDirection);
     DDRJ = 0;
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
@@ -791,7 +811,8 @@ executionBody() noexcept {
         if (auto majorCode = static_cast<uint8_t>(al >> 24), offset = static_cast<uint8_t>(al); Platform::isWriteOperation()) {
             if (currentDirection) {
                 currentDirection = 0;
-                updateDataLinesDirection(currentDirection);
+                // clear the pullups
+                updateDataLinesDirection<true>(currentDirection);
             }
             switch (majorCode) {
                 case 0x00: 
@@ -827,7 +848,7 @@ executionBody() noexcept {
         } else {
             if (!currentDirection) {
                 currentDirection = 0xFF;
-                updateDataLinesDirection(currentDirection);
+                updateDataLinesDirection<false>(currentDirection);
             }
             switch (majorCode) {
                 case 0x00: 

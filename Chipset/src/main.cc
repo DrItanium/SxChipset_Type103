@@ -539,8 +539,10 @@ public:
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
             if ((value & 0b0010) == 0) {
                 LO(0, 1, false);
+                HI(2, 3, true);
+            } else {
+                HI(2, 3, false);
             }
-            HI(2, 3, false);
             LO(4, 5, true);
             HI(6, 7, true);
             LO(8, 9, true);

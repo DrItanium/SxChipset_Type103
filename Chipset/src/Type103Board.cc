@@ -54,7 +54,7 @@ Platform::begin() noexcept {
         AddressLinesInterface.view32.direction = 0;
         DataLinesInterface.view32.direction = 0xFFFF'FFFF;
         DataLinesInterface.view32.data = 0;
-        if constexpr (EnablePortKCapture_D0_7) {
+        if constexpr (DirectlyConnectedD0_7) {
             DataLinesInterface.view8.direction[0] = 0;
         }
         ControlSignals.view32.direction = ControlSignalDirection;

@@ -107,19 +107,22 @@ template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     if constexpr (index < 4) {
         if constexpr (index == 0) {
-            if constexpr (EnablePortKCapture_D0_7) {
-                PORTK = value;
-            } 
-        } 
-        dataLines[index] = value;
+            if constexpr (DirectlyConnectedD0_7) {
+                getOutputRegister<Port::D0_7>() = value;
+            } else {
+                dataLines[index] = value;
+            }
+        } else {
+            dataLines[index] = value;
+        }
     }
 }
 template<uint8_t index>
 inline uint8_t getDataByte() noexcept {
     if constexpr (index < 4) {
         if constexpr (index == 0) {
-            if constexpr (EnablePortKCapture_D0_7) {
-                return PINK;
+            if constexpr (DirectlyConnectedD0_7) {
+                return getInputRegister<Port::D0_7>();
             } 
         } 
         return dataLines[index];
@@ -713,8 +716,8 @@ getTransactionWindow(uint16_t offset, T) noexcept {
 inline 
 void 
 updateDataLinesDirection(uint8_t value) noexcept {
-    if constexpr (EnablePortKCapture_D0_7) {
-        DDRK = value;
+    if constexpr (DirectlyConnectedD0_7) {
+        getDirectionRegister<Port::D0_7>() = value;
     } else {
         dataLinesDirection_bytes[0] = value;
     }
@@ -857,7 +860,7 @@ setupPins() noexcept {
     // setup the IBUS bank
     getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
     getOutputRegister<Port::IBUS_Bank>() = 0;
-    if constexpr (EnablePortKCapture_D0_7) {
+    if constexpr (DirectlyConnectedD0_7) {
         getDirectionRegister<Port::D0_7>() = 0xff;
         getOutputRegister<Port::D0_7>() = 0x00;
     }

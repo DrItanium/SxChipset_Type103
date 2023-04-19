@@ -535,14 +535,35 @@ public:
                     } \
                 } \
             }
+#define Y(d0, b0, d1, b1, later) \
+            { \
+                if constexpr (isReadOperation) { \
+                    setDataByte<d0>(theBytes[b0]); \
+                    setDataByte<d1>(theBytes[b1]); \
+                } else { \
+                    if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
+                        theBytes[b1] = getDataByte<d1>(); \
+                    } \
+                    if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
+                        theBytes[b0] = getDataByte<d0>(); \
+                    } \
+                } \
+                if constexpr (b0 != 14 && b1 != 15) { \
+                    if (Platform::isBurstLast()) { \
+                        break; \
+                    } \
+                    signalReady(); \
+                    if constexpr (!isReadOperation) { \
+                        insertCustomNopCount<4>(); /* The delay for the ready signal */ \
+                    } \
+                } \
+            }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
             if ((value & 0b0010) == 0) {
                 LO(0, 1, false);
-                HI(2, 3, true);
-            } else {
-                HI(2, 3, false);
             }
+            HI(2, 3, false);
             LO(4, 5, true);
             HI(6, 7, true);
             LO(8, 9, true);
@@ -552,6 +573,7 @@ public:
 #undef LO
 #undef HI
 #undef X
+#undef Y
         } while (false);
         signalReady();
     }

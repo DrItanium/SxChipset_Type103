@@ -713,7 +713,11 @@ getTransactionWindow(uint16_t offset, T) noexcept {
 inline 
 void 
 updateDataLinesDirection(uint8_t value) noexcept {
-    dataLinesDirection_bytes[0] = value;
+    if constexpr (EnablePortKCapture_D0_7) {
+        DDRK = value;
+    } else {
+        dataLinesDirection_bytes[0] = value;
+    }
     dataLinesDirection_bytes[1] = value;
     dataLinesDirection_bytes[2] = value;
     dataLinesDirection_bytes[3] = value;
@@ -725,7 +729,8 @@ template<NativeBusWidth width>
 void 
 executionBody() noexcept {
     SplitWord128 operation;
-    uint8_t currentDirection = dataLinesDirection_LSB;
+    uint8_t currentDirection = 0xFF;
+    updateDataLinesDirection(currentDirection);
     DDRJ = 0;
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
@@ -852,6 +857,10 @@ setupPins() noexcept {
     // setup the IBUS bank
     DDRJ = 0xFF;
     PORTJ = 0x00;
+    if constexpr (EnablePortKCapture_D0_7) {
+        DDRK = 0xFF;
+        PORTK = 0x00;
+    }
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BE2, INPUT);

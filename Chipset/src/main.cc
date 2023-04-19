@@ -481,7 +481,7 @@ public:
             // fine but in all cases the first 1 we encounter after finding the
             // first zero in the byte enable bits we are going to terminate
             // anyway. So don't waste time evaluating BLAST at all!
-#define X(dli, d0, b0, d1, b1, later) \
+#define X(d0, b0, d1, b1, later) \
             { \
                 if constexpr (isReadOperation) { \
                     setDataByte<d0>(theBytes[b0]); \
@@ -496,11 +496,10 @@ public:
                          * the check itself
                          */ \
                         theBytes[b0] = getDataByte<d0>(); \
-                        if (digitalRead<Pin:: BE ## d1 > () == LOW) { \
-                            theBytes[b1] = getDataByte<d1>(); \
-                        } else { \
+                        if (digitalRead<Pin:: BE ## d1 > () == HIGH) { \
                             break; \
                         } \
+                        theBytes[b1] = getDataByte<d1>(); \
                     } else { \
                         /*
                          * First time through, we want to actually check the
@@ -536,16 +535,20 @@ public:
                     } \
                 } \
             }
+#define LO(b0, b1, later) X(0, b0, 1, b1, later)
+#define HI(b0, b1, later) X(2, b0, 3, b1, later)
             if ((value & 0b0010) == 0) {
-                X(0,0,0,1,1, false);
+                LO(0, 1, false);
             }
-            X(1,2,2,3,3, false);
-            X(0,0,4,1,5, true);
-            X(1,2,6,3,7, true);
-            X(0,0,8,1,9, true);
-            X(1,2,10,3,11, true);
-            X(0,0,12,1,13, true);
-            X(1,2,14,3,15, true);
+            HI(2, 3, false);
+            LO(4, 5, true);
+            HI(6, 7, true);
+            LO(8, 9, true);
+            HI(10, 11, true);
+            LO(12, 13, true);
+            HI(14, 15, true);
+#undef LO
+#undef HI
 #undef X
         } while (false);
         signalReady();

@@ -855,11 +855,11 @@ installMemoryImage() noexcept {
 void 
 setupPins() noexcept {
     // setup the IBUS bank
-    DDRJ = 0xFF;
-    PORTJ = 0x00;
+    getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
+    getOutputRegister<Port::IBUS_Bank>() = 0;
     if constexpr (EnablePortKCapture_D0_7) {
-        DDRK = 0xFF;
-        PORTK = 0x00;
+        getDirectionRegister<Port::D0_7>() = 0xff;
+        getOutputRegister<Port::D0_7>() = 0x00;
     }
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);

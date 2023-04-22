@@ -739,6 +739,7 @@ executionBody() noexcept {
     while (true) {
         waitForDataState();
         startTransaction();
+        uint32_t al = addressLinesValue32;
         /// @todo figure out the best way to only update the Bank index when needed
         if (Platform::isWriteOperation()) {
             if (currentDirection) {
@@ -751,11 +752,10 @@ executionBody() noexcept {
                 // over for simplicity
 
                 performIOWriteGroup0<width>(operation, 
-                        addressLines[2],
-                        addressLines[1],
-                        addressLines[0]);
+                        static_cast<uint8_t>(al >> 16),
+                        static_cast<uint8_t>(al >> 8),
+                        static_cast<uint8_t>(al));
             } else {
-                    uint32_t al = addressLinesValue32;
                     // the i960 directly controls the bank index of the IBUS
                     // after image installation is complete, we have a 30 bit
                     // view of the world (14 bits offset + 16 bits (Ports J and
@@ -771,11 +771,10 @@ executionBody() noexcept {
             }
             if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
                 performIOReadGroup0<width>(operation, 
-                        addressLines[2],
-                        addressLines[1],
-                        addressLines[0]);
+                        static_cast<uint8_t>(al >> 16),
+                        static_cast<uint8_t>(al >> 8),
+                        static_cast<uint8_t>(al));
             } else {
-                uint32_t al = addressLinesValue32;
                 // the i960 directly controls the bank index of the IBUS
                 // after image installation is complete, we have a 30 bit
                 // view of the world (14 bits offset + 16 bits (Ports J and

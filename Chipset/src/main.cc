@@ -652,14 +652,12 @@ template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
-performIOWriteGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t offset) noexcept {
+performIOWriteGroup0(const SplitWord128& body, uint8_t group, uint8_t function, uint8_t offset) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
-    CommunicationKernel<false, width>::doCommunication(body, offset);
-    asm volatile ("nop");
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
             theSerial.handleWriteOperations(body, function, offset);
@@ -752,7 +750,8 @@ executionBody() noexcept {
             if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
                 // if we are in IO space then just repeat map things over and
                 // over for simplicity
-
+                CommunicationKernel<false, width>::doCommunication(operation, 
+                        static_cast<uint8_t>(al));
                 performIOWriteGroup0<width>(operation, 
                         addressLines[2],
                         static_cast<uint8_t>(al >> 8),
@@ -762,7 +761,6 @@ executionBody() noexcept {
                 // after image installation is complete, we have a 30 bit
                 // view of the world (14 bits offset + 16 bits (Ports J and
                 // K | i960 A15:29)
-                uint16_t al = addressLinesLowerHalf;
                 CommunicationKernel<false, width>::doCommunication(
                         getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                         static_cast<uint8_t>(al));

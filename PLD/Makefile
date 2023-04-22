@@ -10,7 +10,9 @@ all: Type103PLD.jed \
 	BusDecoder.jed \
 	CPUDimmChip1.jed \
 	CPUDimmChip2.jed \
-	1MEGDecoderCard.jed
+	1MEGDecoderCard.jed \
+	OperationDetect.jed
+
 
 
 
@@ -38,14 +40,8 @@ install_CPUDimmChip2: CPUDimmChip2.jed
 install_1MEGDecoderCard: 1MEGDecoderCard.jed
 	minipro -p ATF16V8C --write 1MEGDecoderCard.jed 
 
-help: 
-	@echo "Build Options"
-	@echo "- all : compile the gal code"
-	@echo "- install_Type103 : Program a GAL16V8 with Type103 GAL implementation"
-	@echo "- install_Type103a : Program a GAL16V8 with Type103a GAL implementation"
-	@echo "- install_SRAMCardDecoder: Program a GAL16V8 with SRAMCardDecoder GAL implementation"
-	@echo "- install_Type103aCounter : Program a GAL22V10 with Type103aCounter GAL implementation"
-	@echo "- clean : remove all extra files except .pld files"
+install_OperationDetect: OperationDetect.jed
+	minipro -p ATF16V8C --write OperationDetect.jed 
 
 clean:
 	@echo -n "Cleaning..."

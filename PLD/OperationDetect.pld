@@ -1,0 +1,25 @@
+GAL16V8
+OperationDetect
+
+NC A28 A29 A30 A31 NC NC NC NC GND
+NC NC  NC  NC  R0  R1 R2 R3 IO VCC
+
+/IO = A31 * A30 * A29 * A28
+/R3 = A31 * A30 * A29 * /A28 + A31 * A30 * /A29 * A28 + A31 * A30 * /A29 * /A28
+/R2 = A31 * /A30
+/R1 = /A31 * A30
+/R0 = /A31 * /A30
+
+
+
+DESCRIPTION
+
+Translates the given upper four address lines from the i960 into what kind of
+space to be looking at. There are five space, 
+
+R0 : first 1 gb
+R1 : next 1 gb
+R2 : next 1 gb
+R3 : next 1 gb (well first 768 megs)
+IO : last 256 mb of R3
+

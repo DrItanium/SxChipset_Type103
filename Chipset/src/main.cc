@@ -92,7 +92,6 @@ using DataRegister32 = volatile uint32_t*;
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
-[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
@@ -103,6 +102,9 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 [[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
 [[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
 [[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
+[[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
+[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
+
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 4, "Invalid index provided to setDataByte, must be less than 4");
@@ -739,7 +741,7 @@ executionBody() noexcept {
     while (true) {
         waitForDataState();
         startTransaction();
-        uint32_t al = addressLinesValue32;
+        //uint32_t al = addressLinesValue32;
         /// @todo figure out the best way to only update the Bank index when needed
         if (Platform::isWriteOperation()) {
             if (currentDirection) {
@@ -752,17 +754,18 @@ executionBody() noexcept {
                 // over for simplicity
 
                 performIOWriteGroup0<width>(operation, 
-                        static_cast<uint8_t>(al >> 16),
-                        static_cast<uint8_t>(al >> 8),
-                        static_cast<uint8_t>(al));
+                        addressLines[2],
+                        addressLines[1],
+                        addressLines[0]);
             } else {
-                    // the i960 directly controls the bank index of the IBUS
-                    // after image installation is complete, we have a 30 bit
-                    // view of the world (14 bits offset + 16 bits (Ports J and
-                    // K | i960 A15:29)
-                    CommunicationKernel<false, width>::doCommunication(
-                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            static_cast<uint8_t>(al));
+                // the i960 directly controls the bank index of the IBUS
+                // after image installation is complete, we have a 30 bit
+                // view of the world (14 bits offset + 16 bits (Ports J and
+                // K | i960 A15:29)
+                uint16_t al = addressLinesLowerHalf;
+                CommunicationKernel<false, width>::doCommunication(
+                        getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                        static_cast<uint8_t>(al));
             }
         } else {
             if (!currentDirection) {
@@ -771,14 +774,15 @@ executionBody() noexcept {
             }
             if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
                 performIOReadGroup0<width>(operation, 
-                        static_cast<uint8_t>(al >> 16),
-                        static_cast<uint8_t>(al >> 8),
-                        static_cast<uint8_t>(al));
+                        addressLines[2],
+                        addressLines[1],
+                        addressLines[0]);
             } else {
                 // the i960 directly controls the bank index of the IBUS
                 // after image installation is complete, we have a 30 bit
                 // view of the world (14 bits offset + 16 bits (Ports J and
                 // K | i960 A15:29)
+                uint16_t al = addressLinesLowerHalf;
                 CommunicationKernel<true, width>::doCommunication(
                         getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                         static_cast<uint8_t>(al));

@@ -54,18 +54,6 @@ Platform::begin() noexcept {
         AddressLinesInterface.view32.direction = 0;
         DataLinesInterface.view32.direction = 0xFFFF'FFFF;
         DataLinesInterface.view32.data = 0;
-        if constexpr (DirectlyConnectedD0_7) {
-            DataLinesInterface.view8.direction[0] = 0;
-        }
-        if constexpr (DirectlyConnectedD8_15) {
-            DataLinesInterface.view8.direction[1] = 0;
-        }
-        if constexpr (DirectlyConnectedD16_23) {
-            DataLinesInterface.view8.direction[2] = 0;
-        }
-        if constexpr (DirectlyConnectedD24_31) {
-            DataLinesInterface.view8.direction[3] = 0;
-        }
         ControlSignals.view32.direction = ControlSignalDirection;
         if constexpr (MCUHasDirectAccess) {
             ControlSignals.view8.direction[1] &= 0b11101111;

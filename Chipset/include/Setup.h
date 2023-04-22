@@ -39,10 +39,6 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
-constexpr bool DirectlyConnectedD0_7 = false;
-constexpr bool DirectlyConnectedD8_15 = false;
-constexpr bool DirectlyConnectedD16_23 = false;
-constexpr bool DirectlyConnectedD24_31 = false;
 
 template<uint8_t count>
 [[gnu::always_inline]]

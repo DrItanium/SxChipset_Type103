@@ -106,59 +106,17 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 4, "Invalid index provided to setDataByte, must be less than 4");
-    if constexpr (index == 0) {
-        if constexpr (DirectlyConnectedD0_7) {
-            getOutputRegister<Port::D0_7>() = value;
-        } else {
-            dataLines[index] = value;
-        }
-    } else if constexpr (index == 1) {
-        if constexpr (DirectlyConnectedD8_15) {
-            getOutputRegister<Port::D8_15>() = value;
-        } else {
-            dataLines[index] = value;
-        }
-    } else if constexpr (index == 2) {
-        if constexpr (DirectlyConnectedD16_23) {
-            getOutputRegister<Port::D16_23>() = value;
-        } else {
-            dataLines[index] = value;
-        }
-    } else if constexpr (index == 3) {
-        if constexpr (DirectlyConnectedD24_31) {
-            getOutputRegister<Port::D24_31>() = value;
-        } else {
-            dataLines[index] = value;
-        }
-    }  else {
-        // do nothing
+    if constexpr (index < 4) {
+        dataLines[index] = value;
     }
 }
 template<uint8_t index>
 inline uint8_t getDataByte() noexcept {
     static_assert(index < 4, "Invalid index provided to getDataByte, must be less than 4");
     if constexpr (index < 4) {
-        if constexpr (index == 0) {
-            if constexpr (DirectlyConnectedD0_7) {
-                return getInputRegister<Port::D0_7>();
-            } 
-        } 
-        if constexpr (index == 1) {
-            if constexpr (DirectlyConnectedD8_15) {
-                return getInputRegister<Port::D8_15>();
-            }
-        }
-        if constexpr (index == 2) {
-            if constexpr (DirectlyConnectedD16_23) {
-                return getInputRegister<Port::D16_23>();
-            }
-        }
-        if constexpr (index == 3) {
-            if constexpr (DirectlyConnectedD24_31) {
-                return getInputRegister<Port::D24_31>();
-            }
-        }
         return dataLines[index];
+    } else {
+        return 0;
     }
 }
 /**
@@ -759,38 +717,10 @@ template<bool clearPullups>
 inline 
 void 
 updateDataLinesDirection(uint8_t value) noexcept {
-    if constexpr (DirectlyConnectedD0_7) {
-        getDirectionRegister<Port::D0_7>() = value;
-        if constexpr (clearPullups) {
-            getOutputRegister<Port::D0_7>() = 0;
-        }
-    } else {
-        dataLinesDirection_bytes[0] = value;
-    }
-    if constexpr (DirectlyConnectedD8_15) {
-        getDirectionRegister<Port::D8_15>() = value;
-        if constexpr (clearPullups) {
-            getOutputRegister<Port::D8_15>() = 0;
-        }
-    } else {
-        dataLinesDirection_bytes[1] = value;
-    }
-    if constexpr (DirectlyConnectedD16_23) {
-        getDirectionRegister<Port::D16_23>() = value;
-        if constexpr (clearPullups) {
-            getOutputRegister<Port::D16_23>() = 0;
-        }
-    } else {
-        dataLinesDirection_bytes[2] = value;
-    }
-    if constexpr (DirectlyConnectedD24_31) {
-        getDirectionRegister<Port::D24_31>() = value;
-        if constexpr (clearPullups) {
-            getOutputRegister<Port::D24_31>() = 0;
-        }
-    } else {
-        dataLinesDirection_bytes[3] = value;
-    }
+    dataLinesDirection_bytes[0] = value;
+    dataLinesDirection_bytes[1] = value;
+    dataLinesDirection_bytes[2] = value;
+    dataLinesDirection_bytes[3] = value;
 }
 
 
@@ -924,22 +854,6 @@ setupPins() noexcept {
     // setup the IBUS bank
     getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
     getOutputRegister<Port::IBUS_Bank>() = 0;
-    if constexpr (DirectlyConnectedD0_7) {
-        getDirectionRegister<Port::D0_7>() = 0xff;
-        getOutputRegister<Port::D0_7>() = 0x00;
-    }
-    if constexpr (DirectlyConnectedD8_15) {
-        getDirectionRegister<Port::D8_15>() = 0xff;
-        getOutputRegister<Port::D8_15>() = 0x00;
-    }
-    if constexpr (DirectlyConnectedD16_23) {
-        getDirectionRegister<Port::D16_23>() = 0xff;
-        getOutputRegister<Port::D16_23>() = 0x00;
-    }
-    if constexpr (DirectlyConnectedD24_31) {
-        getDirectionRegister<Port::D24_31>() = 0xff;
-        getOutputRegister<Port::D24_31>() = 0x00;
-    }
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BE2, INPUT);

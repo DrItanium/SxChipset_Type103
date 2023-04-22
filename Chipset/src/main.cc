@@ -777,13 +777,6 @@ executionBody() noexcept {
                 updateDataLinesDirection<false>(currentDirection);
             }
             switch (majorCode) {
-                case 0x00: 
-                    // the i960 directly controls the bank index of the IBUS
-                    CommunicationKernel<true, width>::doCommunication(
-                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            offset
-                            );
-                    break;
                 case 0xF0:
                     performIOReadGroup0<width>(operation, 
                             static_cast<uint8_t>(al >> 16),

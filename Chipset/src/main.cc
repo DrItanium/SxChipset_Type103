@@ -741,26 +741,20 @@ executionBody() noexcept {
         startTransaction();
         uint32_t al = addressLinesValue32;
         /// @todo figure out the best way to only update the Bank index when needed
-        if (auto majorCode = static_cast<uint8_t>(al >> 24), offset = static_cast<uint8_t>(al); Platform::isWriteOperation()) {
+        if (auto offset = static_cast<uint8_t>(al); Platform::isWriteOperation()) {
             if (currentDirection) {
                 currentDirection = 0;
                 // clear the pullups
                 updateDataLinesDirection<true>(currentDirection);
             }
-            switch (majorCode) {
-                case 0xF0:
-                    performIOWriteGroup0<width>(operation, 
-                            static_cast<uint8_t>(al >> 16),
-                            static_cast<uint8_t>(al >> 8),
-                            offset);
-                    break;
-                case 0xF1: case 0xF2: case 0xF3: 
-                case 0xF4: case 0xF5: case 0xF6: case 0xF7: 
-                case 0xF8: case 0xF9: case 0xFA: case 0xFB:
-                case 0xFC: case 0xFD: case 0xFE: case 0xFF:
-                    CommunicationKernel<false, width>::template doFixedCommunication<0>(offset);
-                    break;
-                default:
+            if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
+                // if we are in IO space then just repeat map things over and
+                // over for simplicity
+                performIOWriteGroup0<width>(operation, 
+                        static_cast<uint8_t>(al >> 16),
+                        static_cast<uint8_t>(al >> 8),
+                        offset);
+            } else {
                     // the i960 directly controls the bank index of the IBUS
                     // after image installation is complete, we have a 30 bit
                     // view of the world (14 bits offset + 16 bits (Ports J and
@@ -769,36 +763,26 @@ executionBody() noexcept {
                             getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                             offset
                             );
-                    break;
             }
         } else {
             if (!currentDirection) {
                 currentDirection = 0xFF;
                 updateDataLinesDirection<false>(currentDirection);
             }
-            switch (majorCode) {
-                case 0xF0:
-                    performIOReadGroup0<width>(operation, 
-                            static_cast<uint8_t>(al >> 16),
-                            static_cast<uint8_t>(al >> 8),
-                            offset);
-                    break;
-                case 0xF1: case 0xF2: case 0xF3:
-                case 0xF4: case 0xF5: case 0xF6: case 0xF7:
-                case 0xF8: case 0xF9: case 0xFA: case 0xFB:
-                case 0xFC: case 0xFD: case 0xFE: case 0xFF:
-                    CommunicationKernel<true, width>::template doFixedCommunication<0>(offset);
-                    break;
-                default:
-                    // the i960 directly controls the bank index of the IBUS
-                    // after image installation is complete, we have a 30 bit
-                    // view of the world (14 bits offset + 16 bits (Ports J and
-                    // K | i960 A15:29)
-                    CommunicationKernel<true, width>::doCommunication(
-                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            offset
-                            );
-                    break;
+            if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
+                performIOReadGroup0<width>(operation, 
+                        static_cast<uint8_t>(al >> 16),
+                        static_cast<uint8_t>(al >> 8),
+                        offset);
+            } else {
+                // the i960 directly controls the bank index of the IBUS
+                // after image installation is complete, we have a 30 bit
+                // view of the world (14 bits offset + 16 bits (Ports J and
+                // K | i960 A15:29)
+                CommunicationKernel<true, width>::doCommunication(
+                        getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                        offset
+                        );
             }
         }
         endTransaction();
@@ -847,6 +831,7 @@ setupPins() noexcept {
     // setup the IBUS bank
     getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
     getOutputRegister<Port::IBUS_Bank>() = 0;
+    pinMode(Pin::IsIOSpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BE2, INPUT);

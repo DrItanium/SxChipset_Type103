@@ -818,15 +818,6 @@ executionBody() noexcept {
                 updateDataLinesDirection<true>(currentDirection);
             }
             switch (majorCode) {
-                case 0x00: 
-                    // the i960 directly controls the bank index of the IBUS
-                    CommunicationKernel<false, width>::doCommunication(
-                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            offset
-                            );
-                    break;
-
-
                 case 0xF0:
                     performIOWriteGroup0<width>(operation, 
                             static_cast<uint8_t>(al >> 16),
@@ -839,11 +830,13 @@ executionBody() noexcept {
                 case 0xFC: case 0xFD: case 0xFE: case 0xFF:
                     CommunicationKernel<false, width>::template doFixedCommunication<0>(offset);
                     break;
-                default: 
-                    Platform::setBank(al,
-                            typename TreatAsOffChipAccess::AccessMethod{});
+                default:
+                    // the i960 directly controls the bank index of the IBUS
+                    // after image installation is complete, we have a 30 bit
+                    // view of the world (14 bits offset + 16 bits (Ports J and
+                    // K | i960 A15:29)
                     CommunicationKernel<false, width>::doCommunication(
-                            getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
+                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                             offset
                             );
                     break;
@@ -874,10 +867,12 @@ executionBody() noexcept {
                     CommunicationKernel<true, width>::template doFixedCommunication<0>(offset);
                     break;
                 default:
-                    Platform::setBank(al,
-                            typename TreatAsOffChipAccess::AccessMethod{});
+                    // the i960 directly controls the bank index of the IBUS
+                    // after image installation is complete, we have a 30 bit
+                    // view of the world (14 bits offset + 16 bits (Ports J and
+                    // K | i960 A15:29)
                     CommunicationKernel<true, width>::doCommunication(
-                            getTransactionWindow(al, typename TreatAsOffChipAccess::AccessMethod{}),
+                            getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                             offset
                             );
                     break;

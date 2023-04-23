@@ -727,7 +727,7 @@ updateDataLinesDirection(uint8_t value) noexcept {
 }
 
 
-template<NativeBusWidth width, bool writeThenIO = false> 
+template<NativeBusWidth width> 
 [[gnu::noinline]]
 [[noreturn]] 
 void 
@@ -743,101 +743,52 @@ executionBody() noexcept {
         waitForDataState();
         startTransaction();
         const uint16_t al = addressLinesLowerHalf;
-        if constexpr (const uint8_t offset = static_cast<uint8_t>(al); writeThenIO) {
+        if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
+            const uint8_t addressTag = addressLines[2];
+            if (const auto function = static_cast<uint8_t>(al >> 8); Platform::isWriteOperation()) {
+                if (currentDirection) {
+                    currentDirection = ~currentDirection;
+                    // clear the pullups
+                    updateDataLinesDirection(currentDirection);
+                }
+                CommunicationKernel<false, width>::doCommunication(operation, offset);
+                performIOWriteGroup0<width>(operation, 
+                        addressTag,
+                        function,
+                        offset);
+
+            } else {
+                if (!currentDirection) {
+                    currentDirection = ~currentDirection;
+                    updateDataLinesDirection(currentDirection);
+                }
+                performIOReadGroup0<width>(operation, addressTag, function, offset);
+            }
+
+        } else {
+            auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
             if (Platform::isWriteOperation()) {
                 if (currentDirection) {
                     currentDirection = ~currentDirection;
                     // clear the pullups
                     updateDataLinesDirection(currentDirection);
                 }
-                if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
-                    // if we are in IO space then just repeat map things over and
-                    // over for simplicity
-                    const uint8_t addressTag = addressLines[2];
-                    CommunicationKernel<false, width>::doCommunication(operation, 
-                            offset);
-                    performIOWriteGroup0<width>(operation, 
-                            addressTag,
-                            static_cast<uint8_t>(al >> 8),
-                            offset);
-                } else {
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    CommunicationKernel<false, width>::doCommunication(
-                            getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            offset);
-                }
+                // the IBUS is the window into the 32-bit bus that the i960 is
+                // accessing from. Right now, it supports up to 4 megabytes of
+                // space (repeating these 4 megabytes throughout the full
+                // 32-bit space until we get to IO space)
+                CommunicationKernel<false, width>::doCommunication( window, offset);
+
             } else {
                 if (!currentDirection) {
                     currentDirection = ~currentDirection;
                     updateDataLinesDirection(currentDirection);
                 }
-                if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
-                    const uint8_t addressTag = addressLines[2];
-                    performIOReadGroup0<width>(operation, 
-                            addressTag,
-                            static_cast<uint8_t>(al >> 8),
-                            offset);
-                } else {
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    CommunicationKernel<true, width>::doCommunication(
-                            getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                            offset);
-                }
-            }
-        } else {
-            if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
-                const uint8_t addressTag = addressLines[2];
-                if (const auto function = static_cast<uint8_t>(al >> 8); Platform::isWriteOperation()) {
-                    if (currentDirection) {
-                        currentDirection = ~currentDirection;
-                        // clear the pullups
-                        updateDataLinesDirection(currentDirection);
-                    }
-                    CommunicationKernel<false, width>::doCommunication(operation, offset);
-                    performIOWriteGroup0<width>(operation, 
-                            addressTag,
-                            function,
-                            offset);
-
-                } else {
-                    if (!currentDirection) {
-                        currentDirection = ~currentDirection;
-                        updateDataLinesDirection(currentDirection);
-                    }
-                    performIOReadGroup0<width>(operation, addressTag, function, offset);
-                }
-
-            } else {
-                auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
-                if (Platform::isWriteOperation()) {
-                    if (currentDirection) {
-                        currentDirection = ~currentDirection;
-                        // clear the pullups
-                        updateDataLinesDirection(currentDirection);
-                    }
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    CommunicationKernel<false, width>::doCommunication( window, offset);
-
-                } else {
-                    if (!currentDirection) {
-                        currentDirection = ~currentDirection;
-                        updateDataLinesDirection(currentDirection);
-                    }
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    CommunicationKernel<true, width>::doCommunication( window, offset);
-                }
+                // the IBUS is the window into the 32-bit bus that the i960 is
+                // accessing from. Right now, it supports up to 4 megabytes of
+                // space (repeating these 4 megabytes throughout the full
+                // 32-bit space until we get to IO space)
+                CommunicationKernel<true, width>::doCommunication( window, offset);
             }
         }
         endTransaction();

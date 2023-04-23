@@ -230,7 +230,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
 [[gnu::always_inline]]
 inline
 static void
-doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
+doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
 #define X(base) \
     if constexpr (isReadOperation) { \
         setDataByte<0>(theBytes[(base + 0)]); \
@@ -414,10 +414,9 @@ public:
     [[gnu::always_inline]]
     inline
     static void
-    doCommunication(DataRegister8 theBytes, uint8_t lowest) noexcept {
+    doCommunication(DataRegister8 theBytes, uint8_t offset) noexcept {
         do {
             // figure out which word we are currently looking at
-            uint8_t value = lowest;
             //DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
             // if we are aligned to 32-bit word boundaries then just assume we
             // are at the start of the 16-byte block (the processor will stop
@@ -497,7 +496,7 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
-            if ((value & 0b0010) == 0) {
+            if ((offset & 0b10) == 0) {
                 LO(0, 1, false);
                 HI(2, 3, true);
             } else {
@@ -698,21 +697,31 @@ uint16_t
 computeTransactionWindow_Generic(uint16_t offset) noexcept {
     return sectionMask + (offset & offsetMask);
 }
+template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
+    if constexpr (width == NativeBusWidth::Sixteen) {
     return computeTransactionWindow_Generic<0x4000, 0x3ffc>(offset);
+    } else {
+        return computeTransactionWindow_Generic<0x4000, 0x3fff>(offset);
+    }
 }
+template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOffChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x8000, 0x7ffc>(offset);
+    if constexpr (width == NativeBusWidth::Sixteen) {
+        return computeTransactionWindow_Generic<0x8000, 0x7ffc>(offset);
+    } else {
+        return computeTransactionWindow_Generic<0x8000, 0x7fff>(offset);
+    }
 }
 
-template<typename T>
+template<NativeBusWidth width, typename T>
 DataRegister8
 getTransactionWindow(uint16_t offset, T) noexcept {
-    return memoryPointer<uint8_t>(computeTransactionWindow(offset, T{}));
+    return memoryPointer<uint8_t>(computeTransactionWindow<width>(offset, T{}));
 }
 
 [[gnu::always_inline]]
@@ -741,52 +750,50 @@ executionBody() noexcept {
     while (true) {
         waitForDataState();
         startTransaction();
-        uint16_t al = addressLinesLowerHalf;
-        /// @todo figure out the best way to only update the Bank index when needed
-        if (uint8_t offset = static_cast<uint8_t>(al); Platform::isWriteOperation()) {
+        if (const uint16_t al = addressLinesLowerHalf; Platform::isWriteOperation()) {
             if (currentDirection) {
-                currentDirection = 0;
+                currentDirection = ~currentDirection;
                 // clear the pullups
                 updateDataLinesDirection(currentDirection);
             }
             if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
                 // if we are in IO space then just repeat map things over and
                 // over for simplicity
-                auto addressTag = addressLines[2];
+                const uint8_t addressTag = addressLines[2];
                 CommunicationKernel<false, width>::doCommunication(operation, 
-                        offset);
+                        static_cast<uint8_t>(al));
                 performIOWriteGroup0<width>(operation, 
                         addressTag,
                         static_cast<uint8_t>(al >> 8),
-                        offset);
+                        static_cast<uint8_t>(al));
             } else {
                 // the IBUS is the window into the 32-bit bus that the i960 is
                 // accessing from. Right now, it supports up to 4 megabytes of
                 // space (repeating these 4 megabytes throughout the full
                 // 32-bit space until we get to IO space)
                 CommunicationKernel<false, width>::doCommunication(
-                        getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                        offset);
+                        getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                        static_cast<uint8_t>(al));
             }
         } else {
             if (!currentDirection) {
-                currentDirection = 0xFF;
+                currentDirection = ~currentDirection;
                 updateDataLinesDirection(currentDirection);
             }
             if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
-                auto addressTag = addressLines[2];
+                const uint8_t addressTag = addressLines[2];
                 performIOReadGroup0<width>(operation, 
                         addressTag,
                         static_cast<uint8_t>(al >> 8),
-                        offset);
+                        static_cast<uint8_t>(al));
             } else {
                 // the IBUS is the window into the 32-bit bus that the i960 is
                 // accessing from. Right now, it supports up to 4 megabytes of
                 // space (repeating these 4 megabytes throughout the full
                 // 32-bit space until we get to IO space)
                 CommunicationKernel<true, width>::doCommunication(
-                        getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                        offset);
+                        getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}),
+                        static_cast<uint8_t>(al));
             }
         }
         endTransaction();

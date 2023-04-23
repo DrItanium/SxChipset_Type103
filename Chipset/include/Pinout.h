@@ -82,7 +82,7 @@ Count = NUM_DIGITAL_PINS,
 #endif
     TFTDC = PortD7,
     TFTCS = PortD6,
-    IsIOSpaceOperation = PortG4,
+    IsMemorySpaceOperation = PortG4,
 };
 enum class Port : byte {
     // stop at mega2560 tier

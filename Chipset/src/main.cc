@@ -745,7 +745,7 @@ executionBody() noexcept {
         // only check currentDirection once at the start of the transaction
         if (const uint16_t al = addressLinesLowerHalf; currentDirection) {
             // since it is not zero we are looking at what was previously a read operation
-            if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsIOSpaceOperation>()) {
+            if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
                 // the IBUS is the window into the 32-bit bus that the i960 is
                 // accessing from. Right now, it supports up to 4 megabytes of
                 // space (repeating these 4 megabytes throughout the full
@@ -781,24 +781,7 @@ executionBody() noexcept {
             }
         } else {
             // currently a write operation
-            if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
-                const uint8_t addressTag = addressLines[2];
-                if (const auto function = static_cast<uint8_t>(al >> 8); Platform::isWriteOperation()) {
-                    // write -> write
-                    CommunicationKernel<false, width>::doCommunication(operation, offset);
-                    performIOWriteGroup0<width>(operation, 
-                            addressTag,
-                            function,
-                            offset);
-
-                } else {
-                    // write -> read
-                    currentDirection = ~currentDirection;
-                    updateDataLinesDirection(currentDirection);
-                    performIOReadGroup0<width>(operation, addressTag, function, offset);
-                }
-
-            } else {
+            if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
                 auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
                 if (Platform::isWriteOperation()) {
                     // write -> write
@@ -817,6 +800,23 @@ executionBody() noexcept {
                     // space (repeating these 4 megabytes throughout the full
                     // 32-bit space until we get to IO space)
                     CommunicationKernel<true, width>::doCommunication( window, offset);
+                }
+
+            } else {
+                const uint8_t addressTag = addressLines[2];
+                if (const auto function = static_cast<uint8_t>(al >> 8); Platform::isWriteOperation()) {
+                    // write -> write
+                    CommunicationKernel<false, width>::doCommunication(operation, offset);
+                    performIOWriteGroup0<width>(operation, 
+                            addressTag,
+                            function,
+                            offset);
+
+                } else {
+                    // write -> read
+                    currentDirection = ~currentDirection;
+                    updateDataLinesDirection(currentDirection);
+                    performIOReadGroup0<width>(operation, addressTag, function, offset);
                 }
             }
         }
@@ -866,7 +866,7 @@ setupPins() noexcept {
     // setup the IBUS bank
     getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
     getOutputRegister<Port::IBUS_Bank>() = 0;
-    pinMode(Pin::IsIOSpaceOperation, INPUT);
+    pinMode(Pin::IsMemorySpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BE2, INPUT);

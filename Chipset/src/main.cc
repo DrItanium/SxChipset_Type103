@@ -733,7 +733,7 @@ template<NativeBusWidth width>
 void 
 executionBody() noexcept {
     SplitWord128 operation;
-    uint8_t currentDirection = 0xFF;
+    uint8_t currentDirection = 0xff;
     updateDataLinesDirection(currentDirection);
     getDirectionRegister<Port::IBUS_Bank>() = 0;
     // disable pullups!
@@ -751,8 +751,7 @@ executionBody() noexcept {
                 // accessing from. Right now, it supports up to 4 megabytes of
                 // space (repeating these 4 megabytes throughout the full
                 // 32-bit space until we get to IO space)
-                auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
-                if (Platform::isWriteOperation()) {
+                if (auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); Platform::isWriteOperation()) {
                     // read -> write
                     currentDirection = ~currentDirection;
                     updateDataLinesDirection(currentDirection);
@@ -780,15 +779,14 @@ executionBody() noexcept {
                     performIOReadGroup0<width>(operation, addressTag, function, offset);
                 }
             }
-        endTransaction();
+            endTransaction();
         } else {
             waitForDataState();
             startTransaction();
             const uint16_t al = addressLinesLowerHalf;
             // currently a write operation
             if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
-                auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
-                if (Platform::isWriteOperation()) {
+                if (auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); Platform::isWriteOperation()) {
                     // write -> write
                     // the IBUS is the window into the 32-bit bus that the i960 is
                     // accessing from. Right now, it supports up to 4 megabytes of

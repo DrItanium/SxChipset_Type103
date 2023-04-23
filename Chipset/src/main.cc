@@ -752,10 +752,11 @@ executionBody() noexcept {
             if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
                 // if we are in IO space then just repeat map things over and
                 // over for simplicity
+                auto addressTag = addressLines[2];
                 CommunicationKernel<false, width>::doCommunication(operation, 
                         offset);
                 performIOWriteGroup0<width>(operation, 
-                        addressLines[2],
+                        addressTag,
                         static_cast<uint8_t>(al >> 8),
                         offset);
             } else {
@@ -773,8 +774,9 @@ executionBody() noexcept {
                 updateDataLinesDirection(currentDirection);
             }
             if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
+                auto addressTag = addressLines[2];
                 performIOReadGroup0<width>(operation, 
-                        addressLines[2],
+                        addressTag,
                         static_cast<uint8_t>(al >> 8),
                         offset);
             } else {

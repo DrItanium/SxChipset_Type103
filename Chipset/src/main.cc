@@ -701,21 +701,13 @@ template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    if constexpr (width == NativeBusWidth::Sixteen) {
-    return computeTransactionWindow_Generic<0x4000, 0x3ffc>(offset);
-    } else {
-        return computeTransactionWindow_Generic<0x4000, 0x3fff>(offset);
-    }
+    return computeTransactionWindow_Generic<0x4000, width == NativeBusWidth::Sixteen ? 0x3ffc : 0x3fff>(offset);
 }
 template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOffChipAccess::AccessMethod) noexcept {
-    if constexpr (width == NativeBusWidth::Sixteen) {
-        return computeTransactionWindow_Generic<0x8000, 0x7ffc>(offset);
-    } else {
-        return computeTransactionWindow_Generic<0x8000, 0x7fff>(offset);
-    }
+    return computeTransactionWindow_Generic<0x8000, width == NativeBusWidth::Sixteen ? 0x7ffc : 0x7fff>(offset);
 }
 
 template<NativeBusWidth width, typename T>

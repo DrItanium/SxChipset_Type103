@@ -368,4 +368,11 @@ inline void endTransaction() noexcept {
     digitalWrite<Pin::TransactionDetect, HIGH>();
 #endif
 }
+[[gnu::always_inline]]
+inline void toggleTransaction() noexcept {
+#ifdef PHASE_DETECT_BEHAVIOR
+    toggle<Pin::TransactionDetect>();
+    //digitalWrite<Pin::TransactionDetect, HIGH>();
+#endif
+}
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

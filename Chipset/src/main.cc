@@ -649,7 +649,6 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
     }
     CommunicationKernel<true, width>::doCommunication(body, offset);
 }
-template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
@@ -769,10 +768,7 @@ executionBody() noexcept {
                     currentDirection = ~currentDirection;
                     updateDataLinesDirection(currentDirection);
                     CommunicationKernel<false, width>::doCommunication(operation, offset);
-                    performIOWriteGroup0<width>(operation, 
-                            addressTag,
-                            function,
-                            offset);
+                    performIOWriteGroup0(operation, addressTag, function, offset);
 
                 } else {
                     // read -> read
@@ -810,7 +806,7 @@ executionBody() noexcept {
                 if (const auto function = static_cast<uint8_t>(al >> 8); Platform::isWriteOperation()) {
                     // write -> write
                     CommunicationKernel<false, width>::doCommunication(operation, offset);
-                    performIOWriteGroup0<width>(operation, 
+                    performIOWriteGroup0(operation, 
                             addressTag,
                             function,
                             offset);

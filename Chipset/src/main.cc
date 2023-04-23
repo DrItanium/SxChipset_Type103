@@ -496,11 +496,11 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
-            if ((offset & 0b10) == 0) {
+            if (offset & 0b10) {
+                HI(2, 3, false);
+            } else {
                 LO(0, 1, false);
                 HI(2, 3, true);
-            } else {
-                HI(2, 3, false);
             }
             LO(4, 5, true);
             HI(6, 7, true);
@@ -763,24 +763,19 @@ executionBody() noexcept {
                 }
 
             } else {
+                // the IBUS is the window into the 32-bit bus that the i960 is
+                // accessing from. Right now, it supports up to 4 megabytes of
+                // space (repeating these 4 megabytes throughout the full
+                // 32-bit space until we get to IO space)
                 auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
                 if (Platform::isWriteOperation()) {
                     // read -> write
                     currentDirection = ~currentDirection;
-                    // clear the pullups
                     updateDataLinesDirection(currentDirection);
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
                     CommunicationKernel<false, width>::doCommunication( window, offset);
 
                 } else {
                     // read -> read
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
                     CommunicationKernel<true, width>::doCommunication( window, offset);
                 }
             }

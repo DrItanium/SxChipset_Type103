@@ -743,7 +743,7 @@ executionBody() noexcept {
     SplitWord128 operation;
     uint8_t currentDirection = 0xFF;
     updateDataLinesDirection(currentDirection);
-    DDRJ = 0;
+    getDirectionRegister<Port::IBUS_Bank>() = 0;
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});

@@ -455,7 +455,7 @@ public:
                          * the check itself
                          */ \
                         theBytes[b0] = getDataByte<d0>(); \
-                        if (digitalRead<Pin:: BE ## d1 > () == HIGH) { \
+                        if (digitalRead<Pin:: BE ## d1 > ()) { \
                             break; \
                         } \
                         theBytes[b1] = getDataByte<d1>(); \
@@ -465,12 +465,7 @@ public:
                          * upper byte enable bit first and if it is then
                          * check the lower bits
                          */ \
-                        if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            theBytes[b1] = getDataByte<d1>(); \
-                            if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
-                                theBytes[b0] = getDataByte<d0>(); \
-                            } \
-                        } else { \
+                        if (digitalRead<Pin:: BE ## d1 >()) { \
                             /*
                              * In this case, we know that the lower 8-bits are
                              * the starting location and the ending location so
@@ -479,8 +474,13 @@ public:
                              * The only way we get here is if the upper byte
                              * enable bit is high!
                              */ \
-                            theBytes[d0] = getDataByte<d0>(); \
+                            theBytes[b0] = getDataByte<d0>(); \
                             break; \
+                        } else { \
+                            theBytes[b1] = getDataByte<d1>(); \
+                            if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
+                                theBytes[b0] = getDataByte<d0>(); \
+                            } \
                         } \
                     } \
                 } \

@@ -95,6 +95,7 @@ struct TreatAsInstruction final {
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 using DataRegister32 = volatile uint32_t*;
+template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
@@ -187,7 +188,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
                     static_cast<uint8_t>(d >> 16),
                     static_cast<uint8_t>(d >> 24),
             };
-            const uint8_t* theBytes = &contents.bytes[getWordByteOffset(lowest)]; 
+            const uint8_t* theBytes = &contents.bytes[getWordByteOffset<width>(lowest)]; 
             // in all other cases do the whole thing
             setDataByte<0>(theBytes[0]);
             setDataByte<1>(theBytes[1]);
@@ -290,13 +291,14 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
     inline
     static void
     doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
-        doCommunication(&body.bytes[getWordByteOffset(lowest)], lowest);
+        doCommunication(&body.bytes[getWordByteOffset<width>(lowest)], lowest);
     }
 };
 
 template<bool isReadOperation>
 struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     using Self = CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen>;
+    static constexpr auto BusWidth = NativeBusWidth::Sixteen;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
     CommunicationKernel(const Self&) = delete;
@@ -335,7 +337,7 @@ private:
             };
             // just skip over the lowest 16-bits if we start unaligned
             uint8_t value = lowest;
-            uint8_t offset = getWordByteOffset(value);
+            uint8_t offset = getWordByteOffset<BusWidth>(value);
             const uint8_t* theBytes = &contents.bytes[offset];
             if ((value & 0b0010) == 0) {
                 setDataByte<0>(theBytes[0]);
@@ -475,7 +477,6 @@ public:
     doCommunication(DataRegister8 theBytes, uint8_t offset) noexcept {
         do {
             // figure out which word we are currently looking at
-            //DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
             // if we are aligned to 32-bit word boundaries then just assume we
             // are at the start of the 16-byte block (the processor will stop
             // when it doesn't need data anymore). If we are not then skip over
@@ -520,7 +521,7 @@ public:
     inline
     static void
     doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
-        doCommunication(&body.bytes[getWordByteOffset(lowest)], lowest);
+        doCommunication(&body.bytes[getWordByteOffset<BusWidth>(lowest)], lowest);
     }
 };
 BeginDeviceOperationsList(InfoDevice)

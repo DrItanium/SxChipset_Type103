@@ -780,6 +780,7 @@ executionBody() noexcept {
                     performIOReadGroup0<width>(operation, addressTag, function, offset);
                 }
             }
+        endTransaction();
         } else {
             waitForDataState();
             startTransaction();
@@ -823,9 +824,8 @@ executionBody() noexcept {
                     performIOReadGroup0<width>(operation, addressTag, function, offset);
                 }
             }
-        }
         endTransaction();
-        //singleCycleDelay();
+        }
     }
 }
 

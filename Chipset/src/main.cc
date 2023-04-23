@@ -743,7 +743,7 @@ executionBody() noexcept {
         startTransaction();
         uint16_t al = addressLinesLowerHalf;
         /// @todo figure out the best way to only update the Bank index when needed
-        if (Platform::isWriteOperation()) {
+        if (uint8_t offset = static_cast<uint8_t>(al); Platform::isWriteOperation()) {
             if (currentDirection) {
                 currentDirection = 0;
                 // clear the pullups
@@ -753,11 +753,11 @@ executionBody() noexcept {
                 // if we are in IO space then just repeat map things over and
                 // over for simplicity
                 CommunicationKernel<false, width>::doCommunication(operation, 
-                        static_cast<uint8_t>(al));
+                        offset);
                 performIOWriteGroup0<width>(operation, 
                         addressLines[2],
                         static_cast<uint8_t>(al >> 8),
-                        static_cast<uint8_t>(al ));
+                        offset);
             } else {
                 // the i960 directly controls the bank index of the IBUS
                 // after image installation is complete, we have a 30 bit
@@ -765,7 +765,7 @@ executionBody() noexcept {
                 // K | i960 A15:29)
                 CommunicationKernel<false, width>::doCommunication(
                         getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                        static_cast<uint8_t>(al));
+                        offset);
             }
         } else {
             if (!currentDirection) {
@@ -776,7 +776,7 @@ executionBody() noexcept {
                 performIOReadGroup0<width>(operation, 
                         addressLines[2],
                         static_cast<uint8_t>(al >> 8),
-                        static_cast<uint8_t>(al ));
+                        offset);
             } else {
                 // the i960 directly controls the bank index of the IBUS
                 // after image installation is complete, we have a 30 bit
@@ -784,7 +784,7 @@ executionBody() noexcept {
                 // K | i960 A15:29)
                 CommunicationKernel<true, width>::doCommunication(
                         getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
-                        static_cast<uint8_t>(al));
+                        offset);
             }
         }
         endTransaction();

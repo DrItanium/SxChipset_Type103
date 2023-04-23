@@ -789,7 +789,7 @@ executionBody() noexcept {
             }
         }
         endTransaction();
-        singleCycleDelay();
+        //singleCycleDelay();
     }
 }
 

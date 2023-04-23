@@ -411,35 +411,6 @@ public:
             idleTransaction();
         }
     }
-    [[gnu::always_inline]]
-    inline
-    static void
-    doCommunication(DataRegister8 theBytes, uint8_t offset) noexcept {
-        do {
-            // figure out which word we are currently looking at
-            //DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
-            // if we are aligned to 32-bit word boundaries then just assume we
-            // are at the start of the 16-byte block (the processor will stop
-            // when it doesn't need data anymore). If we are not then skip over
-            // this first two bytes and start at the upper two bytes of the
-            // current word.
-            //
-            // I am also exploiting the fact that the processor can only ever
-            // accept up to 16-bytes at a time if it is aligned to 16-byte
-            // boundaries. If it is unaligned then the operation is broken up
-            // into multiple transactions within the i960 itself. So yes, this
-            // code will go out of bounds but it doesn't matter because the
-            // processor will never go out of bounds.
-
-
-            // The later field is used to denote if the given part of the
-            // transaction is later on in burst. If it is then we will
-            // terminate early without evaluating BLAST if the upper byte
-            // enable is high. This is because if we hit 0b1001 this would be
-            // broken up into two 16-bit values (0b1101 and 0b1011) which is
-            // fine but in all cases the first 1 we encounter after finding the
-            // first zero in the byte enable bits we are going to terminate
-            // anyway. So don't waste time evaluating BLAST at all!
 #define X(d0, b0, d1, b1, later) \
             { \
                 if constexpr (isReadOperation) { \
@@ -496,24 +467,51 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
-            if (offset & 0b10) {
-                HI(2, 3, false);
-            } else {
+    [[gnu::always_inline]]
+    inline
+    static void
+    doCommunication(DataRegister8 theBytes, uint8_t offset) noexcept {
+        do {
+            // figure out which word we are currently looking at
+            //DataRegister8 theBytes = &theView.bytes[getWordByteOffset(value)];
+            // if we are aligned to 32-bit word boundaries then just assume we
+            // are at the start of the 16-byte block (the processor will stop
+            // when it doesn't need data anymore). If we are not then skip over
+            // this first two bytes and start at the upper two bytes of the
+            // current word.
+            //
+            // I am also exploiting the fact that the processor can only ever
+            // accept up to 16-bytes at a time if it is aligned to 16-byte
+            // boundaries. If it is unaligned then the operation is broken up
+            // into multiple transactions within the i960 itself. So yes, this
+            // code will go out of bounds but it doesn't matter because the
+            // processor will never go out of bounds.
+
+
+            // The later field is used to denote if the given part of the
+            // transaction is later on in burst. If it is then we will
+            // terminate early without evaluating BLAST if the upper byte
+            // enable is high. This is because if we hit 0b1001 this would be
+            // broken up into two 16-bit values (0b1101 and 0b1011) which is
+            // fine but in all cases the first 1 we encounter after finding the
+            // first zero in the byte enable bits we are going to terminate
+            // anyway. So don't waste time evaluating BLAST at all!
+            if ((offset & 0b10) == 0) {
                 LO(0, 1, false);
-                HI(2, 3, true);
             }
+            HI(2, 3, false);
             LO(4, 5, true);
             HI(6, 7, true);
             LO(8, 9, true);
             HI(10, 11, true);
             LO(12, 13, true);
             HI(14, 15, true);
-#undef LO
-#undef HI
-#undef X
         } while (false);
         signalReady();
     }
+#undef LO
+#undef HI
+#undef X
 
 
     [[gnu::always_inline]]

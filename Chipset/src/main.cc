@@ -740,10 +740,11 @@ executionBody() noexcept {
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
     while (true) {
-        waitForDataState();
-        startTransaction();
         // only check currentDirection once at the start of the transaction
-        if (const uint16_t al = addressLinesLowerHalf; currentDirection) {
+        if (currentDirection) {
+            waitForDataState();
+            startTransaction();
+            const uint16_t al = addressLinesLowerHalf;
             // since it is not zero we are looking at what was previously a read operation
             if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
                 // the IBUS is the window into the 32-bit bus that the i960 is
@@ -780,6 +781,9 @@ executionBody() noexcept {
                 }
             }
         } else {
+            waitForDataState();
+            startTransaction();
+            const uint16_t al = addressLinesLowerHalf;
             // currently a write operation
             if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
                 auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});

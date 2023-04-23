@@ -49,10 +49,16 @@ struct IAC {
 };
 volatile IAC iac_;
 
+template<bool waitForReady = false>
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
     Platform::signalReady();
+    if constexpr (waitForReady) {
+        // wait four cycles after to make sure that the ready signal has been
+        // propagated to the i960
+        insertCustomNopCount<4>();
+    }
 }
 void 
 putCPUInReset() noexcept {
@@ -130,9 +136,8 @@ inline void
 idleTransaction() noexcept {
     // just keep going until we are done
     do {
-        insertCustomNopCount<4>();
         auto end = Platform::isBurstLast();
-        signalReady();
+        signalReady<true>();
         if (end) {
             break;
         }
@@ -459,10 +464,7 @@ public:
                     if (Platform::isBurstLast()) { \
                         break; \
                     } \
-                    signalReady(); \
-                    if constexpr (!isReadOperation) { \
-                        insertCustomNopCount<4>(); /* The delay for the ready signal */ \
-                    } \
+                    signalReady<!isReadOperation>(); \
                 } \
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)

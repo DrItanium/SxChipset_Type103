@@ -760,10 +760,10 @@ executionBody() noexcept {
                         static_cast<uint8_t>(al >> 8),
                         offset);
             } else {
-                // the i960 directly controls the bank index of the IBUS
-                // after image installation is complete, we have a 30 bit
-                // view of the world (14 bits offset + 16 bits (Ports J and
-                // K | i960 A15:29)
+                // the IBUS is the window into the 32-bit bus that the i960 is
+                // accessing from. Right now, it supports up to 4 megabytes of
+                // space (repeating these 4 megabytes throughout the full
+                // 32-bit space until we get to IO space)
                 CommunicationKernel<false, width>::doCommunication(
                         getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                         offset);
@@ -780,10 +780,10 @@ executionBody() noexcept {
                         static_cast<uint8_t>(al >> 8),
                         offset);
             } else {
-                // the i960 directly controls the bank index of the IBUS
-                // after image installation is complete, we have a 30 bit
-                // view of the world (14 bits offset + 16 bits (Ports J and
-                // K | i960 A15:29)
+                // the IBUS is the window into the 32-bit bus that the i960 is
+                // accessing from. Right now, it supports up to 4 megabytes of
+                // space (repeating these 4 megabytes throughout the full
+                // 32-bit space until we get to IO space)
                 CommunicationKernel<true, width>::doCommunication(
                         getTransactionWindow(al, typename TreatAsOnChipAccess::AccessMethod{}),
                         offset);

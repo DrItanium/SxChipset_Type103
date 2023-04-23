@@ -793,17 +793,16 @@ executionBody() noexcept {
         } else {
             if (digitalRead<Pin::IsIOSpaceOperation>() == LOW) {
                 const uint8_t addressTag = addressLines[2];
-                if (Platform::isWriteOperation()) {
+                if (const auto function = static_cast<uint8_t>(al >> 8); Platform::isWriteOperation()) {
                     if (currentDirection) {
                         currentDirection = ~currentDirection;
                         // clear the pullups
                         updateDataLinesDirection(currentDirection);
                     }
-                    CommunicationKernel<false, width>::doCommunication(operation, 
-                            static_cast<uint8_t>(al));
+                    CommunicationKernel<false, width>::doCommunication(operation, offset);
                     performIOWriteGroup0<width>(operation, 
                             addressTag,
-                            static_cast<uint8_t>(al >> 8),
+                            function,
                             offset);
 
                 } else {
@@ -811,10 +810,7 @@ executionBody() noexcept {
                         currentDirection = ~currentDirection;
                         updateDataLinesDirection(currentDirection);
                     }
-                    performIOReadGroup0<width>(operation, 
-                            addressTag,
-                            static_cast<uint8_t>(al >> 8),
-                            offset);
+                    performIOReadGroup0<width>(operation, addressTag, function, offset);
                 }
 
             } else {

@@ -535,7 +535,7 @@ public:
                              * waiting for the next cycle
                              */ \
                             selectIO(); \
-                            insertCustomNopCount<3>(); \
+                            insertCustomNopCount<2>(); \
                         } else { \
                             signalReady<true>(); \
                         } \

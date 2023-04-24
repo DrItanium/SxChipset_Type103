@@ -482,16 +482,15 @@ public:
                          * should be safe to just propagate without performing
                          * the check itself
                          */ \
-                        selectIO(); \
                         auto a = getDataByte<d0>(); \
-                        selectIBUS(); \
-                        theBytes[b0] = a; \
                         if (digitalRead<Pin:: BE ## d1 >()) { \
+                            selectIBUS(); \
+                            theBytes[b0] = a; \
                             break; \
                         } \
-                        selectIO(); \
                         auto b = getDataByte<d1>(); \
                         selectIBUS(); \
+                        theBytes[b0] = a; \
                         theBytes[b1] = b; \
                     } else { \
                         /*
@@ -500,7 +499,6 @@ public:
                          * check the lower bits
                          */ \
                         if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            selectIO(); \
                             auto b = getDataByte<d1>(); \
                             selectIBUS(); \
                             theBytes[b1] = b; \
@@ -519,7 +517,6 @@ public:
                              * The only way we get here is if the upper byte
                              * enable bit is high!
                              */ \
-                            selectIO(); \
                             auto a = getDataByte<d0>(); \
                             selectIBUS(); \
                             theBytes[b0] = a; \
@@ -531,7 +528,20 @@ public:
                     if (Platform::isBurstLast()) { \
                         break; \
                     } \
-                    signalReady<!isReadOperation>(); \
+                    if constexpr (!isReadOperation) { \
+                        if constexpr (EBIWidth < 15) { \
+                            signalReady<false>(); \
+                            /* interleave selecting the IO device as part of
+                             * waiting for the next cycle
+                             */ \
+                            selectIO(); \
+                            insertCustomNopCount<3>(); \
+                        } else { \
+                            signalReady<true>(); \
+                        } \
+                    } else { \
+                        signalReady<false>(); \
+                    } \
                 } \
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)

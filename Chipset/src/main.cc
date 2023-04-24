@@ -835,7 +835,7 @@ reconfigureBus() noexcept {
         digitalWrite<Pin::EBIA14, LOW>();
     } else if constexpr (EBIWidth == 13) {
 
-        XMCRB = 0b0'0000'010;
+        XMCRB = 0b0'0000'011;
         pinMode(Pin::EBIA15, OUTPUT);
         pinMode(Pin::EBIA14, OUTPUT);
         // A13 is an input at this point because the i960 will describe the

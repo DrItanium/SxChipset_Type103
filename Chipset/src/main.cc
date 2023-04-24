@@ -766,19 +766,23 @@ uint8_t computeBankIndex(uint32_t address, typename TreatAsOnChipAccess::AccessM
             static_cast<uint8_t>(address >> 16),
             typename TreatAsOnChipAccess::AccessMethod{});
 }
+constexpr bool onlyAffectsLowerHalf(uint16_t value) noexcept {
+    return value < 0x100;
+}
 template<uint16_t sectionMask, uint16_t offsetMask>
 constexpr
 uint16_t
 computeTransactionWindow_Generic(uint16_t offset) noexcept {
     return sectionMask | (offset & offsetMask);
 }
+
 template<NativeBusWidth width>
-[[gnu::used]]
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
     return computeTransactionWindow_Generic<BASE_IBUS_ADDRESS, OffsetMask_v<width, EBIWidth>>(offset);
 }
+
 #if 0
 template<NativeBusWidth width>
 constexpr

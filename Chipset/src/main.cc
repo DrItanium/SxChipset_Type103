@@ -52,7 +52,7 @@ volatile IAC iac_;
 [[gnu::always_inline]]
 inline void
 selectIBUS() noexcept {
-    if constexpr (EBIWidth < 15) {
+    if constexpr (RequiresManualAddressModification_v<EBIWidth>) {
         digitalWrite<Pin::EBIA14, HIGH>();
     }
 }
@@ -60,7 +60,7 @@ selectIBUS() noexcept {
 [[gnu::always_inline]]
 inline void
 selectIO() noexcept {
-    if constexpr (EBIWidth < 15) {
+    if constexpr (RequiresManualAddressModification_v<EBIWidth>) {
         digitalWrite<Pin::EBIA14, LOW>();
     }
 }
@@ -529,7 +529,7 @@ public:
                         break; \
                     } \
                     if constexpr (!isReadOperation) { \
-                        if constexpr (EBIWidth < 15) { \
+                        if constexpr (RequiresManualAddressModification_v<EBIWidth>) { \
                             signalReady<false>(); \
                             /* interleave selecting the IO device as part of
                              * waiting for the next cycle
@@ -777,29 +777,7 @@ template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    constexpr uint16_t LookupTable[16] {
-        // lowest 8 entries are all 0xFF
-        0x00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF, 0x00FF,
-        0x03FF, 0x03FF, // 9 and 10 have the same mapping since they would both
-                        // map to a 1k space
-        0x7FF,  // yield A11, A12, and A13
-        0xFFF, // yield A12 and A13
-        0x1FFF, // we have yielded a single address line to the i960 (A13)
-        0x3FFF, 0x3FFF, 0x3FFF, // 14-bit address is consistent for all of
-                                // these modes
-    };
-    constexpr uint16_t LookupTable2[16] {
-        // lowest 8 entries are all 0xFF
-        0x00FC, 0x00FC, 0x00FC, 0x00FC, 0x00FC, 0x00FC, 0x00FC, 0x00FC,
-        0x03FC, 0x03FC, // 9 and 10 have the same mapping since they would both
-                        // map to a 1k space
-        0x7FC,  // yield A11, A12, and A13
-        0xFFC, // yield A12 and A13
-        0x1FFC, // we have yielded a single address line to the i960 (A13)
-        0x3FFC, 0x3FFC, 0x3FFC, // 14-bit address is consistent for all of
-                                // these modes
-    };
-    return computeTransactionWindow_Generic<BASE_IBUS_ADDRESS, width == NativeBusWidth::Sixteen ?  LookupTable2[EBIWidth] : LookupTable[EBIWidth]>(offset);
+    return computeTransactionWindow_Generic<BASE_IBUS_ADDRESS, OffsetMask_v<width, EBIWidth>>(offset);
 }
 #if 0
 template<NativeBusWidth width>
@@ -827,44 +805,31 @@ updateDataLinesDirection(uint8_t value) noexcept {
 }
 void
 reconfigureBus() noexcept {
-    if constexpr (EBIWidth == 15) {
-        // reconfigure the EBI to run in 15-bit mode!
-        // we want to eventually move over to having the address lines be taken
-        // over by the i960 itself. 15-bit is the first step
-        // disable the bus keeper since we shouldn't be relying on it at all
-        // also setup the external memory high mask to 15-bit mode
-        XMCRB=0b0'0000'001;
-        pinMode(Pin::EBIA15, OUTPUT);
-        // force EBIA15 / PC7 into output LOW
-        digitalWrite<Pin::EBIA15, LOW>();
-        // leave all of the timing settings alone at this point
-    } else if constexpr (EBIWidth == 14) {
-        XMCRB = 0b0'0000'010;
-        pinMode(Pin::EBIA15, OUTPUT);
-        pinMode(Pin::EBIA14, OUTPUT);
-        digitalWrite<Pin::EBIA15, LOW>();
-        digitalWrite<Pin::EBIA14, LOW>();
-    } else if constexpr (EBIWidth == 13) {
-
-        XMCRB = 0b0'0000'011;
-        pinMode(Pin::EBIA15, OUTPUT);
-        pinMode(Pin::EBIA14, OUTPUT);
-        // A13 is an input at this point because the i960 will describe the
-        // address bits itself
-        pinMode(Pin::EBIA13, INPUT);
-        digitalWrite<Pin::EBIA15, LOW>();
-        digitalWrite<Pin::EBIA14, LOW>();
-    } else if constexpr (EBIWidth == 12) {
-
-        XMCRB = 0b0'0000'100;
-        pinMode(Pin::EBIA15, OUTPUT);
-        pinMode(Pin::EBIA14, OUTPUT);
-        digitalWrite<Pin::EBIA15, LOW>();
-        digitalWrite<Pin::EBIA14, LOW>();
-        // A13 is an input at this point because the i960 will describe the
-        // address bits itself
-        pinMode(Pin::EBIA13, INPUT);
-        pinMode(Pin::EBIA12, INPUT);
+    // the width enum is a direct match to how we want to configure everything
+    // so a cast is simple and safe. We want to also make sure the bus keeper
+    // is deactivated too!
+    XMCRB = static_cast<uint8_t>(EBIWidth);
+    // we will be leaving the timing settings alone since that will not change
+    switch (EBIWidth) {
+        case EBIMemoryHighMask::EightBit:
+            pinMode(Pin::EBIA8, INPUT);
+            pinMode(Pin::EBIA9, INPUT);
+        case EBIMemoryHighMask::TenBit:
+            pinMode(Pin::EBIA10, INPUT);
+        case EBIMemoryHighMask::ElevenBit:
+            pinMode(Pin::EBIA11, INPUT);
+        case EBIMemoryHighMask::TwelveBit:
+            pinMode(Pin::EBIA12, INPUT);
+        case EBIMemoryHighMask::ThirteenBit:
+            pinMode(Pin::EBIA13, INPUT);
+        case EBIMemoryHighMask::FourteenBit:
+            pinMode(Pin::EBIA14, OUTPUT);
+            digitalWrite<Pin::EBIA14, LOW>();
+        case EBIMemoryHighMask::FifteenBit:
+            pinMode(Pin::EBIA15, OUTPUT);
+            digitalWrite<Pin::EBIA15, LOW>();
+        default: 
+            break;
     }
 }
 

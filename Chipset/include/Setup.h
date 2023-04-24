@@ -39,9 +39,18 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
-constexpr uint8_t EBIWidth = 12;
-static_assert(EBIWidth <= 16, "EBIWidth Must be less than 16");
-static_assert(EBIWidth >= 8, "EBIWidth must be greater than 8");
+enum class EBIMemoryHighMask : uint8_t {
+    SixteenBit = 0b000,
+    FifteenBit = 0b001,
+    FourteenBit = 0b010,
+    ThirteenBit = 0b011,
+    TwelveBit = 0b100,
+    ElevenBit = 0b101,
+    TenBit = 0b110,
+    EightBit = 0b111,
+};
+
+constexpr auto EBIWidth = EBIMemoryHighMask::TwelveBit;
 
 template<uint8_t count>
 [[gnu::always_inline]]
@@ -100,6 +109,42 @@ constexpr NativeBusWidth getBusWidth(CPUKind kind) noexcept {
             return NativeBusWidth::Unknown;
     }
 }
+
+template<NativeBusWidth width>
+constexpr uint16_t BusWidthMask_v = 0b11;
+template<>
+constexpr uint16_t BusWidthMask_v<NativeBusWidth::Sixteen> = 0b00;
+
+template<EBIMemoryHighMask width>
+constexpr uint16_t EBIBusMask_v = 0b0011'1111'1111'1100;
+template<>
+constexpr uint16_t EBIBusMask_v<EBIMemoryHighMask::EightBit> = 0b0000'0000'1111'1100;
+template<>
+constexpr uint16_t EBIBusMask_v<EBIMemoryHighMask::TenBit> = 0b0000'0011'1111'1100;
+template<>
+constexpr uint16_t EBIBusMask_v<EBIMemoryHighMask::ElevenBit> = 0b0000'0111'1111'1100;
+template<>
+constexpr uint16_t EBIBusMask_v<EBIMemoryHighMask::TwelveBit> = 0b0000'1111'1111'1100;
+template<>
+constexpr uint16_t EBIBusMask_v<EBIMemoryHighMask::ThirteenBit> = 0b0001'1111'1111'1100;
+
+template<NativeBusWidth busWidth, EBIMemoryHighMask mask>
+constexpr uint16_t OffsetMask_v = BusWidthMask_v<busWidth> | EBIBusMask_v<mask>;
+
+constexpr auto requiresManualAddressModification(EBIMemoryHighMask mask) noexcept {
+    switch (mask) {
+        case EBIMemoryHighMask::EightBit:
+        case EBIMemoryHighMask::TenBit:
+        case EBIMemoryHighMask::ElevenBit:
+        case EBIMemoryHighMask::TwelveBit:
+        case EBIMemoryHighMask::ThirteenBit:
+            return true;
+        default:
+            return false;
+    }
+}
+template<EBIMemoryHighMask mask>
+constexpr bool RequiresManualAddressModification_v = requiresManualAddressModification(mask);
 
 /// @brief The Cyclone SDK board supported many different clock speeds, we only support a 10MHz synchronized with the AVR chip
 enum class CPUFrequencyInfo {

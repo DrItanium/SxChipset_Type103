@@ -50,7 +50,7 @@ enum class EBIMemoryHighMask : uint8_t {
     EightBit = 0b111,
 };
 
-constexpr auto EBIWidth = EBIMemoryHighMask::ElevenBit;
+constexpr auto EBIWidth = EBIMemoryHighMask::TenBit;
 
 template<uint8_t count>
 [[gnu::always_inline]]

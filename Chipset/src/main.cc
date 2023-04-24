@@ -49,12 +49,15 @@ struct IAC {
 };
 volatile IAC iac_;
 
+[[gnu::always_inline]]
 inline void
 selectIBUS() noexcept {
     if constexpr (EBIWidth < 15) {
         digitalWrite<Pin::EBIA14, HIGH>();
     }
 }
+
+[[gnu::always_inline]]
 inline void
 selectIO() noexcept {
     if constexpr (EBIWidth < 15) {

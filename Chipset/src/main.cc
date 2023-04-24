@@ -49,6 +49,20 @@ struct IAC {
 };
 volatile IAC iac_;
 
+inline void
+selectIBUS() noexcept {
+    if constexpr (EBIWidth < 15) {
+        digitalWrite<Pin::EBIA14, HIGH>();
+    }
+}
+inline void
+selectIO() noexcept {
+    if constexpr (EBIWidth < 15) {
+        digitalWrite<Pin::EBIA14, LOW>();
+    }
+}
+
+
 template<bool waitForReady = false>
 [[gnu::always_inline]] 
 inline void 
@@ -172,6 +186,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
     // the code is very straightforward
     if constexpr (isReadOperation) {
         if constexpr (a == b && b == c && c == d) {
+            selectIO();
             setDataByte<0>(static_cast<uint8_t>(a));
             setDataByte<1>(static_cast<uint8_t>(a >> 8));
             setDataByte<2>(static_cast<uint8_t>(a >> 16));
@@ -197,6 +212,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
                     static_cast<uint8_t>(d >> 24),
             };
             const uint8_t* theBytes = &contents.bytes[getWordByteOffset<width>(lowest)]; 
+            selectIO();
             // in all other cases do the whole thing
             setDataByte<0>(theBytes[0]);
             setDataByte<1>(theBytes[1]);
@@ -247,23 +263,41 @@ static void
 doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
 #define X(base) \
     if constexpr (isReadOperation) { \
-        setDataByte<0>(theBytes[(base + 0)]); \
-        setDataByte<1>(theBytes[(base + 1)]); \
-        setDataByte<2>(theBytes[(base + 2)]); \
-        setDataByte<3>(theBytes[(base + 3)]); \
+        selectIBUS(); \
+        auto a = theBytes[(base + 0)]; \
+        auto b = theBytes[(base + 1)]; \
+        auto c = theBytes[(base + 2)]; \
+        auto d = theBytes[(base + 3)]; \
+        selectIO(); \
+        setDataByte<0>(a); \
+        setDataByte<1>(b); \
+        setDataByte<2>(c); \
+        setDataByte<3>(d); \
     } else { \
         if (digitalRead<Pin::BE0>() == LOW) { \
-            theBytes[(base + 0)] = getDataByte<0>(); \
+            selectIO(); \
+            auto a = getDataByte<0>(); \
+            selectIBUS(); \
+            theBytes[(base + 0)] = a; \
         } \
         if (digitalRead<Pin::BE1>() == LOW) { \
-            theBytes[(base + 1)] = getDataByte<1>(); \
+            selectIO(); \
+            auto a = getDataByte<1>(); \
+            selectIBUS(); \
+            theBytes[(base + 1)] = a; \
         } \
         if (digitalRead<Pin::BE2>() == LOW) { \
-            theBytes[(base + 2)] = getDataByte<2>(); \
+            selectIO(); \
+            auto a = getDataByte<2>(); \
+            selectIBUS(); \
+            theBytes[(base + 2)] = a; \
         } \
         if (digitalRead<Pin::BE3>() == LOW) { \
-            theBytes[(base + 3)] = getDataByte<3>(); \
-        }  \
+            selectIO(); \
+            auto a = getDataByte<3>(); \
+            selectIBUS(); \
+            theBytes[(base + 3)] = a; \
+        } \
     }
     X(0);
     auto end = Platform::isBurstLast();
@@ -737,6 +771,7 @@ updateDataLinesDirection(uint8_t value) noexcept {
 }
 void
 reconfigureBus() noexcept {
+    if constexpr (EBIWidth == 15) {
         // reconfigure the EBI to run in 15-bit mode!
         // we want to eventually move over to having the address lines be taken
         // over by the i960 itself. 15-bit is the first step
@@ -747,6 +782,7 @@ reconfigureBus() noexcept {
         // force EBIA15 / PC7 into output LOW
         digitalWrite<Pin::EBIA15, LOW>();
         // leave all of the timing settings alone at this point
+    }
 }
 
 template<NativeBusWidth width> 
@@ -759,9 +795,7 @@ executionBody() noexcept {
     updateDataLinesDirection(currentDirection);
     getDirectionRegister<Port::IBUS_Bank>() = 0;
     // now we want to shift the EBI to 8-bit mode
-    if constexpr (MapIBUSAndIOToUpper32k) {
-        reconfigureBus();
-    }
+    reconfigureBus();
 
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});

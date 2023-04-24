@@ -39,7 +39,9 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
-constexpr bool MapIBUSAndIOToUpper32k = true;
+constexpr uint8_t EBIWidth = 15;
+static_assert(EBIWidth <= 16, "EBIWidth Must be less than 16");
+static_assert(EBIWidth >= 8, "EBIWidth must be greater than 8");
 
 template<uint8_t count>
 [[gnu::always_inline]]

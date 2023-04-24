@@ -770,9 +770,10 @@ template<uint16_t sectionMask, uint16_t offsetMask>
 constexpr
 uint16_t
 computeTransactionWindow_Generic(uint16_t offset) noexcept {
-    return sectionMask + (offset & offsetMask);
+    return sectionMask | (offset & offsetMask);
 }
 template<NativeBusWidth width>
+[[gnu::used]]
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
@@ -853,6 +854,17 @@ reconfigureBus() noexcept {
         pinMode(Pin::EBIA13, INPUT);
         digitalWrite<Pin::EBIA15, LOW>();
         digitalWrite<Pin::EBIA14, LOW>();
+    } else if constexpr (EBIWidth == 12) {
+
+        XMCRB = 0b0'0000'100;
+        pinMode(Pin::EBIA15, OUTPUT);
+        pinMode(Pin::EBIA14, OUTPUT);
+        digitalWrite<Pin::EBIA15, LOW>();
+        digitalWrite<Pin::EBIA14, LOW>();
+        // A13 is an input at this point because the i960 will describe the
+        // address bits itself
+        pinMode(Pin::EBIA13, INPUT);
+        pinMode(Pin::EBIA12, INPUT);
     }
 }
 

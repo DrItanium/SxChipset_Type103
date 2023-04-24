@@ -39,7 +39,7 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
-constexpr uint8_t EBIWidth = 13;
+constexpr uint8_t EBIWidth = 12;
 static_assert(EBIWidth <= 16, "EBIWidth Must be less than 16");
 static_assert(EBIWidth >= 8, "EBIWidth must be greater than 8");
 

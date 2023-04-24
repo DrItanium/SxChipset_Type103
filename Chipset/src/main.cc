@@ -352,6 +352,7 @@ private:
     [[gnu::always_inline]]
     inline
     static void doFixedReadOperation(uint8_t lowest) noexcept {
+        selectIO();
         if constexpr (a == b && b == c && c == d) {
             setDataByte<0>(static_cast<uint8_t>(a));
             setDataByte<1>(static_cast<uint8_t>(a >> 8));
@@ -463,8 +464,12 @@ public:
 #define X(d0, b0, d1, b1, later) \
             { \
                 if constexpr (isReadOperation) { \
-                    setDataByte<d0>(theBytes[b0]); \
-                    setDataByte<d1>(theBytes[b1]); \
+                    selectIBUS(); \
+                    auto a = theBytes[b0]; \
+                    auto b = theBytes[b1]; \
+                    selectIO(); \
+                    setDataByte<d0>(a); \
+                    setDataByte<d1>(b); \
                 } else { \
                     if constexpr (later) { \
                         /* in this case, we will immediately terminate if the 
@@ -474,11 +479,17 @@ public:
                          * should be safe to just propagate without performing
                          * the check itself
                          */ \
-                        theBytes[b0] = getDataByte<d0>(); \
+                        selectIO(); \
+                        auto a = getDataByte<d0>(); \
+                        selectIBUS(); \
+                        theBytes[b0] = a; \
                         if (digitalRead<Pin:: BE ## d1 >()) { \
                             break; \
                         } \
-                        theBytes[b1] = getDataByte<d1>(); \
+                        selectIO(); \
+                        auto b = getDataByte<d1>(); \
+                        selectIBUS(); \
+                        theBytes[b1] = b; \
                     } else { \
                         /*
                          * First time through, we want to actually check the
@@ -486,9 +497,15 @@ public:
                          * check the lower bits
                          */ \
                         if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            theBytes[b1] = getDataByte<d1>(); \
+                            selectIO(); \
+                            auto b = getDataByte<d1>(); \
+                            selectIBUS(); \
+                            theBytes[b1] = b; \
                             if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
-                                theBytes[b0] = getDataByte<d0>(); \
+                                selectIO(); \
+                                uint8_t a = getDataByte<d0>(); \
+                                selectIBUS(); \
+                                theBytes[b0] = a; \
                             } \
                         } else { \
                             /*
@@ -499,7 +516,10 @@ public:
                              * The only way we get here is if the upper byte
                              * enable bit is high!
                              */ \
-                            theBytes[b0] = getDataByte<d0>(); \
+                            selectIO(); \
+                            auto a = getDataByte<d0>(); \
+                            selectIBUS(); \
+                            theBytes[b0] = a; \
                             break; \
                         } \
                     } \

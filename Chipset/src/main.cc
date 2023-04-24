@@ -101,8 +101,10 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 }
 #ifndef OLD_SCHOOL_IMPL
 #define BASE_IO_ADDRESS 0x8000
+#define BASE_IBUS_ADDRESS 0xC000
 #else
 #define BASE_IO_ADDRESS 0x2200
+#define BASE_IBUS_ADDRESS 0x4000
 #endif
 
 [[gnu::address(BASE_IO_ADDRESS | 0x8)]] volatile uint8_t dataLines[4];
@@ -707,16 +709,16 @@ template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<
-        MapIBUSAndIOToUpper32k ? 0xC000 : 0x4000,
-        width == NativeBusWidth::Sixteen ? 0x3ffc : 0x3fff>(offset);
+    return computeTransactionWindow_Generic< BASE_IBUS_ADDRESS, width == NativeBusWidth::Sixteen ? 0x3ffc : 0x3fff>(offset);
 }
+#if 0
 template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOffChipAccess::AccessMethod) noexcept {
     return computeTransactionWindow_Generic<0x8000, width == NativeBusWidth::Sixteen ? 0x7ffc : 0x7fff>(offset);
 }
+#endif
 
 template<NativeBusWidth width, typename T>
 DataRegister8

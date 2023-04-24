@@ -39,6 +39,7 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
+constexpr bool MapIBUSAndIOToUpper32k = true;
 
 template<uint8_t count>
 [[gnu::always_inline]]

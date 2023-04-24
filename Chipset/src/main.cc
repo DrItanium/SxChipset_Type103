@@ -99,18 +99,24 @@ template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
-[[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
-[[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
-[[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
-[[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
+#ifndef OLD_SCHOOL_IMPL
+#define BASE_IO_ADDRESS 0x8000
+#else
+#define BASE_IO_ADDRESS 0x2200
+#endif
 
-[[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
-[[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
-[[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
-[[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
-[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
+[[gnu::address(BASE_IO_ADDRESS | 0x8)]] volatile uint8_t dataLines[4];
+[[gnu::address(BASE_IO_ADDRESS | 0x8)]] volatile uint32_t dataLinesFull;
+[[gnu::address(BASE_IO_ADDRESS | 0x8)]] volatile uint16_t dataLinesHalves[2];
+[[gnu::address(BASE_IO_ADDRESS | 0xC)]] volatile uint32_t dataLinesDirection;
+[[gnu::address(BASE_IO_ADDRESS | 0xC)]] volatile uint8_t dataLinesDirection_bytes[4];
+[[gnu::address(BASE_IO_ADDRESS | 0xC)]] volatile uint8_t dataLinesDirection_LSB;
+
+[[gnu::address(BASE_IO_ADDRESS)]] volatile uint16_t AddressLines16Ptr[4];
+[[gnu::address(BASE_IO_ADDRESS)]] volatile uint32_t AddressLines32Ptr[2];
+[[gnu::address(BASE_IO_ADDRESS)]] volatile uint32_t addressLinesValue32;
+[[gnu::address(BASE_IO_ADDRESS)]] volatile uint16_t addressLinesLowerHalf;
+[[gnu::address(BASE_IO_ADDRESS)]] volatile uint8_t addressLines[8];
 
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
@@ -701,7 +707,9 @@ template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x4000, width == NativeBusWidth::Sixteen ? 0x3ffc : 0x3fff>(offset);
+    return computeTransactionWindow_Generic<
+        MapIBUSAndIOToUpper32k ? 0xC000 : 0x4000,
+        width == NativeBusWidth::Sixteen ? 0x3ffc : 0x3fff>(offset);
 }
 template<NativeBusWidth width>
 constexpr
@@ -725,7 +733,19 @@ updateDataLinesDirection(uint8_t value) noexcept {
     dataLinesDirection_bytes[2] = value;
     dataLinesDirection_bytes[3] = value;
 }
-
+void
+reconfigureBus() noexcept {
+        // reconfigure the EBI to run in 15-bit mode!
+        // we want to eventually move over to having the address lines be taken
+        // over by the i960 itself. 15-bit is the first step
+        // disable the bus keeper since we shouldn't be relying on it at all
+        // also setup the external memory high mask to 15-bit mode
+        XMCRB=0b0'0000'001;
+        pinMode(Pin::EBIA15, OUTPUT);
+        // force EBIA15 / PC7 into output LOW
+        digitalWrite<Pin::EBIA15, LOW>();
+        // leave all of the timing settings alone at this point
+}
 
 template<NativeBusWidth width> 
 [[gnu::noinline]]
@@ -736,6 +756,11 @@ executionBody() noexcept {
     uint8_t currentDirection = 0xff;
     updateDataLinesDirection(currentDirection);
     getDirectionRegister<Port::IBUS_Bank>() = 0;
+    // now we want to shift the EBI to 8-bit mode
+    if constexpr (MapIBUSAndIOToUpper32k) {
+        reconfigureBus();
+    }
+
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});

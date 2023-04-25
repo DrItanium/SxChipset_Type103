@@ -452,9 +452,11 @@ public:
                          * the check itself
                          */ \
                         if constexpr (b0 != 14 && b1 != 15) { \
+                            auto a = getDataByte<d0>(); \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
-                                theBytes[b0] = getDataByte<d0>(); \
-                                break; \
+                                signalReady<false>(); \
+                                theBytes[b0] = a; \
+                                return; \
                             } \
                             theBytes[b0] = getDataByte<d0>(); \
                             theBytes[b1] = getDataByte<d1>(); \
@@ -483,6 +485,12 @@ public:
                                 uint8_t a = getDataByte<d0>(); \
                                 theBytes[b0] = a; \
                             } \
+                            if constexpr (b0 != 14 && b1 != 15) { \
+                                if (Platform::isBurstLast()) { \
+                                    break; \
+                                } \
+                                signalReady<!isReadOperation>(); \
+                            } \
                         } else { \
                             /*
                              * In this case, we know that the lower 8-bits are
@@ -493,14 +501,9 @@ public:
                              * enable bit is high!
                              */ \
                             auto a = getDataByte<d0>(); \
+                            signalReady<false>(); \
                             theBytes[b0] = a; \
-                            break; \
-                        } \
-                        if constexpr (b0 != 14 && b1 != 15) { \
-                            if (Platform::isBurstLast()) { \
-                                break; \
-                            } \
-                            signalReady<!isReadOperation>(); \
+                            return; \
                         } \
                     } \
                 } \

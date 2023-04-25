@@ -458,11 +458,15 @@ public:
                                 theBytes[b0] = a; \
                                 return; \
                             } \
-                            theBytes[b0] = a; \
-                            theBytes[b1] = getDataByte<d1>(); \
+                            auto b = getDataByte<d1>(); \
                             if (Platform::isBurstLast()) { \
-                                break; \
+                                signalReady<false>(); \
+                                theBytes[b0] = a; \
+                                theBytes[b1] = b; \
+                                return; \
                             } \
+                            theBytes[b0] = a; \
+                            theBytes[b1] = b; \
                             signalReady<!isReadOperation>(); \
                         } else { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \

@@ -756,25 +756,6 @@ performIOWriteGroup0(const SplitWord128& body, uint8_t group, uint8_t function, 
     }
 }
 
-uint8_t computeBankIndex(uint8_t lower, uint8_t upper, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-#ifndef __BUILTIN_AVR_INSERT_BITS
-        uint8_t a = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
-        uint8_t b = static_cast<uint8_t>(bytes[2] << 2) & 0b1111'1100;
-        return a + b;
-#else
-        return __builtin_avr_insert_bits(0xffffff76, lower, 
-                __builtin_avr_insert_bits(0x543210ff, upper, 0));
-#endif
-}
-inline
-uint8_t computeBankIndex(uint32_t address, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return computeBankIndex(static_cast<uint8_t>(address >> 8),
-            static_cast<uint8_t>(address >> 16),
-            typename TreatAsOnChipAccess::AccessMethod{});
-}
-constexpr bool onlyAffectsLowerHalf(uint16_t value) noexcept {
-    return value < 0x100;
-}
 template<uint16_t sectionMask, uint16_t offsetMask>
 constexpr
 uint16_t
@@ -788,15 +769,6 @@ uint16_t
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
     return computeTransactionWindow_Generic<BASE_IBUS_ADDRESS, OffsetMask_v<width, EBIWidth>>(offset);
 }
-
-#if 0
-template<NativeBusWidth width>
-constexpr
-uint16_t 
-computeTransactionWindow(uint16_t offset, typename TreatAsOffChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x8000, width == NativeBusWidth::Sixteen ? 0x7ffc : 0x7fff>(offset);
-}
-#endif
 
 template<NativeBusWidth width, typename T>
 DataRegister8

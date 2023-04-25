@@ -451,14 +451,14 @@ public:
                          * should be safe to just propagate without performing
                          * the check itself
                          */ \
+                        auto a = getDataByte<d0>(); \
                         if constexpr (b0 != 14 && b1 != 15) { \
-                            auto a = getDataByte<d0>(); \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
                                 signalReady<false>(); \
                                 theBytes[b0] = a; \
                                 return; \
                             } \
-                            theBytes[b0] = getDataByte<d0>(); \
+                            theBytes[b0] = a; \
                             theBytes[b1] = getDataByte<d1>(); \
                             if (Platform::isBurstLast()) { \
                                 break; \
@@ -466,10 +466,10 @@ public:
                             signalReady<!isReadOperation>(); \
                         } else { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
-                                theBytes[b0] = getDataByte<d0>(); \
+                                theBytes[b0] = a; \
                                 break; \
                             } \
-                            theBytes[b0] = getDataByte<d0>(); \
+                            theBytes[b0] = a; \
                             theBytes[b1] = getDataByte<d1>(); \
                         } \
                     } else { \

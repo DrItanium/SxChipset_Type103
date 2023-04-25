@@ -465,9 +465,9 @@ public:
                                 theBytes[b1] = b; \
                                 return; \
                             } \
+                            signalReady<false>(); \
                             theBytes[b0] = a; \
                             theBytes[b1] = b; \
-                            signalReady<!isReadOperation>(); \
                         } else { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
                                 theBytes[b0] = a; \

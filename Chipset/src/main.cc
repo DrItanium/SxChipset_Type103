@@ -438,6 +438,12 @@ public:
                     auto b = theBytes[b1]; \
                     setDataByte<d0>(a); \
                     setDataByte<d1>(b); \
+                    if constexpr (b0 != 14 && b1 != 15) { \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<!isReadOperation>(); \
+                    } \
                 } else { \
                     if constexpr (later) { \
                         /* in this case, we will immediately terminate if the 
@@ -480,12 +486,12 @@ public:
                             break; \
                         } \
                     } \
-                } \
-                if constexpr (b0 != 14 && b1 != 15) { \
-                    if (Platform::isBurstLast()) { \
-                        break; \
+                    if constexpr (b0 != 14 && b1 != 15) { \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<!isReadOperation>(); \
                     } \
-                    signalReady<!isReadOperation>(); \
                 } \
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)

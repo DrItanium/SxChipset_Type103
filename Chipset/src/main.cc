@@ -453,12 +453,25 @@ public:
                          * should be safe to just propagate without performing
                          * the check itself
                          */ \
-                        if (digitalRead<Pin:: BE ## d1 >()) { \
+                        if constexpr (b0 != 14 && b1 != 15) { \
+                            if (digitalRead<Pin:: BE ## d1 >()) { \
+                                theBytes[b0] = getDataByte<d0>(); \
+                                break; \
+                            } \
                             theBytes[b0] = getDataByte<d0>(); \
-                            break; \
+                            theBytes[b1] = getDataByte<d1>(); \
+                            if (Platform::isBurstLast()) { \
+                                break; \
+                            } \
+                            signalReady<!isReadOperation>(); \
+                        } else { \
+                            if (digitalRead<Pin:: BE ## d1 >()) { \
+                                theBytes[b0] = getDataByte<d0>(); \
+                                break; \
+                            } \
+                            theBytes[b0] = getDataByte<d0>(); \
+                            theBytes[b1] = getDataByte<d1>(); \
                         } \
-                        theBytes[b0] = getDataByte<d0>(); \
-                        theBytes[b1] = getDataByte<d1>(); \
                     } else { \
                         /*
                          * First time through, we want to actually check the
@@ -485,12 +498,12 @@ public:
                             theBytes[b0] = a; \
                             break; \
                         } \
-                    } \
-                    if constexpr (b0 != 14 && b1 != 15) { \
-                        if (Platform::isBurstLast()) { \
-                            break; \
+                        if constexpr (b0 != 14 && b1 != 15) { \
+                            if (Platform::isBurstLast()) { \
+                                break; \
+                            } \
+                            signalReady<!isReadOperation>(); \
                         } \
-                        signalReady<!isReadOperation>(); \
                     } \
                 } \
             }

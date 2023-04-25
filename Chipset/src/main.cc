@@ -434,10 +434,8 @@ public:
 #define X(d0, b0, d1, b1, later) \
             { \
                 if constexpr (isReadOperation) { \
-                    auto a = theBytes[b0]; \
-                    auto b = theBytes[b1]; \
-                    setDataByte<d0>(a); \
-                    setDataByte<d1>(b); \
+                    setDataByte<d0>(theBytes[b0]); \
+                    setDataByte<d1>(theBytes[b1]); \
                     if constexpr (b0 != 14 && b1 != 15) { \
                         if (Platform::isBurstLast()) { \
                             break; \

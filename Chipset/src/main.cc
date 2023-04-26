@@ -864,6 +864,8 @@ executionBody() noexcept {
             // currently a write operation
             endTransaction();
         }
+        // put the single cycle delay back in to be on the safe side
+        singleCycleDelay();
     }
 }
 

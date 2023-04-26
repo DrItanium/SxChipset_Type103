@@ -381,6 +381,6 @@ template<Pin p>
 [[gnu::always_inline]]
 inline bool sampleOutputState() noexcept {
     // we want to look at what we currently have the output register set to
-    return (getOutputRegister<p>() & getPinMask<p>());
+    return (getOutputRegister<p>() & getPinMask<p>()) != 0;
 }
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

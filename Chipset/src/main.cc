@@ -751,6 +751,7 @@ updateDataLinesDirection(uint8_t value) noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 template<NativeBusWidth width> 
+[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
 [[noreturn]] 
 void 

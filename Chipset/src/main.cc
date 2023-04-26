@@ -768,6 +768,11 @@ executionBody() noexcept {
             waitForDataState();
             startTransaction();
             const uint16_t al = addressLinesLowerHalf;
+            if (!digitalRead<Pin::ChangeDirection>()) {
+                currentDirection = ~currentDirection;
+                updateDataLinesDirection(currentDirection);
+                toggle<Pin::DirectionOutput>();
+            }
             // since it is not zero we are looking at what was previously a read operation
             if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
                 // the IBUS is the window into the 32-bit bus that the i960 is
@@ -776,8 +781,6 @@ executionBody() noexcept {
                 // 32-bit space until we get to IO space)
                 if (auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); Platform::isWriteOperation()) {
                     // read -> write
-                    currentDirection = ~currentDirection;
-                    updateDataLinesDirection(currentDirection);
                     CommunicationKernel<false, width>::doCommunication( window, offset);
 
                 } else {
@@ -789,8 +792,6 @@ executionBody() noexcept {
                 const uint8_t addressTag = addressLines[2];
                 if (const auto function = static_cast<uint8_t>(al >> 8); Platform::isWriteOperation()) {
                     // read -> write
-                    currentDirection = ~currentDirection;
-                    updateDataLinesDirection(currentDirection);
                     CommunicationKernel<false, width>::doCommunication(operation, offset);
                     performIOWriteGroup0(operation, addressTag, function, offset);
 
@@ -804,6 +805,11 @@ executionBody() noexcept {
             // start in write
             waitForDataState();
             startTransaction();
+            if (!digitalRead<Pin::ChangeDirection>()) {
+                currentDirection = ~currentDirection;
+                updateDataLinesDirection(currentDirection);
+                toggle<Pin::DirectionOutput>();
+            }
             const uint16_t al = addressLinesLowerHalf;
             // currently a write operation
             if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
@@ -901,6 +907,10 @@ setupPins() noexcept {
     pinMode(Pin::TransactionDetect, OUTPUT);
     digitalWrite<Pin::TransactionDetect, HIGH>();
 #endif
+    pinMode(Pin::DirectionOutput, OUTPUT);
+    // we start with 0xFF for the direction output so reflect it here
+    digitalWrite<Pin::DirectionOutput, HIGH>();
+    pinMode(Pin::ChangeDirection, INPUT);
     if constexpr (MCUHasDirectAccess) {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();

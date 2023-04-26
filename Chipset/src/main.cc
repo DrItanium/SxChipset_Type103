@@ -769,11 +769,11 @@ executionBody() noexcept {
             const uint16_t al = addressLinesLowerHalf;
             // okay so we know that we are going to write so don't query the
             // pin!
-            if (!digitalRead<Pin::ChangeDirection>()) {
+            if (const auto offset = static_cast<uint8_t>(al); !digitalRead<Pin::ChangeDirection>()) {
                 // read -> write
                 updateDataLinesDirection(0);
                 toggle<Pin::DirectionOutput>();
-                if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
+                if (digitalRead<Pin::IsMemorySpaceOperation>()) {
                     // the IBUS is the window into the 32-bit bus that the i960 is
                     // accessing from. Right now, it supports up to 4 megabytes of
                     // space (repeating these 4 megabytes throughout the full
@@ -793,7 +793,7 @@ executionBody() noexcept {
             } else {
                 // read -> read
                 // we are staying as a read operation!
-                if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
+                if (digitalRead<Pin::IsMemorySpaceOperation>()) {
                     // the IBUS is the window into the 32-bit bus that the i960 is
                     // accessing from. Right now, it supports up to 4 megabytes of
                     // space (repeating these 4 megabytes throughout the full

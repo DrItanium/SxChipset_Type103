@@ -813,11 +813,11 @@ executionBody() noexcept {
             waitForDataState();
             startTransaction();
             const uint16_t al = addressLinesLowerHalf;
-            if (!digitalRead<Pin::ChangeDirection>()) {
+            if (const auto offset = static_cast<uint8_t>(al); !digitalRead<Pin::ChangeDirection>()) {
                 // write -> read
                 updateDataLinesDirection(0xFF);
                 toggle<Pin::DirectionOutput>();
-                if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
+                if (digitalRead<Pin::IsMemorySpaceOperation>()) {
                     auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
                     // write -> read
                     // the IBUS is the window into the 32-bit bus that the i960 is
@@ -833,7 +833,7 @@ executionBody() noexcept {
                 }
             } else {
                 // write -> write
-                if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
+                if (digitalRead<Pin::IsMemorySpaceOperation>()) {
                     auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
                     // write -> write
                     // the IBUS is the window into the 32-bit bus that the i960 is

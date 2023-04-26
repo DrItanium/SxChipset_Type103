@@ -753,8 +753,7 @@ template<NativeBusWidth width>
 void 
 executionBody() noexcept {
     SplitWord128 operation;
-    uint8_t currentDirection = 0xff;
-    updateDataLinesDirection(currentDirection);
+    digitalWrite<Pin::DirectionOutput, HIGH>();
     getDirectionRegister<Port::IBUS_Bank>() = 0;
     // now we want to shift the EBI to 8-bit mode
 
@@ -763,7 +762,7 @@ executionBody() noexcept {
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
     while (true) {
         // only check currentDirection once at the start of the transaction
-        if (currentDirection) {
+        if (sampleOutputState<Pin::DirectionOutput>()) {
             // start in read
             waitForDataState();
             startTransaction();
@@ -772,8 +771,7 @@ executionBody() noexcept {
             // pin!
             if (!digitalRead<Pin::ChangeDirection>()) {
                 // read -> write
-                currentDirection = ~currentDirection;
-                updateDataLinesDirection(currentDirection);
+                updateDataLinesDirection(0);
                 toggle<Pin::DirectionOutput>();
                 if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
                     // the IBUS is the window into the 32-bit bus that the i960 is
@@ -817,8 +815,7 @@ executionBody() noexcept {
             const uint16_t al = addressLinesLowerHalf;
             if (!digitalRead<Pin::ChangeDirection>()) {
                 // write -> read
-                currentDirection = ~currentDirection;
-                updateDataLinesDirection(currentDirection);
+                updateDataLinesDirection(0xFF);
                 toggle<Pin::DirectionOutput>();
                 if (const auto offset = static_cast<uint8_t>(al); digitalRead<Pin::IsMemorySpaceOperation>()) {
                     auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 

@@ -377,4 +377,10 @@ inline void toggleTransaction() noexcept {
     //digitalWrite<Pin::TransactionDetect, HIGH>();
 #endif
 }
+template<Pin p>
+[[gnu::always_inline]]
+inline bool sampleOutputState() noexcept {
+    // we want to look at what we currently have the output register set to
+    return (getOutputRegister<p>() & getPinMask<p>());
+}
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

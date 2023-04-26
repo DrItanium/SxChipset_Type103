@@ -433,10 +433,11 @@ public:
     }
 #define X(d0, b0, d1, b1, later) \
             { \
+                static constexpr bool IsLastWord = (b0 == 14 && b1 == 15); \
                 if constexpr (isReadOperation) { \
                     setDataByte<d0>(theBytes[b0]); \
                     setDataByte<d1>(theBytes[b1]); \
-                    if constexpr (b0 != 14 && b1 != 15) { \
+                    if constexpr (!IsLastWord) { \
                         if (Platform::isBurstLast()) { \
                             break; \
                         } \
@@ -452,7 +453,7 @@ public:
                          * the check itself
                          */ \
                         auto a = getDataByte<d0>(); \
-                        if constexpr (b0 != 14 && b1 != 15) { \
+                        if constexpr (!IsLastWord) { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
                                 signalReady<false>(); \
                                 theBytes[b0] = a; \
@@ -488,7 +489,7 @@ public:
                                 uint8_t a = getDataByte<d0>(); \
                                 theBytes[b0] = a; \
                             } \
-                            if constexpr (b0 != 14 && b1 != 15) { \
+                            if constexpr (!IsLastWord) { \
                                 if (Platform::isBurstLast()) { \
                                     break; \
                                 } \
@@ -513,7 +514,8 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
-[[gnu::used]]
+#pragma GCC push_options
+#pragma GCC optimize ("no-reorder-blocks")
     [[gnu::always_inline]]
     inline
     static void
@@ -558,7 +560,7 @@ public:
 #undef LO
 #undef HI
 #undef X
-
+#pragma GCC pop_options
 
     [[gnu::always_inline]]
     inline

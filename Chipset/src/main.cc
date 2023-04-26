@@ -469,11 +469,10 @@ public:
                             theBytes[b0] = a; \
                             theBytes[b1] = b; \
                         } else { \
+                            theBytes[b0] = a; \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
-                                theBytes[b0] = a; \
                                 break; \
                             } \
-                            theBytes[b0] = a; \
                             theBytes[b1] = getDataByte<d1>(); \
                         } \
                     } else { \
@@ -514,6 +513,7 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
+[[gnu::used]]
     [[gnu::always_inline]]
     inline
     static void

@@ -514,11 +514,10 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
-#pragma GCC push_options
 // block reordering causes expensive jumps to be used under the guise of
 // optimization. Turning it off for this function seems to improve performance
 // quite a bit
-#pragma GCC optimize ("no-reorder-blocks")
+    [[gnu::optimize("no-reorder-blocks")]]
     [[gnu::always_inline]]
     inline
     static void
@@ -563,7 +562,6 @@ public:
 #undef LO
 #undef HI
 #undef X
-#pragma GCC pop_options
 
     [[gnu::always_inline]]
     inline

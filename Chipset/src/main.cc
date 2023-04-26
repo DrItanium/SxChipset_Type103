@@ -823,8 +823,6 @@ executionBody() noexcept {
 
                 } else {
                     // write -> read
-                    currentDirection = ~currentDirection;
-                    updateDataLinesDirection(currentDirection);
                     // the IBUS is the window into the 32-bit bus that the i960 is
                     // accessing from. Right now, it supports up to 4 megabytes of
                     // space (repeating these 4 megabytes throughout the full
@@ -844,8 +842,6 @@ executionBody() noexcept {
 
                 } else {
                     // write -> read
-                    currentDirection = ~currentDirection;
-                    updateDataLinesDirection(currentDirection);
                     performIOReadGroup0<width>(operation, addressTag, function, offset);
                 }
             }

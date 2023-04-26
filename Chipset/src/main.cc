@@ -755,7 +755,11 @@ executionBody() noexcept {
     SplitWord128 operation;
     digitalWrite<Pin::DirectionOutput, HIGH>();
     getDirectionRegister<Port::IBUS_Bank>() = 0;
-    // now we want to shift the EBI to 8-bit mode
+    // switch the XBUS bank mode to i960 instead of AVR
+    // I want to use the upper four bits the XBUS address lines
+    // while I can directly connect to the address lines, I want to test to
+    // make sure that this works as well
+    ControlSignals.ctl.bankSelect = 1;
 
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});

@@ -96,6 +96,7 @@ Platform::begin() noexcept {
         ControlSignals.ctl.xint5 = 1;
         ControlSignals.ctl.xint6 = 1;
         ControlSignals.ctl.xint7 = 1;
+        // select the CH351 bank chip to go over the xbus address lines
         ControlSignals.ctl.bankSelect = 0;
     }
 }

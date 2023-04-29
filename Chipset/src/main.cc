@@ -613,52 +613,53 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
-    switch (static_cast<IOOpcodes>(opcode)) {
-        case K::Info_GetChipsetClockSpeed:
-            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
-            return;
-        case K::Info_GetCPUClockSpeed:
-            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
-            return;
-        case K::Info_GetExternalIAC:
-            body[0].halves[0] = iac_.field2;
-            body[0].bytes[2] = iac_.field1;
-            body[0].bytes[3] = iac_.messageType;
-            body[1].full = iac_.field3;
-            body[2].full = iac_.field4;
-            body[3].full = iac_.field5;
-            break;
-        case K::Serial_RW:
-            body[0].halves[0] = Serial.read();
-            break;
-        case K::Serial_Flush:
-            Serial.flush();
-            break;
-        case K::Serial_Baud:
-            body[0].full = theSerial.getBaudRate();
-            break;
-        case K::Timer_SystemTimer_Prescalar:
-            body.bytes[0] = timerInterface.getSystemTimerPrescalar();
-            break;
-        case K::Timer_SystemTimer_CompareValue:
-            body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
+    if (getIOOpcode_Group(static_cast<IOOpcodes>(opcode)) == 1) {
+        // display register group
+        theDisplay.doReadCommand8(body, getIOOpcode_Offset(static_cast<IOOpcodes>(opcode)));
+    } else {
+        switch (static_cast<IOOpcodes>(opcode)) {
+            case K::Info_GetChipsetClockSpeed:
+                CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
+                return;
+            case K::Info_GetCPUClockSpeed:
+                CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
+                return;
+            case K::Info_GetExternalIAC:
+                body[0].halves[0] = iac_.field2;
+                body[0].bytes[2] = iac_.field1;
+                body[0].bytes[3] = iac_.messageType;
+                body[1].full = iac_.field3;
+                body[2].full = iac_.field4;
+                body[3].full = iac_.field5;
+                break;
+            case K::Serial_RW:
+                body[0].halves[0] = Serial.read();
+                break;
+            case K::Serial_Flush:
+                Serial.flush();
+                break;
+            case K::Serial_Baud:
+                body[0].full = theSerial.getBaudRate();
+                break;
+            case K::Timer_SystemTimer_Prescalar:
+                body.bytes[0] = timerInterface.getSystemTimerPrescalar();
+                break;
+            case K::Timer_SystemTimer_CompareValue:
+                body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
+                break;
 #define X(name) case K:: name : theDisplay.handleReadOperations< K :: name > (body); break
-        X(Display_RW);
-        X(Display_WidthHeight);
-        X(Display_Rotation);
-        X(Display_CursorX); 
-        X(Display_CursorY); 
-        X(Display_CursorXY); 
-        X(Display_Flush);
+                X(Display_RW);
+                X(Display_WidthHeight);
+                X(Display_Rotation);
+                X(Display_CursorX); 
+                X(Display_CursorY); 
+                X(Display_CursorXY); 
+                X(Display_Flush);
 #undef X
-#define X(index) case K:: Display_ReadCommand8_ ## index : 
-#include "Entry255.def"
-#undef X
-            theDisplay.doReadCommand8(body, static_cast<uint8_t>(opcode >> 4));
-            break;
-        default:
-            sendZero<true, width>(static_cast<uint8_t>(opcode));
-            return;
+            default:
+                sendZero<true, width>(static_cast<uint8_t>(opcode));
+                return;
+        }
     }
     CommunicationKernel<true, width>::doCommunication(body, offset);
 }

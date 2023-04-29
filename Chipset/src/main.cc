@@ -438,12 +438,10 @@ public:
                 if constexpr (isReadOperation) { \
                     setDataByte<d0>(theBytes[b0]); \
                     setDataByte<d1>(theBytes[b1]); \
-                    if constexpr (!IsLastWord) { \
-                        if (Platform::isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<!isReadOperation>(); \
+                    if (Platform::isBurstLast()) { \
+                        break; \
                     } \
+                    signalReady<!isReadOperation>(); \
                 } else { \
                     if constexpr (later) { \
                         /* in this case, we will immediately terminate if the 
@@ -453,25 +451,17 @@ public:
                          * should be safe to just propagate without performing
                          * the check itself
                          */ \
-                        auto a = getDataByte<d0>(); \
+                        theBytes[b0] = getDataByte<d0>(); \
                         if constexpr (!IsLastWord) { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
-                                signalReady<false>(); \
-                                theBytes[b0] = a; \
-                                return; \
+                                break; \
                             } \
-                            auto b = getDataByte<d1>(); \
+                            theBytes[b1] = getDataByte<d1>(); \
                             if (Platform::isBurstLast()) { \
-                                signalReady<false>(); \
-                                theBytes[b0] = a; \
-                                theBytes[b1] = b; \
-                                return; \
+                                break; \
                             } \
-                            signalReady<false>(); \
-                            theBytes[b0] = a; \
-                            theBytes[b1] = b; \
+                            signalReady<!isReadOperation>(); \
                         } else { \
-                            theBytes[b0] = a; \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
                                 break; \
                             } \
@@ -758,7 +748,7 @@ updateDataLinesDirection(uint8_t value) noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 template<NativeBusWidth width> 
-[[gnu::optimize("no-reorder-blocks")]]
+//[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
 [[noreturn]] 
 void 

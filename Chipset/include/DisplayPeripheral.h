@@ -261,12 +261,6 @@ class DisplayDescription {
                 case K::Display_Rotation:
                     body.bytes[0] = tft_.getRotation();
                     break;
-                //case K::Display_ReadCommand8:
-                //    // use the offset in the instruction to determine where to
-                //    // place the result and what to request from the tft
-                //    // display
-                //    body.bytes[offset & 0b1111] = tft_.readcommand8(offset);
-                //    break;
                 case K::Display_CursorX: 
                     body[0].halves[0] = tft_.getCursorX(); 
                     break;

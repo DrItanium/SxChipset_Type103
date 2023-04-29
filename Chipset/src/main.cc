@@ -667,6 +667,50 @@ performIOWriteGroup0(const SplitWord128& body, uint16_t opcode) noexcept {
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
+    using K = IOOpcodes;
+    switch (static_cast<K>(opcode)) {
+#define X(name) case K :: name : theDisplay.handleWriteOperations< K :: name > (body); break
+                X(Display_SetScrollMargins);
+                X(Display_SetAddressWindow);
+                X(Display_ScrollTo);
+                X(Display_InvertDisplay);
+                X(Display_Rotation);
+                X(Display_RW);
+                X(Display_Flush);
+                X(Display_DrawPixel);
+                X(Display_DrawFastHLine);
+                X(Display_DrawFastVLine);
+                X(Display_FillRect);
+                X(Display_FillScreen);
+                X(Display_DrawLine);
+                X(Display_DrawRect);
+                X(Display_DrawCircle);
+                X(Display_FillCircle);
+                X(Display_DrawTriangle);
+                X(Display_FillTriangle);
+                X(Display_DrawRoundRect);
+                X(Display_FillRoundRect);
+                X(Display_SetTextWrap);
+                X(Display_CursorX); 
+                X(Display_CursorY); 
+                X(Display_CursorXY);
+                X(Display_DrawChar_Square);
+                X(Display_DrawChar_Rectangle);
+                X(Display_SetTextSize_Square);
+                X(Display_SetTextSize_Rectangle);
+                X(Display_SetTextColor0);
+                X(Display_SetTextColor1);
+                X(Display_StartWrite);
+                X(Display_WritePixel);
+                X(Display_WriteFillRect);
+                X(Display_WriteFastVLine);
+                X(Display_WriteFastHLine);
+                X(Display_WriteLine);
+                X(Display_EndWrite);
+#undef X
+        default: 
+                break;
+    }
 #if 0
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
@@ -682,6 +726,8 @@ performIOWriteGroup0(const SplitWord128& body, uint16_t opcode) noexcept {
             // unknown device so do not do anything
             break;
     }
+#if 0
+#endif
 #endif
 }
 

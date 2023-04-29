@@ -88,50 +88,51 @@ class DisplayDescription {
             static_cast<DisplaySpecification*>(this)->start();
         }
         [[nodiscard]] bool isAvailable() const noexcept { return static_cast<DisplaySpecification*>(this)->available(); }
-        [[gnu::always_inline]] inline void handleWriteOperations(const SplitWord128& body, uint8_t function, uint8_t offset) noexcept {
-            using K = ConnectedOpcode_t<TargetPeripheral::Display>;
+        template<IOOpcodes opcode>
+        [[gnu::always_inline]] inline void handleWriteOperations(const SplitWord128& body) noexcept {
+            using K = IOOpcodes;
             auto& tft_ = static_cast<DisplaySpecification*>(this)->getDisplay();
-            switch (getFunctionCode<TargetPeripheral::Display>(function)) {
-                case K::SetScrollMargins:
+            switch (opcode) {
+                case K::Display_SetScrollMargins:
                     static_cast<DisplaySpecification*>(this)->setScrollMargins(body[0].halves[0], body[0].halves[1]);
                     break;
-                case K::SetAddressWindow:
+                case K::Display_SetAddressWindow:
                     tft_.setAddrWindow(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case K::ScrollTo:
+                case K::Display_ScrollTo:
                     static_cast<DisplaySpecification*>(this)->scrollTo(body[0].halves[0]);
                     break;
-                case K::InvertDisplay:
+                case K::Display_InvertDisplay:
                     tft_.invertDisplay(body.bytes[0] != 0);
                     break;
-                case K::Rotation:
+                case K::Display_Rotation:
                     tft_.setRotation(body.bytes[0]);
                     break;
-                case K::RW:
+                case K::Display_RW:
                     tft_.print(static_cast<uint8_t>(body.bytes[0]));
                     break;
-                case K::Flush:
+                case K::Display_Flush:
                     tft_.flush();
                     break;
-                case K::DrawPixel:
+                case K::Display_DrawPixel:
                     tft_.drawPixel(body[0].halves[0], body[0].halves[1], body[1].halves[0]);
                     break;
-                case K::DrawFastHLine:
+                case K::Display_DrawFastHLine:
                     tft_.drawFastHLine(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case K::DrawFastVLine:
+                case K::Display_DrawFastVLine:
                     tft_.drawFastVLine(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case K::FillRect:
+                case K::Display_FillRect:
                     tft_.fillRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -139,38 +140,38 @@ class DisplayDescription {
                             body[2].halves[0]);
                     break;
 
-                case K::FillScreen:
+                case K::Display_FillScreen:
                     tft_.fillScreen(body[0].halves[0]);
                     break;
-                case K::DrawLine:
+                case K::Display_DrawLine:
                     tft_.drawLine( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1],
                             body[2].halves[0]);
                     break;
-                case K::DrawRect:
+                case K::Display_DrawRect:
                     tft_.drawRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1],
                             body[2].halves[0]);
                     break;
-                case K::DrawCircle:
+                case K::Display_DrawCircle:
                     tft_.drawCircle(
                             body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case K::FillCircle:
+                case K::Display_FillCircle:
                     tft_.fillCircle(
                             body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case K::DrawTriangle:
+                case K::Display_DrawTriangle:
                     tft_.drawTriangle( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -179,7 +180,7 @@ class DisplayDescription {
                             body[2].halves[1],
                             body[3].halves[0]);
                     break;
-                case K::FillTriangle:
+                case K::Display_FillTriangle:
                     tft_.fillTriangle( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -188,7 +189,7 @@ class DisplayDescription {
                             body[2].halves[1],
                             body[3].halves[0]);
                     break;
-                case K::DrawRoundRect:
+                case K::Display_DrawRoundRect:
                     tft_.drawRoundRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -196,7 +197,7 @@ class DisplayDescription {
                             body[2].halves[0],
                             body[2].halves[1]);
                     break;
-                case K::FillRoundRect:
+                case K::Display_FillRoundRect:
                     tft_.fillRoundRect( body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -204,19 +205,19 @@ class DisplayDescription {
                             body[2].halves[0],
                             body[2].halves[1]);
                     break;
-                case K::SetTextWrap:
+                case K::Display_SetTextWrap:
                     tft_.setTextWrap(body.bytes[0]);
                     break;
-                case K::CursorX: 
+                case K::Display_CursorX: 
                     tft_.setCursor(body[0].halves[0], tft_.getCursorY());
                     break;
-                case K::CursorY: 
+                case K::Display_CursorY: 
                     tft_.setCursor(tft_.getCursorX(), body[0].halves[0]);
                     break;
-                case K::CursorXY:
+                case K::Display_CursorXY:
                     tft_.setCursor(body[0].halves[0], body[0].halves[1]);
                     break;
-                case K::DrawChar_Square:
+                case K::Display_DrawChar_Square:
                     tft_.drawChar(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -224,7 +225,7 @@ class DisplayDescription {
                             body[2].halves[0],
                             body[2].halves[1]);
                     break;
-                case K::DrawChar_Rectangle:
+                case K::Display_DrawChar_Rectangle:
                     tft_.drawChar(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
@@ -233,28 +234,28 @@ class DisplayDescription {
                             body[2].halves[1],
                             body[3].halves[0]);
                     break;
-                case K::SetTextSize_Square:
+                case K::Display_SetTextSize_Square:
                     tft_.setTextSize(body[0].halves[0]);
                     break;
-                case K::SetTextSize_Rectangle:
+                case K::Display_SetTextSize_Rectangle:
                     tft_.setTextSize(body[0].halves[0],
                             body[0].halves[1]);
                     break;
-                case K::SetTextColor0:
+                case K::Display_SetTextColor0:
                     tft_.setTextColor(body[0].halves[0]);
                     break;
-                case K::SetTextColor1:
+                case K::Display_SetTextColor1:
                     tft_.setTextColor(body[0].halves[0], body[0].halves[1]);
                     break;
-                case K::StartWrite:
+                case K::Display_StartWrite:
                     tft_.startWrite();
                     break;
-                case K::WritePixel:
+                case K::Display_WritePixel:
                     tft_.writePixel(body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0]);
                     break;
-                case K::WriteFillRect:
+                case K::Display_WriteFillRect:
                     tft_.writeFillRect(
                             body[0].halves[0],
                             body[0].halves[1],
@@ -262,21 +263,21 @@ class DisplayDescription {
                             body[1].halves[1],
                             body[2].halves[0]);
                     break;
-                case K::WriteFastVLine:
+                case K::Display_WriteFastVLine:
                     tft_.writeFastVLine(
                             body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case K::WriteFastHLine:
+                case K::Display_WriteFastHLine:
                     tft_.writeFastHLine(
                             body[0].halves[0],
                             body[0].halves[1],
                             body[1].halves[0],
                             body[1].halves[1]);
                     break;
-                case K::WriteLine:
+                case K::Display_WriteLine:
                     tft_.writeLine(
                             body[0].halves[0],
                             body[0].halves[1],
@@ -284,7 +285,7 @@ class DisplayDescription {
                             body[1].halves[1],
                             body[2].halves[0]);
                     break;
-                case K::EndWrite:
+                case K::Display_EndWrite:
                     tft_.endWrite();
                     break;
                 default:

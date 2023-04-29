@@ -504,10 +504,8 @@ public:
                              * The only way we get here is if the upper byte
                              * enable bit is high!
                              */ \
-                            auto a = getDataByte<d0>(); \
-                            signalReady<false>(); \
-                            theBytes[b0] = a; \
-                            return; \
+                            theBytes[b0] = getDataByte<d0>(); \
+                            break; \
                         } \
                     } \
                 } \

@@ -359,7 +359,11 @@ class ILI9341Display : public DisplayDescription<ILI9341Display>  {
             tft_.scrollTo(a);
         }
     private:
-        Adafruit_ILI9341 tft_{ static_cast<uint8_t>(Pin::TFTCS), static_cast<uint8_t>(Pin::TFTDC)};
+        Adafruit_ILI9341 tft_{ 
+            static_cast<uint8_t>(Pin::TFTCS), 
+            static_cast<uint8_t>(Pin::TFTDC),
+            static_cast<uint8_t>(Pin::TFTReset),
+        };
 };
 
 template<uint16_t width, uint16_t height>
@@ -386,6 +390,6 @@ class SSD1351Display : public DisplayDescription<SSD1351Display<width, height>> 
 
 };
 
-//using DisplayInterface = ILI9341Display;
-using DisplayInterface = SSD1351Display<128, 128>;
+using DisplayInterface = ILI9341Display;
+//using DisplayInterface = SSD1351Display<128, 128>;
 #endif // CHIPSET_DISPLAY_PERIPHERAL_H__

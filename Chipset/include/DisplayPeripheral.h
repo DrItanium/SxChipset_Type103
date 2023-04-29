@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Detect.h"
 #include "Peripheral.h"
+#include "IOOpcodes.h"
 
 BeginDeviceOperationsList(DisplayDevice)
     RW, // for the "serial" aspect so we can print out to the screen
@@ -87,14 +88,12 @@ class DisplayDescription {
             static_cast<DisplaySpecification*>(this)->start();
         }
         [[nodiscard]] bool isAvailable() const noexcept { return static_cast<DisplaySpecification*>(this)->available(); }
-        [[gnu::always_inline]] inline void setScrollMargins(uint16_t x, uint16_t y) noexcept {
-            static_cast<DisplaySpecification*>(this)->setScrollMargins(x, y);
-        }
         [[gnu::always_inline]] inline void handleWriteOperations(const SplitWord128& body, uint8_t function, uint8_t offset) noexcept {
             using K = ConnectedOpcode_t<TargetPeripheral::Display>;
             auto& tft_ = static_cast<DisplaySpecification*>(this)->getDisplay();
             switch (getFunctionCode<TargetPeripheral::Display>(function)) {
                 case K::SetScrollMargins:
+                    static_cast<DisplaySpecification*>(this)->setScrollMargins(body[0].halves[0], body[0].halves[1]);
                     break;
                 case K::SetAddressWindow:
                     tft_.setAddrWindow(body[0].halves[0],
@@ -292,41 +291,38 @@ class DisplayDescription {
                     break;
             }
         }
-        [[gnu::always_inline]] inline void handleReadOperations(SplitWord128& body, uint8_t function, uint8_t offset) noexcept {
-            using K = ConnectedOpcode_t<TargetPeripheral::Display>;
+        template<IOOpcodes opcode>
+        [[gnu::always_inline]] inline void handleReadOperations(SplitWord128& body) noexcept {
             auto& tft_ = static_cast<DisplaySpecification*>(this)->getDisplay();
-            switch (getFunctionCode<TargetPeripheral::Display>(function)) {
-                case K::Available:
-                case K::RW:
+            using K = IOOpcodes;
+            switch (opcode) {
+                case K::Display_RW:
                     body[0].full = 0xFFFF'FFFF;
                     break;
-                case K::Size:
-                    body.bytes[0] = OpcodeCount_v<TargetPeripheral::Display>;
-                    break;
-                case K::DisplayWidthHeight:
+                case K::Display_WidthHeight:
                     body[0].halves[0] = tft_.width();
                     body[0].halves[1] = tft_.height();
                     break;
-                case K::Rotation:
+                case K::Display_Rotation:
                     body.bytes[0] = tft_.getRotation();
                     break;
-                case K::ReadCommand8:
-                    // use the offset in the instruction to determine where to
-                    // place the result and what to request from the tft
-                    // display
-                    body.bytes[offset & 0b1111] = tft_.readcommand8(offset);
-                    break;
-                case K::CursorX: 
+                //case K::Display_ReadCommand8:
+                //    // use the offset in the instruction to determine where to
+                //    // place the result and what to request from the tft
+                //    // display
+                //    body.bytes[offset & 0b1111] = tft_.readcommand8(offset);
+                //    break;
+                case K::Display_CursorX: 
                     body[0].halves[0] = tft_.getCursorX(); 
                     break;
-                case K::CursorY: 
+                case K::Display_CursorY: 
                     body[0].halves[0] = tft_.getCursorY(); 
                     break;
-                case K::CursorXY: 
+                case K::Display_CursorXY: 
                     body[0].halves[0] = tft_.getCursorX();
                     body[0].halves[1] = tft_.getCursorY(); 
                     break;
-                case K::Flush:
+                case K::Display_Flush:
                     // fallthrough
                     tft_.flush();
                 default:

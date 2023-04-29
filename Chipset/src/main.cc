@@ -642,40 +642,21 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
             break;
         case K::Timer_SystemTimer_CompareValue:
             body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
+#define X(name) case K:: name : theDisplay.handleReadOperations< K :: name > (body); break
+        X(Display_RW);
+        X(Display_WidthHeight);
+        X(Display_Rotation);
+        X(Display_ReadCommand8);
+        X(Display_CursorX); 
+        X(Display_CursorY); 
+        X(Display_CursorXY); 
+        X(Display_Flush);
+#undef X
         default:
             sendZero<true, width>(static_cast<uint8_t>(opcode));
             return;
     }
     CommunicationKernel<true, width>::doCommunication(body, offset);
-#if 0
-    switch (static_cast<TargetPeripheral>(group)) {
-        case TargetPeripheral::Serial:
-        case TargetPeripheral::Timer:
-            switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
-                case K::Available:
-                    sendBoolean<true, width>(timerInterface.isAvailable(), offset);
-                    return;
-                case K::Size:
-                    sendOpcodeSize<true, width, TargetPeripheral::Timer>(offset);
-                    return;
-                case K::SystemTimerPrescalar:
-                    break;
-                case K::SystemTimerComparisonValue:
-                    break;
-                default:
-                    sendZero<true, width>(offset);
-                    return;
-
-            }
-            break;
-        case TargetPeripheral::Display:
-            theDisplay.handleReadOperations(body, function, offset);
-            break;
-        default:
-            break;
-    }
-#endif
 }
 [[gnu::always_inline]]
 inline

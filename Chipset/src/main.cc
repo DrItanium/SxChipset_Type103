@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Types.h"
 #include "Pinout.h"
+#include "IOOpcodes.h"
 #include "Peripheral.h"
 #include "Setup.h"
 #include "SerialDevice.h"
@@ -600,11 +601,6 @@ void sendBoolean(bool value, uint8_t offset) noexcept {
         sendZero<isReadOperation, width>(offset);
     }
 }
-enum class IOOpcodes : uint16_t {
-#define X(name, opcode) name = (static_cast<uint16_t>(opcode) << 4),
-#include "IOOpcodes.def"
-#undef X
-};
 
 template<NativeBusWidth width>
 [[gnu::always_inline]]

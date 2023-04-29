@@ -290,7 +290,7 @@ class DisplayDescription {
         }
         template<IOOpcodes opcode>
         [[gnu::always_inline]] inline void doReadCommand8(SplitWord128& body) noexcept {
-            doReadCommand8(body, static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 4));
+            doReadCommand8(body, getIOOpcode_Offset(opcode));
         }
 };
 class ILI9341Display : public DisplayDescription<ILI9341Display>  {

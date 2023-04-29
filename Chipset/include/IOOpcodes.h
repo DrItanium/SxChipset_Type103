@@ -85,4 +85,10 @@ Y(Display_EndWrite, 0x055)
 #undef X
 #undef Y
 };
+constexpr uint8_t getIOOpcode_Group(IOOpcodes opcode) noexcept {
+    return static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 8);
+}
+constexpr uint8_t getIOOpcode_Offset(IOOpcodes opcode) noexcept {
+    return static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 4);
+}
 #endif // end defined CHIPSET_IOOPCODES_H__

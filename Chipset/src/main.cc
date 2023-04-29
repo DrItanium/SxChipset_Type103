@@ -654,7 +654,7 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
 #define X(index) case K:: Display_ReadCommand8_ ## index : 
 #include "Entry255.def"
 #undef X
-            theDisplay.doReadCommand8(body, static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 4));
+            theDisplay.doReadCommand8(body, getIOOpcode_Offset(opcode));
             break;
         default:
             sendZero<true, width>(static_cast<uint8_t>(opcode));

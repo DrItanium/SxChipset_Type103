@@ -176,5 +176,17 @@ struct SplitWord128 {
 
 using OnSPIFinishedCallback = void(*)();
 bool spiAvailable() noexcept;
-void runSPI(uint8_t* input, uint8_t* output, uint16_t count, OnSPIFinishedCallback callback);
+void runSPI(uint8_t* input, uint8_t* output, uint8_t count, OnSPIFinishedCallback callback);
+/**
+ * @brief A simple SPI transfer request, it knows nothing about chip select or
+ * anything like that! Allows one to trigger an interrupt in the i960 on finish
+ */
+struct SPIRequest {
+    uint8_t interruptNumber = 0;
+    uint8_t count = 0;
+    uint8_t* input = nullptr;
+    uint8_t* output = nullptr;
+    bool active = false;
+};
+void raiseInterrupt(uint8_t index);
 #endif //SXCHIPSET_TYPE103_TYPES_H__

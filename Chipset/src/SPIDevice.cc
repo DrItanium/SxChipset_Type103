@@ -27,22 +27,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 namespace {
-    bool SPIActive = false;
-    uint8_t* SPIInput = nullptr;
-    uint8_t* SPIOutput = nullptr;
-    uint16_t SPICount = 0;
-    OnSPIFinishedCallback SPITransferDone = nullptr;
+    SPIRequest currentRequest;
 }
 // taken from Tom Almy's book "Still Far Inside The Arduino" and adapted for my
 // purposes
 ISR(SPI_STC_vect) {
-    if (SPIInput) {
-        *SPIInput++ = SPDR;
+    if (currentRequest.input) {
+        *currentRequest.input++ = SPDR;
     }
-    if (--SPICount > 0) {
-        SPDR = (SPIOutput != nullptr ? *SPIOutput++ : 0);
+    if (--currentRequest.count > 0) {
+        SPDR = (currentRequest.output != nullptr ? *currentRequest.output++ : 0);
     } else {
-        SPIActive = false;
+        currentRequest.active = false;
+        raiseInterrupt(currentRequest.interruptNumber);
 
     }
+}
+
+bool
+spiAvailable() noexcept {
+    return !currentRequest.active;
+}
+
+void 
+runSPI(uint8_t* input, uint8_t* output, uint8_t count, OnSPIFinishedCallback callback) {
 }

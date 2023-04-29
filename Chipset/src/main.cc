@@ -669,66 +669,58 @@ performIOWriteGroup0(const SplitWord128& body, uint16_t opcode) noexcept {
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
     switch (static_cast<K>(opcode)) {
-#define D(name) case K :: name : theDisplay.handleWriteOperations< K :: name > (body); break
-                D(Display_SetScrollMargins);
-                D(Display_SetAddressWindow);
-                D(Display_ScrollTo);
-                D(Display_InvertDisplay);
-                D(Display_Rotation);
-                D(Display_RW);
-                D(Display_Flush);
-                D(Display_DrawPixel);
-                D(Display_DrawFastHLine);
-                D(Display_DrawFastVLine);
-                D(Display_FillRect);
-                D(Display_FillScreen);
-                D(Display_DrawLine);
-                D(Display_DrawRect);
-                D(Display_DrawCircle);
-                D(Display_FillCircle);
-                D(Display_DrawTriangle);
-                D(Display_FillTriangle);
-                D(Display_DrawRoundRect);
-                D(Display_FillRoundRect);
-                D(Display_SetTextWrap);
-                D(Display_CursorX); 
-                D(Display_CursorY); 
-                D(Display_CursorXY);
-                D(Display_DrawChar_Square);
-                D(Display_DrawChar_Rectangle);
-                D(Display_SetTextSize_Square);
-                D(Display_SetTextSize_Rectangle);
-                D(Display_SetTextColor0);
-                D(Display_SetTextColor1);
-                D(Display_StartWrite);
-                D(Display_WritePixel);
-                D(Display_WriteFillRect);
-                D(Display_WriteFastVLine);
-                D(Display_WriteFastHLine);
-                D(Display_WriteLine);
-                D(Display_EndWrite);
-#undef D
+#define X(name) case K :: name : theDisplay.handleWriteOperations< K :: name > (body); break
+                X(Display_SetScrollMargins);
+                X(Display_SetAddressWindow);
+                X(Display_ScrollTo);
+                X(Display_InvertDisplay);
+                X(Display_Rotation);
+                X(Display_RW);
+                X(Display_Flush);
+                X(Display_DrawPixel);
+                X(Display_DrawFastHLine);
+                X(Display_DrawFastVLine);
+                X(Display_FillRect);
+                X(Display_FillScreen);
+                X(Display_DrawLine);
+                X(Display_DrawRect);
+                X(Display_DrawCircle);
+                X(Display_FillCircle);
+                X(Display_DrawTriangle);
+                X(Display_FillTriangle);
+                X(Display_DrawRoundRect);
+                X(Display_FillRoundRect);
+                X(Display_SetTextWrap);
+                X(Display_CursorX); 
+                X(Display_CursorY); 
+                X(Display_CursorXY);
+                X(Display_DrawChar_Square);
+                X(Display_DrawChar_Rectangle);
+                X(Display_SetTextSize_Square);
+                X(Display_SetTextSize_Rectangle);
+                X(Display_SetTextColor0);
+                X(Display_SetTextColor1);
+                X(Display_StartWrite);
+                X(Display_WritePixel);
+                X(Display_WriteFillRect);
+                X(Display_WriteFastVLine);
+                X(Display_WriteFastHLine);
+                X(Display_WriteLine);
+                X(Display_EndWrite);
+#undef X
+#define X(name) case K :: name : theSerial.handleWriteOperations<K :: name > (body); break
+                X(Serial_RW);
+                X(Serial_Baud);
+                X(Serial_Flush);
+#undef X
+#define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (body); break
+                X(Timer_SystemTimer_Prescalar);
+                X(Timer_SystemTimer_CompareValue);
+#undef X
+
         default: 
                 break;
     }
-#if 0
-    switch (static_cast<TargetPeripheral>(group)) {
-        case TargetPeripheral::Serial:
-            theSerial.handleWriteOperations(body, function, offset);
-            break;
-        case TargetPeripheral::Timer:
-            timerInterface.handleWriteOperations(body, function, offset);
-            break;
-        case TargetPeripheral::Display:
-            theDisplay.handleWriteOperations(body, function, offset);
-            break;
-        default:
-            // unknown device so do not do anything
-            break;
-    }
-#if 0
-#endif
-#endif
 }
 
 template<uint16_t sectionMask, uint16_t offsetMask>

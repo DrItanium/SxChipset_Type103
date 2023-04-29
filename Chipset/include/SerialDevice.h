@@ -27,30 +27,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHIPSET_SERIALDEVICE_H
 #include "Types.h"
 #include "Peripheral.h"
-BeginDeviceOperationsList(SerialDevice)
-    RW,
-    Flush,
-    Baud,
-EndDeviceOperationsList(SerialDevice)
-
-ConnectPeripheral(TargetPeripheral::Serial, SerialDeviceOperations);
+#include "IOOpcodes.h"
 
 class SerialDevice {
 public:
     bool begin() noexcept;
-    bool isAvailable() const noexcept { return true; }
     void setBaudRate(uint32_t baudRate) noexcept;
     [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
-    inline void handleWriteOperations(const SplitWord128& body, uint8_t function, uint8_t offset) noexcept {
-        using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
-        switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
-            case K::RW:
+    template<IOOpcodes opcode>
+    inline void handleWriteOperations(const SplitWord128& body) noexcept {
+        using K = IOOpcodes;
+        switch (opcode) {
+            case K::Serial_RW:
                 Serial.write(static_cast<uint8_t>(body.bytes[0]));
                 break;
-            case K::Flush:
+            case K::Serial_Flush:
                 Serial.flush();
                 break;
-            case K::Baud:
+            case K::Serial_Baud:
                 setBaudRate(body[0].full);
                 break;
             default:

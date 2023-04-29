@@ -29,14 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Detect.h"
 #include "Peripheral.h"
+#include "IOOpcodes.h"
 
-
-BeginDeviceOperationsList(TimerDevice)
-    SystemTimerComparisonValue,
-    SystemTimerPrescalar,
-EndDeviceOperationsList(TimerDevice)
-
-ConnectPeripheral(TargetPeripheral::Timer, TimerDeviceOperations);
 
 class TimerDevice {
 public:
@@ -46,6 +40,19 @@ public:
     [[nodiscard]] uint16_t getSystemTimerComparisonValue() const noexcept;
     void setSystemTimerPrescalar(uint8_t value) noexcept;
     void setSystemTimerComparisonValue(uint16_t value) noexcept;
-    void handleWriteOperations(const SplitWord128& result, uint8_t function, uint8_t offset) noexcept;
+    template<IOOpcodes opcode>
+    void handleWriteOperations(const SplitWord128& result) noexcept {
+        using K = IOOpcodes;
+        switch (opcode) {
+            case K::Timer_SystemTimer_Prescalar:
+                setSystemTimerPrescalar(result.bytes[0]);
+                break;
+            case K::Timer_SystemTimer_CompareValue:
+                setSystemTimerComparisonValue(result[0].halves[0]);
+                break;
+            default:
+                break;
+        }
+    }
 };
 #endif //CHIPSET_TIMERDEVICE_H

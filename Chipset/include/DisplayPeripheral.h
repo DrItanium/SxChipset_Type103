@@ -35,52 +35,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "IOOpcodes.h"
 
-BeginDeviceOperationsList(DisplayDevice)
-    RW, // for the "serial" aspect so we can print out to the screen
-    Flush,
-    DisplayWidthHeight,
-    Rotation,
-    InvertDisplay,
-    ScrollTo,
-    SetScrollMargins,
-    SetAddressWindow,
-    ReadCommand8,
-    CursorX,
-    CursorY,
-    CursorXY,
-    DrawPixel,
-    DrawFastVLine,
-    DrawFastHLine,
-    FillRect,
-    FillScreen,
-    DrawLine,
-    DrawRect,
-    DrawCircle,
-    FillCircle,
-    DrawTriangle,
-    FillTriangle,
-    DrawRoundRect,
-    FillRoundRect,
-    SetTextWrap,
-    DrawChar_Square,
-    DrawChar_Rectangle,
-    SetTextSize_Square,
-    SetTextSize_Rectangle,
-    SetTextColor0,
-    SetTextColor1,
-    // Transaction parts
-    StartWrite,
-    WritePixel,
-    WriteFillRect,
-    WriteFastVLine,
-    WriteFastHLine,
-    WriteLine,
-    EndWrite,
-    /// @todo add drawBitmap support
-
-EndDeviceOperationsList(DisplayDevice)
-
-ConnectPeripheral(TargetPeripheral::Display, DisplayDeviceOperations);
 template<typename DisplaySpecification>
 class DisplayDescription {
     public:

@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
+#include <Adafruit_SSD1351.h>
 
 #include "Types.h"
 #include "Detect.h"
@@ -79,27 +80,16 @@ BeginDeviceOperationsList(DisplayDevice)
 EndDeviceOperationsList(DisplayDevice)
 
 ConnectPeripheral(TargetPeripheral::Display, DisplayDeviceOperations);
-
-class DisplayInterface {
+template<typename DisplaySpecification>
+class DisplayDescription {
     public:
         inline void begin() noexcept {
-            tft_.begin();
-            auto x = tft_.readcommand8(ILI9341_RDMODE);
-            Serial.println(F("DISPLAY INFORMATION"));
-            Serial.print(F("Display Power Mode: 0x")); Serial.println(x, HEX);
-            x = tft_.readcommand8(ILI9341_RDMADCTL);
-            Serial.print(F("MADCTL Mode: 0x")); Serial.println(x, HEX);
-            x = tft_.readcommand8(ILI9341_RDPIXFMT);
-            Serial.print(F("Pixel Format: 0x")); Serial.println(x, HEX);
-            x = tft_.readcommand8(ILI9341_RDIMGFMT);
-            Serial.print(F("Image Format: 0x")); Serial.println(x, HEX);
-            x = tft_.readcommand8(ILI9341_RDSELFDIAG);
-            Serial.print(F("Self Diagnostic: 0x")); Serial.println(x, HEX);
-            tft_.fillScreen(ILI9341_BLACK);
+            static_cast<DisplaySpecification*>(this)->start();
         }
-        [[nodiscard]] bool isAvailable() const noexcept { return true; }
+        [[nodiscard]] bool isAvailable() const noexcept { return static_cast<DisplaySpecification*>(this)->available(); }
         [[gnu::always_inline]] inline void handleWriteOperations(const SplitWord128& body, uint8_t function, uint8_t offset) noexcept {
             using K = ConnectedOpcode_t<TargetPeripheral::Display>;
+            auto& tft_ = static_cast<DisplaySpecification*>(this)->getDisplay();
             switch (getFunctionCode<TargetPeripheral::Display>(function)) {
                 case K::SetScrollMargins:
                     tft_.setScrollMargins(body[0].halves[0],
@@ -300,10 +290,10 @@ class DisplayInterface {
                 default:
                     break;
             }
-
         }
         [[gnu::always_inline]] inline void handleReadOperations(SplitWord128& body, uint8_t function, uint8_t offset) noexcept {
             using K = ConnectedOpcode_t<TargetPeripheral::Display>;
+            auto& tft_ = static_cast<DisplaySpecification*>(this)->getDisplay();
             switch (getFunctionCode<TargetPeripheral::Display>(function)) {
                 case K::Available:
                 case K::RW:
@@ -343,9 +333,29 @@ class DisplayInterface {
                     break;
             }
         }
-    private:
-        Adafruit_ILI9341 tft_{
-            static_cast<uint8_t>(Pin::TFTCS),
-                static_cast<uint8_t>(Pin::TFTDC)};
 };
+class ILI9341Display : public DisplayDescription<ILI9341Display>  {
+    public:
+        inline void start() noexcept {
+            tft_.begin();
+            auto x = tft_.readcommand8(ILI9341_RDMODE);
+            Serial.println(F("DISPLAY INFORMATION"));
+            Serial.print(F("Display Power Mode: 0x")); Serial.println(x, HEX);
+            x = tft_.readcommand8(ILI9341_RDMADCTL);
+            Serial.print(F("MADCTL Mode: 0x")); Serial.println(x, HEX);
+            x = tft_.readcommand8(ILI9341_RDPIXFMT);
+            Serial.print(F("Pixel Format: 0x")); Serial.println(x, HEX);
+            x = tft_.readcommand8(ILI9341_RDIMGFMT);
+            Serial.print(F("Image Format: 0x")); Serial.println(x, HEX);
+            x = tft_.readcommand8(ILI9341_RDSELFDIAG);
+            Serial.print(F("Self Diagnostic: 0x")); Serial.println(x, HEX);
+            tft_.fillScreen(ILI9341_BLACK);
+        }
+        [[nodiscard]] bool available() const noexcept { return true; }
+        [[nodiscard]] auto& getDisplay() noexcept { return tft_; }
+    private:
+        Adafruit_ILI9341 tft_{ static_cast<uint8_t>(Pin::TFTCS), static_cast<uint8_t>(Pin::TFTDC)};
+};
+
+using DisplayInterface = ILI9341Display;
 #endif // CHIPSET_DISPLAY_PERIPHERAL_H__

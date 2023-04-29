@@ -24,7 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 #include <Wire.h>
 
 #include "Types.h"
@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#include "InfoDevice.h"
 #include "TimerDevice.h"
 #include "DisplayPeripheral.h"
-
+SdFs SD;
 SerialDevice theSerial;
 TimerDevice timerInterface;
 DisplayInterface theDisplay;
@@ -890,6 +890,8 @@ installMemoryImage() noexcept {
         theFirmware.close();
         Platform::setBank(previousBank, AccessFromIBUS{});
     }
+    // okay so now end reading from the SD Card
+    SD.end();
 }
 void 
 setupPins() noexcept {

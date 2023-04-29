@@ -87,12 +87,14 @@ class DisplayDescription {
             static_cast<DisplaySpecification*>(this)->start();
         }
         [[nodiscard]] bool isAvailable() const noexcept { return static_cast<DisplaySpecification*>(this)->available(); }
+        [[gnu::always_inline]] inline void setScrollMargins(uint16_t x, uint16_t y) noexcept {
+            static_cast<DisplaySpecification*>(this)->setScrollMargins(x, y);
+        }
         [[gnu::always_inline]] inline void handleWriteOperations(const SplitWord128& body, uint8_t function, uint8_t offset) noexcept {
             using K = ConnectedOpcode_t<TargetPeripheral::Display>;
             auto& tft_ = static_cast<DisplaySpecification*>(this)->getDisplay();
             switch (getFunctionCode<TargetPeripheral::Display>(function)) {
                 case K::SetScrollMargins:
-                    static_cast<DisplaySpecification*>(this)->setScrollMargins(body[0].halves[0], body[0].halves[1]);
                     break;
                 case K::SetAddressWindow:
                     tft_.setAddrWindow(body[0].halves[0],

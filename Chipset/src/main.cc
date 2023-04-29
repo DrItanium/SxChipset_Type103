@@ -600,69 +600,60 @@ void sendBoolean(bool value, uint8_t offset) noexcept {
         sendZero<isReadOperation, width>(offset);
     }
 }
-
+enum class IOOpcodes : uint16_t {
+#define X(name, opcode) name = (static_cast<uint16_t>(opcode) << 4),
+#include "IOOpcodes.def"
+#undef X
+};
 
 template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
-performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t offset) noexcept {
+performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
     // about out of the packet when performing a read operation so at this
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
-    switch (static_cast<TargetPeripheral>(group)) {
-        case TargetPeripheral::Info:
-            switch (getFunctionCode<TargetPeripheral::Info>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::Info>;
-                case K::Available:
-                    sendBoolean<true, width>(true, offset);
-                    return;
-                case K::Size:
-                    sendOpcodeSize<true, width, TargetPeripheral::Info>(offset);
-                    return;
-                case K::GetChipsetClock:
-                    CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
-                    return;
-                case K::GetCPUClock:
-                    CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
-                    return;
-                case K::IAC:
-                    body[0].halves[0] = iac_.field2;
-                    body[0].bytes[2] = iac_.field1;
-                    body[0].bytes[3] = iac_.messageType;
-                    body[1].full = iac_.field3;
-                    body[2].full = iac_.field4;
-                    body[3].full = iac_.field5;
-                    break;
-                default:
-                    sendZero<true, width>(offset);
-                    return;
-            }
+    using K = IOOpcodes;
+    const uint8_t offset = static_cast<uint8_t>(opcode);
+    switch (static_cast<IOOpcodes>(opcode)) {
+        case K::Info_GetChipsetClockSpeed:
+            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
             return;
-        case TargetPeripheral::Serial:
-            switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
-                using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
-                case K::Available:
-                    sendBoolean<true, width>(theSerial.isAvailable(), offset);
-                    return;
-                case K::Size:
-                    sendOpcodeSize<true, width, TargetPeripheral::Serial>(offset);
-                    return;
-                case K::RW:
-                    body[0].halves[0] = Serial.read();
-                    break;
-                case K::Flush:
-                    Serial.flush();
-                    break;
-                case K::Baud:
-                    body[0].full = theSerial.getBaudRate();
-                    break;
-                default:
-                    sendZero<true, width>(offset);
-                    return;
-            }
+        case K::Info_GetCPUClockSpeed:
+            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
+            return;
+        case K::Info_GetExternalIAC:
+            body[0].halves[0] = iac_.field2;
+            body[0].bytes[2] = iac_.field1;
+            body[0].bytes[3] = iac_.messageType;
+            body[1].full = iac_.field3;
+            body[2].full = iac_.field4;
+            body[3].full = iac_.field5;
             break;
+        case K::Serial_RW:
+            body[0].halves[0] = Serial.read();
+            break;
+        case K::Serial_Flush:
+            Serial.flush();
+            break;
+        case K::Serial_Baud:
+            body[0].full = theSerial.getBaudRate();
+            break;
+        case K::Timer_SystemTimer_Prescalar:
+            body.bytes[0] = timerInterface.getSystemTimerPrescalar();
+            break;
+        case K::Timer_SystemTimer_CompareValue:
+            body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
+        default:
+            sendZero<true, width>(static_cast<uint8_t>(opcode));
+            return;
+    }
+    CommunicationKernel<true, width>::doCommunication(body, offset);
+#if 0
+    switch (static_cast<TargetPeripheral>(group)) {
+        case TargetPeripheral::Serial:
         case TargetPeripheral::Timer:
             switch (getFunctionCode<TargetPeripheral::Timer>(function)) {
                 using K = ConnectedOpcode_t<TargetPeripheral::Timer>;
@@ -673,10 +664,8 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
                     sendOpcodeSize<true, width, TargetPeripheral::Timer>(offset);
                     return;
                 case K::SystemTimerPrescalar:
-                    body.bytes[0] = timerInterface.getSystemTimerPrescalar();
                     break;
                 case K::SystemTimerComparisonValue:
-                    body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
                     break;
                 default:
                     sendZero<true, width>(offset);
@@ -690,17 +679,18 @@ performIOReadGroup0(SplitWord128& body, uint8_t group, uint8_t function, uint8_t
         default:
             break;
     }
-    CommunicationKernel<true, width>::doCommunication(body, offset);
+#endif
 }
 [[gnu::always_inline]]
 inline
 void
-performIOWriteGroup0(const SplitWord128& body, uint8_t group, uint8_t function, uint8_t offset) noexcept {
+performIOWriteGroup0(const SplitWord128& body, uint16_t opcode) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
+#if 0
     switch (static_cast<TargetPeripheral>(group)) {
         case TargetPeripheral::Serial:
             theSerial.handleWriteOperations(body, function, offset);
@@ -715,6 +705,7 @@ performIOWriteGroup0(const SplitWord128& body, uint8_t group, uint8_t function, 
             // unknown device so do not do anything
             break;
     }
+#endif
 }
 
 template<uint16_t sectionMask, uint16_t offsetMask>
@@ -788,11 +779,9 @@ executionBody() noexcept {
 
 
                 } else {
-                    const uint8_t addressTag = addressLines[2];
-                    const auto function = static_cast<uint8_t>(al >> 8);
                     // read -> write
                     CommunicationKernel<false, width>::doCommunication(operation, offset);
-                    performIOWriteGroup0(operation, addressTag, function, offset);
+                    performIOWriteGroup0(operation, al);
                 }
             } else {
                 // read -> read
@@ -805,9 +794,8 @@ executionBody() noexcept {
                     auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
                     CommunicationKernel<true, width>::doCommunication( window, offset);
                 } else {
-                    const uint8_t function = static_cast<uint8_t>(al >> 8);
                     // read -> read
-                    performIOReadGroup0<width>(operation, addressLines[2], function, offset);
+                    performIOReadGroup0<width>(operation, al);
                 }
             }
             // since it is not zero we are looking at what was previously a read operation
@@ -830,10 +818,8 @@ executionBody() noexcept {
                     // 32-bit space until we get to IO space)
                     CommunicationKernel<true, width>::doCommunication( window, offset);
                 } else {
-                    const uint8_t addressTag = addressLines[2];
-                    const auto function = static_cast<uint8_t>(al >> 8);
                     // write -> read
-                    performIOReadGroup0<width>(operation, addressTag, function, offset);
+                    performIOReadGroup0<width>(operation, al);
                 }
             } else {
                 // write -> write
@@ -846,14 +832,9 @@ executionBody() noexcept {
                     // 32-bit space until we get to IO space)
                     CommunicationKernel<false, width>::doCommunication( window, offset);
                 } else {
-                    const uint8_t addressTag = addressLines[2];
-                    const auto function = static_cast<uint8_t>(al >> 8); 
                     // write -> write
                     CommunicationKernel<false, width>::doCommunication(operation, offset);
-                    performIOWriteGroup0(operation, 
-                            addressTag,
-                            function,
-                            offset);
+                    performIOWriteGroup0(operation, al);
                 }
             }
             // currently a write operation

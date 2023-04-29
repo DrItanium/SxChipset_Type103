@@ -7,8 +7,8 @@ X(Serial_RW, 0x010)
 X(Serial_Flush, 0x011)
 X(Serial_Baud, 0x012)
 // timer operations begin
-X(Timer_CompareValue,0x020)
-X(Timer_Prescalar, 0x021)
+X(Timer_SystemTimer_CompareValue,0x020)
+X(Timer_SystemTimer_Prescalar, 0x021)
 X(Timer_Unixtime, 0x022)
 // Display Operations begin
 X(Display_RW, 0x030)

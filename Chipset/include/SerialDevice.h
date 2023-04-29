@@ -41,7 +41,22 @@ public:
     bool isAvailable() const noexcept { return true; }
     void setBaudRate(uint32_t baudRate) noexcept;
     [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
-    void handleWriteOperations(const SplitWord128& result, uint8_t function, uint8_t offset) noexcept;
+    inline void handleWriteOperations(const SplitWord128& body, uint8_t function, uint8_t offset) noexcept {
+        using K = ConnectedOpcode_t<TargetPeripheral::Serial>;
+        switch (getFunctionCode<TargetPeripheral::Serial>(function)) {
+            case K::RW:
+                Serial.write(static_cast<uint8_t>(body.bytes[0]));
+                break;
+            case K::Flush:
+                Serial.flush();
+                break;
+            case K::Baud:
+                setBaudRate(body[0].full);
+                break;
+            default:
+                break;
+        }
+    }
 private:
     uint32_t baud_ = 115200;
 };

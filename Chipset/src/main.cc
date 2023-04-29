@@ -483,11 +483,9 @@ public:
                          * check the lower bits
                          */ \
                         if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            auto b = getDataByte<d1>(); \
-                            theBytes[b1] = b; \
+                            theBytes[b1] = getDataByte<d1>(); \
                             if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
-                                uint8_t a = getDataByte<d0>(); \
-                                theBytes[b0] = a; \
+                                theBytes[b0] = getDataByte<d0>(); \
                             } \
                             if constexpr (!IsLastWord) { \
                                 if (Platform::isBurstLast()) { \
@@ -504,7 +502,7 @@ public:
                              * The only way we get here is if the upper byte
                              * enable bit is high!
                              */ \
-                            theBytes[b0] = getDataByte<d0>(); \
+                            theBytes[d0] = getDataByte<d0>(); \
                             break; \
                         } \
                     } \
@@ -515,7 +513,7 @@ public:
 // block reordering causes expensive jumps to be used under the guise of
 // optimization. Turning it off for this function seems to improve performance
 // quite a bit
-    [[gnu::optimize("no-reorder-blocks")]]
+    //[[gnu::optimize("no-reorder-blocks")]]
     [[gnu::always_inline]]
     inline
     static void

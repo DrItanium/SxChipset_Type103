@@ -26,6 +26,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Types.h"
 #include "Pinout.h"
-uint8_t SPIMemoryBlock[1024] { 0 };
+namespace {
+    bool SPIActive = false;
+    uint8_t* SPIInput = nullptr;
+    uint8_t* SPIOutput = nullptr;
+    uint16_t SPICount = 0;
+    OnSPIFinishedCallback SPITransferDone = nullptr;
+}
+// taken from Tom Almy's book "Still Far Inside The Arduino" and adapted for my
+// purposes
 ISR(SPI_STC_vect) {
+    if (SPIInput) {
+        *SPIInput++ = SPDR;
+    }
+    if (--SPICount > 0) {
+        SPDR = (SPIOutput != nullptr ? *SPIOutput++ : 0);
+    } else {
+        SPIActive = false;
+
+    }
 }

@@ -174,5 +174,7 @@ struct SplitWord128 {
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBUSBankRegister;
 
-extern uint8_t SPIMemoryBlock[1024];
+using OnSPIFinishedCallback = void(*)();
+bool spiAvailable() noexcept;
+void runSPI(uint8_t* input, uint8_t* output, uint16_t count, OnSPIFinishedCallback callback);
 #endif //SXCHIPSET_TYPE103_TYPES_H__

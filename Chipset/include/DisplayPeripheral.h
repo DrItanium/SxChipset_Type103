@@ -251,6 +251,11 @@ class DisplayDescription {
             auto& tft_ = static_cast<DisplaySpecification*>(this)->getDisplay();
             using K = IOOpcodes;
             switch (opcode) {
+#define X(ind) case K :: Display_ReadCommand8_ ## ind : 
+#include "Entry255.def"
+#undef X
+                    doReadCommand8<opcode>(body);
+                    break;
                 case K::Display_RW:
                     body[0].full = 0xFFFF'FFFF;
                     break;
@@ -278,6 +283,14 @@ class DisplayDescription {
                     body[0].full = 0;
                     break;
             }
+        }
+        [[gnu::always_inline]] inline void doReadCommand8(SplitWord128& body, uint8_t offset) noexcept {
+            auto& tft_ = static_cast<DisplaySpecification*>(this)->getDisplay();
+            body[0].bytes[0] = tft_.readcommand8(offset) ; 
+        }
+        template<IOOpcodes opcode>
+        [[gnu::always_inline]] inline void doReadCommand8(SplitWord128& body) noexcept {
+            doReadCommand8(body, static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 4));
         }
 };
 class ILI9341Display : public DisplayDescription<ILI9341Display>  {

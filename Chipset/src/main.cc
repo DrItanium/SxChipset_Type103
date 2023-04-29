@@ -646,12 +646,16 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
         X(Display_RW);
         X(Display_WidthHeight);
         X(Display_Rotation);
-        X(Display_ReadCommand8);
         X(Display_CursorX); 
         X(Display_CursorY); 
         X(Display_CursorXY); 
         X(Display_Flush);
 #undef X
+#define X(index) case K:: Display_ReadCommand8_ ## index : 
+#include "Entry255.def"
+#undef X
+            theDisplay.doReadCommand8(body, static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 4));
+            break;
         default:
             sendZero<true, width>(static_cast<uint8_t>(opcode));
             return;

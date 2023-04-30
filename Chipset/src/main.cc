@@ -33,11 +33,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "Setup.h"
 #include "SerialDevice.h"
-//#include "InfoDevice.h"
 #include "TimerDevice.h"
 SdFs SD;
 SerialDevice theSerial;
 TimerDevice timerInterface;
+// allocate 1024 bytes total
+using BytePage = uint8_t[256];
+union {
+    SplitWord128 transactionBlocks[256];
+    uint8_t bytes[4096];
+    BytePage pages[16];
+} DualPortedRam;
+
+static_assert(sizeof(DualPortedRam) == 4096);
 
 void
 raiseInterrupt(uint8_t interruptVector) noexcept {
@@ -583,23 +591,19 @@ void sendBoolean(bool value, uint8_t offset) noexcept {
         sendZero<isReadOperation, width>(offset);
     }
 }
-// allocate 1024 bytes total
-union {
-    SplitWord128 transactionBlocks[256];
-    uint8_t bytes[4096];
-} DualPortedRam;
+SplitWord128 operation;
 template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
-performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
+performIOReadGroup0(uint16_t opcode) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
     // about out of the packet when performing a read operation so at this
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
-    if (auto code = getIOOpcode_Group(static_cast<IOOpcodes>(opcode)); code == 1) {
+    if (getIOOpcode_Group(static_cast<IOOpcodes>(opcode)) == 1) {
         auto& aBlock = DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)];
         CommunicationKernel<true, width>::doCommunication(aBlock, offset);
         return;
@@ -612,47 +616,53 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
                 CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
                 return;
             case K::Serial_RW:
-                body[0].halves[0] = Serial.read();
+                operation[0].halves[0] = Serial.read();
                 break;
             case K::Serial_Flush:
                 Serial.flush();
                 break;
             case K::Serial_Baud:
-                body[0].full = theSerial.getBaudRate();
+                operation[0].full = theSerial.getBaudRate();
                 break;
             case K::Timer_SystemTimer_Prescalar:
-                body.bytes[0] = timerInterface.getSystemTimerPrescalar();
+                operation.bytes[0] = timerInterface.getSystemTimerPrescalar();
                 break;
             case K::Timer_SystemTimer_CompareValue:
-                body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
+                operation.bytes[0] = timerInterface.getSystemTimerComparisonValue();
                 break;
             default:
                 sendZero<true, width>(static_cast<uint8_t>(opcode));
                 return;
         }
     }
-    CommunicationKernel<true, width>::doCommunication(body, offset);
+    CommunicationKernel<true, width>::doCommunication(operation, offset);
 }
+
+template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
-performIOWriteGroup0(const SplitWord128& body, uint16_t opcode) noexcept {
+performIOWriteGroup0(uint16_t opcode) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
-    if (auto code = getIOOpcode_Group(static_cast<IOOpcodes>(opcode)); code == 2) {
-        DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)] = body;
+    const uint8_t offset = static_cast<uint8_t>(opcode);
+    if (getIOOpcode_Group(static_cast<IOOpcodes>(opcode)) == 1) {
+        auto& aBlock = DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)];
+        CommunicationKernel<false, width>::doCommunication(aBlock, offset);
     } else {
+        CommunicationKernel<false, width>::doCommunication(operation, offset);
+        asm volatile ("nop");
         switch (static_cast<K>(opcode)) {
-#define X(name) case K :: name : theSerial.handleWriteOperations<K :: name > (body); break
+#define X(name) case K :: name : theSerial.handleWriteOperations<K :: name > (operation); break
             X(Serial_RW);
             X(Serial_Baud);
             X(Serial_Flush);
 #undef X
-#define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (body); break
+#define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (operation); break
             X(Timer_SystemTimer_Prescalar);
             X(Timer_SystemTimer_CompareValue);
 #undef X
@@ -698,7 +708,6 @@ template<NativeBusWidth width>
 [[noreturn]] 
 void 
 executionBody() noexcept {
-    SplitWord128 operation;
     digitalWrite<Pin::DirectionOutput, HIGH>();
     getDirectionRegister<Port::IBUS_Bank>() = 0;
     // switch the XBUS bank mode to i960 instead of AVR
@@ -735,8 +744,7 @@ executionBody() noexcept {
 
                 } else {
                     // read -> write
-                    CommunicationKernel<false, width>::doCommunication(operation, offset);
-                    performIOWriteGroup0(operation, al);
+                    performIOWriteGroup0<width>(al);
                 }
             } else {
                 // read -> read
@@ -750,7 +758,7 @@ executionBody() noexcept {
                     CommunicationKernel<true, width>::doCommunication( window, offset);
                 } else {
                     // read -> read
-                    performIOReadGroup0<width>(operation, al);
+                    performIOReadGroup0<width>(al);
                 }
             }
             // since it is not zero we are looking at what was previously a read operation
@@ -774,7 +782,7 @@ executionBody() noexcept {
                     CommunicationKernel<true, width>::doCommunication( window, offset);
                 } else {
                     // write -> read
-                    performIOReadGroup0<width>(operation, al);
+                    performIOReadGroup0<width>(al);
                 }
             } else {
                 // write -> write
@@ -788,8 +796,7 @@ executionBody() noexcept {
                     CommunicationKernel<false, width>::doCommunication( window, offset);
                 } else {
                     // write -> write
-                    CommunicationKernel<false, width>::doCommunication(operation, offset);
-                    performIOWriteGroup0(operation, al);
+                    performIOWriteGroup0<width>(al);
                 }
             }
             // currently a write operation
@@ -804,6 +811,7 @@ template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;
+    Serial.println(F("Looking for an SD Card!"));
     while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD!"));
         delay(1000);

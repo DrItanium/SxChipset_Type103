@@ -40,10 +40,13 @@ Y(Timer_SystemTimer_CompareValue,0x020)
 Y(Timer_SystemTimer_Prescalar, 0x021)
 Y(Timer_Unixtime, 0x022)
 // 0x1000:0x1fff is the dual ported ram
+#define X(index) Y(DualPortedRAM_Slice_0x ## index, (0x100 + index))
+#include "Entry255.def"
+#undef X
 #undef Y
 };
 constexpr uint8_t getIOOpcode_Group(IOOpcodes opcode) noexcept {
-    return static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 8);
+    return static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 12);
 }
 constexpr uint8_t getIOOpcode_Offset(IOOpcodes opcode) noexcept {
     return static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 4);

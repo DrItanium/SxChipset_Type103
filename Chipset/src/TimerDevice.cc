@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 bool
 TimerDevice::begin() noexcept {
+    //Serial.println(F("Configuring Timer!"));
     // make sure that INT0 is enabled as an output. Make it high
     pinMode<Pin::INT0_960_>(OUTPUT);
 #if defined(TCCR1A) && defined(TCCR1B) && defined(TCNT1)

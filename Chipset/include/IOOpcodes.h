@@ -40,6 +40,7 @@ Y(Serial_Baud, 0x012)
 Y(Timer_SystemTimer_CompareValue,0x020)
 Y(Timer_SystemTimer_Prescalar, 0x021)
 Y(Timer_Unixtime, 0x022)
+#if 0
 // Display Operations begin
 Y(Display_RW, 0x030)
 Y(Display_Flush, 0x031)
@@ -83,30 +84,7 @@ Y(Display_EndWrite, 0x055)
 #define X(index) Y(Display_ReadCommand8_ ## index, ((index + 0x100)))
 #include "Entry255.def"
 #undef X
-#define X(index) Y(OnChipStorage0_## index, ((index + 0x200)))
-#include "Entry255.def"
-#undef X
-#define X(index) Y(OnChipStorage1_## index, ((index + 0x300)))
-#include "Entry255.def"
-#undef X
-#define X(index) Y(OnChipStorage2_## index, ((index + 0x400)))
-#include "Entry255.def"
-#undef X
-#define X(index) Y(OnChipStorage3_## index, ((index + 0x500)))
-#include "Entry255.def"
-#undef X
-#define X(index) Y(OnChipStorage4_## index, ((index + 0x600)))
-#include "Entry255.def"
-#undef X
-#define X(index) Y(OnChipStorage5_## index, ((index + 0x700)))
-#include "Entry255.def"
-#undef X
-#define X(index) Y(OnChipStorage6_## index, ((index + 0x800)))
-#include "Entry255.def"
-#undef X
-#define X(index) Y(OnChipStorage7_## index, ((index + 0x900)))
-#include "Entry255.def"
-#undef X
+#endif
 #undef Y
 };
 constexpr uint8_t getIOOpcode_Group(IOOpcodes opcode) noexcept {

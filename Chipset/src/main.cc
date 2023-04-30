@@ -43,16 +43,20 @@ union {
     SplitWord128 transactionBlocks[256];
     uint8_t bytes[4096];
     BytePage rawPages[16];
-    struct {
-        BytePage generic[12];
-        BytePage uartOut;
-        BytePage uartIn;
-        BytePage spiOut;
-        BytePage spiIn;
-    } pages;
 } DualPortedRam;
-
 static_assert(sizeof(DualPortedRam) == 4096);
+
+struct SPITransaction {
+    bool active = false;
+    uint8_t count = 0;
+    uint8_t* inputBuffer = nullptr;
+    uint8_t* outputBuffer = nullptr;
+    uint8_t interruptNumber = 0;
+    uint8_t defaultOutput = 0;
+};
+
+SPITransaction spiCurrent;
+
 
 void
 raiseInterrupt(uint8_t interruptVector) noexcept {
@@ -936,5 +940,22 @@ loop() {
             break;
     }
 }
-
-
+// this is used
+ISR(SPI_STC_vect) {
+    if (spiCurrent.inputBuffer) {
+        *spiCurrent.inputBuffer ++ = SPDR;
+    }
+    if (--spiCurrent.count > 0) {
+        if (spiCurrent.outputBuffer) {
+            SPDR = *spiCurrent.outputBuffer ++;
+        } else {
+            SPDR = spiCurrent.defaultOutput;
+        }
+    } else {
+        if (spiCurrent.interruptNumber >= 8) {
+            raiseInterrupt(spiCurrent.interruptNumber);
+        }
+        spiCurrent.active = false;
+    }
+    // and leave!
+}

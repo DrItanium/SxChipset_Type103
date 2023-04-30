@@ -50,7 +50,10 @@ struct IAC {
 };
 volatile IAC iac_;
 
-
+void
+raiseInterrupt(uint8_t interruptVector) noexcept {
+    // populate the IAC with this information
+}
 
 
 template<bool waitForReady = false>
@@ -591,7 +594,12 @@ void sendBoolean(bool value, uint8_t offset) noexcept {
         sendZero<isReadOperation, width>(offset);
     }
 }
-
+// allocate 1024 bytes total
+union TransactionWindow {
+    SplitWord128 transactionBlocks[16];
+    uint8_t bytes[256];
+};
+TransactionWindow storage[8];
 template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
@@ -603,9 +611,27 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
-    if (getIOOpcode_Group(static_cast<IOOpcodes>(opcode)) == 1) {
+    if (auto code = getIOOpcode_Group(static_cast<IOOpcodes>(opcode)); code == 1) {
         // display register group
         theDisplay.doReadCommand8(body, getIOOpcode_Offset(static_cast<IOOpcodes>(opcode)));
+    } else if (code == 2) {
+        auto aBlock = storage[0].transactionBlocks[offset >> 4];
+        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
+    } else if (code == 3) {
+        auto aBlock = storage[1].transactionBlocks[offset >> 4];
+        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
+    } else if (code == 4) {
+        auto aBlock = storage[2].transactionBlocks[offset >> 4];
+        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
+    } else if (code == 5) {
+        auto aBlock = storage[3].transactionBlocks[offset >> 4];
+        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
+    } else if (code == 6) {
+        auto aBlock = storage[4].transactionBlocks[offset >> 4];
+        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
+    } else if (code == 7) {
+        auto aBlock = storage[5].transactionBlocks[offset >> 4];
+        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
     } else {
         switch (static_cast<IOOpcodes>(opcode)) {
             case K::Info_GetChipsetClockSpeed:
@@ -663,58 +689,69 @@ performIOWriteGroup0(const SplitWord128& body, uint16_t opcode) noexcept {
     //
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
-    switch (static_cast<K>(opcode)) {
+    const uint8_t offset = static_cast<uint8_t>(opcode);
+    if (auto code = getIOOpcode_Group(static_cast<IOOpcodes>(opcode)); code == 2) {
+        storage[0].transactionBlocks[offset >> 4] = body;
+    } else if (code == 3) {
+        storage[1].transactionBlocks[offset >> 4] = body;
+    } else if (code == 4) {
+        storage[2].transactionBlocks[offset >> 4] = body;
+    } else if (code == 5) {
+        storage[3].transactionBlocks[offset >> 4] = body;
+    } else {
+        switch (static_cast<K>(opcode)) {
 #define X(name) case K :: name : theDisplay.handleWriteOperations< K :: name > (body); break
-                X(Display_SetScrollMargins);
-                X(Display_SetAddressWindow);
-                X(Display_ScrollTo);
-                X(Display_InvertDisplay);
-                X(Display_Rotation);
-                X(Display_RW);
-                X(Display_Flush);
-                X(Display_DrawPixel);
-                X(Display_DrawFastHLine);
-                X(Display_DrawFastVLine);
-                X(Display_FillRect);
-                X(Display_FillScreen);
-                X(Display_DrawLine);
-                X(Display_DrawRect);
-                X(Display_DrawCircle);
-                X(Display_FillCircle);
-                X(Display_DrawTriangle);
-                X(Display_FillTriangle);
-                X(Display_DrawRoundRect);
-                X(Display_FillRoundRect);
-                X(Display_SetTextWrap);
-                X(Display_CursorX); 
-                X(Display_CursorY); 
-                X(Display_CursorXY);
-                X(Display_DrawChar_Square);
-                X(Display_DrawChar_Rectangle);
-                X(Display_SetTextSize_Square);
-                X(Display_SetTextSize_Rectangle);
-                X(Display_SetTextColor0);
-                X(Display_SetTextColor1);
-                X(Display_StartWrite);
-                X(Display_WritePixel);
-                X(Display_WriteFillRect);
-                X(Display_WriteFastVLine);
-                X(Display_WriteFastHLine);
-                X(Display_WriteLine);
-                X(Display_EndWrite);
+            X(Display_SetScrollMargins);
+            X(Display_SetAddressWindow);
+            X(Display_ScrollTo);
+            X(Display_InvertDisplay);
+            X(Display_Rotation);
+            X(Display_RW);
+            X(Display_Flush);
+            X(Display_DrawPixel);
+            X(Display_DrawFastHLine);
+            X(Display_DrawFastVLine);
+            X(Display_FillRect);
+            X(Display_FillScreen);
+            X(Display_DrawLine);
+            X(Display_DrawRect);
+            X(Display_DrawCircle);
+            X(Display_FillCircle);
+            X(Display_DrawTriangle);
+            X(Display_FillTriangle);
+            X(Display_DrawRoundRect);
+            X(Display_FillRoundRect);
+            X(Display_SetTextWrap);
+            X(Display_CursorX); 
+            X(Display_CursorY); 
+            X(Display_CursorXY);
+            X(Display_DrawChar_Square);
+            X(Display_DrawChar_Rectangle);
+            X(Display_SetTextSize_Square);
+            X(Display_SetTextSize_Rectangle);
+            X(Display_SetTextColor0);
+            X(Display_SetTextColor1);
+            X(Display_StartWrite);
+            X(Display_WritePixel);
+            X(Display_WriteFillRect);
+            X(Display_WriteFastVLine);
+            X(Display_WriteFastHLine);
+            X(Display_WriteLine);
+            X(Display_EndWrite);
 #undef X
 #define X(name) case K :: name : theSerial.handleWriteOperations<K :: name > (body); break
-                X(Serial_RW);
-                X(Serial_Baud);
-                X(Serial_Flush);
+            X(Serial_RW);
+            X(Serial_Baud);
+            X(Serial_Flush);
 #undef X
 #define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (body); break
-                X(Timer_SystemTimer_Prescalar);
-                X(Timer_SystemTimer_CompareValue);
+            X(Timer_SystemTimer_Prescalar);
+            X(Timer_SystemTimer_CompareValue);
 #undef X
 
-        default: 
-                break;
+            default: 
+            break;
+        }
     }
 }
 

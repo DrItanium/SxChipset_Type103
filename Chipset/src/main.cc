@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
-#include <Wire.h>
 
 #include "Types.h"
 #include "Pinout.h"
@@ -888,7 +887,6 @@ setup() {
     setupPins();
     theSerial.begin();
     timerInterface.begin();
-    Wire.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // setup the IO Expanders
@@ -959,3 +957,4 @@ ISR(SPI_STC_vect) {
     }
     // and leave!
 }
+

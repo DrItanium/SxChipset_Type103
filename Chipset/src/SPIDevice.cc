@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Types.h"
 #include "Pinout.h"
+#if 0
 namespace {
     SPIRequest currentRequest;
 }
@@ -52,3 +53,4 @@ spiAvailable() noexcept {
 void 
 runSPI(uint8_t* input, uint8_t* output, uint8_t count, OnSPIFinishedCallback callback) {
 }
+#endif

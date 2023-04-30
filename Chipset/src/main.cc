@@ -42,7 +42,14 @@ using BytePage = uint8_t[256];
 union {
     SplitWord128 transactionBlocks[256];
     uint8_t bytes[4096];
-    BytePage pages[16];
+    BytePage rawPages[16];
+    struct {
+        BytePage generic[12];
+        BytePage uartOut;
+        BytePage uartIn;
+        BytePage spiOut;
+        BytePage spiIn;
+    } pages;
 } DualPortedRam;
 
 static_assert(sizeof(DualPortedRam) == 4096);

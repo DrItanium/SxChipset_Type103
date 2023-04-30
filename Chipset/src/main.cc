@@ -595,11 +595,10 @@ void sendBoolean(bool value, uint8_t offset) noexcept {
     }
 }
 // allocate 1024 bytes total
-union TransactionWindow {
-    SplitWord128 transactionBlocks[16];
-    uint8_t bytes[256];
-};
-TransactionWindow storage[8];
+union {
+    SplitWord128 transactionBlocks[256];
+    uint8_t bytes[4096];
+} DualPortedRam;
 template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
@@ -615,23 +614,9 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
         // display register group
         theDisplay.doReadCommand8(body, getIOOpcode_Offset(static_cast<IOOpcodes>(opcode)));
     } else if (code == 2) {
-        auto aBlock = storage[0].transactionBlocks[offset >> 4];
+        auto& aBlock = DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)];
         CommunicationKernel<true, width>::doCommunication(aBlock, offset);
-    } else if (code == 3) {
-        auto aBlock = storage[1].transactionBlocks[offset >> 4];
-        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
-    } else if (code == 4) {
-        auto aBlock = storage[2].transactionBlocks[offset >> 4];
-        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
-    } else if (code == 5) {
-        auto aBlock = storage[3].transactionBlocks[offset >> 4];
-        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
-    } else if (code == 6) {
-        auto aBlock = storage[4].transactionBlocks[offset >> 4];
-        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
-    } else if (code == 7) {
-        auto aBlock = storage[5].transactionBlocks[offset >> 4];
-        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
+        return;
     } else {
         switch (static_cast<IOOpcodes>(opcode)) {
             case K::Info_GetChipsetClockSpeed:
@@ -689,15 +674,8 @@ performIOWriteGroup0(const SplitWord128& body, uint16_t opcode) noexcept {
     //
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
-    const uint8_t offset = static_cast<uint8_t>(opcode);
     if (auto code = getIOOpcode_Group(static_cast<IOOpcodes>(opcode)); code == 2) {
-        storage[0].transactionBlocks[offset >> 4] = body;
-    } else if (code == 3) {
-        storage[1].transactionBlocks[offset >> 4] = body;
-    } else if (code == 4) {
-        storage[2].transactionBlocks[offset >> 4] = body;
-    } else if (code == 5) {
-        storage[3].transactionBlocks[offset >> 4] = body;
+        DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)] = body;
     } else {
         switch (static_cast<K>(opcode)) {
 #define X(name) case K :: name : theDisplay.handleWriteOperations< K :: name > (body); break

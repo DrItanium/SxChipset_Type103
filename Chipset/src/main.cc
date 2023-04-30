@@ -35,11 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SerialDevice.h"
 //#include "InfoDevice.h"
 #include "TimerDevice.h"
-#include "DisplayPeripheral.h"
 SdFs SD;
 SerialDevice theSerial;
 TimerDevice timerInterface;
-DisplayInterface theDisplay;
 struct IAC {
     uint16_t field2;
     uint8_t field1;
@@ -611,9 +609,6 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
     if (auto code = getIOOpcode_Group(static_cast<IOOpcodes>(opcode)); code == 1) {
-        // display register group
-        theDisplay.doReadCommand8(body, getIOOpcode_Offset(static_cast<IOOpcodes>(opcode)));
-    } else if (code == 2) {
         auto& aBlock = DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)];
         CommunicationKernel<true, width>::doCommunication(aBlock, offset);
         return;
@@ -648,15 +643,6 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
             case K::Timer_SystemTimer_CompareValue:
                 body.bytes[0] = timerInterface.getSystemTimerComparisonValue();
                 break;
-#define X(name) case K:: name : theDisplay.handleReadOperations< K :: name > (body); break
-                X(Display_RW);
-                X(Display_WidthHeight);
-                X(Display_Rotation);
-                X(Display_CursorX); 
-                X(Display_CursorY); 
-                X(Display_CursorXY); 
-                X(Display_Flush);
-#undef X
             default:
                 sendZero<true, width>(static_cast<uint8_t>(opcode));
                 return;
@@ -678,45 +664,6 @@ performIOWriteGroup0(const SplitWord128& body, uint16_t opcode) noexcept {
         DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)] = body;
     } else {
         switch (static_cast<K>(opcode)) {
-#define X(name) case K :: name : theDisplay.handleWriteOperations< K :: name > (body); break
-            X(Display_SetScrollMargins);
-            X(Display_SetAddressWindow);
-            X(Display_ScrollTo);
-            X(Display_InvertDisplay);
-            X(Display_Rotation);
-            X(Display_RW);
-            X(Display_Flush);
-            X(Display_DrawPixel);
-            X(Display_DrawFastHLine);
-            X(Display_DrawFastVLine);
-            X(Display_FillRect);
-            X(Display_FillScreen);
-            X(Display_DrawLine);
-            X(Display_DrawRect);
-            X(Display_DrawCircle);
-            X(Display_FillCircle);
-            X(Display_DrawTriangle);
-            X(Display_FillTriangle);
-            X(Display_DrawRoundRect);
-            X(Display_FillRoundRect);
-            X(Display_SetTextWrap);
-            X(Display_CursorX); 
-            X(Display_CursorY); 
-            X(Display_CursorXY);
-            X(Display_DrawChar_Square);
-            X(Display_DrawChar_Rectangle);
-            X(Display_SetTextSize_Square);
-            X(Display_SetTextSize_Rectangle);
-            X(Display_SetTextColor0);
-            X(Display_SetTextColor1);
-            X(Display_StartWrite);
-            X(Display_WritePixel);
-            X(Display_WriteFillRect);
-            X(Display_WriteFastVLine);
-            X(Display_WriteFastHLine);
-            X(Display_WriteLine);
-            X(Display_EndWrite);
-#undef X
 #define X(name) case K :: name : theSerial.handleWriteOperations<K :: name > (body); break
             X(Serial_RW);
             X(Serial_Baud);
@@ -935,10 +882,6 @@ setupPins() noexcept {
     }
 }
 void
-setupDisplay() noexcept {
-    theDisplay.begin();
-}
-void
 setup() {
     setupPins();
     theSerial.begin();
@@ -946,7 +889,6 @@ setup() {
     Wire.begin();
     SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    setupDisplay();
     // setup the IO Expanders
     Platform::begin();
     delay(1000);

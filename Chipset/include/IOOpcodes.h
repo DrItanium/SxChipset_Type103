@@ -31,7 +31,6 @@ enum class IOOpcodes : uint16_t {
 // info opcodes
 Y(Info_GetCPUClockSpeed, 0x000)
 Y(Info_GetChipsetClockSpeed, 0x001)
-Y(Info_GetExternalIAC, 0x002)
 // serial operations begin
 Y(Serial_RW, 0x010)
 Y(Serial_Flush, 0x011)

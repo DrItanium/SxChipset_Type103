@@ -38,19 +38,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 SdFs SD;
 SerialDevice theSerial;
 TimerDevice timerInterface;
-struct IAC {
-    uint16_t field2;
-    uint8_t field1;
-    uint8_t messageType;
-    uint32_t field3;
-    uint32_t field4;
-    uint32_t field5;
-};
-volatile IAC iac_;
 
 void
 raiseInterrupt(uint8_t interruptVector) noexcept {
-    // populate the IAC with this information
+    // generate our own interrupt table to use for invocation purposes
 }
 
 
@@ -620,14 +611,6 @@ performIOReadGroup0(SplitWord128& body, uint16_t opcode) noexcept {
             case K::Info_GetCPUClockSpeed:
                 CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
                 return;
-            case K::Info_GetExternalIAC:
-                body[0].halves[0] = iac_.field2;
-                body[0].bytes[2] = iac_.field1;
-                body[0].bytes[3] = iac_.messageType;
-                body[1].full = iac_.field3;
-                body[2].full = iac_.field4;
-                body[3].full = iac_.field5;
-                break;
             case K::Serial_RW:
                 body[0].halves[0] = Serial.read();
                 break;

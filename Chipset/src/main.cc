@@ -552,7 +552,6 @@ public:
 BeginDeviceOperationsList(InfoDevice)
     GetChipsetClock,
     GetCPUClock,
-    IAC,
 EndDeviceOperationsList(InfoDevice)
 ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
 
@@ -869,11 +868,8 @@ setup() {
     setupPins();
     theSerial.begin();
     timerInterface.begin();
-    SPI.begin();
-    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     // setup the IO Expanders
     Platform::begin();
-    delay(1000);
     switch (Platform::getInstalledCPUKind()) {
         case CPUKind::Sx:
             Serial.println(F("i960Sx CPU detected!"));
@@ -891,32 +887,31 @@ setup() {
             Serial.println(F("i960Cx CPU detected!"));
             break;
         default:
-            Serial.println(F("Unknown i960 cpu detected!"));
+            Serial.println(F("Unknown i960 CPU detected!"));
             break;
     }
     // find firmware.bin and install it into the 512k block of memory
+    SPI.begin();
+    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     installMemoryImage();
+    SPI.endTransaction();
+    SPI.end();
     pullCPUOutOfReset();
-}
-template<NativeBusWidth width>
-void
-discoveryDebugKindAndDispatch() {
-    executionBody<width>();
 }
 void 
 loop() {
     switch (getBusWidth(Platform::getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
             Serial.println(F("16-bit bus width detected"));
-            discoveryDebugKindAndDispatch<NativeBusWidth::Sixteen>();
+            executionBody<NativeBusWidth::Sixteen>();
             break;
         case NativeBusWidth::ThirtyTwo:
             Serial.println(F("32-bit bus width detected"));
-            discoveryDebugKindAndDispatch<NativeBusWidth::ThirtyTwo>();
+            executionBody<NativeBusWidth::ThirtyTwo>();
             break;
         default:
             Serial.println(F("Undefined bus width detected (fallback to 32-bit)"));
-            discoveryDebugKindAndDispatch<NativeBusWidth::Unknown>();
+            executionBody<NativeBusWidth::Unknown>();
             break;
     }
 }

@@ -37,13 +37,6 @@ SdFs SD;
 SerialDevice theSerial;
 TimerDevice timerInterface;
 // allocate 1024 bytes total
-using BytePage = uint8_t[256];
-union {
-    SplitWord128 transactionBlocks[256];
-    uint8_t bytes[4096];
-    BytePage rawPages[16];
-} DualPortedRam;
-static_assert(sizeof(DualPortedRam) == 4096);
 
 template<bool waitForReady = false>
 [[gnu::always_inline]] 
@@ -594,37 +587,31 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
-    if (getIOOpcode_Group(static_cast<IOOpcodes>(opcode)) == 1) {
-        auto& aBlock = DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)];
-        CommunicationKernel<true, width>::doCommunication(aBlock, offset);
-        return;
-    } else {
-        switch (static_cast<IOOpcodes>(opcode)) {
-            case K::Info_GetChipsetClockSpeed:
-                CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
-                return;
-            case K::Info_GetCPUClockSpeed:
-                CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
-                return;
-            case K::Serial_RW:
-                operation[0].halves[0] = Serial.read();
-                break;
-            case K::Serial_Flush:
-                Serial.flush();
-                break;
-            case K::Serial_Baud:
-                operation[0].full = theSerial.getBaudRate();
-                break;
-            case K::Timer_SystemTimer_Prescalar:
-                operation.bytes[0] = timerInterface.getSystemTimerPrescalar();
-                break;
-            case K::Timer_SystemTimer_CompareValue:
-                operation.bytes[0] = timerInterface.getSystemTimerComparisonValue();
-                break;
-            default:
-                sendZero<true, width>(static_cast<uint8_t>(opcode));
-                return;
-        }
+    switch (static_cast<IOOpcodes>(opcode)) {
+        case K::Info_GetChipsetClockSpeed:
+            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
+            return;
+        case K::Info_GetCPUClockSpeed:
+            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
+            return;
+        case K::Serial_RW:
+            operation[0].halves[0] = Serial.read();
+            break;
+        case K::Serial_Flush:
+            Serial.flush();
+            break;
+        case K::Serial_Baud:
+            operation[0].full = theSerial.getBaudRate();
+            break;
+        case K::Timer_SystemTimer_Prescalar:
+            operation.bytes[0] = timerInterface.getSystemTimerPrescalar();
+            break;
+        case K::Timer_SystemTimer_CompareValue:
+            operation.bytes[0] = timerInterface.getSystemTimerComparisonValue();
+            break;
+        default:
+            sendZero<true, width>(static_cast<uint8_t>(opcode));
+            return;
     }
     CommunicationKernel<true, width>::doCommunication(operation, offset);
 }
@@ -641,26 +628,21 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
-    if (getIOOpcode_Group(static_cast<IOOpcodes>(opcode)) == 1) {
-        auto& aBlock = DualPortedRam.transactionBlocks[static_cast<uint8_t>(opcode >> 4)];
-        CommunicationKernel<false, width>::doCommunication(aBlock, offset);
-    } else {
-        CommunicationKernel<false, width>::doCommunication(operation, offset);
-        asm volatile ("nop");
-        switch (static_cast<K>(opcode)) {
+    CommunicationKernel<false, width>::doCommunication(operation, offset);
+    asm volatile ("nop");
+    switch (static_cast<K>(opcode)) {
 #define X(name) case K :: name : theSerial.handleWriteOperations<K :: name > (operation); break
-            X(Serial_RW);
-            X(Serial_Baud);
-            X(Serial_Flush);
+        X(Serial_RW);
+        X(Serial_Baud);
+        X(Serial_Flush);
 #undef X
 #define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (operation); break
-            X(Timer_SystemTimer_Prescalar);
-            X(Timer_SystemTimer_CompareValue);
+        X(Timer_SystemTimer_Prescalar);
+        X(Timer_SystemTimer_CompareValue);
 #undef X
 
-            default: 
-            break;
-        }
+        default: 
+        break;
     }
 }
 

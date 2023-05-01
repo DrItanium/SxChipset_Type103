@@ -486,10 +486,6 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
-// block reordering causes expensive jumps to be used under the guise of
-// optimization. Turning it off for this function seems to improve performance
-// quite a bit
-    //[[gnu::optimize("no-reorder-blocks")]]
     [[gnu::always_inline]]
     inline
     static void
@@ -542,21 +538,6 @@ public:
         doCommunication(&body.bytes[getWordByteOffset<BusWidth>(lowest)], lowest);
     }
 };
-BeginDeviceOperationsList(InfoDevice)
-    GetChipsetClock,
-    GetCPUClock,
-EndDeviceOperationsList(InfoDevice)
-ConnectPeripheral(TargetPeripheral::Info, InfoDeviceOperations);
-
-
-
-
-template<bool isReadOperation, NativeBusWidth width, TargetPeripheral p>
-[[gnu::always_inline]]
-inline
-void sendOpcodeSize(uint8_t offset) noexcept {
-    CommunicationKernel<isReadOperation, width>::template doFixedCommunication<OpcodeCount_v<p>>(offset);
-}
 
 template<bool isReadOperation, NativeBusWidth width>
 [[gnu::always_inline]]
@@ -565,16 +546,6 @@ void sendZero(uint8_t offset) noexcept {
     CommunicationKernel<isReadOperation, width>::template doFixedCommunication<0>(offset);
 }
 
-template<bool isReadOperation, NativeBusWidth width>
-[[gnu::always_inline]]
-inline
-void sendBoolean(bool value, uint8_t offset) noexcept {
-    if (value) {
-        CommunicationKernel<isReadOperation, width>::template doFixedCommunication<0xFFFF'FFFF>(offset);
-    } else {
-        sendZero<isReadOperation, width>(offset);
-    }
-}
 SplitWord128 operation;
 template<NativeBusWidth width>
 [[gnu::always_inline]]
@@ -586,19 +557,15 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
-    const uint8_t offset = static_cast<uint8_t>(opcode);
     switch (static_cast<IOOpcodes>(opcode)) {
         case K::Info_GetChipsetClockSpeed:
-            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
+            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(0);
             return;
         case K::Info_GetCPUClockSpeed:
-            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
+            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(0);
             return;
         case K::Serial_RW:
             operation[0].halves[0] = Serial.read();
-            break;
-        case K::Serial_Flush:
-            Serial.flush();
             break;
         case K::Serial_Baud:
             operation[0].full = theSerial.getBaudRate();
@@ -609,11 +576,13 @@ performIOReadGroup0(uint16_t opcode) noexcept {
         case K::Timer_SystemTimer_CompareValue:
             operation.bytes[0] = timerInterface.getSystemTimerComparisonValue();
             break;
+        case K::Serial_Flush:
+            Serial.flush();
         default:
-            sendZero<true, width>(static_cast<uint8_t>(opcode));
+            sendZero<true, width>(0);
             return;
     }
-    CommunicationKernel<true, width>::doCommunication(operation, offset);
+    CommunicationKernel<true, width>::doCommunication(operation, static_cast<uint8_t>(opcode));
 }
 
 template<NativeBusWidth width>

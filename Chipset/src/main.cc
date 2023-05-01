@@ -486,10 +486,12 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
+private:
+    template<bool isAligned>
     [[gnu::always_inline]]
     inline
     static void
-    doCommunication(DataRegister8 theBytes, uint8_t offset) noexcept {
+    doCommunication_Internal(DataRegister8 theBytes) noexcept {
         do {
             // figure out which word we are currently looking at
             // if we are aligned to 32-bit word boundaries then just assume we
@@ -514,7 +516,7 @@ public:
             // fine but in all cases the first 1 we encounter after finding the
             // first zero in the byte enable bits we are going to terminate
             // anyway. So don't waste time evaluating BLAST at all!
-            if ((offset & 0b10) == 0) {
+            if constexpr (isAligned) {
                 LO(0, 1, false);
             }
             HI(2, 3, false);
@@ -530,6 +532,17 @@ public:
 #undef LO
 #undef HI
 #undef X
+public:
+    [[gnu::always_inline]]
+    inline
+    static void
+    doCommunication(DataRegister8 theBytes, uint8_t offset) noexcept {
+        if ((offset & 0b10) == 0) {
+            doCommunication_Internal<true>(theBytes);
+        } else {
+            doCommunication_Internal<false>(theBytes);
+        }
+    }
 
     [[gnu::always_inline]]
     inline

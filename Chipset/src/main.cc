@@ -591,8 +591,6 @@ performIOReadGroup0(uint16_t opcode) noexcept {
         case K::Timer_SystemTimer_CompareValue:
             operation.bytes[0] = timerInterface.getSystemTimerComparisonValue();
             break;
-        case K::Serial_Flush:
-            Serial.flush();
         default:
             sendZero<true, width>(0);
             return;

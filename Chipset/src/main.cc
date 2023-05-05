@@ -434,21 +434,36 @@ public:
                          * should be safe to just propagate without performing
                          * the check itself
                          */ \
-                        theBytes[b0] = getDataByte<d0>(); \
                         if constexpr (!IsLastWord) { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
+                                theBytes[b0] = getDataByte<d0>(); \
                                 break; \
+                            } else { \
+                                /* 
+                                 * we could be operating on a 16-bit register
+                                 * so follow the manual and write the upper
+                                 * half first followed by the lower half every
+                                 * time
+                                 *
+                                 */ \
+                                auto upper = getDataByte<d1>(); \
+                                auto lower = getDataByte<d0>(); \
+                                theBytes[b1] = upper; \
+                                theBytes[b0] = lower; \
                             } \
-                            theBytes[b1] = getDataByte<d1>(); \
                             if (Platform::isBurstLast()) { \
                                 break; \
                             } \
                             signalReady<!isReadOperation>(); \
                         } else { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
+                                theBytes[b0] = getDataByte<d0>(); \
                                 break; \
                             } \
-                            theBytes[b1] = getDataByte<d1>(); \
+                            auto upper = getDataByte<d1>(); \
+                            auto lower = getDataByte<d0>(); \
+                            theBytes[b1] = upper; \
+                            theBytes[b0] = lower; \
                         } \
                     } else { \
                         /*
@@ -457,9 +472,13 @@ public:
                          * check the lower bits
                          */ \
                         if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            theBytes[b1] = getDataByte<d1>(); \
+                            auto upper = getDataByte<d1>(); \
                             if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
-                                theBytes[b0] = getDataByte<d0>(); \
+                                auto lower = getDataByte<d0>(); \
+                                theBytes[b1] = upper; \
+                                theBytes[b0] = lower; \
+                            } else { \
+                                theBytes[b1] = upper; \
                             } \
                             if constexpr (!IsLastWord) { \
                                 if (Platform::isBurstLast()) { \
@@ -618,7 +637,22 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     }
     CommunicationKernel<true, width>::doCommunication(operation, static_cast<uint8_t>(opcode));
 }
-
+template<NativeBusWidth width>
+[[gnu::used]]
+inline
+void
+doTimer1Write(uint8_t offset) noexcept {
+    CommunicationKernel<false, width>::doCommunication(
+            *reinterpret_cast<volatile SplitWord128*>(&TCCR1A),
+            offset);
+    Serial.print(F("TCCR1A: 0x")); Serial.println(TCCR1A, HEX);
+    Serial.print(F("TCCR1B: 0x")); Serial.println(TCCR1B, HEX);
+    Serial.print(F("TCCR1C: 0x")); Serial.println(TCCR1C, HEX);
+    Serial.print(F("TCNT1: 0x")); Serial.println(TCNT1, HEX);
+    Serial.print(F("OCR1A: 0x")); Serial.println(OCR1A, HEX);
+    Serial.print(F("OCR1B: 0x")); Serial.println(OCR1B, HEX);
+    Serial.print(F("OCR1C: 0x")); Serial.println(OCR1C, HEX);
+}
 template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
@@ -646,9 +680,7 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
 #ifdef TCCR1A
         case K::Timer1:
             Serial.println(F("Timer 1 Write"));
-            CommunicationKernel<false, width>::doCommunication(
-                    *reinterpret_cast<volatile SplitWord128*>(&TCCR1A),
-                    offset);
+            doTimer1Write<width>(offset);
             break;
 #endif
 #ifdef TCCR3A
@@ -677,7 +709,7 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
 #endif
 
         default: 
-            CommunicationKernel<false, width>::doCommunication(operation, offset);
+            idleTransaction();
             break;
     }
 }

@@ -292,7 +292,7 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
     }
 #define X(index) \
 static void doTimer ## index (uint8_t offset) noexcept { \
-        switch (offset & 0b1110) { \
+        switch (offset & 0b1100) { \
             case 0: { \
                         /* TCCRnA and TCCRnB */ \
                         /* TCCRnC and Reserved (ignore that) */ \
@@ -761,6 +761,8 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 noInterrupts(); \
                                 OCR ## index ## A = dataLinesHalves[0]; \
                                 interrupts(); \
+                                Serial.print(F("Now OCR" #index "A: 0x")); \
+                                Serial.println( OCR ## index ## A , HEX); \
                             } \
                         } \
                         if (Platform::isBurstLast()) { \
@@ -780,6 +782,8 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 noInterrupts(); \
                                 OCR ## index ## B = dataLinesHalves[1]; \
                                 interrupts(); \
+                                Serial.print(F("Now OCR" #index "B: 0x")); \
+                                Serial.println( OCR ## index ## B , HEX); \
                              } \
                          } \
                          if (Platform::isBurstLast()) { \
@@ -799,6 +803,8 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                   noInterrupts(); \
                                   OCR ## index ## C = dataLinesHalves[0];\
                                   interrupts(); \
+                                  Serial.print(F("Now OCR" #index "C: 0x")); \
+                                  Serial.println( OCR ## index ## C , HEX); \
                               }\
                          } \
                          if (Platform::isBurstLast()) {\

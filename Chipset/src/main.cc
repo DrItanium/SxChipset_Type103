@@ -646,15 +646,19 @@ public:
     }
 #define X(index) \
 static void doTimer ## index ## Write(uint8_t offset) noexcept { \
-    if constexpr (!isReadOperation) { \
         switch (offset & 0b1110) { \
             case 0: { \
                         /* TCCRnA and TCCRnB */ \
-                        if (digitalRead<Pin::BE0>() == LOW) { \
-                            TCCR ## index ## A = getDataByte<0>(); \
-                        } \
-                        if (digitalRead<Pin::BE1>() == LOW) { \
-                            TCCR ## index ## B = getDataByte<1>(); \
+                        if constexpr (isReadOperation) { \
+                            setDataByte<0>(TCCR ## index ## A); \
+                            setDataByte<1>(TCCR ## index ## B); \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW) { \
+                                TCCR ## index ## A = getDataByte<0>(); \
+                            } \
+                            if (digitalRead<Pin::BE1>() == LOW) { \
+                                TCCR ## index ## B = getDataByte<1>(); \
+                            } \
                         } \
                         if (Platform::isBurstLast()) { \
                             break; \
@@ -663,8 +667,13 @@ static void doTimer ## index ## Write(uint8_t offset) noexcept { \
                     } \
             case 2: { \
                         /* TCCRnC and Reserved (ignore that) */ \
-                        if (digitalRead<Pin::BE2>() == LOW) { \
-                            TCCR ## index ## C = getDataByte<2>(); \
+                        if constexpr (isReadOperation) { \
+                            setDataByte<2>(TCCR ## index ## C); \
+                            setDataByte<3>(0); \
+                        } else { \
+                            if (digitalRead<Pin::BE2>() == LOW) { \
+                                TCCR ## index ## C = getDataByte<2>(); \
+                            } \
                         } \
                         if (Platform::isBurstLast()) { \
                             break; \
@@ -675,9 +684,13 @@ static void doTimer ## index ## Write(uint8_t offset) noexcept { \
                         /* TCNTn should only be accessible if you do a full 16-bit
                          * write 
                          */ \
-                        if (digitalRead<Pin::BE0>() == LOW && \
-                                digitalRead<Pin::BE1>() == LOW) { \
-                            TCNT ## index  = dataLinesHalves[0]; \
+                        if constexpr (isReadOperation) { \
+                            dataLinesHalves[0] = TCNT ## index; \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW && \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                TCNT ## index  = dataLinesHalves[0]; \
+                            } \
                         } \
                         if (Platform::isBurstLast()) { \
                             break; \
@@ -688,9 +701,13 @@ static void doTimer ## index ## Write(uint8_t offset) noexcept { \
                         /* ICRn should only be accessible if you do a full 16-bit
                          * write
                          */ \
-                        if (digitalRead<Pin::BE2>() == LOW &&  \
-                                digitalRead<Pin::BE3>() == LOW) { \
-                            ICR ## index = dataLinesHalves[0]; \
+                        if constexpr (isReadOperation) { \
+                            dataLinesHalves[1] = ICR ## index ; \
+                        } else { \
+                            if (digitalRead<Pin::BE2>() == LOW &&  \
+                                    digitalRead<Pin::BE3>() == LOW) { \
+                                ICR ## index = dataLinesHalves[1]; \
+                            } \
                         } \
                         if (Platform::isBurstLast()) { \
                             break; \
@@ -699,10 +716,14 @@ static void doTimer ## index ## Write(uint8_t offset) noexcept { \
                     } \
             case 8: { \
                         /* OCRnA should only be accessible if you do a full 16-bit write */ \
+                        if constexpr (isReadOperation) { \
+                            dataLinesHalves[0] = OCR ## index ## A ; \
+                        } else { \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) { \
-                                OCR1A = dataLinesHalves[0]; \
+                                OCR ## index ## A = dataLinesHalves[0]; \
                             } \
+                        } \
                         if (Platform::isBurstLast()) { \
                             break; \
                         } \
@@ -710,10 +731,14 @@ static void doTimer ## index ## Write(uint8_t offset) noexcept { \
                     } \
             case 10: { \
                          /* OCRnB */ \
+                         if constexpr (isReadOperation) { \
+                             dataLinesHalves[1] = OCR ## index ## B ; \
+                         } else { \
                              if (digitalRead<Pin::BE2>() == LOW &&  \
                                      digitalRead<Pin::BE3>() == LOW) { \
-                                 OCR1B = dataLinesHalves[1]; \
+                                 OCR ## index ## B = dataLinesHalves[1]; \
                              } \
+                         } \
                          if (Platform::isBurstLast()) { \
                              break; \
                          } \
@@ -721,16 +746,26 @@ static void doTimer ## index ## Write(uint8_t offset) noexcept { \
                      } \
             case 12: { \
                          /* OCRnC */ \
-                             if (digitalRead<Pin::BE0>() == LOW && \
-                                     digitalRead<Pin::BE1>() == LOW) { \
-                                 OCR1C = dataLinesHalves[0];\
-                             }\
+                         if constexpr (isReadOperation) { \
+                             dataLinesHalves[0] = OCR ## index ## C ; \
+                         } else { \
+                              if (digitalRead<Pin::BE0>() == LOW && \
+                                      digitalRead<Pin::BE1>() == LOW) { \
+                                  OCR ## index ## C = dataLinesHalves[0];\
+                              }\
+                         } \
                          if (Platform::isBurstLast()) {\
                              break;\
                          } \
                          signalReady<true>(); \
                      } \
-            case 14: /* upper two most bytes are reserved so don't update them! */ \
+            case 14: { \
+                        /* nothing to do on writes but do update the data port
+                         * on reads */ \
+                         if constexpr (isReadOperation) { \
+                            dataLinesHalves[1] = 0; \
+                         } \
+                     }  \
             default: break; \
         } \
         signalReady(); \
@@ -741,7 +776,6 @@ static void doTimer ## index ## Write(uint8_t offset) noexcept { \
         Serial.print(F("OCR" #index "A: 0x")); Serial.println( OCR ## index ## A , HEX); \
         Serial.print(F("OCR" #index "B: 0x")); Serial.println( OCR ## index ## B , HEX); \
         Serial.print(F("OCR" #index "C: 0x")); Serial.println( OCR ## index ## C , HEX); \
-    } \
 }
 X(1);
 X(3);

@@ -31,10 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IOOpcodes.h"
 #include "Peripheral.h"
 #include "Setup.h"
-#include "SerialDevice.h"
 #include "TimerDevice.h"
 SdFs SD;
-SerialDevice theSerial;
 TimerDevice timerInterface;
 // allocate 1024 bytes total
 
@@ -610,10 +608,12 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     CommunicationKernel<false, width>::doCommunication(operation, offset);
     asm volatile ("nop");
     switch (static_cast<K>(opcode)) {
-#define X(name) case K :: name : theSerial.handleWriteOperations<K :: name > (operation); break
-        X(Serial_RW);
-        X(Serial_Flush);
-#undef X
+        case K::Serial_RW:
+            Serial.write(static_cast<uint8_t>(operation.bytes[0]));
+            break;
+        case K::Serial_Flush:
+            Serial.flush();
+            break;
 #define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (operation); break
         X(Timer_SystemTimer_Prescalar);
         X(Timer_SystemTimer_CompareValue);
@@ -826,7 +826,7 @@ setupPins() noexcept {
 void
 setup() {
     setupPins();
-    theSerial.begin();
+    Serial.begin(115200);
     timerInterface.begin();
     // setup the IO Expanders
     Platform::begin();

@@ -326,20 +326,24 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                          */ \
                         if constexpr (isReadOperation) { \
                             noInterrupts(); \
-                            dataLinesHalves[0] = TCNT ## index; \
-                            dataLinesHalves[1] = ICR ## index; \
+                            auto lower = TCNT ## index; \
+                            auto upper = ICR ## index ; \
                             interrupts(); \
+                            dataLinesHalves[0] = lower; \
+                            dataLinesHalves[1] = upper; \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW && \
                                     digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
                                 noInterrupts(); \
-                                TCNT ## index  = dataLinesHalves[0]; \
+                                TCNT ## index  = value; \
                                 interrupts(); \
                             } \
                             if (digitalRead<Pin::BE2>() == LOW &&  \
                                     digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
                                 noInterrupts(); \
-                                ICR ## index = dataLinesHalves[1]; \
+                                ICR ## index = value; \
                                 interrupts(); \
                             } \
                         } \
@@ -353,22 +357,26 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                         /* OCRnB */ \
                         if constexpr (isReadOperation) { \
                             noInterrupts(); \
-                            dataLinesHalves[0] = OCR ## index ## A ; \
-                            dataLinesHalves[1] = OCR ## index ## B ; \
+                            auto lower = OCR ## index ## A ; \
+                            auto upper = OCR ## index ## B ; \
                             interrupts(); \
+                            dataLinesHalves[0] = lower; \
+                            dataLinesHalves[1] = upper; \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
                                 noInterrupts(); \
-                                OCR ## index ## A = dataLinesHalves[0]; \
+                                OCR ## index ## A = value; \
                                 interrupts(); \
                             } \
-                            if (digitalRead<Pin::BE2>() == LOW &&  \
-                                    digitalRead<Pin::BE3>() == LOW) { \
+                             if (digitalRead<Pin::BE2>() == LOW &&  \
+                                     digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
                                 noInterrupts(); \
-                                OCR ## index ## B = dataLinesHalves[1]; \
+                                OCR ## index ## B = value; \
                                 interrupts(); \
-                            } \
+                             } \
                         } \
                         if (Platform::isBurstLast()) { \
                             break; \
@@ -379,18 +387,20 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                          /* OCRnC */ \
                          if constexpr (isReadOperation) { \
                              noInterrupts(); \
-                             dataLinesHalves[0] = OCR ## index ## C ; \
+                             auto tmp = OCR ## index ## C ; \
                              interrupts(); \
+                             dataLinesHalves[0] = tmp; \
                              dataLinesHalves[1] = 0; \
                          } else { \
                               if (digitalRead<Pin::BE0>() == LOW && \
                                       digitalRead<Pin::BE1>() == LOW) { \
+                                  auto value = dataLinesHalves[0]; \
                                   noInterrupts(); \
-                                  OCR ## index ## C = dataLinesHalves[0];\
+                                  OCR ## index ## C = value; \
                                   interrupts(); \
                               }\
                          } \
-                     }  \
+                     } \
             default: break; \
         } \
         signalReady<true>(); \
@@ -713,13 +723,15 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                          */ \
                         if constexpr (isReadOperation) { \
                             noInterrupts(); \
-                            dataLinesHalves[0] = TCNT ## index; \
+                            auto tmp = TCNT ## index; \
                             interrupts(); \
+                            dataLinesHalves[0] = tmp; \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW && \
                                     digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
                                 noInterrupts(); \
-                                TCNT ## index  = dataLinesHalves[0]; \
+                                TCNT ## index  = value; \
                                 interrupts(); \
                             } \
                         } \
@@ -734,13 +746,15 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                          */ \
                         if constexpr (isReadOperation) { \
                             noInterrupts(); \
-                            dataLinesHalves[1] = ICR ## index ; \
+                            auto tmp = ICR ## index ; \
                             interrupts(); \
+                            dataLinesHalves[1] = tmp; \
                         } else { \
                             if (digitalRead<Pin::BE2>() == LOW &&  \
                                     digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
                                 noInterrupts(); \
-                                ICR ## index = dataLinesHalves[1]; \
+                                ICR ## index = value; \
                                 interrupts(); \
                             } \
                         } \
@@ -753,16 +767,16 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                         /* OCRnA should only be accessible if you do a full 16-bit write */ \
                         if constexpr (isReadOperation) { \
                             noInterrupts(); \
-                            dataLinesHalves[0] = OCR ## index ## A ; \
+                            auto tmp = OCR ## index ## A ; \
                             interrupts(); \
+                            dataLinesHalves[0] = tmp; \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
                                 noInterrupts(); \
-                                OCR ## index ## A = dataLinesHalves[0]; \
+                                OCR ## index ## A = value; \
                                 interrupts(); \
-                                Serial.print(F("Now OCR" #index "A: 0x")); \
-                                Serial.println( OCR ## index ## A , HEX); \
                             } \
                         } \
                         if (Platform::isBurstLast()) { \
@@ -774,16 +788,16 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                          /* OCRnB */ \
                          if constexpr (isReadOperation) { \
                              noInterrupts(); \
-                             dataLinesHalves[1] = OCR ## index ## B ; \
+                             auto tmp = OCR ## index ## B ; \
                              interrupts(); \
+                             dataLinesHalves[1] = tmp; \
                          } else { \
                              if (digitalRead<Pin::BE2>() == LOW &&  \
                                      digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
                                 noInterrupts(); \
-                                OCR ## index ## B = dataLinesHalves[1]; \
+                                OCR ## index ## B = value; \
                                 interrupts(); \
-                                Serial.print(F("Now OCR" #index "B: 0x")); \
-                                Serial.println( OCR ## index ## B , HEX); \
                              } \
                          } \
                          if (Platform::isBurstLast()) { \
@@ -795,16 +809,16 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                          /* OCRnC */ \
                          if constexpr (isReadOperation) { \
                              noInterrupts(); \
-                             dataLinesHalves[0] = OCR ## index ## C ; \
+                             auto tmp = OCR ## index ## C ; \
                              interrupts(); \
+                             dataLinesHalves[0] = tmp; \
                          } else { \
                               if (digitalRead<Pin::BE0>() == LOW && \
                                       digitalRead<Pin::BE1>() == LOW) { \
+                                  auto value = dataLinesHalves[0]; \
                                   noInterrupts(); \
-                                  OCR ## index ## C = dataLinesHalves[0];\
+                                  OCR ## index ## C = value; \
                                   interrupts(); \
-                                  Serial.print(F("Now OCR" #index "C: 0x")); \
-                                  Serial.println( OCR ## index ## C , HEX); \
                               }\
                          } \
                          if (Platform::isBurstLast()) {\
@@ -849,7 +863,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
-    switch (static_cast<IOOpcodes>(opcode)) {
+    switch (static_cast<IOOpcodes>(opcode & 0xFFF0)) {
         case K::Info_GetChipsetClockSpeed:
             CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(0);
             return;
@@ -896,8 +910,8 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     //
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
-    const uint8_t offset = static_cast<uint8_t>(opcode);
-    switch (static_cast<K>(opcode)) {
+    uint8_t offset = static_cast<uint8_t>(opcode);
+    switch (static_cast<K>(opcode & 0xFFF0)) {
         case K::Serial_RW: {
                                CommunicationKernel<false, width>::doCommunication(operation, offset);
                                asm volatile ("nop");
@@ -910,29 +924,34 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
                                   break;
                               }
 #ifdef TCCR1A
-        case K::Timer1:
-            CommunicationKernel<false, width>::doTimer1(offset);
-            break;
+        case K::Timer1: {
+                            CommunicationKernel<false, width>::doTimer1(offset);
+                            break;
+                        }
 #endif
 #ifdef TCCR3A
-        case K::Timer3:
+        case K::Timer3: {
             CommunicationKernel<false, width>::doTimer3(offset);
             break;
+                        }
 #endif
 #ifdef TCCR4A
-        case K::Timer4:
-            CommunicationKernel<false, width>::doTimer4(offset);
-            break;
+        case K::Timer4: {
+                            CommunicationKernel<false, width>::doTimer4(offset);
+                            break;
+                        }
 #endif
 #ifdef TCCR5A
-        case K::Timer5:
-            CommunicationKernel<false, width>::doTimer5(offset);
-            break;
+        case K::Timer5: {
+                            CommunicationKernel<false, width>::doTimer5(offset);
+                            break;
+                        }
 #endif
 
-        default: 
-            idleTransaction();
-            break;
+        default:  {
+                      idleTransaction();
+                      break;
+                  }
     }
 }
 

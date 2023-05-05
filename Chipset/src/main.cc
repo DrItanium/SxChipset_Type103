@@ -639,9 +639,8 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
                                break;
                            }
         case K::Serial_Flush: {
-                                  CommunicationKernel<false, width>::doCommunication(operation, offset);
-                                  asm volatile ("nop");
                                   Serial.flush();
+                                  idleTransaction();
                                   break;
                               }
 #ifdef TCCR1A
@@ -814,10 +813,12 @@ executionBody() noexcept {
         }
         // put the single cycle delay back in to be on the safe side
         singleCycleDelay();
+        singleCycleDelay();
     }
 }
 
 template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
+[[gnu::noinline]]
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;

@@ -627,24 +627,48 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
-    CommunicationKernel<false, width>::doCommunication(operation, offset);
-    asm volatile ("nop");
     switch (static_cast<K>(opcode)) {
         case K::Serial_RW:
+            CommunicationKernel<false, width>::doCommunication(operation, offset);
+            asm volatile ("nop");
             Serial.write(static_cast<uint8_t>(operation.bytes[0]));
             break;
         case K::Serial_Flush:
+            idleTransaction();
             Serial.flush();
             break;
-#if 0
-#define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (operation); break
-        X(Timer_SystemTimer_Prescalar);
-        X(Timer_SystemTimer_CompareValue);
-#undef X
+#ifdef TCCR1A
+        case K::Timer1:
+            CommunicationKernel<false, width>::doCommunication(
+                    *reinterpret_cast<volatile SplitWord128*>(&TCCR1A),
+                    offset);
+            break;
+#endif
+#ifdef TCCR3A
+        case K::Timer3:
+            CommunicationKernel<false, width>::doCommunication(
+                    *reinterpret_cast<volatile SplitWord128*>(&TCCR3A),
+                    offset);
+            break;
+#endif
+#ifdef TCCR4A
+        case K::Timer4:
+            CommunicationKernel<false, width>::doCommunication(
+                    *reinterpret_cast<volatile SplitWord128*>(&TCCR4A),
+                    offset);
+            break;
+#endif
+#ifdef TCCR5A
+        case K::Timer5:
+            CommunicationKernel<false, width>::doCommunication(
+                    *reinterpret_cast<volatile SplitWord128*>(&TCCR5A),
+                    offset);
+            break;
 #endif
 
         default: 
-        break;
+            CommunicationKernel<false, width>::doCommunication(operation, offset);
+            break;
     }
 }
 

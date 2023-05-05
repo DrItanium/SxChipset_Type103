@@ -258,7 +258,7 @@ class Platform final {
         [[gnu::always_inline]] inline static void signalReady() noexcept { toggle<Pin::READY>(); }
         static bool checksumFailure() noexcept;
         [[gnu::always_inline]] inline static bool isBurstLast() noexcept { return digitalRead<Pin::BLAST>() == LOW; }
-        [[gnu::always_inline]] inline static uint8_t getByteEnable() noexcept { return getInputRegister<Port::SignalCTL>(); }
+        [[gnu::always_inline]] inline static uint8_t getByteEnable() noexcept { return getInputRegister<Port::SignalCTL>() & 0b1111; }
         [[gnu::always_inline]] inline static bool isWriteOperation() noexcept { return digitalRead<Pin::WR>(); }
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(ControlSignals.ctl.cfg); }
         static void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept;

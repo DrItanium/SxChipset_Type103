@@ -290,6 +290,89 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
     doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
         doCommunication(&body.bytes[getWordByteOffset<width>(lowest)], lowest);
     }
+#define X(index) \
+static void doTimer ## index ## Write(uint8_t offset) noexcept { \
+    if constexpr (!isReadOperation) { \
+        switch (offset & 0b1100) { \
+            case 0: { \
+                        /* TCCRnA and TCCRnB */ \
+                        if (digitalRead<Pin::BE0>() == LOW) { \
+                            TCCR ## index ## A = getDataByte<0>(); \
+                        } \
+                        if (digitalRead<Pin::BE1>() == LOW) { \
+                            TCCR ## index ## B = getDataByte<1>(); \
+                        } \
+                        /* TCCRnC and Reserved (ignore that) */ \
+                        if (digitalRead<Pin::BE2>() == LOW) { \
+                            TCCR ## index ## C = getDataByte<2>(); \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>();  \
+                    } \
+            case 4: { \
+                        /* TCNTn should only be accessible if you do a full 16-bit
+                         * write 
+                         */ \
+                        if (digitalRead<Pin::BE0>() == LOW && \
+                                digitalRead<Pin::BE1>() == LOW) { \
+                            TCNT ## index  = dataLinesHalves[0]; \
+                        } \
+                        /* ICRn should only be accessible if you do a full 16-bit
+                         * write
+                         */ \
+                        if (digitalRead<Pin::BE2>() == LOW &&  \
+                            digitalRead<Pin::BE3>() == LOW) { \
+                            ICR ## index = dataLinesHalves[0]; \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case 8: { \
+                        /* OCRnA should only be accessible if you do a full 16-bit write */ \
+                        if (digitalRead<Pin::BE0>() == LOW &&  \
+                                digitalRead<Pin::BE1>() == LOW) { \
+                            OCR ## index ## A = dataLinesHalves[0]; \
+                        } \
+                         /* OCRnB */ \
+                        if (digitalRead<Pin::BE2>() == LOW &&  \
+                                digitalRead<Pin::BE3>() == LOW) { \
+                            OCR ## index ## B = dataLinesHalves[1]; \
+                        } \
+                         if (Platform::isBurstLast()) { \
+                             break; \
+                         } \
+                         signalReady<true>(); \
+                     } \
+            case 12: { \
+                         /* OCRnC */ \
+                             if (digitalRead<Pin::BE0>() == LOW && \
+                                     digitalRead<Pin::BE1>() == LOW) { \
+                                 OCR ## index ## C = dataLinesHalves[0];\
+                             }\
+                         /* don't even inspect the upper two bytes because they
+                          * are marked as reserved! */ \
+                     } \
+            default: break; \
+        } \
+        signalReady(); \
+        Serial.print(F("TCCR" #index "A: 0x")); Serial.println( TCCR ## index ## A , HEX); \
+        Serial.print(F("TCCR" #index "B: 0x")); Serial.println( TCCR ## index ## B , HEX); \
+        Serial.print(F("TCCR" #index "C: 0x")); Serial.println( TCCR ## index ## C , HEX); \
+        Serial.print(F("TCNT" #index ": 0x")); Serial.println( TCNT ## index , HEX); \
+        Serial.print(F("OCR" #index "A: 0x")); Serial.println( OCR ## index ## A , HEX); \
+        Serial.print(F("OCR" #index "B: 0x")); Serial.println( OCR ## index ## B , HEX); \
+        Serial.print(F("OCR" #index "C: 0x")); Serial.println( OCR ## index ## C , HEX); \
+    } \
+}
+X(1);
+X(3);
+X(4);
+X(5);
+#undef X
 };
 
 template<bool isReadOperation>
@@ -446,10 +529,8 @@ public:
                                  * time
                                  *
                                  */ \
-                                auto upper = getDataByte<d1>(); \
-                                auto lower = getDataByte<d0>(); \
-                                theBytes[b1] = upper; \
-                                theBytes[b0] = lower; \
+                                theBytes[b1] = getDataByte<d1>(); \
+                                theBytes[b0] = getDataByte<d0>(); \
                             } \
                             if (Platform::isBurstLast()) { \
                                 break; \
@@ -460,10 +541,8 @@ public:
                                 theBytes[b0] = getDataByte<d0>(); \
                                 break; \
                             } \
-                            auto upper = getDataByte<d1>(); \
-                            auto lower = getDataByte<d0>(); \
-                            theBytes[b1] = upper; \
-                            theBytes[b0] = lower; \
+                            theBytes[b1] = getDataByte<d1>(); \
+                            theBytes[b0] = getDataByte<d0>(); \
                         } \
                     } else { \
                         /*
@@ -472,13 +551,9 @@ public:
                          * check the lower bits
                          */ \
                         if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            auto upper = getDataByte<d1>(); \
+                            theBytes[b1] = getDataByte<d1>(); \
                             if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
-                                auto lower = getDataByte<d0>(); \
-                                theBytes[b1] = upper; \
-                                theBytes[b0] = lower; \
-                            } else { \
-                                theBytes[b1] = upper; \
+                                theBytes[b0] = getDataByte<d0>(); \
                             } \
                             if constexpr (!IsLastWord) { \
                                 if (Platform::isBurstLast()) { \
@@ -569,6 +644,110 @@ public:
     doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
         doCommunication(&body.bytes[getWordByteOffset<BusWidth>(lowest)], lowest);
     }
+#define X(index) \
+static void doTimer ## index ## Write(uint8_t offset) noexcept { \
+    if constexpr (!isReadOperation) { \
+        switch (offset & 0b1110) { \
+            case 0: { \
+                        /* TCCRnA and TCCRnB */ \
+                        if (digitalRead<Pin::BE0>() == LOW) { \
+                            TCCR ## index ## A = getDataByte<0>(); \
+                        } \
+                        if (digitalRead<Pin::BE1>() == LOW) { \
+                            TCCR ## index ## B = getDataByte<1>(); \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>();  \
+                    } \
+            case 2: { \
+                        /* TCCRnC and Reserved (ignore that) */ \
+                        if (digitalRead<Pin::BE2>() == LOW) { \
+                            TCCR ## index ## C = getDataByte<2>(); \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>();  \
+                    } \
+            case 4: { \
+                        /* TCNTn should only be accessible if you do a full 16-bit
+                         * write 
+                         */ \
+                        if (digitalRead<Pin::BE0>() == LOW && \
+                                digitalRead<Pin::BE1>() == LOW) { \
+                            TCNT ## index  = dataLinesHalves[0]; \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case 6: { \
+                        /* ICRn should only be accessible if you do a full 16-bit
+                         * write
+                         */ \
+                        if (digitalRead<Pin::BE2>() == LOW &&  \
+                                digitalRead<Pin::BE3>() == LOW) { \
+                            ICR ## index = dataLinesHalves[0]; \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case 8: { \
+                        /* OCRnA should only be accessible if you do a full 16-bit write */ \
+                            if (digitalRead<Pin::BE0>() == LOW &&  \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                OCR1A = dataLinesHalves[0]; \
+                            } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case 10: { \
+                         /* OCRnB */ \
+                             if (digitalRead<Pin::BE2>() == LOW &&  \
+                                     digitalRead<Pin::BE3>() == LOW) { \
+                                 OCR1B = dataLinesHalves[1]; \
+                             } \
+                         if (Platform::isBurstLast()) { \
+                             break; \
+                         } \
+                         signalReady<true>(); \
+                     } \
+            case 12: { \
+                         /* OCRnC */ \
+                             if (digitalRead<Pin::BE0>() == LOW && \
+                                     digitalRead<Pin::BE1>() == LOW) { \
+                                 OCR1C = dataLinesHalves[0];\
+                             }\
+                         if (Platform::isBurstLast()) {\
+                             break;\
+                         } \
+                         signalReady<true>(); \
+                     } \
+            case 14: /* upper two most bytes are reserved so don't update them! */ \
+            default: break; \
+        } \
+        signalReady(); \
+        Serial.print(F("TCCR" #index "A: 0x")); Serial.println( TCCR ## index ## A , HEX); \
+        Serial.print(F("TCCR" #index "B: 0x")); Serial.println( TCCR ## index ## B , HEX); \
+        Serial.print(F("TCCR" #index "C: 0x")); Serial.println( TCCR ## index ## C , HEX); \
+        Serial.print(F("TCNT" #index ": 0x")); Serial.println( TCNT ## index , HEX); \
+        Serial.print(F("OCR" #index "A: 0x")); Serial.println( OCR ## index ## A , HEX); \
+        Serial.print(F("OCR" #index "B: 0x")); Serial.println( OCR ## index ## B , HEX); \
+        Serial.print(F("OCR" #index "C: 0x")); Serial.println( OCR ## index ## C , HEX); \
+    } \
+}
+X(1);
+X(3);
+X(4);
+X(5);
+#undef X
 };
 
 template<bool isReadOperation, NativeBusWidth width>
@@ -638,22 +817,6 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     CommunicationKernel<true, width>::doCommunication(operation, static_cast<uint8_t>(opcode));
 }
 template<NativeBusWidth width>
-[[gnu::used]]
-inline
-void
-doTimer1Write(uint8_t offset) noexcept {
-    CommunicationKernel<false, width>::doCommunication(
-            *reinterpret_cast<volatile SplitWord128*>(&TCCR1A),
-            offset);
-    Serial.print(F("TCCR1A: 0x")); Serial.println(TCCR1A, HEX);
-    Serial.print(F("TCCR1B: 0x")); Serial.println(TCCR1B, HEX);
-    Serial.print(F("TCCR1C: 0x")); Serial.println(TCCR1C, HEX);
-    Serial.print(F("TCNT1: 0x")); Serial.println(TCNT1, HEX);
-    Serial.print(F("OCR1A: 0x")); Serial.println(OCR1A, HEX);
-    Serial.print(F("OCR1B: 0x")); Serial.println(OCR1B, HEX);
-    Serial.print(F("OCR1C: 0x")); Serial.println(OCR1C, HEX);
-}
-template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
 void
@@ -680,31 +843,25 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
 #ifdef TCCR1A
         case K::Timer1:
             Serial.println(F("Timer 1 Write"));
-            doTimer1Write<width>(offset);
+            CommunicationKernel<false, width>::doTimer1Write(offset);
             break;
 #endif
 #ifdef TCCR3A
         case K::Timer3:
             Serial.println(F("Timer 3 Write"));
-            CommunicationKernel<false, width>::doCommunication(
-                    *reinterpret_cast<volatile SplitWord128*>(&TCCR3A),
-                    offset);
+            CommunicationKernel<false, width>::doTimer3Write(offset);
             break;
 #endif
 #ifdef TCCR4A
         case K::Timer4:
             Serial.println(F("Timer 4 Write"));
-            CommunicationKernel<false, width>::doCommunication(
-                    *reinterpret_cast<volatile SplitWord128*>(&TCCR4A),
-                    offset);
+            CommunicationKernel<false, width>::doTimer4Write(offset);
             break;
 #endif
 #ifdef TCCR5A
         case K::Timer5:
             Serial.println(F("Timer 5 Write"));
-            CommunicationKernel<false, width>::doCommunication(
-                    *reinterpret_cast<volatile SplitWord128*>(&TCCR5A),
-                    offset);
+            CommunicationKernel<false, width>::doTimer5Write(offset);
             break;
 #endif
 

@@ -759,6 +759,7 @@ executionBody() noexcept {
 }
 
 template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
+[[gnu::noinline]]
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;

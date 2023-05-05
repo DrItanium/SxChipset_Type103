@@ -582,6 +582,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
             break;
 #ifdef TCCR1A
         case K::Timer1:
+            Serial.println(F("Timer 1 Read"));
             CommunicationKernel<true, width>::doCommunication(
                     *reinterpret_cast<volatile SplitWord128*>(&TCCR1A),
                     static_cast<uint8_t>(opcode));
@@ -589,6 +590,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
 #endif
 #ifdef TCCR3A
         case K::Timer3:
+            Serial.println(F("Timer 3 Read"));
             CommunicationKernel<true, width>::doCommunication(
                     *reinterpret_cast<volatile SplitWord128*>(&TCCR3A),
                     static_cast<uint8_t>(opcode));
@@ -596,6 +598,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
 #endif
 #ifdef TCCR4A
         case K::Timer4:
+            Serial.println(F("Timer 4 Read"));
             CommunicationKernel<true, width>::doCommunication(
                     *reinterpret_cast<volatile SplitWord128*>(&TCCR4A),
                     static_cast<uint8_t>(opcode));
@@ -603,6 +606,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
 #endif
 #ifdef TCCR5A
         case K::Timer5:
+            Serial.println(F("Timer 5 Read"));
             CommunicationKernel<true, width>::doCommunication(
                     *reinterpret_cast<volatile SplitWord128*>(&TCCR5A),
                     static_cast<uint8_t>(opcode));
@@ -628,17 +632,21 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
     switch (static_cast<K>(opcode)) {
-        case K::Serial_RW:
-            CommunicationKernel<false, width>::doCommunication(operation, offset);
-            asm volatile ("nop");
-            Serial.write(static_cast<uint8_t>(operation.bytes[0]));
-            break;
-        case K::Serial_Flush:
-            idleTransaction();
-            Serial.flush();
-            break;
+        case K::Serial_RW: {
+                               CommunicationKernel<false, width>::doCommunication(operation, offset);
+                               asm volatile ("nop");
+                               Serial.write(static_cast<uint8_t>(operation.bytes[0]));
+                               break;
+                           }
+        case K::Serial_Flush: {
+                                  CommunicationKernel<false, width>::doCommunication(operation, offset);
+                                  asm volatile ("nop");
+                                  Serial.flush();
+                                  break;
+                              }
 #ifdef TCCR1A
         case K::Timer1:
+            Serial.println(F("Timer 1 Write"));
             CommunicationKernel<false, width>::doCommunication(
                     *reinterpret_cast<volatile SplitWord128*>(&TCCR1A),
                     offset);
@@ -646,6 +654,7 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
 #endif
 #ifdef TCCR3A
         case K::Timer3:
+            Serial.println(F("Timer 3 Write"));
             CommunicationKernel<false, width>::doCommunication(
                     *reinterpret_cast<volatile SplitWord128*>(&TCCR3A),
                     offset);
@@ -653,6 +662,7 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
 #endif
 #ifdef TCCR4A
         case K::Timer4:
+            Serial.println(F("Timer 4 Write"));
             CommunicationKernel<false, width>::doCommunication(
                     *reinterpret_cast<volatile SplitWord128*>(&TCCR4A),
                     offset);
@@ -660,6 +670,7 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
 #endif
 #ifdef TCCR5A
         case K::Timer5:
+            Serial.println(F("Timer 5 Write"));
             CommunicationKernel<false, width>::doCommunication(
                     *reinterpret_cast<volatile SplitWord128*>(&TCCR5A),
                     offset);
@@ -883,7 +894,7 @@ void
 setup() {
     setupPins();
     Serial.begin(115200);
-    timerInterface.begin();
+    //timerInterface.begin();
     // setup the IO Expanders
     Platform::begin();
     switch (Platform::getInstalledCPUKind()) {

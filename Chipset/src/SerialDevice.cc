@@ -26,18 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Peripheral.h"
 #include "SerialDevice.h"
-void 
-SerialDevice::setBaudRate(uint32_t baudRate) noexcept { 
-    if (baudRate != baud_) {
-        Serial.flush();
-        baud_ = baudRate; 
-        Serial.end();
-        Serial.begin(baud_);
-    }
-}
 
 bool
 SerialDevice::begin() noexcept {
-    Serial.begin(baud_);
+    Serial.begin(115200);
     return true;
 }

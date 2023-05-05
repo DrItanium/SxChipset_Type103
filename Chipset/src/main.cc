@@ -582,9 +582,6 @@ performIOReadGroup0(uint16_t opcode) noexcept {
         case K::Serial_RW:
             operation[0].halves[0] = Serial.read();
             break;
-        case K::Serial_Baud:
-            operation[0].full = theSerial.getBaudRate();
-            break;
         case K::Timer_SystemTimer_Prescalar:
             operation.bytes[0] = timerInterface.getSystemTimerPrescalar();
             break;
@@ -615,7 +612,6 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     switch (static_cast<K>(opcode)) {
 #define X(name) case K :: name : theSerial.handleWriteOperations<K :: name > (operation); break
         X(Serial_RW);
-        X(Serial_Baud);
         X(Serial_Flush);
 #undef X
 #define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (operation); break

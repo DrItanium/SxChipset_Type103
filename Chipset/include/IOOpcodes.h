@@ -34,7 +34,6 @@ Y(Info_GetChipsetClockSpeed, 0x001)
 // serial operations begin
 Y(Serial_RW, 0x010)
 Y(Serial_Flush, 0x011)
-Y(Serial_Baud, 0x012)
 // timer operations begin
 Y(Timer_SystemTimer_CompareValue,0x020)
 Y(Timer_SystemTimer_Prescalar, 0x021)

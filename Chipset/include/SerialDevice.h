@@ -32,8 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class SerialDevice {
 public:
     bool begin() noexcept;
-    void setBaudRate(uint32_t baudRate) noexcept;
-    [[nodiscard]] constexpr auto getBaudRate() const noexcept { return baud_; }
     template<IOOpcodes opcode>
     inline void handleWriteOperations(const SplitWord128& body) noexcept {
         using K = IOOpcodes;
@@ -44,14 +42,9 @@ public:
             case K::Serial_Flush:
                 Serial.flush();
                 break;
-            case K::Serial_Baud:
-                setBaudRate(body[0].full);
-                break;
             default:
                 break;
         }
     }
-private:
-    uint32_t baud_ = 115200;
 };
 #endif //CHIPSET_SERIALDEVICE_H

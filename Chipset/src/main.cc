@@ -580,6 +580,34 @@ performIOReadGroup0(uint16_t opcode) noexcept {
         case K::Serial_RW:
             operation[0].halves[0] = Serial.read();
             break;
+#ifdef TCCR1A
+        case K::Timer1:
+            CommunicationKernel<true, width>::doCommunication(
+                    *reinterpret_cast<volatile SplitWord128*>(&TCCR1A),
+                    static_cast<uint8_t>(opcode));
+            return;
+#endif
+#ifdef TCCR3A
+        case K::Timer3:
+            CommunicationKernel<true, width>::doCommunication(
+                    *reinterpret_cast<volatile SplitWord128*>(&TCCR3A),
+                    static_cast<uint8_t>(opcode));
+            return;
+#endif
+#ifdef TCCR4A
+        case K::Timer4:
+            CommunicationKernel<true, width>::doCommunication(
+                    *reinterpret_cast<volatile SplitWord128*>(&TCCR4A),
+                    static_cast<uint8_t>(opcode));
+            return;
+#endif
+#ifdef TCCR5A
+        case K::Timer5:
+            CommunicationKernel<true, width>::doCommunication(
+                    *reinterpret_cast<volatile SplitWord128*>(&TCCR5A),
+                    static_cast<uint8_t>(opcode));
+            return;
+#endif
         default:
             sendZero<true, width>(0);
             return;

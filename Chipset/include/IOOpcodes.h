@@ -35,20 +35,18 @@ Y(Info_GetChipsetClockSpeed, 0x001)
 Y(Serial_RW, 0x010)
 Y(Serial_Flush, 0x011)
 // timer operations begin
-#define ExposeTimer16(index, base) \
-Y(Timer_TCCR## index  ## A, ( base | 0x0)) \
-Y(Timer_TCCR##  index ## B, ( base | 0x1)) \
-Y(Timer_TCCR##  index ## C, ( base | 0x2)) \
-Y(Timer_TCNT ## index , (base | 0x3)) \
-Y(Timer_ICR ## index,  (base | 0x4)) \
-Y(Timer_OCR ## index ## A, (base | 0x5)) \
-Y(Timer_OCR ## index ## B, (base | 0x6)) \
-Y(Timer_OCR ## index ## C, (base | 0x7))
-ExposeTimer16(1, 0x20)
-ExposeTimer16(3, 0x30)
-ExposeTimer16(4, 0x40)
-ExposeTimer16(5, 0x50)
-#undef ExposeTimer16
+#if defined(TCCR1A) && defined(TCCR1B)
+Y(Timer1, 0x020)
+#endif
+#if defined(TCCR3A) && defined(TCCR3B)
+Y(Timer3, 0x021)
+#endif
+#if defined(TCCR4A) && defined(TCCR4B)
+Y(Timer4, 0x022)
+#endif
+#if defined(TCCR5A) && defined(TCCR5B)
+Y(Timer5, 0x023)
+#endif
 
 #undef Y
 };

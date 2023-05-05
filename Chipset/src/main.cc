@@ -580,46 +580,6 @@ performIOReadGroup0(uint16_t opcode) noexcept {
         case K::Serial_RW:
             operation[0].halves[0] = Serial.read();
             break;
-#ifdef TCCR1A
-        case K::Timer_TCCR1A:
-            operation[0].halves[0] = TCCR1A; 
-            break;
-#endif
-#ifdef TCCR1B
-        case K::Timer_TCCR1B:
-            operation[0].halves[0] = TCCR1B; 
-            break;
-#endif
-#ifdef TCCR1C
-        case K::Timer_TCCR1C:
-            operation[0].halves[0] = TCCR1C; 
-            break;
-#endif
-#ifdef TCNT1
-        case K::Timer_TCNT1:
-            operation[0].halves[0] = TCNT1;
-            break;
-#endif
-#ifdef TICR1
-        case K::Timer_TICR1:
-            operation[0].halves[0] = TICR1;
-            break;
-#endif
-#ifdef OCR1A
-        case K::Timer_OCR1A:
-            operation[0].halves[0] = OCR1A; 
-            break;
-#endif
-#ifdef OCR1B
-        case K::Timer_OCR1B:
-            operation[0].halves[0] = OCR1B; 
-            break;
-#endif
-#ifdef OCR1C
-        case K::Timer_OCR1C:
-            operation[0].halves[0] = OCR1C; 
-            break;
-#endif
         default:
             sendZero<true, width>(0);
             return;
@@ -648,10 +608,12 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
         case K::Serial_Flush:
             Serial.flush();
             break;
+#if 0
 #define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (operation); break
         X(Timer_SystemTimer_Prescalar);
         X(Timer_SystemTimer_CompareValue);
 #undef X
+#endif
 
         default: 
         break;

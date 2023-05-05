@@ -559,7 +559,7 @@ void sendZero(uint8_t offset) noexcept {
     CommunicationKernel<isReadOperation, width>::template doFixedCommunication<0>(offset);
 }
 
-SplitWord128 operation;
+volatile SplitWord128 operation;
 template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline

@@ -35,9 +35,44 @@ Y(Info_GetChipsetClockSpeed, 0x001)
 Y(Serial_RW, 0x010)
 Y(Serial_Flush, 0x011)
 // timer operations begin
-Y(Timer_SystemTimer_CompareValue,0x020)
-Y(Timer_SystemTimer_Prescalar, 0x021)
-Y(Timer_Unixtime, 0x022)
+Y(SystemTimer_TCCR1A, 0x020)
+Y(SystemTimer_TCCR1B, 0x021)
+Y(SystemTimer_TCCR1C, 0x022)
+Y(SystemTimer_TCNT1, 0x023)
+Y(SystemTimer_ICR1, 0x024)
+Y(SystemTimer_OCR1A, 0x025)
+Y(SystemTimer_OCR1B, 0x026)
+Y(SystemTimer_OCR1C, 0x027)
+
+Y(SystemTimer_TCCR3A, 0x028)
+Y(SystemTimer_TCCR3B, 0x029)
+Y(SystemTimer_TCCR3C, 0x02a)
+Y(SystemTimer_TCNT3, 0x02b)
+Y(SystemTimer_ICR3, 0x02c)
+Y(SystemTimer_OCR3A, 0x02d)
+Y(SystemTimer_OCR3B, 0x02e)
+Y(SystemTimer_OCR3C, 0x02f)
+
+Y(SystemTimer_TCCR4A, 0x030)
+Y(SystemTimer_TCCR4B, 0x031)
+Y(SystemTimer_TCCR4C, 0x032)
+Y(SystemTimer_TCNT4, 0x033)
+Y(SystemTimer_ICR4, 0x034)
+Y(SystemTimer_OCR4A, 0x035)
+Y(SystemTimer_OCR4B, 0x036)
+Y(SystemTimer_OCR4C, 0x037)
+
+Y(SystemTimer_TCCR5A, 0x038)
+Y(SystemTimer_TCCR5B, 0x039)
+Y(SystemTimer_TCCR5C, 0x03a)
+Y(SystemTimer_TCNT5, 0x03b)
+Y(SystemTimer_ICR5, 0x03c)
+Y(SystemTimer_OCR5A, 0x03d)
+Y(SystemTimer_OCR5B, 0x03e)
+Y(SystemTimer_OCR5C, 0x03f)
+
+
+// AVR register exposure begin
 // 0x1000:0x1fff is the dual ported ram
 #define X(index) Y(DualPortedRAM_Slice_0x ## index, (0x100 + index))
 #include "Entry255.def"

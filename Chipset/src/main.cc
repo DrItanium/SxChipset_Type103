@@ -377,14 +377,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                      }  \
             default: break; \
         } \
-        signalReady(); \
-        Serial.print(F("TCCR" #index "A: 0x")); Serial.println( TCCR ## index ## A , HEX); \
-        Serial.print(F("TCCR" #index "B: 0x")); Serial.println( TCCR ## index ## B , HEX); \
-        Serial.print(F("TCCR" #index "C: 0x")); Serial.println( TCCR ## index ## C , HEX); \
-        Serial.print(F("TCNT" #index ": 0x")); Serial.println( TCNT ## index , HEX); \
-        Serial.print(F("OCR" #index "A: 0x")); Serial.println( OCR ## index ## A , HEX); \
-        Serial.print(F("OCR" #index "B: 0x")); Serial.println( OCR ## index ## B , HEX); \
-        Serial.print(F("OCR" #index "C: 0x")); Serial.println( OCR ## index ## C , HEX); \
+        signalReady<true>(); \
 }
 X(1);
 X(3);
@@ -786,14 +779,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                      }  \
             default: break; \
         } \
-        signalReady(); \
-        Serial.print(F("TCCR" #index "A: 0x")); Serial.println( TCCR ## index ## A , HEX); \
-        Serial.print(F("TCCR" #index "B: 0x")); Serial.println( TCCR ## index ## B , HEX); \
-        Serial.print(F("TCCR" #index "C: 0x")); Serial.println( TCCR ## index ## C , HEX); \
-        Serial.print(F("TCNT" #index ": 0x")); Serial.println( TCNT ## index , HEX); \
-        Serial.print(F("OCR" #index "A: 0x")); Serial.println( OCR ## index ## A , HEX); \
-        Serial.print(F("OCR" #index "B: 0x")); Serial.println( OCR ## index ## B , HEX); \
-        Serial.print(F("OCR" #index "C: 0x")); Serial.println( OCR ## index ## C , HEX); \
+        signalReady<true>(); \
 }
 X(1);
 X(3);
@@ -833,25 +819,21 @@ performIOReadGroup0(uint16_t opcode) noexcept {
             break;
 #ifdef TCCR1A
         case K::Timer1:
-            Serial.println(F("Timer 1 Read"));
             CommunicationKernel<true, width>::doTimer1(offset);
             return;
 #endif
 #ifdef TCCR3A
         case K::Timer3:
-            Serial.println(F("Timer 3 Read"));
             CommunicationKernel<true, width>::doTimer3(offset);
             return;
 #endif
 #ifdef TCCR4A
         case K::Timer4:
-            Serial.println(F("Timer 4 Read"));
             CommunicationKernel<true, width>::doTimer4(offset);
             return;
 #endif
 #ifdef TCCR5A
         case K::Timer5:
-            Serial.println(F("Timer 5 Read"));
             CommunicationKernel<true, width>::doTimer5(offset);
             return;
 #endif
@@ -887,25 +869,21 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
                               }
 #ifdef TCCR1A
         case K::Timer1:
-            Serial.println(F("Timer 1 Write"));
             CommunicationKernel<false, width>::doTimer1(offset);
             break;
 #endif
 #ifdef TCCR3A
         case K::Timer3:
-            Serial.println(F("Timer 3 Write"));
             CommunicationKernel<false, width>::doTimer3(offset);
             break;
 #endif
 #ifdef TCCR4A
         case K::Timer4:
-            Serial.println(F("Timer 4 Write"));
             CommunicationKernel<false, width>::doTimer4(offset);
             break;
 #endif
 #ifdef TCCR5A
         case K::Timer5:
-            Serial.println(F("Timer 5 Write"));
             CommunicationKernel<false, width>::doTimer5(offset);
             break;
 #endif

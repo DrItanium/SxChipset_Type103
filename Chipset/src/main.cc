@@ -290,6 +290,126 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
     doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
         doCommunication(&body.bytes[getWordByteOffset<width>(lowest)], lowest);
     }
+#define X(index) \
+static void doTimer ## index (uint8_t offset) noexcept { \
+        switch (offset & 0b1100) { \
+            case 0: { \
+                        /* TCCRnA and TCCRnB */ \
+                        /* TCCRnC and Reserved (ignore that) */ \
+                        if constexpr (isReadOperation) { \
+                            setDataByte<0>(TCCR ## index ## A); \
+                            setDataByte<1>(TCCR ## index ## B); \
+                            setDataByte<2>(TCCR ## index ## C); \
+                            setDataByte<3>(0); \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW) { \
+                                TCCR ## index ## A = getDataByte<0>(); \
+                            } \
+                            if (digitalRead<Pin::BE1>() == LOW) { \
+                                TCCR ## index ## B = getDataByte<1>(); \
+                            } \
+                            if (digitalRead<Pin::BE2>() == LOW) { \
+                                TCCR ## index ## C = getDataByte<2>(); \
+                            } \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>();  \
+                    } \
+            case 4: { \
+                        /* TCNTn should only be accessible if you do a full 16-bit
+                         * write 
+                         */ \
+                        /* ICRn should only be accessible if you do a full 16-bit
+                         * write
+                         */ \
+                        if constexpr (isReadOperation) { \
+                            noInterrupts(); \
+                            auto lower = TCNT ## index; \
+                            auto upper = ICR ## index ; \
+                            interrupts(); \
+                            dataLinesHalves[0] = lower; \
+                            dataLinesHalves[1] = upper; \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW && \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
+                                noInterrupts(); \
+                                TCNT ## index  = value; \
+                                interrupts(); \
+                            } \
+                            if (digitalRead<Pin::BE2>() == LOW &&  \
+                                    digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
+                                noInterrupts(); \
+                                ICR ## index = value; \
+                                interrupts(); \
+                            } \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case 8: { \
+                        /* OCRnA should only be accessible if you do a full 16-bit write */ \
+                        /* OCRnB */ \
+                        if constexpr (isReadOperation) { \
+                            noInterrupts(); \
+                            auto lower = OCR ## index ## A ; \
+                            auto upper = OCR ## index ## B ; \
+                            interrupts(); \
+                            dataLinesHalves[0] = lower; \
+                            dataLinesHalves[1] = upper; \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW &&  \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
+                                noInterrupts(); \
+                                OCR ## index ## A = value; \
+                                interrupts(); \
+                            } \
+                             if (digitalRead<Pin::BE2>() == LOW &&  \
+                                     digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
+                                noInterrupts(); \
+                                OCR ## index ## B = value; \
+                                interrupts(); \
+                             } \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                     } \
+            case 12: { \
+                         /* OCRnC */ \
+                         if constexpr (isReadOperation) { \
+                             noInterrupts(); \
+                             auto tmp = OCR ## index ## C ; \
+                             interrupts(); \
+                             dataLinesHalves[0] = tmp; \
+                             dataLinesHalves[1] = 0; \
+                         } else { \
+                              if (digitalRead<Pin::BE0>() == LOW && \
+                                      digitalRead<Pin::BE1>() == LOW) { \
+                                  auto value = dataLinesHalves[0]; \
+                                  noInterrupts(); \
+                                  OCR ## index ## C = value; \
+                                  interrupts(); \
+                              }\
+                         } \
+                     } \
+            default: break; \
+        } \
+        signalReady<true>(); \
+}
+X(1);
+X(3);
+X(4);
+X(5);
+#undef X
 };
 
 template<bool isReadOperation>
@@ -434,21 +554,32 @@ public:
                          * should be safe to just propagate without performing
                          * the check itself
                          */ \
-                        theBytes[b0] = getDataByte<d0>(); \
                         if constexpr (!IsLastWord) { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
+                                theBytes[b0] = getDataByte<d0>(); \
                                 break; \
+                            } else { \
+                                /* 
+                                 * we could be operating on a 16-bit register
+                                 * so follow the manual and write the upper
+                                 * half first followed by the lower half every
+                                 * time
+                                 *
+                                 */ \
+                                theBytes[b1] = getDataByte<d1>(); \
+                                theBytes[b0] = getDataByte<d0>(); \
                             } \
-                            theBytes[b1] = getDataByte<d1>(); \
                             if (Platform::isBurstLast()) { \
                                 break; \
                             } \
                             signalReady<!isReadOperation>(); \
                         } else { \
                             if (digitalRead<Pin:: BE ## d1 >()) { \
+                                theBytes[b0] = getDataByte<d0>(); \
                                 break; \
                             } \
                             theBytes[b1] = getDataByte<d1>(); \
+                            theBytes[b0] = getDataByte<d0>(); \
                         } \
                     } else { \
                         /*
@@ -550,6 +681,167 @@ public:
     doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
         doCommunication(&body.bytes[getWordByteOffset<BusWidth>(lowest)], lowest);
     }
+#define X(index) \
+static void doTimer ## index (uint8_t offset) noexcept { \
+        switch (offset & 0b1110) { \
+            case 0: { \
+                        /* TCCRnA and TCCRnB */ \
+                        if constexpr (isReadOperation) { \
+                            setDataByte<0>(TCCR ## index ## A); \
+                            setDataByte<1>(TCCR ## index ## B); \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW) { \
+                                TCCR ## index ## A = getDataByte<0>(); \
+                            } \
+                            if (digitalRead<Pin::BE1>() == LOW) { \
+                                TCCR ## index ## B = getDataByte<1>(); \
+                            } \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>();  \
+                    } \
+            case 2: { \
+                        /* TCCRnC and Reserved (ignore that) */ \
+                        if constexpr (isReadOperation) { \
+                            setDataByte<2>(TCCR ## index ## C); \
+                            setDataByte<3>(0); \
+                        } else { \
+                            if (digitalRead<Pin::BE2>() == LOW) { \
+                                TCCR ## index ## C = getDataByte<2>(); \
+                            } \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>();  \
+                    } \
+            case 4: { \
+                        /* TCNTn should only be accessible if you do a full 16-bit
+                         * write 
+                         */ \
+                        if constexpr (isReadOperation) { \
+                            noInterrupts(); \
+                            auto tmp = TCNT ## index; \
+                            interrupts(); \
+                            dataLinesHalves[0] = tmp; \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW && \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
+                                noInterrupts(); \
+                                TCNT ## index  = value; \
+                                interrupts(); \
+                            } \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case 6: { \
+                        /* ICRn should only be accessible if you do a full 16-bit
+                         * write
+                         */ \
+                        if constexpr (isReadOperation) { \
+                            noInterrupts(); \
+                            auto tmp = ICR ## index ; \
+                            interrupts(); \
+                            dataLinesHalves[1] = tmp; \
+                        } else { \
+                            if (digitalRead<Pin::BE2>() == LOW &&  \
+                                    digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
+                                noInterrupts(); \
+                                ICR ## index = value; \
+                                interrupts(); \
+                            } \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case 8: { \
+                        /* OCRnA should only be accessible if you do a full 16-bit write */ \
+                        if constexpr (isReadOperation) { \
+                            noInterrupts(); \
+                            auto tmp = OCR ## index ## A ; \
+                            interrupts(); \
+                            dataLinesHalves[0] = tmp; \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW &&  \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
+                                noInterrupts(); \
+                                OCR ## index ## A = value; \
+                                interrupts(); \
+                            } \
+                        } \
+                        if (Platform::isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case 10: { \
+                         /* OCRnB */ \
+                         if constexpr (isReadOperation) { \
+                             noInterrupts(); \
+                             auto tmp = OCR ## index ## B ; \
+                             interrupts(); \
+                             dataLinesHalves[1] = tmp; \
+                         } else { \
+                             if (digitalRead<Pin::BE2>() == LOW &&  \
+                                     digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
+                                noInterrupts(); \
+                                OCR ## index ## B = value; \
+                                interrupts(); \
+                             } \
+                         } \
+                         if (Platform::isBurstLast()) { \
+                             break; \
+                         } \
+                         signalReady<true>(); \
+                     } \
+            case 12: { \
+                         /* OCRnC */ \
+                         if constexpr (isReadOperation) { \
+                             noInterrupts(); \
+                             auto tmp = OCR ## index ## C ; \
+                             interrupts(); \
+                             dataLinesHalves[0] = tmp; \
+                         } else { \
+                              if (digitalRead<Pin::BE0>() == LOW && \
+                                      digitalRead<Pin::BE1>() == LOW) { \
+                                  auto value = dataLinesHalves[0]; \
+                                  noInterrupts(); \
+                                  OCR ## index ## C = value; \
+                                  interrupts(); \
+                              }\
+                         } \
+                         if (Platform::isBurstLast()) {\
+                             break;\
+                         } \
+                         signalReady<true>(); \
+                     } \
+            case 14: { \
+                        /* nothing to do on writes but do update the data port
+                         * on reads */ \
+                         if constexpr (isReadOperation) { \
+                            dataLinesHalves[1] = 0; \
+                         } \
+                     }  \
+            default: break; \
+        } \
+        signalReady<true>(); \
+}
+X(1);
+X(3);
+X(4);
+X(5);
+#undef X
 };
 
 template<bool isReadOperation, NativeBusWidth width>
@@ -559,7 +851,7 @@ void sendZero(uint8_t offset) noexcept {
     CommunicationKernel<isReadOperation, width>::template doFixedCommunication<0>(offset);
 }
 
-SplitWord128 operation;
+volatile SplitWord128 operation;
 template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
@@ -570,7 +862,8 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
-    switch (static_cast<IOOpcodes>(opcode)) {
+    const uint8_t offset = static_cast<uint8_t>(opcode);
+    switch (static_cast<IOOpcodes>(opcode & 0xFFF0)) {
         case K::Info_GetChipsetClockSpeed:
             CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(0);
             return;
@@ -580,19 +873,32 @@ performIOReadGroup0(uint16_t opcode) noexcept {
         case K::Serial_RW:
             operation[0].halves[0] = Serial.read();
             break;
-        case K::Timer_SystemTimer_Prescalar:
-            operation.bytes[0] = timerInterface.getSystemTimerPrescalar();
-            break;
-        case K::Timer_SystemTimer_CompareValue:
-            operation.bytes[0] = timerInterface.getSystemTimerComparisonValue();
-            break;
+#ifdef TCCR1A
+        case K::Timer1:
+            CommunicationKernel<true, width>::doTimer1(offset);
+            return;
+#endif
+#ifdef TCCR3A
+        case K::Timer3:
+            CommunicationKernel<true, width>::doTimer3(offset);
+            return;
+#endif
+#ifdef TCCR4A
+        case K::Timer4:
+            CommunicationKernel<true, width>::doTimer4(offset);
+            return;
+#endif
+#ifdef TCCR5A
+        case K::Timer5:
+            CommunicationKernel<true, width>::doTimer5(offset);
+            return;
+#endif
         default:
             sendZero<true, width>(0);
             return;
     }
-    CommunicationKernel<true, width>::doCommunication(operation, static_cast<uint8_t>(opcode));
+    CommunicationKernel<true, width>::doCommunication(operation, offset);
 }
-
 template<NativeBusWidth width>
 [[gnu::always_inline]]
 inline
@@ -604,23 +910,48 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     //
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
-    const uint8_t offset = static_cast<uint8_t>(opcode);
-    CommunicationKernel<false, width>::doCommunication(operation, offset);
-    asm volatile ("nop");
-    switch (static_cast<K>(opcode)) {
-        case K::Serial_RW:
-            Serial.write(static_cast<uint8_t>(operation.bytes[0]));
+    uint8_t offset = static_cast<uint8_t>(opcode);
+    switch (static_cast<K>(opcode & 0xFFF0)) {
+        case K::Serial_RW: {
+                               CommunicationKernel<false, width>::doCommunication(operation, offset);
+                               asm volatile ("nop");
+                               Serial.write(static_cast<uint8_t>(operation.bytes[0]));
+                               break;
+                           }
+        case K::Serial_Flush: {
+                                  Serial.flush();
+                                  idleTransaction();
+                                  break;
+                              }
+#ifdef TCCR1A
+        case K::Timer1: {
+                            CommunicationKernel<false, width>::doTimer1(offset);
+                            break;
+                        }
+#endif
+#ifdef TCCR3A
+        case K::Timer3: {
+            CommunicationKernel<false, width>::doTimer3(offset);
             break;
-        case K::Serial_Flush:
-            Serial.flush();
-            break;
-#define X(name) case K :: name : timerInterface.handleWriteOperations<K :: name > (operation); break
-        X(Timer_SystemTimer_Prescalar);
-        X(Timer_SystemTimer_CompareValue);
-#undef X
+                        }
+#endif
+#ifdef TCCR4A
+        case K::Timer4: {
+                            CommunicationKernel<false, width>::doTimer4(offset);
+                            break;
+                        }
+#endif
+#ifdef TCCR5A
+        case K::Timer5: {
+                            CommunicationKernel<false, width>::doTimer5(offset);
+                            break;
+                        }
+#endif
 
-        default: 
-        break;
+        default:  {
+                      idleTransaction();
+                      break;
+                  }
     }
 }
 
@@ -755,6 +1086,7 @@ executionBody() noexcept {
         }
         // put the single cycle delay back in to be on the safe side
         singleCycleDelay();
+        singleCycleDelay();
     }
 }
 
@@ -800,6 +1132,14 @@ installMemoryImage() noexcept {
 }
 void 
 setupPins() noexcept {
+    // power down the ADC, TWI, and USART3
+    // currently we can't use them
+    PRR0 = 0b1000'0001; // deactivate TWI and ADC
+    PRR1 = 0b00000'100; // deactivate USART3
+
+    // enable interrupt pin output
+    pinMode<Pin::INT0_960_>(OUTPUT);
+    digitalWrite<Pin::INT0_960_, HIGH>();
     // setup the IBUS bank
     getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
     getOutputRegister<Port::IBUS_Bank>() = 0;
@@ -828,7 +1168,7 @@ void
 setup() {
     setupPins();
     Serial.begin(115200);
-    timerInterface.begin();
+    //timerInterface.begin();
     // setup the IO Expanders
     Platform::begin();
     switch (Platform::getInstalledCPUKind()) {

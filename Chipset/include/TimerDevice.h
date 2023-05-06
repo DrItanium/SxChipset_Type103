@@ -40,6 +40,7 @@ public:
     [[nodiscard]] uint16_t getSystemTimerComparisonValue() const noexcept;
     void setSystemTimerPrescalar(uint8_t value) noexcept;
     void setSystemTimerComparisonValue(uint16_t value) noexcept;
+#if 0
     template<IOOpcodes opcode>
     void handleWriteOperations(const SplitWord128& result) noexcept {
         using K = IOOpcodes;
@@ -54,5 +55,6 @@ public:
                 break;
         }
     }
+#endif
 };
 #endif //CHIPSET_TIMERDEVICE_H

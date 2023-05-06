@@ -35,13 +35,19 @@ Y(Info_GetChipsetClockSpeed, 0x001)
 Y(Serial_RW, 0x010)
 Y(Serial_Flush, 0x011)
 // timer operations begin
-Y(Timer_SystemTimer_CompareValue,0x020)
-Y(Timer_SystemTimer_Prescalar, 0x021)
-Y(Timer_Unixtime, 0x022)
-// 0x1000:0x1fff is the dual ported ram
-#define X(index) Y(DualPortedRAM_Slice_0x ## index, (0x100 + index))
-#include "Entry255.def"
-#undef X
+#if defined(TCCR1A) && defined(TCCR1B)
+Y(Timer1, 0x020)
+#endif
+#if defined(TCCR3A) && defined(TCCR3B)
+Y(Timer3, 0x021)
+#endif
+#if defined(TCCR4A) && defined(TCCR4B)
+Y(Timer4, 0x022)
+#endif
+#if defined(TCCR5A) && defined(TCCR5B)
+Y(Timer5, 0x023)
+#endif
+
 #undef Y
 };
 constexpr uint8_t getIOOpcode_Group(IOOpcodes opcode) noexcept {

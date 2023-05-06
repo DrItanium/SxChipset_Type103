@@ -33,7 +33,6 @@ bool
 TimerDevice::begin() noexcept {
     //Serial.println(F("Configuring Timer!"));
     // make sure that INT0 is enabled as an output. Make it high
-    pinMode<Pin::INT0_960_>(OUTPUT);
 #if defined(TCCR1A) && defined(TCCR1B) && defined(TCNT1)
     // enable CTC (OCR1A) mode
     // right now, we are doing everything through the CH351 chips so do not use
@@ -48,7 +47,6 @@ TimerDevice::begin() noexcept {
     bitClear(TCCR1B, CS12);
     TCNT1 = 0;
 #endif
-    digitalWrite<Pin::INT0_960_, HIGH>();
     return true;
 }
 void

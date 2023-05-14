@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SdFat.h>
 
+#include "Detect.h"
 #include "Types.h"
 #include "Pinout.h"
 #include "IOOpcodes.h"
@@ -121,7 +122,7 @@ inline uint8_t getDataByte() noexcept {
  * @brief Just go through the motions of a write operation but do not capture
  * anything being sent by the i960
  */
-[[gnu::always_inline]]
+FORCE_INLINE
 inline void 
 idleTransaction() noexcept {
     // just keep going until we are done
@@ -144,7 +145,7 @@ struct CommunicationKernel {
     Self& operator=(Self&&) = delete;
 
 template<uint32_t a, uint32_t b = a, uint32_t c = a, uint32_t d = a>
-[[gnu::always_inline]]
+FORCE_INLINE
 inline
 static void 
 doFixedCommunication(uint8_t lowest) noexcept {
@@ -222,7 +223,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
         idleTransaction();
     }
 }
-[[gnu::always_inline]]
+FORCE_INLINE
 inline
 static void
 doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
@@ -284,13 +285,15 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
 #undef X
 
 }
-    [[gnu::always_inline]]
-    inline
-    static void
-    doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
-        doCommunication(&body.bytes[getWordByteOffset<width>(lowest)], lowest);
-    }
+FORCE_INLINE
+inline
+static void
+doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
+    doCommunication(&body.bytes[getWordByteOffset<width>(lowest)], lowest);
+}
 #define X(index) \
+FORCE_INLINE \
+inline \
 static void doTimer ## index (uint8_t offset) noexcept { \
         switch (offset & 0b1100) { \
             case 0: { \
@@ -424,7 +427,7 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     Self& operator=(Self&&) = delete;
 private:
     template<uint32_t a, uint32_t b = a, uint32_t c = a, uint32_t d = a>
-    [[gnu::always_inline]]
+    FORCE_INLINE
     inline
     static void doFixedReadOperation(uint8_t lowest) noexcept {
         if constexpr (a == b && b == c && c == d) {
@@ -524,7 +527,7 @@ private:
 
 public:
     template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
-    [[gnu::always_inline]]
+    FORCE_INLINE
     inline
     static void
     doFixedCommunication(uint8_t lowest) noexcept {
@@ -617,7 +620,7 @@ public:
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
 private:
     template<bool isAligned>
-    [[gnu::always_inline]]
+    FORCE_INLINE
     inline
     static void
     doCommunication_Internal(DataRegister8 theBytes) noexcept {
@@ -664,7 +667,7 @@ private:
 #undef HI
 #undef X
 public:
-    [[gnu::always_inline]]
+    FORCE_INLINE
     inline
     static void
     doCommunication(DataRegister8 theBytes, uint8_t offset) noexcept {
@@ -675,7 +678,7 @@ public:
         }
     }
 
-    [[gnu::always_inline]]
+    FORCE_INLINE
     inline
     static void
     doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
@@ -845,7 +848,7 @@ X(5);
 };
 
 template<bool isReadOperation, NativeBusWidth width>
-[[gnu::always_inline]]
+FORCE_INLINE
 inline
 void sendZero(uint8_t offset) noexcept {
     CommunicationKernel<isReadOperation, width>::template doFixedCommunication<0>(offset);
@@ -853,7 +856,7 @@ void sendZero(uint8_t offset) noexcept {
 
 volatile SplitWord128 operation;
 template<NativeBusWidth width>
-[[gnu::always_inline]]
+FORCE_INLINE
 inline
 void
 performIOReadGroup0(uint16_t opcode) noexcept {
@@ -900,7 +903,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     }
 }
 template<NativeBusWidth width>
-[[gnu::always_inline]]
+FORCE_INLINE
 inline
 void
 performIOWriteGroup0(uint16_t opcode) noexcept {

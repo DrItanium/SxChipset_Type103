@@ -542,8 +542,10 @@ public:
             { \
                 static constexpr bool IsLastWord = (b0 == 14 && b1 == 15); \
                 if constexpr (isReadOperation) { \
-                    setDataByte<d0>(theBytes[b0]); \
-                    setDataByte<d1>(theBytes[b1]); \
+                    auto lower = theBytes[b0]; \
+                    auto upper = theBytes[b1]; \
+                    setDataByte<d0>(lower); \
+                    setDataByte<d1>(upper); \
                     if constexpr (!IsLastWord) { \
                         if (Platform::isBurstLast()) { \
                             break; \
@@ -551,70 +553,28 @@ public:
                         signalReady<!isReadOperation>(); \
                     } \
                 } else { \
-                    if constexpr (later) { \
-                        /* in this case, we will immediately terminate if the 
-                         * upper byte enable bit is 1
-                         *
-                         * Also, since this is later on in the process, it
-                         * should be safe to just propagate without performing
-                         * the check itself
-                         */ \
-                        if constexpr (!IsLastWord) { \
-                            if (digitalRead<Pin:: BE ## d1 >()) { \
-                                theBytes[b0] = getDataByte<d0>(); \
-                                break; \
-                            } else { \
-                                /* 
-                                 * we could be operating on a 16-bit register
-                                 * so follow the manual and write the upper
-                                 * half first followed by the lower half every
-                                 * time
-                                 *
-                                 */ \
-                                theBytes[b1] = getDataByte<d1>(); \
-                                theBytes[b0] = getDataByte<d0>(); \
-                            } \
-                            if (Platform::isBurstLast()) { \
-                                break; \
-                            } \
-                            signalReady<!isReadOperation>(); \
-                        } else { \
-                            if (digitalRead<Pin:: BE ## d1 >()) { \
-                                theBytes[b0] = getDataByte<d0>(); \
-                                break; \
-                            } \
-                            theBytes[b1] = getDataByte<d1>(); \
-                            theBytes[b0] = getDataByte<d0>(); \
-                        } \
-                    } else { \
-                        /*
-                         * First time through, we want to actually check the
-                         * upper byte enable bit first and if it is then
-                         * check the lower bits
-                         */ \
-                        if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            theBytes[b1] = getDataByte<d1>(); \
-                            if (digitalRead<Pin:: BE ## d0 > () == LOW) { \
-                                theBytes[b0] = getDataByte<d0>(); \
-                            } \
-                            if constexpr (!IsLastWord) { \
-                                if (Platform::isBurstLast()) { \
-                                    break; \
-                                } \
-                                signalReady<!isReadOperation>(); \
-                            } \
-                        } else { \
-                            /*
-                             * In this case, we know that the lower 8-bits are
-                             * the starting location and the ending location so
-                             * assign and then break out!
-                             * 
-                             * The only way we get here is if the upper byte
-                             * enable bit is high!
-                             */ \
-                            theBytes[d0] = getDataByte<d0>(); \
+                    /* in the case where later is true, we 
+                     * will not check the lower byte enable bit for the given
+                     * pair
+                     *
+                     * Also, since this is later on in the process, it
+                     * should be safe to just propagate without performing
+                     * the check itself
+                     *
+                     * However, the first time through, we want to make sure we
+                     * check both upper and lower.
+                     */ \
+                    if (later || (digitalRead<Pin:: BE ## d0 >() == LOW)) { \
+                        theBytes[b0] = getDataByte<d0>(); \
+                    } \
+                    if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
+                        theBytes[b1] = getDataByte<d1>(); \
+                    } \
+                    if constexpr (!IsLastWord) { \
+                        if (Platform::isBurstLast()) { \
                             break; \
                         } \
+                        signalReady<!isReadOperation>(); \
                     } \
                 } \
             }

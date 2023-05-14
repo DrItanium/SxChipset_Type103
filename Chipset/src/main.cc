@@ -976,20 +976,16 @@ void handleFullOperationProper() noexcept {
     waitForDataState();
     startTransaction();
     const uint16_t al = addressLinesLowerHalf;
-
     // okay so we know that we are going to write so don't query the
     // pin!
     if (!digitalRead<Pin::ChangeDirection>()) {
+        updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
+        toggle<Pin::DirectionOutput>();
         if constexpr (currentlyRead) {
             // read -> write
-            updateDataLinesDirection<0>();
-            toggle<Pin::DirectionOutput>();
             handleWriteOperationProper<width>(al);
         } else {
             // write -> read
-
-            updateDataLinesDirection<0xFF>();
-            toggle<Pin::DirectionOutput>();
             handleReadOperationProper<width>(al);
         }
     } else {

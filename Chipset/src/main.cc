@@ -934,6 +934,41 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 template<NativeBusWidth width> 
+FORCE_INLINE
+inline 
+void handleWriteOperationProper(const uint16_t al) noexcept {
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
+        // ??? -> write
+        CommunicationKernel<false, width>::doCommunication( window, static_cast<uint8_t>(al));
+
+
+    } else {
+        // ??? -> write
+        performIOWriteGroup0<width>(al);
+    }
+}
+template<NativeBusWidth width>
+FORCE_INLINE
+inline
+void handleReadOperationProper(const uint16_t al) noexcept {
+    // ??? -> read
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
+        CommunicationKernel<true, width>::doCommunication( window, static_cast<uint8_t>(al));
+    } else {
+        performIOReadGroup0<width>(al);
+    }
+}
+template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
 [[noreturn]] 
@@ -963,34 +998,11 @@ executionBody() noexcept {
                 // read -> write
                 updateDataLinesDirection<0>();
                 toggle<Pin::DirectionOutput>();
-                if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
-                    // read -> write
-                    CommunicationKernel<false, width>::doCommunication( window, static_cast<uint8_t>(al));
-
-
-                } else {
-                    // read -> write
-                    performIOWriteGroup0<width>(al);
-                }
+                handleWriteOperationProper<width>(al);
             } else {
                 // read -> read
                 // we are staying as a read operation!
-                if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
-                    CommunicationKernel<true, width>::doCommunication( window, static_cast<uint8_t>(al));
-                } else {
-                    // read -> read
-                    performIOReadGroup0<width>(al);
-                }
+                handleReadOperationProper<width>(al);
             }
             // since it is not zero we are looking at what was previously a read operation
             endTransaction();
@@ -1003,32 +1015,9 @@ executionBody() noexcept {
                 // write -> read
                 updateDataLinesDirection<0xFF>();
                 toggle<Pin::DirectionOutput>();
-                if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-                    auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
-                    // write -> read
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    CommunicationKernel<true, width>::doCommunication( window, static_cast<uint8_t>(al));
-                } else {
-                    // write -> read
-                    performIOReadGroup0<width>(al);
-                }
+                handleReadOperationProper<width>(al);
             } else {
-                // write -> write
-                if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-                    auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
-                    // write -> write
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    CommunicationKernel<false, width>::doCommunication( window, static_cast<uint8_t>(al));
-                } else {
-                    // write -> write
-                    performIOWriteGroup0<width>(al);
-                }
+                handleWriteOperationProper<width>(al);
             }
             // currently a write operation
             endTransaction();

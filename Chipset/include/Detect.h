@@ -50,7 +50,7 @@ constexpr auto getRAMEnd() noexcept {
 #ifndef DISABLE_INLINE_FORCE
 #define FORCE_INLINE [[gnu::always_inline]]
 #else
-#define FORCE_INLINE [[gnu::noinline]]
+#define FORCE_INLINE 
 #endif
 template<typename T>
 inline volatile T* memoryPointer(size_t address) noexcept {

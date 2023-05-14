@@ -866,38 +866,38 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     switch (static_cast<IOOpcodes>(opcode & 0xFFF0)) {
         case K::Info_GetChipsetClockSpeed:
             CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(0);
-            return;
+            break;
         case K::Info_GetCPUClockSpeed:
             CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(0);
-            return;
+            break;
         case K::Serial_RW:
             operation[0].halves[0] = Serial.read();
+            CommunicationKernel<true, width>::doCommunication(operation, offset);
             break;
 #ifdef TCCR1A
         case K::Timer1:
             CommunicationKernel<true, width>::doTimer1(offset);
-            return;
+            break;
 #endif
 #ifdef TCCR3A
         case K::Timer3:
             CommunicationKernel<true, width>::doTimer3(offset);
-            return;
+            break;
 #endif
 #ifdef TCCR4A
         case K::Timer4:
             CommunicationKernel<true, width>::doTimer4(offset);
-            return;
+            break;
 #endif
 #ifdef TCCR5A
         case K::Timer5:
             CommunicationKernel<true, width>::doTimer5(offset);
-            return;
+            break;
 #endif
         default:
             sendZero<true, width>(0);
-            return;
+            break;
     }
-    CommunicationKernel<true, width>::doCommunication(operation, offset);
 }
 template<NativeBusWidth width>
 [[gnu::always_inline]]

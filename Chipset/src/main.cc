@@ -973,7 +973,7 @@ template<NativeBusWidth width, bool currentlyRead>
 FORCE_INLINE
 inline
 void handleFullOperationProper() noexcept {
-    waitForDataState();
+    while (digitalRead<Pin::DEN>());
     startTransaction();
     const uint16_t al = addressLinesLowerHalf;
     // okay so we know that we are going to write so don't query the

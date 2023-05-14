@@ -46,7 +46,6 @@ extern uint8_t GPIOR2;
 constexpr auto getRAMEnd() noexcept {
     return RAMEND;
 }
-#define DISABLE_INLINE_FORCE
 #ifndef DISABLE_INLINE_FORCE
 #define FORCE_INLINE [[gnu::always_inline]]
 #else

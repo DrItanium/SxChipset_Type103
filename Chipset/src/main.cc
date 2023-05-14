@@ -547,7 +547,9 @@ public:
                     if (Platform::isBurstLast()) { \
                         break; \
                     } \
-                    signalReady<!isReadOperation>(); \
+                    if constexpr (!IsLastWord) { \
+                        signalReady<!isReadOperation>(); \
+                    } \
                 } else { \
                     if constexpr (later) { \
                         /* in this case, we will immediately terminate if the 
@@ -978,10 +980,11 @@ getTransactionWindow(uint16_t offset, T) noexcept {
     return memoryPointer<uint8_t>(computeTransactionWindow<width>(offset, T{}));
 }
 
+template<uint8_t value>
 [[gnu::always_inline]]
 inline 
 void 
-updateDataLinesDirection(uint8_t value) noexcept {
+updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[0] = value;
     dataLinesDirection_bytes[1] = value;
     dataLinesDirection_bytes[2] = value;
@@ -1013,9 +1016,9 @@ executionBody() noexcept {
             const uint16_t al = addressLinesLowerHalf;
             // okay so we know that we are going to write so don't query the
             // pin!
-            if (const auto offset = static_cast<uint8_t>(al); !digitalRead<Pin::ChangeDirection>()) {
+            if (!digitalRead<Pin::ChangeDirection>()) {
                 // read -> write
-                updateDataLinesDirection(0);
+                updateDataLinesDirection<0>();
                 toggle<Pin::DirectionOutput>();
                 if (digitalRead<Pin::IsMemorySpaceOperation>()) {
                     // the IBUS is the window into the 32-bit bus that the i960 is
@@ -1024,7 +1027,7 @@ executionBody() noexcept {
                     // 32-bit space until we get to IO space)
                     auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
                     // read -> write
-                    CommunicationKernel<false, width>::doCommunication( window, offset);
+                    CommunicationKernel<false, width>::doCommunication( window, static_cast<uint8_t>(al));
 
 
                 } else {
@@ -1040,7 +1043,7 @@ executionBody() noexcept {
                     // space (repeating these 4 megabytes throughout the full
                     // 32-bit space until we get to IO space)
                     auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
-                    CommunicationKernel<true, width>::doCommunication( window, offset);
+                    CommunicationKernel<true, width>::doCommunication( window, static_cast<uint8_t>(al));
                 } else {
                     // read -> read
                     performIOReadGroup0<width>(al);
@@ -1053,9 +1056,9 @@ executionBody() noexcept {
             waitForDataState();
             startTransaction();
             const uint16_t al = addressLinesLowerHalf;
-            if (const auto offset = static_cast<uint8_t>(al); !digitalRead<Pin::ChangeDirection>()) {
+            if (!digitalRead<Pin::ChangeDirection>()) {
                 // write -> read
-                updateDataLinesDirection(0xFF);
+                updateDataLinesDirection<0xFF>();
                 toggle<Pin::DirectionOutput>();
                 if (digitalRead<Pin::IsMemorySpaceOperation>()) {
                     auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
@@ -1064,7 +1067,7 @@ executionBody() noexcept {
                     // accessing from. Right now, it supports up to 4 megabytes of
                     // space (repeating these 4 megabytes throughout the full
                     // 32-bit space until we get to IO space)
-                    CommunicationKernel<true, width>::doCommunication( window, offset);
+                    CommunicationKernel<true, width>::doCommunication( window, static_cast<uint8_t>(al));
                 } else {
                     // write -> read
                     performIOReadGroup0<width>(al);
@@ -1078,7 +1081,7 @@ executionBody() noexcept {
                     // accessing from. Right now, it supports up to 4 megabytes of
                     // space (repeating these 4 megabytes throughout the full
                     // 32-bit space until we get to IO space)
-                    CommunicationKernel<false, width>::doCommunication( window, offset);
+                    CommunicationKernel<false, width>::doCommunication( window, static_cast<uint8_t>(al));
                 } else {
                     // write -> write
                     performIOWriteGroup0<width>(al);

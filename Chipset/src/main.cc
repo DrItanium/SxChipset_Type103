@@ -968,6 +968,40 @@ void handleReadOperationProper(const uint16_t al) noexcept {
         performIOReadGroup0<width>(al);
     }
 }
+
+template<NativeBusWidth width, bool currentlyRead>
+FORCE_INLINE
+inline
+void handleFullOperationProper() noexcept {
+    waitForDataState();
+    startTransaction();
+    const uint16_t al = addressLinesLowerHalf;
+
+    if constexpr (currentlyRead) {
+        // okay so we know that we are going to write so don't query the
+        // pin!
+        if (!digitalRead<Pin::ChangeDirection>()) {
+            // read -> write
+            updateDataLinesDirection<0>();
+            toggle<Pin::DirectionOutput>();
+            handleWriteOperationProper<width>(al);
+        } else {
+            // read -> read
+            // we are staying as a read operation!
+            handleReadOperationProper<width>(al);
+        }
+    } else {
+        if (!digitalRead<Pin::ChangeDirection>()) {
+            // write -> read
+            updateDataLinesDirection<0xFF>();
+            toggle<Pin::DirectionOutput>();
+            handleReadOperationProper<width>(al);
+        } else {
+            handleWriteOperationProper<width>(al);
+        }
+    }
+    endTransaction();
+}
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -989,38 +1023,11 @@ executionBody() noexcept {
         // only check currentDirection once at the start of the transaction
         if (sampleOutputState<Pin::DirectionOutput>()) {
             // start in read
-            waitForDataState();
-            startTransaction();
-            const uint16_t al = addressLinesLowerHalf;
-            // okay so we know that we are going to write so don't query the
-            // pin!
-            if (!digitalRead<Pin::ChangeDirection>()) {
-                // read -> write
-                updateDataLinesDirection<0>();
-                toggle<Pin::DirectionOutput>();
-                handleWriteOperationProper<width>(al);
-            } else {
-                // read -> read
-                // we are staying as a read operation!
-                handleReadOperationProper<width>(al);
-            }
-            // since it is not zero we are looking at what was previously a read operation
-            endTransaction();
+            handleFullOperationProper<width, true>();
         } else {
             // start in write
-            waitForDataState();
-            startTransaction();
-            const uint16_t al = addressLinesLowerHalf;
-            if (!digitalRead<Pin::ChangeDirection>()) {
-                // write -> read
-                updateDataLinesDirection<0xFF>();
-                toggle<Pin::DirectionOutput>();
-                handleReadOperationProper<width>(al);
-            } else {
-                handleWriteOperationProper<width>(al);
-            }
+            handleFullOperationProper<width, false>();
             // currently a write operation
-            endTransaction();
         }
         // put the single cycle delay back in to be on the safe side
         singleCycleDelay();

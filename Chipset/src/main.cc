@@ -546,12 +546,6 @@ public:
                     auto upper = theBytes[b1]; \
                     setDataByte<d0>(lower); \
                     setDataByte<d1>(upper); \
-                    if constexpr (!IsLastWord) { \
-                        if (Platform::isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<!isReadOperation>(); \
-                    } \
                 } else { \
                     /* in the case where later is true, we 
                      * will not check the lower byte enable bit for the given
@@ -570,12 +564,12 @@ public:
                     if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
                         theBytes[b1] = getDataByte<d1>(); \
                     } \
-                    if constexpr (!IsLastWord) { \
-                        if (Platform::isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<!isReadOperation>(); \
+                } \
+                if constexpr (!IsLastWord) { \
+                    if (Platform::isBurstLast()) { \
+                        break; \
                     } \
+                    signalReady<!isReadOperation>(); \
                 } \
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)

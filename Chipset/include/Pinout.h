@@ -67,22 +67,9 @@ Count = NUM_DIGITAL_PINS,
     BLAST = PortF5,
     WR = PortF6,
     READY = PortF7,
-#define X(index) IBUSBankPin ## index = PortJ ## index 
-    X(0),
-    X(1),
-    X(2),
-    X(3),
-    X(4),
-    X(5),
-    X(6),
-    X(7),
-#undef X
 #ifdef PHASE_DETECT_BEHAVIOR
     TransactionDetect = PortG3,
 #endif
-    TFTDC = PortD7,
-    TFTCS = PortD6,
-    TFTReset = PortL0,
     IsMemorySpaceOperation = PortG4,
     DirectionOutput = PortG5,
     ChangeDirection = PortD4,

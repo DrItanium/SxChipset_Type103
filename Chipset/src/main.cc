@@ -413,6 +413,54 @@ X(3);
 X(4);
 X(5);
 #undef X
+static void doSerialRW(uint8_t) noexcept {
+        do {
+            // figure out which word we are currently looking at
+            // if we are aligned to 32-bit word boundaries then just assume we
+            // are at the start of the 16-byte block (the processor will stop
+            // when it doesn't need data anymore). If we are not then skip over
+            // this first two bytes and start at the upper two bytes of the
+            // current word.
+            //
+            // I am also exploiting the fact that the processor can only ever
+            // accept up to 16-bytes at a time if it is aligned to 16-byte
+            // boundaries. If it is unaligned then the operation is broken up
+            // into multiple transactions within the i960 itself. So yes, this
+            // code will go out of bounds but it doesn't matter because the
+            // processor will never go out of bounds.
+
+
+            // The later field is used to denote if the given part of the
+            // transaction is later on in burst. If it is then we will
+            // terminate early without evaluating BLAST if the upper byte
+            // enable is high. This is because if we hit 0b1001 this would be
+            // broken up into two 16-bit values (0b1101 and 0b1011) which is
+            // fine but in all cases the first 1 we encounter after finding the
+            // first zero in the byte enable bits we are going to terminate
+            // anyway. So don't waste time evaluating BLAST at all!
+            if constexpr (isReadOperation) {
+                dataLinesFull = Serial.read();
+                auto end = Platform::isBurstLast();
+                signalReady();
+                if (end) {
+                    break;
+                }
+            } else {
+                uint32_t result = dataLinesFull;
+                Serial.write(static_cast<uint8_t>(result));
+                auto end = Platform::isBurstLast();
+                signalReady<true>();
+                if (end) {
+                    break;
+                }
+            }
+            // unaligned will cause nothing to happen
+            if constexpr (isReadOperation) {
+                dataLinesFull = 0;
+            }
+            idleTransaction();
+        } while (false);
+}
 };
 
 template<bool isReadOperation>
@@ -657,6 +705,8 @@ public:
         doCommunication(&body.bytes[getWordByteOffset<BusWidth>(lowest)], lowest);
     }
 #define X(index) \
+FORCE_INLINE \
+inline \
 static void doTimer ## index (uint8_t offset) noexcept { \
         switch (offset & 0b1110) { \
             case 0: { \
@@ -817,6 +867,56 @@ X(3);
 X(4);
 X(5);
 #undef X
+static void doSerialRW(uint8_t offset) noexcept {
+        do {
+            // figure out which word we are currently looking at
+            // if we are aligned to 32-bit word boundaries then just assume we
+            // are at the start of the 16-byte block (the processor will stop
+            // when it doesn't need data anymore). If we are not then skip over
+            // this first two bytes and start at the upper two bytes of the
+            // current word.
+            //
+            // I am also exploiting the fact that the processor can only ever
+            // accept up to 16-bytes at a time if it is aligned to 16-byte
+            // boundaries. If it is unaligned then the operation is broken up
+            // into multiple transactions within the i960 itself. So yes, this
+            // code will go out of bounds but it doesn't matter because the
+            // processor will never go out of bounds.
+
+
+            // The later field is used to denote if the given part of the
+            // transaction is later on in burst. If it is then we will
+            // terminate early without evaluating BLAST if the upper byte
+            // enable is high. This is because if we hit 0b1001 this would be
+            // broken up into two 16-bit values (0b1101 and 0b1011) which is
+            // fine but in all cases the first 1 we encounter after finding the
+            // first zero in the byte enable bits we are going to terminate
+            // anyway. So don't waste time evaluating BLAST at all!
+            if ((offset & 0b10) == 0) {
+                if constexpr (isReadOperation) {
+                    dataLinesHalves[0] = Serial.read();
+                    auto end = Platform::isBurstLast();
+                    signalReady();
+                    if (end) {
+                        break;
+                    }
+                } else {
+                    uint16_t result = dataLinesHalves[0];
+                    Serial.write(static_cast<uint8_t>(result));
+                    auto end = Platform::isBurstLast();
+                    signalReady<true>();
+                    if (end) {
+                        break;
+                    }
+                }
+            }
+            // unaligned will cause nothing to happen
+            if constexpr (isReadOperation) {
+                dataLinesFull = 0;
+            }
+            idleTransaction();
+        } while (false);
+}
 };
 
 template<bool isReadOperation, NativeBusWidth width>
@@ -846,8 +946,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
             CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(0);
             break;
         case K::Serial_RW:
-            operation[0].halves[0] = Serial.read();
-            CommunicationKernel<true, width>::doCommunication(operation, offset);
+            CommunicationKernel<true, width>::doSerialRW(offset);
             break;
 #ifdef TCCR1A
         case K::Timer1:
@@ -888,9 +987,7 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     uint8_t offset = static_cast<uint8_t>(opcode);
     switch (static_cast<K>(opcode & 0xFFF0)) {
         case K::Serial_RW: {
-                               CommunicationKernel<false, width>::doCommunication(operation, offset);
-                               asm volatile ("nop");
-                               Serial.write(static_cast<uint8_t>(operation.bytes[0]));
+                               CommunicationKernel<false, width>::doSerialRW(offset);
                                break;
                            }
         case K::Serial_Flush: {

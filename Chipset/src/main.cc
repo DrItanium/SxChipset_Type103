@@ -633,8 +633,10 @@ public:
             // anyway. So don't waste time evaluating BLAST at all!
             if ((offset & 0b10) == 0) {
                 LO(0, 1, false);
+                HI(2, 3, true);
+            } else {
+                HI(2, 3, false);
             }
-            HI(2, 3, false);
             LO(4, 5, true);
             HI(6, 7, true);
             LO(8, 9, true);
@@ -1031,6 +1033,8 @@ template<NativeBusWidth width>
 [[noreturn]] 
 void 
 executionBody() noexcept {
+    // turn off the timer0 interrupt for system count, we don't care about it
+    // anymore
     digitalWrite<Pin::DirectionOutput, HIGH>();
     getDirectionRegister<Port::IBUS_Bank>() = 0;
     // switch the XBUS bank mode to i960 instead of AVR

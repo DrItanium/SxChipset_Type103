@@ -566,16 +566,22 @@ public:
                      */ \
                     if constexpr (later) { \
                         theBytes[b0] = getDataByte<d0>(); \
-                        if (!Platform::isBurstLast()) { \
-                           theBytes[b1] = getDataByte<d1>(); \
-                           if constexpr (!IsLastWord) { \
-                               signalReady<true>(); \
-                           } \
+                        if constexpr (!IsLastWord) { \
+                            if (!Platform::isBurstLast()) { \
+                                theBytes[b1] = getDataByte<d1>(); \
+                                signalReady<true>(); \
+                            } else { \
+                                if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
+                                    theBytes[b1] = getDataByte<d1>(); \
+                                } \
+                                break; \
+                            } \
                         } else { \
+                            /* Don't check the BLAST pin on the last word of
+                             * the 16-byte transaction */ \
                             if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
                                 theBytes[b1] = getDataByte<d1>(); \
                             } \
-                            break; \
                         } \
                     } else { \
                         if (digitalRead<Pin:: BE ## d0 >() == LOW) { \

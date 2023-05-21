@@ -14,11 +14,11 @@
   10   | GND      | GND
   11   | OE       | Input
   12   | RAM      | Output
-  13   | NC       | NC
+  13   | SRAM     | Output
   14   | FLSH     | Output
   15   | IO       | Output
   16   | DEN      | Input
-  17   | MIRROR   | Input
+  17   | NC       | NC
   18   | NC       | NC
   19   | NC       | NC
   20   | VCC      | VCC

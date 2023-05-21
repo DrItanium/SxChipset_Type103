@@ -1,0 +1,25 @@
+
+
+ Pin # | Name     | Pin Type
+-----------------------------
+   1   | CLK      | Input
+   2   | A31      | Input
+   3   | A30      | Input
+   4   | A29      | Input
+   5   | A28      | Input
+   6   | A27      | Input
+   7   | A26      | Input
+   8   | A25      | Input
+   9   | A24      | Input
+  10   | GND      | GND
+  11   | OE       | Input
+  12   | RAM      | Output
+  13   | NC       | NC
+  14   | FLSH     | Output
+  15   | IO       | Output
+  16   | DEN      | Input
+  17   | MIRROR   | Input
+  18   | NC       | NC
+  19   | NC       | NC
+  20   | VCC      | VCC
+

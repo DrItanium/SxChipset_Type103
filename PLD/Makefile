@@ -11,7 +11,8 @@ all: Type103PLD.jed \
 	CPUDimmChip1.jed \
 	CPUDimmChip2.jed \
 	1MEGDecoderCard.jed \
-	OperationDetect.jed
+	OperationDetect.jed \
+	BusDecoder32Bit.jed
 
 
 
@@ -42,6 +43,9 @@ install_1MEGDecoderCard: 1MEGDecoderCard.jed
 
 install_OperationDetect: OperationDetect.jed
 	minipro -p ATF16V8C --write OperationDetect.jed 
+
+install_BusDecoder32bit: BusDecoder32Bit.jed
+	minipro -p ATF16V8C --write BusDecoder32Bit.jed 
 
 clean:
 	@echo -n "Cleaning..."

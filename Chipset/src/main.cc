@@ -52,8 +52,6 @@ using Register8 = volatile uint8_t&;
 using Register16 = volatile uint16_t&;
 template<int index>
 struct TimerDescriptor { 
-    Register8 TCCRxA, TCCRxB, TCCRxC;
-    Register16 TCNTx, ICRx, OCRxA, OCRxB, OCRxC;
 };
 #define X(index) \
 template<> \
@@ -180,10 +178,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
     // the code is very straightforward
     if constexpr (isReadOperation) {
         if constexpr (a == b && b == c && c == d) {
-            setDataByte<0>(static_cast<uint8_t>(a));
-            setDataByte<1>(static_cast<uint8_t>(a >> 8));
-            setDataByte<2>(static_cast<uint8_t>(a >> 16));
-            setDataByte<3>(static_cast<uint8_t>(a >> 24));
+            dataLinesFull = a;
             idleTransaction();
         } else {
             static constexpr uint32_t contents [4] {

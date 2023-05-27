@@ -295,7 +295,7 @@ template<TimerDescriptor TI>
 FORCE_INLINE 
 inline 
 static void doTimerGeneric(uint8_t offset) noexcept { 
-        switch (offset & 0b1100) { 
+        switch (offset & 0b1111) { 
             case 0: { 
                         /* TCCRnA and TCCRnB */ 
                         /* TCCRnC and Reserved (ignore that) */ 
@@ -678,7 +678,7 @@ template<TimerDescriptor TI>
 FORCE_INLINE 
 inline 
 static void doTimerGeneric(uint8_t offset) noexcept { 
-        switch (offset & 0b1110) { 
+        switch (offset & 0b1111) { 
             case 0: { 
                         /* TCCRnA and TCCRnB */ 
                         if constexpr (isReadOperation) { 

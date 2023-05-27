@@ -70,9 +70,9 @@ Count = NUM_DIGITAL_PINS,
 #ifdef PHASE_DETECT_BEHAVIOR
     TransactionDetect = PortG3,
 #endif
-    DirectionOutput = PortG4,
     ChangeDirection = PortD4,
     IsMemorySpaceOperation = PortD5,
+    DirectionOutput = PortD6,
 
 };
 enum class Port : byte {
@@ -83,6 +83,7 @@ enum class Port : byte {
     None,
     SignalCTL = F,
     IBUS_Bank = J,
+    ExecutionState = D,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

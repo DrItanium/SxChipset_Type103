@@ -457,6 +457,58 @@ static void doSerialRW(uint8_t) noexcept {
             idleTransaction();
         } while (false);
 }
+FORCE_INLINE 
+inline 
+static void doPrimaryIOGroup0(uint8_t offset) noexcept { 
+        switch (offset & 0b1100) { 
+            case 0: { 
+                        if constexpr (isReadOperation) { 
+                            dataLinesFull = F_CPU;
+                        } 
+                        if (isBurstLast()) {
+                            break; 
+                        }
+                        signalReady<true>();  
+                    } 
+            case 4: { 
+                        if constexpr (isReadOperation) { 
+                            dataLinesFull = F_CPU / 2;
+                        } 
+                        if (isBurstLast()) {
+                            break; 
+                        }
+                        signalReady<true>();  
+                    } 
+            case 8: { 
+                        /* Serial RW connection */
+                        if constexpr (isReadOperation) { 
+                            dataLinesFull = Serial.read();
+                        } else { 
+                            // no need to check this out just ignore the byte
+                            // enable lines
+                            Serial.write(static_cast<uint8_t>(dataLinesFull));
+                        } 
+                        if (isBurstLast()) { 
+                            break; 
+                        } 
+                        signalReady<true>(); 
+                    } 
+            case 12: { 
+                         if constexpr (isReadOperation) { 
+                             dataLinesFull = 0;
+                         } else { 
+                             Serial.flush();
+                         } 
+                         if (isBurstLast()) {
+                             break;
+                         } 
+                         signalReady<true>(); 
+                     } 
+            default: 
+                     break; 
+        } 
+        signalReady<true>(); 
+}
 };
 
 template<bool isReadOperation>
@@ -863,6 +915,96 @@ static void doSerialRW(uint8_t offset) noexcept {
             idleTransaction();
         } while (false);
 }
+FORCE_INLINE 
+inline 
+static void doPrimaryIOGroup0(uint8_t offset) noexcept { 
+        switch (offset & 0b1111) { 
+            case 0: { 
+                        if constexpr (isReadOperation) { 
+                            setDataByte<0>(static_cast<uint8_t>(F_CPU));
+                            setDataByte<1>(static_cast<uint8_t>(F_CPU >> 8));
+                        } 
+                        if (isBurstLast()) {
+                            break; 
+                        }
+                        signalReady<true>();  
+                    } 
+            case 2: { 
+                        if constexpr (isReadOperation) { 
+                            setDataByte<2>(static_cast<uint8_t>(F_CPU >> 16));
+                            setDataByte<3>(static_cast<uint8_t>(F_CPU >> 24));
+                        } 
+                        if (isBurstLast()) { 
+                            break; 
+                        } 
+                        signalReady<true>();  
+                    } 
+            case 4: { 
+                        if constexpr (isReadOperation) { 
+                            setDataByte<0>(static_cast<uint8_t>(F_CPU / 2));
+                            setDataByte<1>(static_cast<uint8_t>((F_CPU / 2) >> 8));
+                        } 
+                        if (isBurstLast()) {
+                            break; 
+                        }
+                        signalReady<true>();  
+                    } 
+            case 6: { 
+                        if constexpr (isReadOperation) { 
+                            setDataByte<2>(static_cast<uint8_t>((F_CPU / 2) >> 16));
+                            setDataByte<3>(static_cast<uint8_t>((F_CPU / 2) >> 24));
+                        } 
+                        if (isBurstLast()) { 
+                            break; 
+                        } 
+                        signalReady<true>();  
+                    } 
+            case 8: { 
+                        /* Serial RW connection */
+                        if constexpr (isReadOperation) { 
+                            dataLinesHalves[0] = Serial.read();
+                        } else { 
+                            // no need to check this out just ignore the byte
+                            // enable lines
+                            Serial.write(static_cast<uint8_t>(dataLinesHalves[0]));
+                        } 
+                        if (isBurstLast()) { 
+                            break; 
+                        } 
+                        signalReady<true>(); 
+                    } 
+            case 10: {
+                         if constexpr (isReadOperation) { 
+                             dataLinesHalves[1] = 0;
+                         } 
+                         if (isBurstLast()) { 
+                             break; 
+                         } 
+                         signalReady<true>(); 
+                     } 
+            case 12: { 
+                         /* OCRnC */ 
+                         if constexpr (isReadOperation) { 
+                             dataLinesHalves[0] = 0; 
+                         } else { 
+                             Serial.flush();
+                         } 
+                         if (isBurstLast()) {
+                             break;
+                         } 
+                         signalReady<true>(); 
+                     } 
+            case 14: { 
+                        /* nothing to do on writes but do update the data port
+                         * on reads */ 
+                         if constexpr (isReadOperation) { 
+                            dataLinesHalves[1] = 0; 
+                         } 
+                     }  
+            default: break; 
+        } 
+        signalReady<true>(); 
+}
 };
 
 template<NativeBusWidth width>
@@ -877,14 +1019,8 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     using K = IOOpcodes;
     const uint8_t offset = static_cast<uint8_t>(opcode);
     switch (static_cast<IOOpcodes>(opcode & 0xFFF0)) {
-        case K::Info_GetChipsetClockSpeed:
-            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
-            break;
-        case K::Info_GetCPUClockSpeed:
-            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
-            break;
-        case K::Serial_RW:
-            CommunicationKernel<true, width>::doSerialRW(offset);
+        case K::PrimaryGroup0:
+            CommunicationKernel<true, width>::doPrimaryIOGroup0(offset);
             break;
 #ifdef TCCR1A
         case K::Timer1:
@@ -924,12 +1060,8 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     using K = IOOpcodes;
     uint8_t offset = static_cast<uint8_t>(opcode);
     switch (static_cast<K>(opcode & 0xFFF0)) {
-        case K::Serial_RW: 
-            CommunicationKernel<false, width>::doSerialRW(offset);
-            break;
-        case K::Serial_Flush: 
-            Serial.flush();
-            idleTransaction();
+        case K::PrimaryGroup0:
+            CommunicationKernel<false, width>::doPrimaryIOGroup0(offset);
             break;
 #ifdef TCCR1A
         case K::Timer1: 
@@ -1029,7 +1161,7 @@ inline
 void handleFullOperationProper() noexcept {
     while (digitalRead<Pin::DEN>());
     startTransaction();
-    const uint16_t al = addressLinesLowerHalf;
+    //const uint16_t al = addressLinesLowerHalf;
     // okay so we know that we are going to write so don't query the
     // pin!
     if (!digitalRead<Pin::ChangeDirection>()) {
@@ -1037,19 +1169,19 @@ void handleFullOperationProper() noexcept {
         toggle<Pin::DirectionOutput>();
         if constexpr (currentlyRead) {
             // read -> write
-            handleWriteOperationProper<width>(al);
+            handleWriteOperationProper<width>(addressLinesLowerHalf);
         } else {
             // write -> read
-            handleReadOperationProper<width>(al);
+            handleReadOperationProper<width>(addressLinesLowerHalf);
         }
     } else {
         if constexpr (currentlyRead) {
             // read -> read
             // we are staying as a read operation!
-            handleReadOperationProper<width>(al);
+            handleReadOperationProper<width>(addressLinesLowerHalf);
         } else {
             // write -> write
-            handleWriteOperationProper<width>(al);
+            handleWriteOperationProper<width>(addressLinesLowerHalf);
         }
     }
     endTransaction();

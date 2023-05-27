@@ -27,33 +27,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHIPSET_IOOPCODES_H__
 #include <stdint.h>
 enum class IOOpcodes : uint16_t {
-#define Y(name, opcode) name = (static_cast<uint16_t>(opcode) << 4),
+#define Y(name, opcode) name = (static_cast<uint16_t>(opcode)),
 // info opcodes
-Y(Info_GetCPUClockSpeed, 0x000)
-Y(Info_GetChipsetClockSpeed, 0x001)
-// serial operations begin
-Y(Serial_RW, 0x010)
-Y(Serial_Flush, 0x011)
+Y(PrimaryGroup0, 0x0000)
 // timer operations begin
 #if defined(TCCR1A) && defined(TCCR1B)
-Y(Timer1, 0x020)
+Y(Timer1, 0x0010)
 #endif
 #if defined(TCCR3A) && defined(TCCR3B)
-Y(Timer3, 0x021)
+Y(Timer3, 0x0020)
 #endif
 #if defined(TCCR4A) && defined(TCCR4B)
-Y(Timer4, 0x022)
+Y(Timer4, 0x0030)
 #endif
 #if defined(TCCR5A) && defined(TCCR5B)
-Y(Timer5, 0x023)
+Y(Timer5, 0x0040)
 #endif
 
 #undef Y
 };
-constexpr uint8_t getIOOpcode_Group(IOOpcodes opcode) noexcept {
-    return static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 12);
-}
-constexpr uint8_t getIOOpcode_Offset(IOOpcodes opcode) noexcept {
-    return static_cast<uint8_t>(static_cast<uint16_t>(opcode) >> 4);
-}
 #endif // end defined CHIPSET_IOOPCODES_H__

@@ -311,12 +311,12 @@ doCommunication() noexcept {
 #undef X
 
 }
-template<TimerDescriptor TI>
+template<TimerDescriptor TI, uint8_t base>
 FORCE_INLINE 
 inline 
 static void doTimerGeneric(uint8_t offset) noexcept { 
     switch (offset & 0b1111) { 
-        case 0: { 
+        case base + 0: { 
                     /* TCCRnA and TCCRnB */ 
                     /* TCCRnC and Reserved (ignore that) */ 
                     if constexpr (isReadOperation) { 
@@ -340,7 +340,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                     } 
                     signalReady<true>();  
                 } 
-        case 4: { 
+        case base + 4: { 
                     /* TCNTn should only be accessible if you do a full 16-bit
                      * write 
                      */ 
@@ -375,7 +375,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                     } 
                     signalReady<true>(); 
                 } 
-        case 8: { 
+        case base + 8: { 
                     /* OCRnA should only be accessible if you do a full 16-bit write */ 
                     /* OCRnB */ 
                     if constexpr (isReadOperation) { 
@@ -406,7 +406,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                     } 
                     signalReady<true>(); 
                 } 
-        case 12: { 
+        case base + 12: { 
                      /* OCRnC */ 
                      if constexpr (isReadOperation) { 
                          noInterrupts(); 
@@ -431,52 +431,76 @@ static void doTimerGeneric(uint8_t offset) noexcept {
 }
 FORCE_INLINE 
 inline 
-static void doPrimaryIOGroup0(uint8_t offset) noexcept { 
-        switch (offset & 0b1100) { 
+static void doIO() noexcept { 
+        uint8_t offset = addressLines[0];
+        switch (offset) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesFull = F_CPU;
+                            setDataByte<0>(static_cast<uint8_t>(F_CPU));
+                            setDataByte<1>(static_cast<uint8_t>(F_CPU >> 8));
+                            setDataByte<2>(static_cast<uint8_t>(F_CPU >> 16));
+                            setDataByte<3>(static_cast<uint8_t>(F_CPU >> 24));
                         } 
-                        if (isBurstLast()) {
+                        if (isBurstLast()) { 
                             break; 
-                        }
+                        } 
                         signalReady<true>();  
                     } 
             case 4: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesFull = F_CPU / 2;
+                            setDataByte<0>(static_cast<uint8_t>(F_CPU / 2));
+                            setDataByte<1>(static_cast<uint8_t>((F_CPU / 2) >> 8));
+                            setDataByte<2>(static_cast<uint8_t>((F_CPU / 2) >> 16));
+                            setDataByte<3>(static_cast<uint8_t>((F_CPU / 2) >> 24));
                         } 
-                        if (isBurstLast()) {
+                        if (isBurstLast()) { 
                             break; 
-                        }
+                        } 
                         signalReady<true>();  
                     } 
             case 8: { 
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
-                            dataLinesFull = Serial.read();
+                            dataLinesHalves[0] = Serial.read();
+                            dataLinesHalves[1] = 0;
                         } else { 
                             // no need to check this out just ignore the byte
                             // enable lines
-                            Serial.write(static_cast<uint8_t>(dataLinesFull));
+                            Serial.write(static_cast<uint8_t>(dataLinesHalves[0]));
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
+                         if (isBurstLast()) { 
+                             break; 
+                         } 
+                         signalReady<true>(); 
+                     } 
             case 12: { 
+                         Serial.flush();
                          if constexpr (isReadOperation) { 
                              dataLinesFull = 0;
-                         } else { 
-                             Serial.flush();
                          } 
                          if (isBurstLast()) {
                              break;
                          } 
                          signalReady<true>(); 
                      } 
-            default: 
+                     break;
+#ifdef TCCR1A
+            case 16: case 20: case 24: case 28: doTimerGeneric<timer1, 0x10>(offset); break;
+#endif
+#ifdef TCCR3A
+            case 32: case 36: case 40: case 44: doTimerGeneric<timer3, 0x20>(offset); break;
+#endif
+#ifdef TCCR4A
+            case 48: case 52: case 56: case 60: doTimerGeneric<timer4, 0x30>(offset); break;
+#endif
+#ifdef TCCR5A
+            case 64: case 68: case 72: case 76: doTimerGeneric<timer5, 0x40>(offset); break;
+#endif
+            default:
+                     if constexpr (isReadOperation) {
+                         dataLinesFull = 0;
+                     }
+                     idleTransaction();
                      break; 
         } 
         signalReady<true>(); 
@@ -638,10 +662,10 @@ public:
     inline
     static void
     doCommunication() noexcept {
-        const uint16_t al = addressLinesLowerHalf;
-        auto lowest = static_cast<uint8_t>(al);
-        auto theBytes = getTransactionWindow<BusWidth>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
         do {
+            const uint16_t al = addressLinesLowerHalf;
+            auto lowest = static_cast<uint8_t>(al);
+            auto theBytes = getTransactionWindow<BusWidth>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
             // figure out which word we are currently looking at
             // if we are aligned to 32-bit word boundaries then just assume we
             // are at the start of the 16-byte block (the processor will stop
@@ -682,12 +706,12 @@ public:
 #undef HI
 #undef X
 
-template<TimerDescriptor TI>
+template<TimerDescriptor TI, uint8_t base>
 FORCE_INLINE 
 inline 
 static void doTimerGeneric(uint8_t offset) noexcept { 
-        switch (offset & 0b1111) { 
-            case 0: { 
+        switch (offset) { 
+            case base + 0: { 
                         /* TCCRnA and TCCRnB */ 
                         if constexpr (isReadOperation) { 
                             setDataByte<0>(TI.TCCRxA);
@@ -705,7 +729,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                         }
                         signalReady<true>();  
                     } 
-            case 2: { 
+            case base + 2: { 
                         /* TCCRnC and Reserved (ignore that) */ 
                         if constexpr (isReadOperation) { 
                             setDataByte<2>(TI.TCCRxC);
@@ -720,7 +744,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                         } 
                         signalReady<true>();  
                     } 
-            case 4: { 
+            case base + 4: { 
                         /* TCNTn should only be accessible if you do a full 16-bit
                          * write 
                          */ 
@@ -743,7 +767,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                         } 
                         signalReady<true>(); 
                     } 
-            case 6: { 
+            case base + 6: { 
                         /* ICRn should only be accessible if you do a full 16-bit
                          * write
                          */ 
@@ -766,7 +790,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                         } 
                         signalReady<true>(); 
                     } 
-            case 8: { 
+            case base + 8: { 
                         /* OCRnA should only be accessible if you do a full 16-bit write */ 
                         if constexpr (isReadOperation) { 
                             noInterrupts(); 
@@ -787,7 +811,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                         } 
                         signalReady<true>(); 
                     } 
-            case 10: {
+            case base + 10: {
                          /* OCRnB */ 
                          if constexpr (isReadOperation) { 
                              noInterrupts(); 
@@ -808,7 +832,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                          } 
                          signalReady<true>(); 
                      } 
-            case 12: { 
+            case base + 12: { 
                          /* OCRnC */ 
                          if constexpr (isReadOperation) { 
                              noInterrupts(); 
@@ -829,7 +853,7 @@ static void doTimerGeneric(uint8_t offset) noexcept {
                          } 
                          signalReady<true>(); 
                      } 
-            case 14: { 
+            case base + 14: { 
                         /* nothing to do on writes but do update the data port
                          * on reads */ 
                          if constexpr (isReadOperation) { 
@@ -842,8 +866,9 @@ static void doTimerGeneric(uint8_t offset) noexcept {
 }
 FORCE_INLINE 
 inline 
-static void doPrimaryIOGroup0(uint8_t offset) noexcept { 
-        switch (offset & 0b1111) { 
+static void doIO() noexcept { 
+        uint8_t offset = addressLines[0];
+        switch (offset) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
                             setDataByte<0>(static_cast<uint8_t>(F_CPU));
@@ -925,94 +950,31 @@ static void doPrimaryIOGroup0(uint8_t offset) noexcept {
                          if constexpr (isReadOperation) { 
                             dataLinesHalves[1] = 0; 
                          } 
-                     }  
-            default: break; 
+                     }
+                     break;
+#ifdef TCCR1A
+            case 16: case 18: case 20: case 22: case 24: case 26: case 28: case 30: doTimerGeneric<timer1, 0x10>(offset); break;
+#endif
+#ifdef TCCR3A
+            case 32: case 34: case 36: case 38: case 40: case 42: case 44: case 46: doTimerGeneric<timer3, 0x20>(offset); break;
+#endif
+#ifdef TCCR4A
+            case 48: case 50: case 52: case 54: case 56: case 58: case 60: case 62: doTimerGeneric<timer4, 0x30>(offset); break;
+#endif
+#ifdef TCCR5A
+            case 64: case 66: case 68: case 70: case 72: case 74: case 76: case 78: doTimerGeneric<timer5, 0x40>(offset); break;
+#endif
+            default:
+                     if constexpr (isReadOperation) {
+                         dataLinesFull = 0;
+                     }
+                     idleTransaction();
+                     break; 
         } 
         signalReady<true>(); 
 }
 };
 
-template<NativeBusWidth width>
-FORCE_INLINE
-inline
-void
-performIOReadGroup0() noexcept {
-    // unlike standard i960 operations, we only encode the data we actually care
-    // about out of the packet when performing a read operation so at this
-    // point it doesn't matter what kind of data the i960 is requesting.
-    // This maintains consistency and makes the implementation much simpler
-    using K = IOOpcodes;
-    uint8_t offset = addressLines[0];
-    switch (static_cast<IOOpcodes>(offset& 0xF0)) {
-        case K::PrimaryGroup0:
-            CommunicationKernel<true, width>::doPrimaryIOGroup0(offset);
-            break;
-#ifdef TCCR1A
-        case K::Timer1:
-            CommunicationKernel<true, width>::template doTimerGeneric<timer1>(offset);
-            break;
-#endif
-#ifdef TCCR3A
-        case K::Timer3:
-            CommunicationKernel<true, width>::template doTimerGeneric<timer3>(offset);
-            break;
-#endif
-#ifdef TCCR4A
-        case K::Timer4:
-            CommunicationKernel<true, width>::template doTimerGeneric<timer4>(offset);
-            break;
-#endif
-#ifdef TCCR5A
-        case K::Timer5:
-            CommunicationKernel<true, width>::template doTimerGeneric<timer5>(offset);
-            break;
-#endif
-        default:
-            CommunicationKernel<true, width>::template doFixedCommunication<0>(offset);
-            break;
-    }
-}
-template<NativeBusWidth width>
-FORCE_INLINE
-inline
-void
-performIOWriteGroup0() noexcept {
-    // unlike standard i960 operations, we only decode the data we actually care
-    // about out of the packet when performing a write operation so at this
-    // point it doesn't matter what kind of data we were actually given
-    //
-    // need to sample the address lines prior to grabbing data off the bus
-    using K = IOOpcodes;
-    uint8_t offset = addressLines[0];
-    switch (static_cast<K>(offset & 0xF0)) {
-        case K::PrimaryGroup0:
-            CommunicationKernel<false, width>::doPrimaryIOGroup0(offset);
-            break;
-#ifdef TCCR1A
-        case K::Timer1: 
-            CommunicationKernel<false, width>::template doTimerGeneric<timer1>(offset);
-            break;
-#endif
-#ifdef TCCR3A
-        case K::Timer3: 
-            CommunicationKernel<false, width>::template doTimerGeneric<timer3>(offset);
-            break;
-#endif
-#ifdef TCCR4A
-        case K::Timer4: 
-            CommunicationKernel<false, width>::template doTimerGeneric<timer4>(offset);
-            break;
-#endif
-#ifdef TCCR5A
-        case K::Timer5: 
-            CommunicationKernel<false, width>::template doTimerGeneric<timer5>(offset);
-            break;
-#endif
-        default:  
-            idleTransaction();
-            break;
-    }
-}
 
 
 template<uint8_t value>
@@ -1040,7 +1002,7 @@ void handleWriteOperationProper() noexcept {
 
     } else {
         // ??? -> write
-        performIOWriteGroup0<width>();
+        CommunicationKernel<false, width>::doIO();
     }
 }
 template<NativeBusWidth width>
@@ -1055,7 +1017,7 @@ void handleReadOperationProper() noexcept {
         // 32-bit space until we get to IO space)
         CommunicationKernel<true, width>::doCommunication();
     } else {
-        performIOReadGroup0<width>();
+        CommunicationKernel<true, width>::doIO();
     }
 }
 

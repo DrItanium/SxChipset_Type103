@@ -610,7 +610,6 @@ public:
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
 public:
-    //template<bool isAligned>
     FORCE_INLINE
     inline
     static void

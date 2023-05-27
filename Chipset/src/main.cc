@@ -562,44 +562,49 @@ public:
             idleTransaction();
         }
     }
+    template<uint8_t d0, uint8_t b0, uint8_t d1, uint8_t b1, bool later, Pin beLower, Pin beUpper>
+    FORCE_INLINE
+    inline
+    static 
+    void performCommunicationSingle(DataRegister8 theBytes) noexcept {
+        static_assert(d0 == 0 || d0 == 2, "d0 must be 0 or 2");
+        static_assert(d1 == 1 || d1 == 3, "d1 must be 1 or 3");
+        static_assert(beLower == Pin::BE0 || beLower == Pin::BE2, "beLower must be BE0 or BE2");
+        static_assert(beUpper == Pin::BE1 || beUpper == Pin::BE3, "beUpper must be BE1 or BE3");
+        if constexpr (isReadOperation) { 
+            auto lower = theBytes[b0]; 
+            auto upper = theBytes[b1]; 
+            setDataByte<d0>(lower); 
+            setDataByte<d1>(upper); 
+        } else { 
+            /* in the case where later is true, we 
+             * will not check the lower byte enable bit for the given
+             * pair
+             *
+             * Also, since this is later on in the process, it
+             * should be safe to just propagate without performing
+             * the check itself
+             *
+             * However, the first time through, we want to make sure we
+             * check both upper and lower.
+             */ 
+            if (later || digitalRead<beLower>() == LOW) { 
+                theBytes[b0] = getDataByte<d0>(); 
+            } 
+            if (digitalRead<beUpper>() == LOW) { 
+                theBytes[b1] = getDataByte<d1>(); 
+            } 
+        } 
+    }
 #define X(d0, b0, d1, b1, later) \
             { \
                 static constexpr bool IsLastWord = (b0 == 14 && b1 == 15); \
-                if constexpr (isReadOperation) { \
-                    auto lower = theBytes[b0]; \
-                    auto upper = theBytes[b1]; \
-                    setDataByte<d0>(lower); \
-                    setDataByte<d1>(upper); \
-                    if constexpr (!IsLastWord) { \
-                        if (isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<!isReadOperation>(); \
+                performCommunicationSingle<d0, b0, d1, b1, later, Pin :: BE ## d0 , Pin :: BE ## d1 >(theBytes); \
+                if constexpr (!IsLastWord) { \
+                    if (isBurstLast()) { \
+                        break; \
                     } \
-                } else { \
-                    /* in the case where later is true, we 
-                     * will not check the lower byte enable bit for the given
-                     * pair
-                     *
-                     * Also, since this is later on in the process, it
-                     * should be safe to just propagate without performing
-                     * the check itself
-                     *
-                     * However, the first time through, we want to make sure we
-                     * check both upper and lower.
-                     */ \
-                    if (later || digitalRead<Pin:: BE ## d0 >() == LOW) { \
-                        theBytes[b0] = getDataByte<d0>(); \
-                    } \
-                    if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                        theBytes[b1] = getDataByte<d1>(); \
-                    } \
-                    if constexpr (!IsLastWord) { \
-                        if (isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<!isReadOperation>(); \
-                    } \
+                    signalReady<!isReadOperation>(); \
                 } \
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
@@ -636,10 +641,8 @@ public:
             // anyway. So don't waste time evaluating BLAST at all!
             if ((offset & 0b10) == 0) {
                 LO(0, 1, false);
-                HI(2, 3, true);
-            } else {
-                HI(2, 3, false);
             }
+            HI(2, 3, false);
             LO(4, 5, true);
             HI(6, 7, true);
             LO(8, 9, true);

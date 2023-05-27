@@ -479,34 +479,14 @@ private:
     inline
     static void doFixedReadOperation(uint8_t lowest) noexcept {
         if constexpr (a == b && b == c && c == d) {
-            setDataByte<0>(static_cast<uint8_t>(a));
-            setDataByte<1>(static_cast<uint8_t>(a >> 8));
-            setDataByte<2>(static_cast<uint8_t>(a >> 16));
-            setDataByte<3>(static_cast<uint8_t>(a >> 24));
+            dataLinesFull = a;
             idleTransaction();
         } else {
-            static constexpr SplitWord128 contents{
-                static_cast<uint8_t>(a),
-                    static_cast<uint8_t>(a >> 8),
-                    static_cast<uint8_t>(a >> 16),
-                    static_cast<uint8_t>(a >> 24),
-                    static_cast<uint8_t>(b),
-                    static_cast<uint8_t>(b >> 8),
-                    static_cast<uint8_t>(b >> 16),
-                    static_cast<uint8_t>(b >> 24),
-                    static_cast<uint8_t>(c),
-                    static_cast<uint8_t>(c >> 8),
-                    static_cast<uint8_t>(c >> 16),
-                    static_cast<uint8_t>(c >> 24),
-                    static_cast<uint8_t>(d),
-                    static_cast<uint8_t>(d >> 8),
-                    static_cast<uint8_t>(d >> 16),
-                    static_cast<uint8_t>(d >> 24),
-            };
+            static constexpr uint32_t contents[4] { a, b, c, d, };
             // just skip over the lowest 16-bits if we start unaligned
             uint8_t value = lowest;
             uint8_t offset = getWordByteOffset<BusWidth>(value);
-            const uint8_t* theBytes = &contents.bytes[offset];
+            const uint8_t* theBytes = &reinterpret_cast<const uint8_t*>(contents)[offset];
             if ((value & 0b0010) == 0) {
                 setDataByte<0>(theBytes[0]);
                 setDataByte<1>(theBytes[1]);

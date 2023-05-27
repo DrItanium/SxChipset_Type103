@@ -32,7 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IOOpcodes.h"
 #include "Peripheral.h"
 #include "Setup.h"
-SdFs SD;
 // allocate 1024 bytes total
 
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -1149,6 +1148,9 @@ template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;
+    SPI.begin();
+    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
+    SdFs SD;
     Serial.println(F("Looking for an SD Card!"));
     while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
         Serial.println(F("NO SD CARD!"));
@@ -1183,6 +1185,8 @@ installMemoryImage() noexcept {
     }
     // okay so now end reading from the SD Card
     SD.end();
+    SPI.endTransaction();
+    SPI.end();
 }
 void 
 setupPins() noexcept {
@@ -1245,11 +1249,7 @@ setup() {
             break;
     }
     // find firmware.bin and install it into the 512k block of memory
-    SPI.begin();
-    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     installMemoryImage();
-    SPI.endTransaction();
-    SPI.end();
     pullCPUOutOfReset();
 }
 void 

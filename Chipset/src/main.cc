@@ -1564,19 +1564,20 @@ FORCE_INLINE
 inline
 void
 handleOperationProper() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        CommunicationKernel<isReadOperation, width>::doCommunication();
-    } else if (digitalRead<Pin::SpecialSpace>() == LOW) {
+    if (!digitalRead<Pin::IsMemorySpaceOperation>()) {
+        // io operation
+        CommunicationKernel<isReadOperation, width>::doIO();
+    } else if (!digitalRead<Pin::SpecialSpace>()) {
         if constexpr (isReadOperation) {
             dataLinesFull = 0;
         } 
         idleTransaction();
     } else {
-        CommunicationKernel<isReadOperation, width>::doIO();
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        CommunicationKernel<isReadOperation, width>::doCommunication();
     }
 }
 

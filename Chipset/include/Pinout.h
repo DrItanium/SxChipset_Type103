@@ -73,7 +73,7 @@ Count = NUM_DIGITAL_PINS,
     ChangeDirection = PortD4,
     IsMemorySpaceOperation = PortD5,
     DirectionOutput = PortD6,
-
+    SpecialSpace = PortD7,
 };
 enum class Port : byte {
     // stop at mega2560 tier

@@ -152,6 +152,14 @@ inline void setDataByte(uint8_t value) noexcept {
         dataLines[index] = value;
     }
 }
+
+FORCE_INLINE
+inline void setDataByte(uint8_t a, uint8_t b, uint8_t c, uint8_t d) noexcept {
+    setDataByte<0>(a);
+    setDataByte<1>(b);
+    setDataByte<2>(c);
+    setDataByte<3>(d);
+}
 template<uint8_t index>
 inline uint8_t getDataByte() noexcept {
     static_assert(index < 4, "Invalid index provided to getDataByte, must be less than 4");
@@ -187,67 +195,6 @@ struct CommunicationKernel {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 
-template<uint32_t a, uint32_t b = a, uint32_t c = a, uint32_t d = a>
-FORCE_INLINE
-inline
-static void 
-doFixedCommunication(uint8_t lowest) noexcept {
-    // we cannot hardcode the positions because we have no idea what the
-    // offset is. So we have to do it this way, it is slower but it also means
-    // the code is very straightforward
-    if constexpr (isReadOperation) {
-        if constexpr (a == b && b == c && c == d) {
-            dataLinesFull = a;
-            idleTransaction();
-        } else {
-            static constexpr uint32_t contents [4] {
-                a, b, c, d,
-            };
-            const uint8_t* theBytes = &reinterpret_cast<const uint8_t*>(contents)[getWordByteOffset<width>(lowest)];
-            // in all other cases do the whole thing
-            setDataByte<0>(theBytes[0]);
-            setDataByte<1>(theBytes[1]);
-            setDataByte<2>(theBytes[2]);
-            setDataByte<3>(theBytes[3]);
-            auto end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            setDataByte<0>(theBytes[4]);
-            setDataByte<1>(theBytes[5]);
-            setDataByte<2>(theBytes[6]);
-            setDataByte<3>(theBytes[7]);
-            end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            setDataByte<0>(theBytes[8]);
-            setDataByte<1>(theBytes[9]);
-            setDataByte<2>(theBytes[10]);
-            setDataByte<3>(theBytes[11]);
-            end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            singleCycleDelay();
-            singleCycleDelay();
-            setDataByte<0>(theBytes[12]);
-            setDataByte<1>(theBytes[13]);
-            setDataByte<2>(theBytes[14]);
-            setDataByte<3>(theBytes[15]);
-            signalReady();
-        }
-    } else {
-        idleTransaction();
-    }
-}
 FORCE_INLINE
 inline
 static void
@@ -259,10 +206,7 @@ doCommunication() noexcept {
         auto b = theBytes[(base + 1)]; \
         auto c = theBytes[(base + 2)]; \
         auto d = theBytes[(base + 3)]; \
-        setDataByte<0>(a); \
-        setDataByte<1>(b); \
-        setDataByte<2>(c); \
-        setDataByte<3>(d); \
+        setDataByte(a, b, c, d); \
     } else { \
         if (digitalRead<Pin::BE0>() == LOW) { \
             auto a = getDataByte<0>(); \
@@ -281,33 +225,25 @@ doCommunication() noexcept {
             theBytes[(base + 3)] = a; \
         } \
     }
-    X(0);
-    auto end = isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    X(4);
-    end = isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    X(8);
-    end = isBurstLast();
-    signalReady();
-    if (end) {
-        return;
-    }
-    singleCycleDelay();
-    singleCycleDelay();
-    X(12);
-    // don't sample blast at the end of the transaction
-    signalReady();
+        do {
+            X(0);
+            if (isBurstLast()) {
+                break;
+            }
+            signalReady<!isReadOperation>();
+            X(4);
+            if (isBurstLast()) {
+                break;
+            }
+            signalReady<!isReadOperation>();
+            X(8);
+            if (isBurstLast()) {
+                break;
+            }
+            signalReady<!isReadOperation>();
+            X(12);
+        } while (false);
+        signalReady();
 #undef X
 
 }
@@ -318,10 +254,7 @@ static void doIO() noexcept {
         switch (offset) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
-                            setDataByte<0>(static_cast<uint8_t>(F_CPU));
-                            setDataByte<1>(static_cast<uint8_t>(F_CPU >> 8));
-                            setDataByte<2>(static_cast<uint8_t>(F_CPU >> 16));
-                            setDataByte<3>(static_cast<uint8_t>(F_CPU >> 24));
+                            dataLinesFull = F_CPU;
                         } 
                         if (isBurstLast()) { 
                             break; 
@@ -330,10 +263,7 @@ static void doIO() noexcept {
                     } 
             case 4: { 
                         if constexpr (isReadOperation) { 
-                            setDataByte<0>(static_cast<uint8_t>(F_CPU / 2));
-                            setDataByte<1>(static_cast<uint8_t>((F_CPU / 2) >> 8));
-                            setDataByte<2>(static_cast<uint8_t>((F_CPU / 2) >> 16));
-                            setDataByte<3>(static_cast<uint8_t>((F_CPU / 2) >> 24));
+                            dataLinesFull = F_CPU / 2;
                         } 
                         if (isBurstLast()) { 
                             break; 
@@ -370,10 +300,7 @@ static void doIO() noexcept {
             case 0x10 + 0: { 
                         /* TCCRnA and TCCRnB */ 
                         if constexpr (isReadOperation) { 
-                            setDataByte<0>(timer1.TCCRxA);
-                            setDataByte<1>(timer1.TCCRxB);
-                            setDataByte<2>(timer1.TCCRxC);
-                            setDataByte<3>(0); 
+                            setDataByte(timer1.TCCRxA, timer1.TCCRxB, timer1.TCCRxC, 0);
                         } else { 
                             if (digitalRead<Pin::BE0>() == LOW) { 
                                 timer1.TCCRxA = getDataByte<0>();
@@ -480,10 +407,7 @@ static void doIO() noexcept {
             case 0x20 + 0: { 
                         /* TCCRnA and TCCRnB */ 
                         if constexpr (isReadOperation) { 
-                            setDataByte<0>(timer3.TCCRxA);
-                            setDataByte<1>(timer3.TCCRxB);
-                            setDataByte<2>(timer3.TCCRxC);
-                            setDataByte<3>(0); 
+                            setDataByte(timer3.TCCRxA, timer3.TCCRxB, timer3.TCCRxC, 0);
                         } else { 
                             if (digitalRead<Pin::BE0>() == LOW) { 
                                 timer3.TCCRxA = getDataByte<0>();
@@ -590,10 +514,7 @@ static void doIO() noexcept {
             case 0x30 + 0: { 
                         /* TCCRnA and TCCRnB */ 
                         if constexpr (isReadOperation) { 
-                            setDataByte<0>(timer4.TCCRxA);
-                            setDataByte<1>(timer4.TCCRxB);
-                            setDataByte<2>(timer4.TCCRxC);
-                            setDataByte<3>(0); 
+                            setDataByte(timer4.TCCRxA, timer4.TCCRxB, timer4.TCCRxC, 0);
                         } else { 
                             if (digitalRead<Pin::BE0>() == LOW) { 
                                 timer4.TCCRxA = getDataByte<0>();
@@ -700,10 +621,7 @@ static void doIO() noexcept {
             case 0x40 + 0: { 
                         /* TCCRnA and TCCRnB */ 
                         if constexpr (isReadOperation) { 
-                            setDataByte<0>(timer5.TCCRxA);
-                            setDataByte<1>(timer5.TCCRxB);
-                            setDataByte<2>(timer5.TCCRxC);
-                            setDataByte<3>(0); 
+                            setDataByte(timer5.TCCRxA, timer5.TCCRxB, timer5.TCCRxC, 0);
                         } else { 
                             if (digitalRead<Pin::BE0>() == LOW) { 
                                 timer5.TCCRxA = getDataByte<0>();
@@ -827,99 +745,8 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     CommunicationKernel(Self&&) = delete;
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
-private:
-    template<uint32_t a, uint32_t b = a, uint32_t c = a, uint32_t d = a>
-    FORCE_INLINE
-    inline
-    static void doFixedReadOperation(uint8_t val) noexcept {
-        if constexpr (a == b && b == c && c == d) {
-            dataLinesFull = a;
-            idleTransaction();
-        } else {
-            static constexpr uint32_t contents[4] { a, b, c, d, };
-            // just skip over the lowest 16-bits if we start unaligned
-            uint8_t value = val;
-            uint8_t offset = getWordByteOffset<BusWidth>(value);
-            const uint8_t* theBytes = &reinterpret_cast<const uint8_t*>(contents)[offset];
-            if ((value & 0b0010) == 0) {
-                setDataByte<0>(theBytes[0]);
-                setDataByte<1>(theBytes[1]);
-                auto end = isBurstLast();
-                signalReady();
-                if (end) {
-                    return;
-                }
-            }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            setDataByte<2>(theBytes[2]);
-            setDataByte<3>(theBytes[3]);
-            auto end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            setDataByte<0>(theBytes[4]);
-            setDataByte<1>(theBytes[5]);
-            end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            setDataByte<2>(theBytes[6]);
-            setDataByte<3>(theBytes[7]);
-            end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            setDataByte<0>(theBytes[8]);
-            setDataByte<1>(theBytes[9]);
-            end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            setDataByte<2>(theBytes[10]);
-            setDataByte<3>(theBytes[11]);
-            end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            setDataByte<0>(theBytes[12]);
-            setDataByte<1>(theBytes[13]);
-            end = isBurstLast();
-            signalReady();
-            if (end) {
-                return;
-            }
-            // put in some amount of wait states before just signalling again
-            // since we started on the lower half of a 32-bit word
-            setDataByte<2>(theBytes[14]);
-            setDataByte<3>(theBytes[15]);
-            // don't sample at the end!
-            signalReady();
-        }
-    }
 
-public:
-    template<uint32_t a, uint32_t b = 0, uint32_t c = 0, uint32_t d = 0>
-    FORCE_INLINE
-    inline
-    static void
-    doFixedCommunication(uint8_t offset) noexcept {
-        /// @todo check the start position as that will describe the cycle shape
-        if constexpr (isReadOperation) {
-            doFixedReadOperation<a, b, c, d>(offset);
-        } else {
-            idleTransaction();
-        }
-    }
+private:
     template<uint8_t d0, uint8_t b0, uint8_t d1, uint8_t b1, bool later, Pin beLower, Pin beUpper>
     FORCE_INLINE
     inline
@@ -1731,37 +1558,25 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[2] = value;
     dataLinesDirection_bytes[3] = value;
 }
-template<NativeBusWidth width> 
-FORCE_INLINE
-inline 
-void handleWriteOperationProper() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        // ??? -> write
-        CommunicationKernel<false, width>::doCommunication();
 
-
-    } else {
-        // ??? -> write
-        CommunicationKernel<false, width>::doIO();
-    }
-}
-template<NativeBusWidth width>
+template<NativeBusWidth width, bool isReadOperation>
 FORCE_INLINE
 inline
-void handleReadOperationProper() noexcept {
-    // ??? -> read
+void
+handleOperationProper() noexcept {
     if (digitalRead<Pin::IsMemorySpaceOperation>()) {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        CommunicationKernel<true, width>::doCommunication();
+        CommunicationKernel<isReadOperation, width>::doCommunication();
+    } else if (digitalRead<Pin::SpecialSpace>() == LOW) {
+        if constexpr (isReadOperation) {
+            dataLinesFull = 0;
+        } 
+        idleTransaction();
     } else {
-        CommunicationKernel<true, width>::doIO();
+        CommunicationKernel<isReadOperation, width>::doIO();
     }
 }
 
@@ -1777,22 +1592,9 @@ void handleFullOperationProper() noexcept {
     if (!digitalRead<Pin::ChangeDirection>()) {
         updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
         toggle<Pin::DirectionOutput>();
-        if constexpr (currentlyRead) {
-            // read -> write
-            handleWriteOperationProper<width>();
-        } else {
-            // write -> read
-            handleReadOperationProper<width>();
-        }
+        handleOperationProper<width, !currentlyRead>();
     } else {
-        if constexpr (currentlyRead) {
-            // read -> read
-            // we are staying as a read operation!
-            handleReadOperationProper<width>();
-        } else {
-            // write -> write
-            handleWriteOperationProper<width>();
-        }
+        handleOperationProper<width, currentlyRead>();
     }
     endTransaction();
 }
@@ -1905,6 +1707,7 @@ setupPins() noexcept {
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);
+    pinMode(Pin::SpecialSpace, INPUT_PULLUP);
     if constexpr (MCUHasDirectAccess) {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();

@@ -70,9 +70,9 @@ Count = NUM_DIGITAL_PINS,
 #ifdef PHASE_DETECT_BEHAVIOR
     TransactionDetect = PortG3,
 #endif
-    IsMemorySpaceOperation = PortG4,
-    DirectionOutput = PortG5,
+    DirectionOutput = PortG4,
     ChangeDirection = PortD4,
+    IsMemorySpaceOperation = PortD5,
 
 };
 enum class Port : byte {

@@ -48,55 +48,31 @@ signalReady() noexcept {
         insertCustomNopCount<4>();
     }
 }
-template<size_t index>
-struct TimerDescriptor { };
-
-template<>
-struct TimerDescriptor<1> {
-    static inline volatile uint8_t& TCCRxA = TCCR1A;
-    static inline volatile uint8_t& TCCRxB = TCCR1B;
-    static inline volatile uint8_t& TCCRxC = TCCR1C;
-    static inline volatile uint16_t& TCNTx = TCNT1;
-    static inline volatile uint16_t& ICRx = ICR1;
-    static inline volatile uint16_t& OCRxA = OCR1A;
-    static inline volatile uint16_t& OCRxB = OCR1B;
-    static inline volatile uint16_t& OCRxC = OCR1C;
+using Register8 = volatile uint8_t&;
+using Register16 = volatile uint16_t&;
+template<int index>
+struct TimerDescriptor { 
+    Register8 TCCRxA, TCCRxB, TCCRxC;
+    Register16 TCNTx, ICRx, OCRxA, OCRxB, OCRxC;
 };
-
-template<>
-struct TimerDescriptor<3> {
-    static inline volatile uint8_t& TCCRxA = TCCR3A;
-    static inline volatile uint8_t& TCCRxB = TCCR3B;
-    static inline volatile uint8_t& TCCRxC = TCCR3C;
-    static inline volatile uint16_t& TCNTx = TCNT3;
-    static inline volatile uint16_t& ICRx = ICR3;
-    static inline volatile uint16_t& OCRxA = OCR3A;
-    static inline volatile uint16_t& OCRxB = OCR3B;
-    static inline volatile uint16_t& OCRxC = OCR3C;
-};
-
-template<>
-struct TimerDescriptor<5> {
-    static inline volatile uint8_t& TCCRxA = TCCR5A;
-    static inline volatile uint8_t& TCCRxB = TCCR5B;
-    static inline volatile uint8_t& TCCRxC = TCCR5C;
-    static inline volatile uint16_t& TCNTx = TCNT5;
-    static inline volatile uint16_t& ICRx = ICR5;
-    static inline volatile uint16_t& OCRxA = OCR5A;
-    static inline volatile uint16_t& OCRxB = OCR5B;
-    static inline volatile uint16_t& OCRxC = OCR5C;
-};
-template<>
-struct TimerDescriptor<4> {
-    static inline volatile uint8_t& TCCRxA = TCCR4A;
-    static inline volatile uint8_t& TCCRxB = TCCR4B;
-    static inline volatile uint8_t& TCCRxC = TCCR4C;
-    static inline volatile uint16_t& TCNTx = TCNT4;
-    static inline volatile uint16_t& ICRx = ICR4;
-    static inline volatile uint16_t& OCRxA = OCR4A;
-    static inline volatile uint16_t& OCRxB = OCR4B;
-    static inline volatile uint16_t& OCRxC = OCR4C;
-};
+#define X(index) \
+template<> \
+struct TimerDescriptor< index > {  \
+    static inline Register8 TCCRxA = TCCR ## index ## A ; \
+    static inline Register8 TCCRxB = TCCR ## index ## B ; \
+    static inline Register8 TCCRxC = TCCR ## index ## C ; \
+    static inline Register16 TCNTx = TCNT ## index; \
+    static inline Register16 ICRx = ICR ## index ; \
+    static inline Register16 OCRxA = OCR ## index ## A ; \
+    static inline Register16 OCRxB = OCR ## index ## B ; \
+    static inline Register16 OCRxC = OCR ## index ## C ; \
+}; \
+constexpr TimerDescriptor< index > timer ## index 
+X(1);
+X(3);
+X(4);
+X(5);
+#undef X
 
 void 
 putCPUInReset() noexcept {
@@ -320,7 +296,7 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
 #undef X
 
 }
-template<auto TI>
+template<TimerDescriptor TI>
 FORCE_INLINE 
 inline 
 static void doTimerGeneric(uint8_t offset) noexcept { 
@@ -703,7 +679,7 @@ public:
 #undef HI
 #undef X
 
-template<auto TI>
+template<TimerDescriptor TI>
 FORCE_INLINE 
 inline 
 static void doTimerGeneric(uint8_t offset) noexcept { 
@@ -936,22 +912,22 @@ performIOReadGroup0(uint16_t opcode) noexcept {
             break;
 #ifdef TCCR1A
         case K::Timer1:
-            CommunicationKernel<true, width>::template doTimerGeneric<TimerDescriptor<1>{}>(offset);
+            CommunicationKernel<true, width>::template doTimerGeneric<timer1>(offset);
             break;
 #endif
 #ifdef TCCR3A
         case K::Timer3:
-            CommunicationKernel<true, width>::template doTimerGeneric<TimerDescriptor<3>{}>(offset);
+            CommunicationKernel<true, width>::template doTimerGeneric<timer3>(offset);
             break;
 #endif
 #ifdef TCCR4A
         case K::Timer4:
-            CommunicationKernel<true, width>::template doTimerGeneric<TimerDescriptor<4>{}>(offset);
+            CommunicationKernel<true, width>::template doTimerGeneric<timer4>(offset);
             break;
 #endif
 #ifdef TCCR5A
         case K::Timer5:
-            CommunicationKernel<true, width>::template doTimerGeneric<TimerDescriptor<5>{}>(offset);
+            CommunicationKernel<true, width>::template doTimerGeneric<timer5>(offset);
             break;
 #endif
         default:
@@ -981,22 +957,22 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
             break;
 #ifdef TCCR1A
         case K::Timer1: 
-            CommunicationKernel<false, width>::template doTimerGeneric<TimerDescriptor<1>{}>(offset);
+            CommunicationKernel<false, width>::template doTimerGeneric<timer1>(offset);
             break;
 #endif
 #ifdef TCCR3A
         case K::Timer3: 
-            CommunicationKernel<false, width>::template doTimerGeneric<TimerDescriptor<3>{}>(offset);
+            CommunicationKernel<false, width>::template doTimerGeneric<timer3>(offset);
             break;
 #endif
 #ifdef TCCR4A
         case K::Timer4: 
-            CommunicationKernel<false, width>::template doTimerGeneric<TimerDescriptor<4>{}>(offset);
+            CommunicationKernel<false, width>::template doTimerGeneric<timer4>(offset);
             break;
 #endif
 #ifdef TCCR5A
         case K::Timer5: 
-            CommunicationKernel<false, width>::template doTimerGeneric<TimerDescriptor<5>{}>(offset);
+            CommunicationKernel<false, width>::template doTimerGeneric<timer5>(offset);
             break;
 #endif
         default:  

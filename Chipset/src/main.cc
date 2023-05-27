@@ -32,16 +32,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "IOOpcodes.h"
 #include "Peripheral.h"
 #include "Setup.h"
-#include "TimerDevice.h"
 SdFs SD;
-TimerDevice timerInterface;
 // allocate 1024 bytes total
 
+[[gnu::always_inline]] inline bool isBurstLast() noexcept { 
+    return digitalRead<Pin::BLAST>() == LOW; 
+}
 template<bool waitForReady = false>
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
-    Platform::signalReady();
+    toggle<Pin::READY>();
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
@@ -58,7 +59,7 @@ pullCPUOutOfReset() noexcept {
 }
 void
 waitForDataState() noexcept {
-    Platform::waitForDataState();
+    while (digitalRead<Pin::DEN>() == HIGH); 
 }
 template<bool isReadOperation>
 struct RWOperation final {
@@ -127,7 +128,7 @@ inline void
 idleTransaction() noexcept {
     // just keep going until we are done
     do {
-        auto end = Platform::isBurstLast();
+        auto end = isBurstLast();
         signalReady<true>();
         if (end) {
             break;
@@ -184,7 +185,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
             setDataByte<1>(theBytes[1]);
             setDataByte<2>(theBytes[2]);
             setDataByte<3>(theBytes[3]);
-            auto end = Platform::isBurstLast();
+            auto end = isBurstLast();
             signalReady();
             if (end) {
                 return;
@@ -195,7 +196,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
             setDataByte<1>(theBytes[5]);
             setDataByte<2>(theBytes[6]);
             setDataByte<3>(theBytes[7]);
-            end = Platform::isBurstLast();
+            end = isBurstLast();
             signalReady();
             if (end) {
                 return;
@@ -206,7 +207,7 @@ doFixedCommunication(uint8_t lowest) noexcept {
             setDataByte<1>(theBytes[9]);
             setDataByte<2>(theBytes[10]);
             setDataByte<3>(theBytes[11]);
-            end = Platform::isBurstLast();
+            end = isBurstLast();
             signalReady();
             if (end) {
                 return;
@@ -256,7 +257,7 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
         } \
     }
     X(0);
-    auto end = Platform::isBurstLast();
+    auto end = isBurstLast();
     signalReady();
     if (end) {
         return;
@@ -264,7 +265,7 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
     singleCycleDelay();
     singleCycleDelay();
     X(4);
-    end = Platform::isBurstLast();
+    end = isBurstLast();
     signalReady();
     if (end) {
         return;
@@ -272,7 +273,7 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
     singleCycleDelay();
     singleCycleDelay();
     X(8);
-    end = Platform::isBurstLast();
+    end = isBurstLast();
     signalReady();
     if (end) {
         return;
@@ -315,7 +316,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 TCCR ## index ## C = getDataByte<2>(); \
                             } \
                         } \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<true>();  \
@@ -350,7 +351,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 interrupts(); \
                             } \
                         } \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<true>(); \
@@ -381,7 +382,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 interrupts(); \
                              } \
                         } \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<true>(); \
@@ -440,7 +441,7 @@ static void doSerialRW(uint8_t) noexcept {
             // anyway. So don't waste time evaluating BLAST at all!
             if constexpr (isReadOperation) {
                 dataLinesFull = Serial.read();
-                auto end = Platform::isBurstLast();
+                auto end = isBurstLast();
                 signalReady();
                 if (end) {
                     break;
@@ -448,7 +449,7 @@ static void doSerialRW(uint8_t) noexcept {
             } else {
                 uint32_t result = dataLinesFull;
                 Serial.write(static_cast<uint8_t>(result));
-                auto end = Platform::isBurstLast();
+                auto end = isBurstLast();
                 signalReady<true>();
                 if (end) {
                     break;
@@ -510,7 +511,7 @@ private:
             if ((value & 0b0010) == 0) {
                 setDataByte<0>(theBytes[0]);
                 setDataByte<1>(theBytes[1]);
-                auto end = Platform::isBurstLast();
+                auto end = isBurstLast();
                 signalReady();
                 if (end) {
                     return;
@@ -520,14 +521,14 @@ private:
             // since we started on the lower half of a 32-bit word
             setDataByte<2>(theBytes[2]);
             setDataByte<3>(theBytes[3]);
-            auto end = Platform::isBurstLast();
+            auto end = isBurstLast();
             signalReady();
             if (end) {
                 return;
             }
             setDataByte<0>(theBytes[4]);
             setDataByte<1>(theBytes[5]);
-            end = Platform::isBurstLast();
+            end = isBurstLast();
             signalReady();
             if (end) {
                 return;
@@ -536,14 +537,14 @@ private:
             // since we started on the lower half of a 32-bit word
             setDataByte<2>(theBytes[6]);
             setDataByte<3>(theBytes[7]);
-            end = Platform::isBurstLast();
+            end = isBurstLast();
             signalReady();
             if (end) {
                 return;
             }
             setDataByte<0>(theBytes[8]);
             setDataByte<1>(theBytes[9]);
-            end = Platform::isBurstLast();
+            end = isBurstLast();
             signalReady();
             if (end) {
                 return;
@@ -552,14 +553,14 @@ private:
             // since we started on the lower half of a 32-bit word
             setDataByte<2>(theBytes[10]);
             setDataByte<3>(theBytes[11]);
-            end = Platform::isBurstLast();
+            end = isBurstLast();
             signalReady();
             if (end) {
                 return;
             }
             setDataByte<0>(theBytes[12]);
             setDataByte<1>(theBytes[13]);
-            end = Platform::isBurstLast();
+            end = isBurstLast();
             signalReady();
             if (end) {
                 return;
@@ -595,7 +596,7 @@ public:
                     setDataByte<d0>(lower); \
                     setDataByte<d1>(upper); \
                     if constexpr (!IsLastWord) { \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<!isReadOperation>(); \
@@ -615,7 +616,7 @@ public:
                     if constexpr (later) { \
                         theBytes[b0] = getDataByte<d0>(); \
                         if constexpr (!IsLastWord) { \
-                            if (!Platform::isBurstLast()) { \
+                            if (!isBurstLast()) { \
                                 theBytes[b1] = getDataByte<d1>(); \
                                 signalReady<true>(); \
                             } else { \
@@ -639,7 +640,7 @@ public:
                             theBytes[b1] = getDataByte<d1>(); \
                         } \
                         if constexpr (!IsLastWord) { \
-                            if (Platform::isBurstLast()) { \
+                            if (isBurstLast()) { \
                                 break; \
                             } \
                             signalReady<!isReadOperation>(); \
@@ -722,7 +723,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 TCCR ## index ## B = getDataByte<1>(); \
                             } \
                         } \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<true>();  \
@@ -737,7 +738,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 TCCR ## index ## C = getDataByte<2>(); \
                             } \
                         } \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<true>();  \
@@ -760,7 +761,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 interrupts(); \
                             } \
                         } \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<true>(); \
@@ -783,7 +784,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 interrupts(); \
                             } \
                         } \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<true>(); \
@@ -804,7 +805,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 interrupts(); \
                             } \
                         } \
-                        if (Platform::isBurstLast()) { \
+                        if (isBurstLast()) { \
                             break; \
                         } \
                         signalReady<true>(); \
@@ -825,7 +826,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                 interrupts(); \
                              } \
                          } \
-                         if (Platform::isBurstLast()) { \
+                         if (isBurstLast()) { \
                              break; \
                          } \
                          signalReady<true>(); \
@@ -846,7 +847,7 @@ static void doTimer ## index (uint8_t offset) noexcept { \
                                   interrupts(); \
                               }\
                          } \
-                         if (Platform::isBurstLast()) {\
+                         if (isBurstLast()) {\
                              break;\
                          } \
                          signalReady<true>(); \
@@ -895,7 +896,7 @@ static void doSerialRW(uint8_t offset) noexcept {
             if ((offset & 0b10) == 0) {
                 if constexpr (isReadOperation) {
                     dataLinesHalves[0] = Serial.read();
-                    auto end = Platform::isBurstLast();
+                    auto end = isBurstLast();
                     signalReady();
                     if (end) {
                         break;
@@ -903,7 +904,7 @@ static void doSerialRW(uint8_t offset) noexcept {
                 } else {
                     uint16_t result = dataLinesHalves[0];
                     Serial.write(static_cast<uint8_t>(result));
-                    auto end = Platform::isBurstLast();
+                    auto end = isBurstLast();
                     signalReady<true>();
                     if (end) {
                         break;
@@ -918,13 +919,6 @@ static void doSerialRW(uint8_t offset) noexcept {
         } while (false);
 }
 };
-
-template<bool isReadOperation, NativeBusWidth width>
-FORCE_INLINE
-inline
-void sendZero(uint8_t offset) noexcept {
-    CommunicationKernel<isReadOperation, width>::template doFixedCommunication<0>(offset);
-}
 
 template<NativeBusWidth width>
 FORCE_INLINE
@@ -968,7 +962,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
             break;
 #endif
         default:
-            sendZero<true, width>(offset);
+            CommunicationKernel<true, width>::template doFixedCommunication<0>(offset);
             break;
     }
 }
@@ -1228,7 +1222,6 @@ void
 setup() {
     setupPins();
     Serial.begin(115200);
-    //timerInterface.begin();
     // setup the IO Expanders
     Platform::begin();
     switch (Platform::getInstalledCPUKind()) {

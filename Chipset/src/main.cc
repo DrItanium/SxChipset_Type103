@@ -1023,8 +1023,7 @@ static void doIO() noexcept {
         switch (offset) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
-                            setDataByte<0>(static_cast<uint8_t>(F_CPU));
-                            setDataByte<1>(static_cast<uint8_t>(F_CPU >> 8));
+                            dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);
                         } 
                         if (isBurstLast()) {
                             break; 
@@ -1033,8 +1032,7 @@ static void doIO() noexcept {
                     } 
             case 2: { 
                         if constexpr (isReadOperation) { 
-                            setDataByte<2>(static_cast<uint8_t>(F_CPU >> 16));
-                            setDataByte<3>(static_cast<uint8_t>(F_CPU >> 24));
+                            dataLinesHalves[1] = static_cast<uint16_t>((F_CPU) >> 16);
                         } 
                         if (isBurstLast()) { 
                             break; 
@@ -1043,8 +1041,7 @@ static void doIO() noexcept {
                     } 
             case 4: { 
                         if constexpr (isReadOperation) { 
-                            setDataByte<0>(static_cast<uint8_t>(F_CPU / 2));
-                            setDataByte<1>(static_cast<uint8_t>((F_CPU / 2) >> 8));
+                            dataLinesHalves[0] = static_cast<uint16_t>(F_CPU / 2);
                         } 
                         if (isBurstLast()) {
                             break; 
@@ -1053,8 +1050,7 @@ static void doIO() noexcept {
                     } 
             case 6: { 
                         if constexpr (isReadOperation) { 
-                            setDataByte<2>(static_cast<uint8_t>((F_CPU / 2) >> 16));
-                            setDataByte<3>(static_cast<uint8_t>((F_CPU / 2) >> 24));
+                            dataLinesHalves[1] = static_cast<uint16_t>((F_CPU / 2) >> 16);
                         } 
                         if (isBurstLast()) { 
                             break; 
@@ -1068,7 +1064,7 @@ static void doIO() noexcept {
                         } else { 
                             // no need to check this out just ignore the byte
                             // enable lines
-                            Serial.write(static_cast<uint8_t>(dataLinesHalves[0]));
+                            Serial.write(static_cast<uint8_t>(getDataByte<0>()));
                         } 
                         if (isBurstLast()) { 
                             break; 

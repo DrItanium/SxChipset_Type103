@@ -1011,12 +1011,13 @@ template<NativeBusWidth width>
 FORCE_INLINE
 inline
 void
-performIOReadGroup0(uint8_t offset) noexcept {
+performIOReadGroup0() noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
     // about out of the packet when performing a read operation so at this
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
+    uint8_t offset = addressLines[0];
     switch (static_cast<IOOpcodes>(offset& 0xF0)) {
         case K::PrimaryGroup0:
             CommunicationKernel<true, width>::doPrimaryIOGroup0(offset);
@@ -1050,13 +1051,14 @@ template<NativeBusWidth width>
 FORCE_INLINE
 inline
 void
-performIOWriteGroup0(uint8_t offset) noexcept {
+performIOWriteGroup0() noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
+    uint8_t offset = addressLines[0];
     switch (static_cast<K>(offset & 0xF0)) {
         case K::PrimaryGroup0:
             CommunicationKernel<false, width>::doPrimaryIOGroup0(offset);
@@ -1134,7 +1136,7 @@ void handleWriteOperationProper() noexcept {
 
     } else {
         // ??? -> write
-        performIOWriteGroup0<width>(addressLines[0]);
+        performIOWriteGroup0<width>();
     }
 }
 template<NativeBusWidth width>
@@ -1151,7 +1153,7 @@ void handleReadOperationProper() noexcept {
         auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
         CommunicationKernel<true, width>::doCommunication( window, static_cast<uint8_t>(al));
     } else {
-        performIOReadGroup0<width>(addressLines[0]);
+        performIOReadGroup0<width>();
     }
 }
 

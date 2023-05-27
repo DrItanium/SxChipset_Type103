@@ -1011,14 +1011,13 @@ template<NativeBusWidth width>
 FORCE_INLINE
 inline
 void
-performIOReadGroup0(uint16_t opcode) noexcept {
+performIOReadGroup0(uint8_t offset) noexcept {
     // unlike standard i960 operations, we only encode the data we actually care
     // about out of the packet when performing a read operation so at this
     // point it doesn't matter what kind of data the i960 is requesting.
     // This maintains consistency and makes the implementation much simpler
     using K = IOOpcodes;
-    const uint8_t offset = static_cast<uint8_t>(opcode);
-    switch (static_cast<IOOpcodes>(opcode & 0xFFF0)) {
+    switch (static_cast<IOOpcodes>(offset& 0xF0)) {
         case K::PrimaryGroup0:
             CommunicationKernel<true, width>::doPrimaryIOGroup0(offset);
             break;
@@ -1051,15 +1050,14 @@ template<NativeBusWidth width>
 FORCE_INLINE
 inline
 void
-performIOWriteGroup0(uint16_t opcode) noexcept {
+performIOWriteGroup0(uint8_t offset) noexcept {
     // unlike standard i960 operations, we only decode the data we actually care
     // about out of the packet when performing a write operation so at this
     // point it doesn't matter what kind of data we were actually given
     //
     // need to sample the address lines prior to grabbing data off the bus
     using K = IOOpcodes;
-    uint8_t offset = static_cast<uint8_t>(opcode);
-    switch (static_cast<K>(opcode & 0xFFF0)) {
+    switch (static_cast<K>(offset & 0xF0)) {
         case K::PrimaryGroup0:
             CommunicationKernel<false, width>::doPrimaryIOGroup0(offset);
             break;
@@ -1122,12 +1120,13 @@ updateDataLinesDirection() noexcept {
 template<NativeBusWidth width> 
 FORCE_INLINE
 inline 
-void handleWriteOperationProper(const uint16_t al) noexcept {
+void handleWriteOperationProper() noexcept {
     if (digitalRead<Pin::IsMemorySpaceOperation>()) {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
+        const uint16_t al = addressLinesLowerHalf;
         auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
         // ??? -> write
         CommunicationKernel<false, width>::doCommunication( window, static_cast<uint8_t>(al));
@@ -1135,23 +1134,24 @@ void handleWriteOperationProper(const uint16_t al) noexcept {
 
     } else {
         // ??? -> write
-        performIOWriteGroup0<width>(al);
+        performIOWriteGroup0<width>(addressLines[0]);
     }
 }
 template<NativeBusWidth width>
 FORCE_INLINE
 inline
-void handleReadOperationProper(const uint16_t al) noexcept {
+void handleReadOperationProper() noexcept {
     // ??? -> read
     if (digitalRead<Pin::IsMemorySpaceOperation>()) {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
+        const uint16_t al = addressLinesLowerHalf;
         auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
         CommunicationKernel<true, width>::doCommunication( window, static_cast<uint8_t>(al));
     } else {
-        performIOReadGroup0<width>(al);
+        performIOReadGroup0<width>(addressLines[0]);
     }
 }
 
@@ -1169,19 +1169,19 @@ void handleFullOperationProper() noexcept {
         toggle<Pin::DirectionOutput>();
         if constexpr (currentlyRead) {
             // read -> write
-            handleWriteOperationProper<width>(addressLinesLowerHalf);
+            handleWriteOperationProper<width>();
         } else {
             // write -> read
-            handleReadOperationProper<width>(addressLinesLowerHalf);
+            handleReadOperationProper<width>();
         }
     } else {
         if constexpr (currentlyRead) {
             // read -> read
             // we are staying as a read operation!
-            handleReadOperationProper<width>(addressLinesLowerHalf);
+            handleReadOperationProper<width>();
         } else {
             // write -> write
-            handleWriteOperationProper<width>(addressLinesLowerHalf);
+            handleWriteOperationProper<width>();
         }
     }
     endTransaction();

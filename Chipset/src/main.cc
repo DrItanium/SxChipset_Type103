@@ -48,6 +48,33 @@ signalReady() noexcept {
         insertCustomNopCount<4>();
     }
 }
+template<size_t index>
+struct TimerDescriptor { };
+
+template<>
+struct TimerDescriptor<1> {
+    static inline volatile uint8_t& TCCRxA = TCCR1A;
+    static inline volatile uint8_t& TCCRxB = TCCR1B;
+    static inline volatile uint8_t& TCCRxC = TCCR1C;
+    static inline volatile uint16_t& TCNTx = TCNT1;
+    static inline volatile uint16_t& ICRx = ICR1;
+    static inline volatile uint16_t& OCRxA = OCR1A;
+    static inline volatile uint16_t& OCRxB = OCR1B;
+    static inline volatile uint16_t& OCRxC = OCR1C;
+};
+
+template<>
+struct TimerDescriptor<3> {
+    static inline volatile uint8_t& TCCRxA = TCCR3A;
+    static inline volatile uint8_t& TCCRxB = TCCR3B;
+    static inline volatile uint8_t& TCCRxC = TCCR3C;
+    static inline volatile uint16_t& TCNTx = TCNT3;
+    static inline volatile uint16_t& ICRx = ICR3;
+    static inline volatile uint16_t& OCRxA = OCR3A;
+    static inline volatile uint16_t& OCRxB = OCR3B;
+    static inline volatile uint16_t& OCRxC = OCR3C;
+};
+
 void 
 putCPUInReset() noexcept {
     Platform::doReset(LOW);
@@ -815,11 +842,178 @@ static void doTimer ## index (uint8_t offset) noexcept { \
         } \
         signalReady<true>(); \
 }
-X(1);
-X(3);
+//X(3);
 X(4);
 X(5);
 #undef X
+template<auto TI>
+FORCE_INLINE 
+inline 
+static void doTimerGeneric(uint8_t offset) noexcept { 
+        switch (offset & 0b1110) { 
+            case 0: { 
+                        /* TCCRnA and TCCRnB */ 
+                        if constexpr (isReadOperation) { 
+                            setDataByte<0>(TI.TCCRxA);
+                            setDataByte<1>(TI.TCCRxB);
+                        } else { 
+                            if (digitalRead<Pin::BE0>() == LOW) { 
+                                TI.TCCRxA = getDataByte<0>();
+                            } 
+                            if (digitalRead<Pin::BE1>() == LOW) { 
+                                TI.TCCRxB = getDataByte<1>();
+                            } 
+                        } 
+                        if (isBurstLast()) {
+                            break; 
+                        }
+                        signalReady<true>();  
+                    } 
+            case 2: { 
+                        /* TCCRnC and Reserved (ignore that) */ 
+                        if constexpr (isReadOperation) { 
+                            setDataByte<2>(TI.TCCRxC);
+                            setDataByte<3>(0); 
+                        } else { 
+                            if (digitalRead<Pin::BE2>() == LOW) { 
+                                TI.TCCRxC = getDataByte<2>();
+                            } 
+                        } 
+                        if (isBurstLast()) { 
+                            break; 
+                        } 
+                        signalReady<true>();  
+                    } 
+            case 4: { 
+                        /* TCNTn should only be accessible if you do a full 16-bit
+                         * write 
+                         */ 
+                        if constexpr (isReadOperation) { 
+                            noInterrupts(); 
+                            auto tmp = TI.TCNTx;
+                            interrupts(); 
+                            dataLinesHalves[0] = tmp; 
+                        } else { 
+                            if (digitalRead<Pin::BE0>() == LOW && 
+                                    digitalRead<Pin::BE1>() == LOW) { 
+                                auto value = dataLinesHalves[0]; 
+                                noInterrupts(); 
+                                TI.TCNTx = value;
+                                interrupts(); 
+                            } 
+                        } 
+                        if (isBurstLast()) { 
+                            break; 
+                        } 
+                        signalReady<true>(); 
+                    } 
+            case 6: { 
+                        /* ICRn should only be accessible if you do a full 16-bit
+                         * write
+                         */ 
+                        if constexpr (isReadOperation) { 
+                            noInterrupts(); 
+                            auto tmp = TI.ICRx;
+                            interrupts(); 
+                            dataLinesHalves[1] = tmp; 
+                        } else { 
+                            if (digitalRead<Pin::BE2>() == LOW &&  
+                                    digitalRead<Pin::BE3>() == LOW) { 
+                                auto value = dataLinesHalves[1]; 
+                                noInterrupts(); 
+                                TI.ICRx = value;
+                                interrupts(); 
+                            } 
+                        } 
+                        if (isBurstLast()) { 
+                            break; 
+                        } 
+                        signalReady<true>(); 
+                    } 
+            case 8: { 
+                        /* OCRnA should only be accessible if you do a full 16-bit write */ 
+                        if constexpr (isReadOperation) { 
+                            noInterrupts(); 
+                            auto tmp = TI.OCRxA;
+                            interrupts(); 
+                            dataLinesHalves[0] = tmp; 
+                        } else { 
+                            if (digitalRead<Pin::BE0>() == LOW &&  
+                                    digitalRead<Pin::BE1>() == LOW) { 
+                                auto value = dataLinesHalves[0]; 
+                                noInterrupts(); 
+                                TI.OCRxA = value;
+                                interrupts(); 
+                            } 
+                        } 
+                        if (isBurstLast()) { 
+                            break; 
+                        } 
+                        signalReady<true>(); 
+                    } 
+            case 10: {
+                         /* OCRnB */ 
+                         if constexpr (isReadOperation) { 
+                             noInterrupts(); 
+                             auto tmp = TI.OCRxB;
+                             interrupts(); 
+                             dataLinesHalves[1] = tmp; 
+                         } else { 
+                             if (digitalRead<Pin::BE2>() == LOW &&  
+                                     digitalRead<Pin::BE3>() == LOW) { 
+                                auto value = dataLinesHalves[1]; 
+                                noInterrupts(); 
+                                TI.OCRxB = value; 
+                                interrupts(); 
+                             } 
+                         } 
+                         if (isBurstLast()) { 
+                             break; 
+                         } 
+                         signalReady<true>(); 
+                     } 
+            case 12: { 
+                         /* OCRnC */ 
+                         if constexpr (isReadOperation) { 
+                             noInterrupts(); 
+                             auto tmp = TI.OCRxC; 
+                             interrupts(); 
+                             dataLinesHalves[0] = tmp; 
+                         } else { 
+                              if (digitalRead<Pin::BE0>() == LOW && 
+                                      digitalRead<Pin::BE1>() == LOW) { 
+                                  auto value = dataLinesHalves[0]; 
+                                  noInterrupts(); 
+                                  TI.OCRxC = value;
+                                  interrupts(); 
+                              }
+                         } 
+                         if (isBurstLast()) {
+                             break;
+                         } 
+                         signalReady<true>(); 
+                     } 
+            case 14: { 
+                        /* nothing to do on writes but do update the data port
+                         * on reads */ 
+                         if constexpr (isReadOperation) { 
+                            dataLinesHalves[1] = 0; 
+                         } 
+                     }  
+            default: break; 
+        } 
+        signalReady<true>(); 
+}
+FORCE_INLINE 
+inline 
+static void doTimer1(uint8_t offset) noexcept { 
+    doTimerGeneric<TimerDescriptor<1>{}>(offset);
+}
+FORCE_INLINE 
+inline 
+static void doTimer3(uint8_t offset) noexcept { 
+    doTimerGeneric<TimerDescriptor<3>{}>(offset);
+}
 static void doSerialRW(uint8_t offset) noexcept {
         do {
             // figure out which word we are currently looking at

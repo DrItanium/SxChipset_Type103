@@ -111,6 +111,25 @@ template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
+template<uint16_t sectionMask, uint16_t offsetMask>
+constexpr
+uint16_t
+computeTransactionWindow_Generic(uint16_t offset) noexcept {
+    return sectionMask | (offset & offsetMask);
+}
+
+template<NativeBusWidth width>
+constexpr
+uint16_t 
+computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
+    return computeTransactionWindow_Generic<0x4000, width == NativeBusWidth::Sixteen ? 0x3FFC : 0x3FFF>(offset);
+}
+
+template<NativeBusWidth width, typename T>
+DataRegister8
+getTransactionWindow(uint16_t offset, T) noexcept {
+    return memoryPointer<uint8_t>(computeTransactionWindow<width>(offset, T{}));
+}
 
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
@@ -232,7 +251,8 @@ doFixedCommunication(uint8_t lowest) noexcept {
 FORCE_INLINE
 inline
 static void
-doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
+doCommunication() noexcept {
+        auto theBytes = getTransactionWindow<width>(addressLinesLowerHalf, typename TreatAsOnChipAccess::AccessMethod{}); 
 #define X(base) \
     if constexpr (isReadOperation) { \
         auto a = theBytes[(base + 0)]; \
@@ -295,167 +315,119 @@ template<TimerDescriptor TI>
 FORCE_INLINE 
 inline 
 static void doTimerGeneric(uint8_t offset) noexcept { 
-        switch (offset & 0b1111) { 
-            case 0: { 
-                        /* TCCRnA and TCCRnB */ 
-                        /* TCCRnC and Reserved (ignore that) */ 
-                        if constexpr (isReadOperation) { 
-                            setDataByte<0>(TI.TCCRxA); 
-                            setDataByte<1>(TI.TCCRxB); 
-                            setDataByte<2>(TI.TCCRxC); 
-                            setDataByte<3>(0); 
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW) { 
-                                TI.TCCRxA = getDataByte<0>(); 
-                            } 
-                            if (digitalRead<Pin::BE1>() == LOW) { 
-                                TI.TCCRxB = getDataByte<1>(); 
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW) { 
-                                TI.TCCRxC = getDataByte<2>(); 
-                            } 
+    switch (offset & 0b1111) { 
+        case 0: { 
+                    /* TCCRnA and TCCRnB */ 
+                    /* TCCRnC and Reserved (ignore that) */ 
+                    if constexpr (isReadOperation) { 
+                        setDataByte<0>(TI.TCCRxA); 
+                        setDataByte<1>(TI.TCCRxB); 
+                        setDataByte<2>(TI.TCCRxC); 
+                        setDataByte<3>(0); 
+                    } else { 
+                        if (digitalRead<Pin::BE0>() == LOW) { 
+                            TI.TCCRxA = getDataByte<0>(); 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
+                        if (digitalRead<Pin::BE1>() == LOW) { 
+                            TI.TCCRxB = getDataByte<1>(); 
                         } 
-                        signalReady<true>();  
+                        if (digitalRead<Pin::BE2>() == LOW) { 
+                            TI.TCCRxC = getDataByte<2>(); 
+                        } 
                     } 
-            case 4: { 
-                        /* TCNTn should only be accessible if you do a full 16-bit
-                         * write 
-                         */ 
-                        /* ICRn should only be accessible if you do a full 16-bit
-                         * write
-                         */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto lower = TI.TCNTx;
-                            auto upper = TI.ICRx; 
-                            interrupts(); 
-                            dataLinesHalves[0] = lower; 
-                            dataLinesHalves[1] = upper; 
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW && 
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                TI.TCNTx = value;
-                                interrupts(); 
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW &&  
-                                    digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                TI.ICRx= value;
-                                interrupts(); 
-                            } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                    if (isBurstLast()) { 
+                        break; 
                     } 
-            case 8: { 
-                        /* OCRnA should only be accessible if you do a full 16-bit write */ 
-                        /* OCRnB */ 
-                        if constexpr (isReadOperation) { 
+                    signalReady<true>();  
+                } 
+        case 4: { 
+                    /* TCNTn should only be accessible if you do a full 16-bit
+                     * write 
+                     */ 
+                    /* ICRn should only be accessible if you do a full 16-bit
+                     * write
+                     */ 
+                    if constexpr (isReadOperation) { 
+                        noInterrupts(); 
+                        auto lower = TI.TCNTx;
+                        auto upper = TI.ICRx; 
+                        interrupts(); 
+                        dataLinesHalves[0] = lower; 
+                        dataLinesHalves[1] = upper; 
+                    } else { 
+                        if (digitalRead<Pin::BE0>() == LOW && 
+                                digitalRead<Pin::BE1>() == LOW) { 
+                            auto value = dataLinesHalves[0]; 
                             noInterrupts(); 
-                            auto lower = TI.OCRxA ; 
-                            auto upper = TI.OCRxB ; 
+                            TI.TCNTx = value;
                             interrupts(); 
-                            dataLinesHalves[0] = lower; 
-                            dataLinesHalves[1] = upper; 
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW &&  
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                TI.OCRxA = value; 
-                                interrupts(); 
-                            } 
-                             if (digitalRead<Pin::BE2>() == LOW &&  
-                                     digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                TI.OCRxB = value; 
-                                interrupts(); 
-                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
+                        if (digitalRead<Pin::BE2>() == LOW &&  
+                                digitalRead<Pin::BE3>() == LOW) { 
+                            auto value = dataLinesHalves[1]; 
+                            noInterrupts(); 
+                            TI.ICRx= value;
+                            interrupts(); 
                         } 
-                        signalReady<true>(); 
-                     } 
-            case 12: { 
-                         /* OCRnC */ 
-                         if constexpr (isReadOperation) { 
+                    } 
+                    if (isBurstLast()) { 
+                        break; 
+                    } 
+                    signalReady<true>(); 
+                } 
+        case 8: { 
+                    /* OCRnA should only be accessible if you do a full 16-bit write */ 
+                    /* OCRnB */ 
+                    if constexpr (isReadOperation) { 
+                        noInterrupts(); 
+                        auto lower = TI.OCRxA ; 
+                        auto upper = TI.OCRxB ; 
+                        interrupts(); 
+                        dataLinesHalves[0] = lower; 
+                        dataLinesHalves[1] = upper; 
+                    } else { 
+                        if (digitalRead<Pin::BE0>() == LOW &&  
+                                digitalRead<Pin::BE1>() == LOW) { 
+                            auto value = dataLinesHalves[0]; 
+                            noInterrupts(); 
+                            TI.OCRxA = value; 
+                            interrupts(); 
+                        } 
+                        if (digitalRead<Pin::BE2>() == LOW &&  
+                                digitalRead<Pin::BE3>() == LOW) { 
+                            auto value = dataLinesHalves[1]; 
+                            noInterrupts(); 
+                            TI.OCRxB = value; 
+                            interrupts(); 
+                        } 
+                    } 
+                    if (isBurstLast()) { 
+                        break; 
+                    } 
+                    signalReady<true>(); 
+                } 
+        case 12: { 
+                     /* OCRnC */ 
+                     if constexpr (isReadOperation) { 
+                         noInterrupts(); 
+                         auto tmp = TI.OCRxC ; 
+                         interrupts(); 
+                         dataLinesHalves[0] = tmp; 
+                         dataLinesHalves[1] = 0; 
+                     } else { 
+                         if (digitalRead<Pin::BE0>() == LOW && 
+                                 digitalRead<Pin::BE1>() == LOW) { 
+                             auto value = dataLinesHalves[0]; 
                              noInterrupts(); 
-                             auto tmp = TI.OCRxC ; 
+                             TI.OCRxC = value;
                              interrupts(); 
-                             dataLinesHalves[0] = tmp; 
-                             dataLinesHalves[1] = 0; 
-                         } else { 
-                              if (digitalRead<Pin::BE0>() == LOW && 
-                                      digitalRead<Pin::BE1>() == LOW) { 
-                                  auto value = dataLinesHalves[0]; 
-                                  noInterrupts(); 
-                                  TI.OCRxC = value;
-                                  interrupts(); 
-                              }
-                         } 
+                         }
                      } 
-            default: 
-                     break; 
-        } 
-        signalReady<true>(); 
-}
-static void doSerialRW(uint8_t) noexcept {
-        do {
-            // figure out which word we are currently looking at
-            // if we are aligned to 32-bit word boundaries then just assume we
-            // are at the start of the 16-byte block (the processor will stop
-            // when it doesn't need data anymore). If we are not then skip over
-            // this first two bytes and start at the upper two bytes of the
-            // current word.
-            //
-            // I am also exploiting the fact that the processor can only ever
-            // accept up to 16-bytes at a time if it is aligned to 16-byte
-            // boundaries. If it is unaligned then the operation is broken up
-            // into multiple transactions within the i960 itself. So yes, this
-            // code will go out of bounds but it doesn't matter because the
-            // processor will never go out of bounds.
-
-
-            // The later field is used to denote if the given part of the
-            // transaction is later on in burst. If it is then we will
-            // terminate early without evaluating BLAST if the upper byte
-            // enable is high. This is because if we hit 0b1001 this would be
-            // broken up into two 16-bit values (0b1101 and 0b1011) which is
-            // fine but in all cases the first 1 we encounter after finding the
-            // first zero in the byte enable bits we are going to terminate
-            // anyway. So don't waste time evaluating BLAST at all!
-            if constexpr (isReadOperation) {
-                dataLinesFull = Serial.read();
-                auto end = isBurstLast();
-                signalReady();
-                if (end) {
-                    break;
-                }
-            } else {
-                uint32_t result = dataLinesFull;
-                Serial.write(static_cast<uint8_t>(result));
-                auto end = isBurstLast();
-                signalReady<true>();
-                if (end) {
-                    break;
-                }
-            }
-            // unaligned will cause nothing to happen
-            if constexpr (isReadOperation) {
-                dataLinesFull = 0;
-            }
-            idleTransaction();
-        } while (false);
+                 } 
+        default: 
+                 break; 
+    } 
+    signalReady<true>(); 
 }
 FORCE_INLINE 
 inline 
@@ -525,14 +497,14 @@ private:
     template<uint32_t a, uint32_t b = a, uint32_t c = a, uint32_t d = a>
     FORCE_INLINE
     inline
-    static void doFixedReadOperation(uint8_t lowest) noexcept {
+    static void doFixedReadOperation(uint8_t val) noexcept {
         if constexpr (a == b && b == c && c == d) {
             dataLinesFull = a;
             idleTransaction();
         } else {
             static constexpr uint32_t contents[4] { a, b, c, d, };
             // just skip over the lowest 16-bits if we start unaligned
-            uint8_t value = lowest;
+            uint8_t value = val;
             uint8_t offset = getWordByteOffset<BusWidth>(value);
             const uint8_t* theBytes = &reinterpret_cast<const uint8_t*>(contents)[offset];
             if ((value & 0b0010) == 0) {
@@ -606,10 +578,10 @@ public:
     FORCE_INLINE
     inline
     static void
-    doFixedCommunication(uint8_t lowest) noexcept {
+    doFixedCommunication(uint8_t offset) noexcept {
         /// @todo check the start position as that will describe the cycle shape
         if constexpr (isReadOperation) {
-            doFixedReadOperation<a, b, c, d>(lowest);
+            doFixedReadOperation<a, b, c, d>(offset);
         } else {
             idleTransaction();
         }
@@ -665,7 +637,10 @@ public:
     FORCE_INLINE
     inline
     static void
-    doCommunication(DataRegister8 theBytes, uint8_t offset) noexcept {
+    doCommunication() noexcept {
+        const uint16_t al = addressLinesLowerHalf;
+        auto lowest = static_cast<uint8_t>(al);
+        auto theBytes = getTransactionWindow<BusWidth>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
         do {
             // figure out which word we are currently looking at
             // if we are aligned to 32-bit word boundaries then just assume we
@@ -690,7 +665,7 @@ public:
             // fine but in all cases the first 1 we encounter after finding the
             // first zero in the byte enable bits we are going to terminate
             // anyway. So don't waste time evaluating BLAST at all!
-            if ((offset & 0b10) == 0) {
+            if ((lowest & 0b10) == 0) {
                 LO(0, 1, false);
             }
             HI(2, 3, false);
@@ -864,56 +839,6 @@ static void doTimerGeneric(uint8_t offset) noexcept {
             default: break; 
         } 
         signalReady<true>(); 
-}
-static void doSerialRW(uint8_t offset) noexcept {
-        do {
-            // figure out which word we are currently looking at
-            // if we are aligned to 32-bit word boundaries then just assume we
-            // are at the start of the 16-byte block (the processor will stop
-            // when it doesn't need data anymore). If we are not then skip over
-            // this first two bytes and start at the upper two bytes of the
-            // current word.
-            //
-            // I am also exploiting the fact that the processor can only ever
-            // accept up to 16-bytes at a time if it is aligned to 16-byte
-            // boundaries. If it is unaligned then the operation is broken up
-            // into multiple transactions within the i960 itself. So yes, this
-            // code will go out of bounds but it doesn't matter because the
-            // processor will never go out of bounds.
-
-
-            // The later field is used to denote if the given part of the
-            // transaction is later on in burst. If it is then we will
-            // terminate early without evaluating BLAST if the upper byte
-            // enable is high. This is because if we hit 0b1001 this would be
-            // broken up into two 16-bit values (0b1101 and 0b1011) which is
-            // fine but in all cases the first 1 we encounter after finding the
-            // first zero in the byte enable bits we are going to terminate
-            // anyway. So don't waste time evaluating BLAST at all!
-            if ((offset & 0b10) == 0) {
-                if constexpr (isReadOperation) {
-                    dataLinesHalves[0] = Serial.read();
-                    auto end = isBurstLast();
-                    signalReady();
-                    if (end) {
-                        break;
-                    }
-                } else {
-                    uint16_t result = dataLinesHalves[0];
-                    Serial.write(static_cast<uint8_t>(result));
-                    auto end = isBurstLast();
-                    signalReady<true>();
-                    if (end) {
-                        break;
-                    }
-                }
-            }
-            // unaligned will cause nothing to happen
-            if constexpr (isReadOperation) {
-                dataLinesFull = 0;
-            }
-            idleTransaction();
-        } while (false);
 }
 FORCE_INLINE 
 inline 
@@ -1089,25 +1014,6 @@ performIOWriteGroup0() noexcept {
     }
 }
 
-template<uint16_t sectionMask, uint16_t offsetMask>
-constexpr
-uint16_t
-computeTransactionWindow_Generic(uint16_t offset) noexcept {
-    return sectionMask | (offset & offsetMask);
-}
-
-template<NativeBusWidth width>
-constexpr
-uint16_t 
-computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x4000, width == NativeBusWidth::Sixteen ? 0x3FFC : 0x3FFF>(offset);
-}
-
-template<NativeBusWidth width, typename T>
-DataRegister8
-getTransactionWindow(uint16_t offset, T) noexcept {
-    return memoryPointer<uint8_t>(computeTransactionWindow<width>(offset, T{}));
-}
 
 template<uint8_t value>
 [[gnu::always_inline]]
@@ -1128,10 +1034,8 @@ void handleWriteOperationProper() noexcept {
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        const uint16_t al = addressLinesLowerHalf;
-        auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
         // ??? -> write
-        CommunicationKernel<false, width>::doCommunication( window, static_cast<uint8_t>(al));
+        CommunicationKernel<false, width>::doCommunication();
 
 
     } else {
@@ -1149,9 +1053,7 @@ void handleReadOperationProper() noexcept {
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        const uint16_t al = addressLinesLowerHalf;
-        auto window = getTransactionWindow<width>(al, typename TreatAsOnChipAccess::AccessMethod{});
-        CommunicationKernel<true, width>::doCommunication( window, static_cast<uint8_t>(al));
+        CommunicationKernel<true, width>::doCommunication();
     } else {
         performIOReadGroup0<width>();
     }

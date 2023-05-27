@@ -588,38 +588,17 @@ public:
                      * However, the first time through, we want to make sure we
                      * check both upper and lower.
                      */ \
-                    if constexpr (later) { \
+                    if (later || digitalRead<Pin:: BE ## d0 >() == LOW) { \
                         theBytes[b0] = getDataByte<d0>(); \
-                        if constexpr (!IsLastWord) { \
-                            if (!isBurstLast()) { \
-                                theBytes[b1] = getDataByte<d1>(); \
-                                signalReady<true>(); \
-                            } else { \
-                                if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                                    theBytes[b1] = getDataByte<d1>(); \
-                                } \
-                                break; \
-                            } \
-                        } else { \
-                            /* Don't check the BLAST pin on the last word of
-                             * the 16-byte transaction */ \
-                            if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                                theBytes[b1] = getDataByte<d1>(); \
-                            } \
+                    } \
+                    if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
+                        theBytes[b1] = getDataByte<d1>(); \
+                    } \
+                    if constexpr (!IsLastWord) { \
+                        if (isBurstLast()) { \
+                            break; \
                         } \
-                    } else { \
-                        if (digitalRead<Pin:: BE ## d0 >() == LOW) { \
-                            theBytes[b0] = getDataByte<d0>(); \
-                        } \
-                        if (digitalRead<Pin:: BE ## d1 >() == LOW) { \
-                            theBytes[b1] = getDataByte<d1>(); \
-                        } \
-                        if constexpr (!IsLastWord) { \
-                            if (isBurstLast()) { \
-                                break; \
-                            } \
-                            signalReady<!isReadOperation>(); \
-                        } \
+                        signalReady<!isReadOperation>(); \
                     } \
                 } \
             }

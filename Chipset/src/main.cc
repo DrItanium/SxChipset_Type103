@@ -160,25 +160,10 @@ doFixedCommunication(uint8_t lowest) noexcept {
             setDataByte<3>(static_cast<uint8_t>(a >> 24));
             idleTransaction();
         } else {
-            static constexpr SplitWord128 contents {
-                static_cast<uint8_t>(a),
-                    static_cast<uint8_t>(a >> 8),
-                    static_cast<uint8_t>(a >> 16),
-                    static_cast<uint8_t>(a >> 24),
-                    static_cast<uint8_t>(b),
-                    static_cast<uint8_t>(b >> 8),
-                    static_cast<uint8_t>(b >> 16),
-                    static_cast<uint8_t>(b >> 24),
-                    static_cast<uint8_t>(c),
-                    static_cast<uint8_t>(c >> 8),
-                    static_cast<uint8_t>(c >> 16),
-                    static_cast<uint8_t>(c >> 24),
-                    static_cast<uint8_t>(d),
-                    static_cast<uint8_t>(d >> 8),
-                    static_cast<uint8_t>(d >> 16),
-                    static_cast<uint8_t>(d >> 24),
+            static constexpr uint32_t contents [4] {
+                a, b, c, d,
             };
-            const uint8_t* theBytes = &contents.bytes[getWordByteOffset<width>(lowest)]; 
+            const uint8_t* theBytes = &reinterpret_cast<const uint8_t*>(contents)[getWordByteOffset<width>(lowest)];
             // in all other cases do the whole thing
             setDataByte<0>(theBytes[0]);
             setDataByte<1>(theBytes[1]);
@@ -284,12 +269,6 @@ doCommunication(DataRegister8 theBytes, uint8_t) noexcept {
     signalReady();
 #undef X
 
-}
-FORCE_INLINE
-inline
-static void
-doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
-    doCommunication(&body.bytes[getWordByteOffset<width>(lowest)], lowest);
 }
 #define X(index) \
 FORCE_INLINE \
@@ -678,12 +657,6 @@ public:
 #undef HI
 #undef X
 
-    FORCE_INLINE
-    inline
-    static void
-    doCommunication(volatile SplitWord128& body, uint8_t lowest) noexcept {
-        doCommunication(&body.bytes[getWordByteOffset<BusWidth>(lowest)], lowest);
-    }
 #define X(index) \
 FORCE_INLINE \
 inline \

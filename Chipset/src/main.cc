@@ -939,10 +939,10 @@ performIOReadGroup0(uint16_t opcode) noexcept {
     const uint8_t offset = static_cast<uint8_t>(opcode);
     switch (static_cast<IOOpcodes>(opcode & 0xFFF0)) {
         case K::Info_GetChipsetClockSpeed:
-            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(0);
+            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU>(offset);
             break;
         case K::Info_GetCPUClockSpeed:
-            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(0);
+            CommunicationKernel<true, width>::template doFixedCommunication<F_CPU/2>(offset);
             break;
         case K::Serial_RW:
             CommunicationKernel<true, width>::doSerialRW(offset);
@@ -968,7 +968,7 @@ performIOReadGroup0(uint16_t opcode) noexcept {
             break;
 #endif
         default:
-            sendZero<true, width>(0);
+            sendZero<true, width>(offset);
             break;
     }
 }
@@ -985,44 +985,36 @@ performIOWriteGroup0(uint16_t opcode) noexcept {
     using K = IOOpcodes;
     uint8_t offset = static_cast<uint8_t>(opcode);
     switch (static_cast<K>(opcode & 0xFFF0)) {
-        case K::Serial_RW: {
-                               CommunicationKernel<false, width>::doSerialRW(offset);
-                               break;
-                           }
-        case K::Serial_Flush: {
-                                  Serial.flush();
-                                  idleTransaction();
-                                  break;
-                              }
+        case K::Serial_RW: 
+            CommunicationKernel<false, width>::doSerialRW(offset);
+            break;
+        case K::Serial_Flush: 
+            Serial.flush();
+            idleTransaction();
+            break;
 #ifdef TCCR1A
-        case K::Timer1: {
-                            CommunicationKernel<false, width>::doTimer1(offset);
-                            break;
-                        }
+        case K::Timer1: 
+            CommunicationKernel<false, width>::doTimer1(offset);
+            break;
 #endif
 #ifdef TCCR3A
-        case K::Timer3: {
+        case K::Timer3: 
             CommunicationKernel<false, width>::doTimer3(offset);
             break;
-                        }
 #endif
 #ifdef TCCR4A
-        case K::Timer4: {
-                            CommunicationKernel<false, width>::doTimer4(offset);
-                            break;
-                        }
+        case K::Timer4: 
+            CommunicationKernel<false, width>::doTimer4(offset);
+            break;
 #endif
 #ifdef TCCR5A
-        case K::Timer5: {
-                            CommunicationKernel<false, width>::doTimer5(offset);
-                            break;
-                        }
+        case K::Timer5: 
+            CommunicationKernel<false, width>::doTimer5(offset);
+            break;
 #endif
-
-        default:  {
-                      idleTransaction();
-                      break;
-                  }
+        default:  
+            idleTransaction();
+            break;
     }
 }
 

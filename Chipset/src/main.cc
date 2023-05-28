@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "Setup.h"
 // allocate 1024 bytes total
-
+constexpr bool EnableSpecialSpace = false;
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }
@@ -1585,7 +1585,8 @@ void handleFullOperationProper() noexcept {
     //const uint16_t al = addressLinesLowerHalf;
     // okay so we know that we are going to write so don't query the
     // pin!
-    if (!digitalRead<Pin::SpecialSpace>()) {
+    
+    if (EnableSpecialSpace && !digitalRead<Pin::SpecialSpace>()) {
         idleTransaction();
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {

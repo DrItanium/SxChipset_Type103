@@ -729,7 +729,7 @@ static void doIO() noexcept {
                          dataLinesFull = 0;
                      }
                      idleTransaction();
-                     break; 
+                     return;
         } 
         signalReady<true>(); 
 }
@@ -799,45 +799,45 @@ public:
     inline
     static void
     doCommunication() noexcept {
-        do {
             const uint16_t al = addressLinesLowerHalf;
             auto lowest = static_cast<uint8_t>(al);
             auto theBytes = getTransactionWindow<BusWidth>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
-            // figure out which word we are currently looking at
-            // if we are aligned to 32-bit word boundaries then just assume we
-            // are at the start of the 16-byte block (the processor will stop
-            // when it doesn't need data anymore). If we are not then skip over
-            // this first two bytes and start at the upper two bytes of the
-            // current word.
-            //
-            // I am also exploiting the fact that the processor can only ever
-            // accept up to 16-bytes at a time if it is aligned to 16-byte
-            // boundaries. If it is unaligned then the operation is broken up
-            // into multiple transactions within the i960 itself. So yes, this
-            // code will go out of bounds but it doesn't matter because the
-            // processor will never go out of bounds.
+            do {
+                // figure out which word we are currently looking at
+                // if we are aligned to 32-bit word boundaries then just assume we
+                // are at the start of the 16-byte block (the processor will stop
+                // when it doesn't need data anymore). If we are not then skip over
+                // this first two bytes and start at the upper two bytes of the
+                // current word.
+                //
+                // I am also exploiting the fact that the processor can only ever
+                // accept up to 16-bytes at a time if it is aligned to 16-byte
+                // boundaries. If it is unaligned then the operation is broken up
+                // into multiple transactions within the i960 itself. So yes, this
+                // code will go out of bounds but it doesn't matter because the
+                // processor will never go out of bounds.
 
 
-            // The later field is used to denote if the given part of the
-            // transaction is later on in burst. If it is then we will
-            // terminate early without evaluating BLAST if the upper byte
-            // enable is high. This is because if we hit 0b1001 this would be
-            // broken up into two 16-bit values (0b1101 and 0b1011) which is
-            // fine but in all cases the first 1 we encounter after finding the
-            // first zero in the byte enable bits we are going to terminate
-            // anyway. So don't waste time evaluating BLAST at all!
-            if ((lowest & 0b10) == 0) {
-                LO(0, 1, false);
-            }
-            HI(2, 3, false);
-            LO(4, 5, true);
-            HI(6, 7, true);
-            LO(8, 9, true);
-            HI(10, 11, true);
-            LO(12, 13, true);
-            HI(14, 15, true);
-        } while (false);
-        signalReady();
+                // The later field is used to denote if the given part of the
+                // transaction is later on in burst. If it is then we will
+                // terminate early without evaluating BLAST if the upper byte
+                // enable is high. This is because if we hit 0b1001 this would be
+                // broken up into two 16-bit values (0b1101 and 0b1011) which is
+                // fine but in all cases the first 1 we encounter after finding the
+                // first zero in the byte enable bits we are going to terminate
+                // anyway. So don't waste time evaluating BLAST at all!
+                if ((lowest & 0b10) == 0) {
+                    LO(0, 1, false);
+                }
+                HI(2, 3, false);
+                LO(4, 5, true);
+                HI(6, 7, true);
+                LO(8, 9, true);
+                HI(10, 11, true);
+                LO(12, 13, true);
+                HI(14, 15, true);
+            } while (false);
+            signalReady();
     }
 #undef LO
 #undef HI
@@ -1540,7 +1540,7 @@ static void doIO() noexcept {
                          dataLinesFull = 0;
                      }
                      idleTransaction();
-                     break; 
+                     return;
         } 
         signalReady<true>(); 
 }

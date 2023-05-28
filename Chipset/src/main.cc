@@ -178,12 +178,12 @@ inline void
 idleTransaction() noexcept {
     // just keep going until we are done
     do {
-        auto end = isBurstLast();
-        signalReady<true>();
-        if (end) {
+        if (isBurstLast()) {
             break;
         }
+        signalReady<true>();
     } while (true);
+    signalReady();
 }
 template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
@@ -1567,11 +1567,6 @@ handleOperationProper() noexcept {
     if (!digitalRead<Pin::IsMemorySpaceOperation>()) {
         // io operation
         CommunicationKernel<isReadOperation, width>::doIO();
-    } else if (!digitalRead<Pin::SpecialSpace>()) {
-        if constexpr (isReadOperation) {
-            dataLinesFull = 0;
-        } 
-        idleTransaction();
     } else {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
@@ -1590,12 +1585,16 @@ void handleFullOperationProper() noexcept {
     //const uint16_t al = addressLinesLowerHalf;
     // okay so we know that we are going to write so don't query the
     // pin!
-    if (!digitalRead<Pin::ChangeDirection>()) {
-        updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
-        toggle<Pin::DirectionOutput>();
-        handleOperationProper<width, !currentlyRead>();
+    if (!digitalRead<Pin::SpecialSpace>()) {
+        idleTransaction();
     } else {
-        handleOperationProper<width, currentlyRead>();
+        if (!digitalRead<Pin::ChangeDirection>()) {
+            updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
+            toggle<Pin::DirectionOutput>();
+            handleOperationProper<width, !currentlyRead>();
+        } else {
+            handleOperationProper<width, currentlyRead>();
+        }
     }
     endTransaction();
 }

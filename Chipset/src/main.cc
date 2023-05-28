@@ -800,8 +800,8 @@ public:
     static void
     doCommunication() noexcept {
             const uint16_t al = addressLinesLowerHalf;
-            auto lowest = static_cast<uint8_t>(al);
             auto theBytes = getTransactionWindow<BusWidth>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
+            auto lowest = static_cast<uint8_t>(al);
             do {
                 // figure out which word we are currently looking at
                 // if we are aligned to 32-bit word boundaries then just assume we
@@ -828,8 +828,10 @@ public:
                 // anyway. So don't waste time evaluating BLAST at all!
                 if ((lowest & 0b10) == 0) {
                     LO(0, 1, false);
+                    HI(2, 3, true);
+                } else {
+                    HI(2, 3, false);
                 }
-                HI(2, 3, false);
                 LO(4, 5, true);
                 HI(6, 7, true);
                 LO(8, 9, true);

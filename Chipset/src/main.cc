@@ -140,6 +140,8 @@ computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMe
 }
 
 template<typename T>
+FORCE_INLINE
+inline
 DataRegister8
 getTransactionWindow(T) noexcept {
     return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf, T{}));

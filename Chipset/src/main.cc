@@ -781,29 +781,13 @@ private:
             } 
         } 
     }
-#define X(d0, b0, d1, b1, later) \
-            { \
-                static constexpr bool IsLastWord = (b0 == 14 && b1 == 15); \
-                performCommunicationSingle<d0, b0, d1, b1, later, Pin :: BE ## d0 , Pin :: BE ## d1 >(theBytes); \
-                if constexpr (!IsLastWord) { \
-                    if (isBurstLast()) { \
-                        goto LoopFinished; \
-                    } \
-                    signalReady<!isReadOperation>(); \
-                } \
-            }
-#define LO(b0, b1, later) X(0, b0, 1, b1, later)
-#define HI(b0, b1, later) X(2, b0, 3, b1, later)
 public:
     FORCE_INLINE
-    //[[gnu::noinline]]
-    //[[gnu::optimize("no-reorder-blocks")]]
     inline
     static void
     doCommunication() noexcept {
         const uint16_t al = addressLinesLowerHalf;
         auto theBytes = getTransactionWindow<BusWidth>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
-        auto lowest = static_cast<uint8_t>(al);
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop
@@ -827,7 +811,20 @@ public:
         // fine but in all cases the first 1 we encounter after finding the
         // first zero in the byte enable bits we are going to terminate
         // anyway. So don't waste time evaluating BLAST at all!
-        if ((lowest & 0b10) == 0) {
+#define X(d0, b0, d1, b1, later) \
+            { \
+                static constexpr bool IsLastWord = (b0 == 14 && b1 == 15); \
+                performCommunicationSingle<d0, b0, d1, b1, later, Pin :: BE ## d0 , Pin :: BE ## d1 >(theBytes); \
+                if constexpr (!IsLastWord) { \
+                    if (isBurstLast()) { \
+                        goto Done; \
+                    } \
+                    signalReady<!isReadOperation>(); \
+                } \
+            }
+#define LO(b0, b1, later) X(0, b0, 1, b1, later)
+#define HI(b0, b1, later) X(2, b0, 3, b1, later)
+        if ((al & 0b10) == 0) {
             LO(0, 1, false);
             HI(2, 3, true);
         } else {
@@ -839,12 +836,12 @@ public:
         HI(10, 11, true);
         LO(12, 13, true);
         HI(14, 15, true);
-LoopFinished:
-        signalReady();
-    }
 #undef LO
 #undef HI
 #undef X
+Done:
+        signalReady();
+    }
 
 FORCE_INLINE 
 inline 

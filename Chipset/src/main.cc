@@ -733,6 +733,22 @@ static void doIO() noexcept {
         } 
         signalReady<true>(); 
 }
+FORCE_INLINE
+inline
+static
+void
+dispatch() noexcept {
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        doCommunication();
+    } else {
+        // io operation
+        doIO();
+    }
+}
 };
 
 template<bool isReadOperation>
@@ -1552,6 +1568,22 @@ static void doIO() noexcept {
         } 
         signalReady(); 
 }
+FORCE_INLINE
+inline
+static
+void
+dispatch() noexcept {
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        doCommunication();
+    } else {
+        // io operation
+        doIO();
+    }
+}
 };
 
 
@@ -1567,34 +1599,22 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 
-template<NativeBusWidth width, bool isReadOperation>
-FORCE_INLINE
-inline
-void
-handleOperationProper() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        CommunicationKernel<isReadOperation, width>::doCommunication();
-    } else {
-        // io operation
-        CommunicationKernel<isReadOperation, width>::doIO();
-    }
-}
 
 template<NativeBusWidth width, bool currentlyRead>
 FORCE_INLINE
 inline
 void handleFullOperationProper() noexcept {
+    // now we have to stop and wait for the CPU to request something of us
     while (digitalRead<Pin::DEN>());
     if (!digitalRead<Pin::ChangeDirection>()) {
         updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
-        handleOperationProper<width, !currentlyRead>();
+        CommunicationKernel<!currentlyRead, width>::dispatch();
+        // toggle the pin after we are done since there is no point in doing it
+        // before hand. We have to pay for this but do it _after_ we have
+        // performed whatever transfer we need to do
         toggle<Pin::DirectionOutput>();
     } else {
-        handleOperationProper<width, currentlyRead>();
+        CommunicationKernel<currentlyRead, width>::dispatch();
     }
 }
 template<NativeBusWidth width> 
@@ -1627,7 +1647,7 @@ BodyStart:
         // currently a write operation
     }
     // put the single cycle delay back in to be on the safe side
-    singleCycleDelay();
+    insertCustomNopCount<2>();
     goto BodyStart;
 }
 

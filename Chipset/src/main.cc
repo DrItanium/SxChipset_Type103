@@ -33,7 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Peripheral.h"
 #include "Setup.h"
 // allocate 1024 bytes total
-constexpr bool EnableSpecialSpace = false;
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }
@@ -1573,15 +1572,15 @@ FORCE_INLINE
 inline
 void
 handleOperationProper() noexcept {
-    if (!digitalRead<Pin::IsMemorySpaceOperation>()) {
-        // io operation
-        CommunicationKernel<isReadOperation, width>::doIO();
-    } else {
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
         CommunicationKernel<isReadOperation, width>::doCommunication();
+    } else {
+        // io operation
+        CommunicationKernel<isReadOperation, width>::doIO();
     }
 }
 
@@ -1590,19 +1589,13 @@ FORCE_INLINE
 inline
 void handleFullOperationProper() noexcept {
     while (digitalRead<Pin::DEN>());
-    startTransaction();
-    if (EnableSpecialSpace && !digitalRead<Pin::SpecialSpace>()) {
-        idleTransaction();
+    if (!digitalRead<Pin::ChangeDirection>()) {
+        updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
+        handleOperationProper<width, !currentlyRead>();
+        toggle<Pin::DirectionOutput>();
     } else {
-        if (!digitalRead<Pin::ChangeDirection>()) {
-            updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
-            toggle<Pin::DirectionOutput>();
-            handleOperationProper<width, !currentlyRead>();
-        } else {
-            handleOperationProper<width, currentlyRead>();
-        }
+        handleOperationProper<width, currentlyRead>();
     }
-    endTransaction();
 }
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
@@ -1624,18 +1617,18 @@ executionBody() noexcept {
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
 BodyStart:
-        // only check currentDirection once at the start of the transaction
-        if (sampleOutputState<Pin::DirectionOutput>()) {
-            // start in read
-            handleFullOperationProper<width, true>();
-        } else {
-            // start in write
-            handleFullOperationProper<width, false>();
-            // currently a write operation
-        }
-        // put the single cycle delay back in to be on the safe side
-        singleCycleDelay();
-        goto BodyStart;
+    // only check currentDirection once at the start of the transaction
+    if (sampleOutputState<Pin::DirectionOutput>()) {
+        // start in read
+        handleFullOperationProper<width, true>();
+    } else {
+        // start in write
+        handleFullOperationProper<width, false>();
+        // currently a write operation
+    }
+    // put the single cycle delay back in to be on the safe side
+    singleCycleDelay();
+    goto BodyStart;
 }
 
 template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>

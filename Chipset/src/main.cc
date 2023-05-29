@@ -122,7 +122,7 @@ template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x4000, width == NativeBusWidth::Sixteen ? 0x3FFC : 0x3FFF>(offset);
+    return computeTransactionWindow_Generic<0x4000, width == NativeBusWidth::Sixteen ? 0x3FFF : 0x3FFF>(offset);
 }
 
 template<NativeBusWidth width, typename T>
@@ -786,8 +786,8 @@ public:
     inline
     static void
     doCommunication() noexcept {
-        const uint16_t al = addressLinesLowerHalf;
-        auto theBytes = getTransactionWindow<BusWidth>(al, typename TreatAsOnChipAccess::AccessMethod{}); 
+        //const uint16_t al = addressLinesLowerHalf;
+        auto theBytes = getTransactionWindow<BusWidth>(addressLinesLowerHalf, typename TreatAsOnChipAccess::AccessMethod{}); 
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop
@@ -824,18 +824,26 @@ public:
             }
 #define LO(b0, b1, later) X(0, b0, 1, b1, later)
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
-        if ((al & 0b10) == 0) {
+        // since we are using the pointer directly we have to be a little more
+        // creative. The base offsets have been modified
+        if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) {
             LO(0, 1, false);
             HI(2, 3, true);
+            LO(4, 5, true);
+            HI(6, 7, true);
+            LO(8, 9, true);
+            HI(10, 11, true);
+            LO(12, 13, true);
+            HI(14, 15, true);
         } else {
-            HI(2, 3, false);
+            HI(0, 1, false);
+            LO(2, 3, true);
+            HI(4, 5, true);
+            LO(6, 7, true);
+            HI(8, 9, true);
+            LO(10, 11, true);
+            HI(12, 13, true);
         }
-        LO(4, 5, true);
-        HI(6, 7, true);
-        LO(8, 9, true);
-        HI(10, 11, true);
-        LO(12, 13, true);
-        HI(14, 15, true);
 #undef LO
 #undef HI
 #undef X

@@ -177,12 +177,13 @@ FORCE_INLINE
 inline void 
 idleTransaction() noexcept {
     // just keep going until we are done
-    do {
+LoopRestart:
         if (isBurstLast()) {
-            break;
+            goto LoopDone;
         }
         signalReady<true>();
-    } while (true);
+        goto LoopRestart;
+LoopDone:
     signalReady();
 }
 template<bool isReadOperation, NativeBusWidth width>
@@ -225,24 +226,23 @@ doCommunication() noexcept {
             theBytes[(base + 3)] = a; \
         } \
     }
-        do {
-            X(0);
-            if (isBurstLast()) {
-                break;
-            }
-            signalReady<!isReadOperation>();
-            X(4);
-            if (isBurstLast()) {
-                break;
-            }
-            signalReady<!isReadOperation>();
-            X(8);
-            if (isBurstLast()) {
-                break;
-            }
-            signalReady<!isReadOperation>();
-            X(12);
-        } while (false);
+        X(0);
+        if (isBurstLast()) {
+            goto Done;
+        }
+        signalReady<!isReadOperation>();
+        X(4);
+        if (isBurstLast()) {
+            goto Done;
+        }
+        signalReady<!isReadOperation>();
+        X(8);
+        if (isBurstLast()) {
+            goto Done;
+        }
+        signalReady<!isReadOperation>();
+        X(12);
+Done:
         signalReady();
 #undef X
 
@@ -1632,7 +1632,6 @@ BodyStart:
             // currently a write operation
         }
         // put the single cycle delay back in to be on the safe side
-        singleCycleDelay();
         singleCycleDelay();
         goto BodyStart;
 }

@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef SXCHIPSET_TYPE103_PINOUT_H
 #define SXCHIPSET_TYPE103_PINOUT_H
 #include <Arduino.h>
-#define PHASE_DETECT_BEHAVIOR
 /**
  * @brief Wrapper around the AVR Pins to make templating easier and cleaner
  */
@@ -67,9 +66,6 @@ Count = NUM_DIGITAL_PINS,
     BLAST = PortF5,
     WR = PortF6,
     READY = PortF7,
-#ifdef PHASE_DETECT_BEHAVIOR
-    TransactionDetect = PortG3,
-#endif
     ChangeDirection = PortD4,
     IsMemorySpaceOperation = PortD5,
     DirectionOutput = PortD6,
@@ -348,25 +344,6 @@ constexpr bool hasPWM(Pin pin) noexcept {
 template<Pin p>
 constexpr auto HasPWM_v = hasPWM(p);
 
-[[gnu::always_inline]]
-inline void startTransaction() noexcept {
-#ifdef PHASE_DETECT_BEHAVIOR
-    digitalWrite<Pin::TransactionDetect, LOW>();
-#endif
-}
-[[gnu::always_inline]]
-inline void endTransaction() noexcept {
-#ifdef PHASE_DETECT_BEHAVIOR
-    digitalWrite<Pin::TransactionDetect, HIGH>();
-#endif
-}
-[[gnu::always_inline]]
-inline void toggleTransaction() noexcept {
-#ifdef PHASE_DETECT_BEHAVIOR
-    toggle<Pin::TransactionDetect>();
-    //digitalWrite<Pin::TransactionDetect, HIGH>();
-#endif
-}
 template<Pin p>
 [[gnu::always_inline]]
 inline bool sampleOutputState() noexcept {

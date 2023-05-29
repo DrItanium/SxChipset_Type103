@@ -1573,7 +1573,7 @@ inline
 static
 void
 dispatch() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
@@ -1599,22 +1599,18 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 
-
 template<NativeBusWidth width, bool currentlyRead>
 FORCE_INLINE
 inline
 void handleFullOperationProper() noexcept {
     // now we have to stop and wait for the CPU to request something of us
     while (digitalRead<Pin::DEN>());
-    if (!digitalRead<Pin::ChangeDirection>()) {
-        updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
-        CommunicationKernel<!currentlyRead, width>::dispatch();
-        // toggle the pin after we are done since there is no point in doing it
-        // before hand. We have to pay for this but do it _after_ we have
-        // performed whatever transfer we need to do
-        toggle<Pin::DirectionOutput>();
-    } else {
+    if (digitalRead<Pin::ChangeDirection>()) {
         CommunicationKernel<currentlyRead, width>::dispatch();
+    } else {
+        updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
+        toggle<Pin::DirectionOutput>();
+        CommunicationKernel<!currentlyRead, width>::dispatch();
     }
 }
 template<NativeBusWidth width> 
@@ -1717,10 +1713,6 @@ setupPins() noexcept {
     pinMode(Pin::DEN, INPUT);
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
-#ifdef PHASE_DETECT_BEHAVIOR
-    pinMode(Pin::TransactionDetect, OUTPUT);
-    digitalWrite<Pin::TransactionDetect, HIGH>();
-#endif
     pinMode(Pin::DirectionOutput, OUTPUT);
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();

@@ -831,7 +831,9 @@ public:
             { \
                 static constexpr bool IsLastWord = (aligned && b0 == 14 && b1 == 15) || \
                                                    (!aligned && b0 == 12 && b1 == 13); \
-                performCommunicationSingle<d0, b0, d1, b1, later, Pin :: BE ## d0 , Pin :: BE ## d1 >(theBytes); \
+                static constexpr Pin beLower = Pin :: BE ## d0 ; \
+                static constexpr Pin beUpper = Pin :: BE ## d1 ; \
+                performCommunicationSingle<d0, b0, d1, b1, later, beLower, beUpper >(theBytes); \
                 if constexpr (!IsLastWord) { \
                     if (isBurstLast()) { \
                         goto Done; \
@@ -853,6 +855,9 @@ public:
             LO(12, 13, true, true);
             HI(14, 15, true, true);
         } else {
+            // because we are operating on 16-byte windows, there is no way
+            // that we would ever fully access the entire 16-bytes in a single
+            // transaction if we started unaligned like this
             HI(0, 1, false, false);
             LO(2, 3, true, false);
             HI(4, 5, true, false);

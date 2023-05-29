@@ -1630,7 +1630,11 @@ executionBody() noexcept {
     // contents of the DirectionOutput pin. We will always be properly
     // synchronized overall!
     //
-    //
+    // It is not lost on me that this is goto nightmare bingo, however in this
+    // case I need the extra control of the goto statement. Allowing the
+    // compiler to try and do this instead leads to implicit jumping issues
+    // where the compiler has way too much fun with its hands. It will over
+    // optimize things and create problems!
 ReadOperationStart:
     // wait until DEN goes low
     while (digitalRead<Pin::DEN>());

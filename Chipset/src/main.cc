@@ -811,9 +811,10 @@ public:
         // fine but in all cases the first 1 we encounter after finding the
         // first zero in the byte enable bits we are going to terminate
         // anyway. So don't waste time evaluating BLAST at all!
-#define X(d0, b0, d1, b1, later) \
+#define X(d0, b0, d1, b1, later, aligned) \
             { \
-                static constexpr bool IsLastWord = (b0 == 14 && b1 == 15); \
+                static constexpr bool IsLastWord = (aligned && b0 == 14 && b1 == 15) || \
+                                                   (!aligned && b0 == 12 && b1 == 13); \
                 performCommunicationSingle<d0, b0, d1, b1, later, Pin :: BE ## d0 , Pin :: BE ## d1 >(theBytes); \
                 if constexpr (!IsLastWord) { \
                     if (isBurstLast()) { \
@@ -822,27 +823,27 @@ public:
                     signalReady<!isReadOperation>(); \
                 } \
             }
-#define LO(b0, b1, later) X(0, b0, 1, b1, later)
-#define HI(b0, b1, later) X(2, b0, 3, b1, later)
+#define LO(b0, b1, later, aligned) X(0, b0, 1, b1, later, aligned)
+#define HI(b0, b1, later, aligned) X(2, b0, 3, b1, later, aligned)
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) {
-            LO(0, 1, false);
-            HI(2, 3, true);
-            LO(4, 5, true);
-            HI(6, 7, true);
-            LO(8, 9, true);
-            HI(10, 11, true);
-            LO(12, 13, true);
-            HI(14, 15, true);
+            LO(0, 1, false, true);
+            HI(2, 3, true, true);
+            LO(4, 5, true, true);
+            HI(6, 7, true, true);
+            LO(8, 9, true, true);
+            HI(10, 11, true, true);
+            LO(12, 13, true, true);
+            HI(14, 15, true, true);
         } else {
-            HI(0, 1, false);
-            LO(2, 3, true);
-            HI(4, 5, true);
-            LO(6, 7, true);
-            HI(8, 9, true);
-            LO(10, 11, true);
-            HI(12, 13, true);
+            HI(0, 1, false, false);
+            LO(2, 3, true, false);
+            HI(4, 5, true, false);
+            LO(6, 7, true, false);
+            HI(8, 9, true, false);
+            LO(10, 11, true, false);
+            HI(12, 13, true, false);
         }
 #undef LO
 #undef HI

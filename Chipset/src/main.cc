@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Detect.h"
 #include "Types.h"
 #include "Pinout.h"
-#include "IOOpcodes.h"
 #include "Peripheral.h"
 #include "Setup.h"
 // allocate 1024 bytes total

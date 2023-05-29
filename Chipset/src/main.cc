@@ -107,6 +107,21 @@ struct TreatAsInstruction final {
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 using DataRegister32 = volatile uint32_t*;
+
+[[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
+[[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
+[[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
+[[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
+[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
+[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
+
+[[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
+[[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
+[[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
+[[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
+[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
+[[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
+
 template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
@@ -126,23 +141,9 @@ computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMe
 
 template<typename T>
 DataRegister8
-getTransactionWindow(uint16_t offset, T) noexcept {
-    return memoryPointer<uint8_t>(computeTransactionWindow(offset, T{}));
+getTransactionWindow(T) noexcept {
+    return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf, T{}));
 }
-
-[[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
-[[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
-[[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
-[[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
-
-[[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
-[[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
-[[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
-[[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
-[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
-[[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
 
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
@@ -199,7 +200,7 @@ FORCE_INLINE
 inline
 static void
 doCommunication() noexcept {
-        auto theBytes = getTransactionWindow(addressLinesLowerHalf, typename TreatAsOnChipAccess::AccessMethod{}); 
+        auto theBytes = getTransactionWindow(typename TreatAsOnChipAccess::AccessMethod{}); 
 #define X(base) \
     if constexpr (isReadOperation) { \
         auto a = theBytes[(base + 0)]; \
@@ -785,7 +786,7 @@ public:
     static void
     doCommunication() noexcept {
         //const uint16_t al = addressLinesLowerHalf;
-        auto theBytes = getTransactionWindow(addressLinesLowerHalf, typename TreatAsOnChipAccess::AccessMethod{}); 
+        auto theBytes = getTransactionWindow(typename TreatAsOnChipAccess::AccessMethod{}); 
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop

@@ -1603,20 +1603,6 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 
-template<NativeBusWidth width, bool currentlyRead>
-FORCE_INLINE
-inline
-void handleFullOperationProper() noexcept {
-    // now we have to stop and wait for the CPU to request something of us
-    while (digitalRead<Pin::DEN>());
-    if (digitalRead<Pin::ChangeDirection>()) {
-        CommunicationKernel<currentlyRead, width>::dispatch();
-    } else {
-        updateDataLinesDirection<currentlyRead ? 0 : 0xFF>();
-        toggle<Pin::DirectionOutput>();
-        CommunicationKernel<!currentlyRead, width>::dispatch();
-    }
-}
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -1639,32 +1625,51 @@ executionBody() noexcept {
     // at this point, we are setup to be in output mode (or read) and that is the
     // expected state for _all_ i960 processors, it will load some amount of
     // data from main memory to start the execution process. 
-ReadOperation:
+ReadOperationStart:
+    // wait until DEN goes low
     while (digitalRead<Pin::DEN>());
-    if (digitalRead<Pin::ChangeDirection>()) {
-        CommunicationKernel<true, width>::dispatch();
-        insertCustomNopCount<6>();
-        goto ReadOperation;
-    } else {
-        updateDataLinesDirection<true ? 0 : 0xFF>();
+    // check to see if we need to change directions
+    if (!digitalRead<Pin::ChangeDirection>()) {
+        // change direction to input since we are doing read -> write
+        updateDataLinesDirection<0>();
+        // update the direction pin 
         toggle<Pin::DirectionOutput>();
-        CommunicationKernel<false, width>::dispatch();
-        insertCustomNopCount<6>();
-        goto WriteOperation;
+        // then jump into the write loop
+        goto WriteOperationBypass;
     }
-WriteOperation:
+ReadOperationBypass:
+    // standard read operation so do the normal dispatch
+    CommunicationKernel<true, width>::dispatch();
+    // we need to delay enough cycles to make sure that we never run too fast
+    // four cycles (AVR) = 2 i960 cycles. Since the last operation is generally
+    // a signal then we can just supliment that here
+    singleCycleDelay();
+    singleCycleDelay();
+    // start the read operation again
+    goto ReadOperationStart;
+
+WriteOperationStart:
+    // wait until DEN goes low
     while (digitalRead<Pin::DEN>());
-    if (digitalRead<Pin::ChangeDirection>()) {
-        CommunicationKernel<false, width>::dispatch();
-        insertCustomNopCount<6>();
-        goto WriteOperation;
-    } else {
-        updateDataLinesDirection<false ? 0 : 0xFF>();
+    // check to see if we need to change directions
+    if (!digitalRead<Pin::ChangeDirection>()) {
+        // change data lines to be output since we are doing write -> read
+        updateDataLinesDirection<0xFF>();
+        // update the direction pin
         toggle<Pin::DirectionOutput>();
-        CommunicationKernel<true, width>::dispatch();
-        insertCustomNopCount<6>();
-        goto ReadOperation;
-    }
+        // jump to the read loop
+        goto ReadOperationBypass;
+    } 
+WriteOperationBypass:
+    // standard write operation so do the normal dispatch for write operations
+    CommunicationKernel<false, width>::dispatch();
+    // we need to delay for four AVR cycles to make sure that the ready signal
+    // has time to propagate through the two stage synchronizer. We also need
+    // to make sure that we have enough time to allow for DEN to go high again.
+    singleCycleDelay();
+    singleCycleDelay();
+    // restart the write loop
+    goto WriteOperationStart;
     // we should never get here!
 }
 

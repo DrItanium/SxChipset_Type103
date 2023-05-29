@@ -797,7 +797,7 @@ private:
 public:
     FORCE_INLINE
     //[[gnu::noinline]]
-    [[gnu::optimize("no-reorder-blocks")]]
+    //[[gnu::optimize("no-reorder-blocks")]]
     inline
     static void
     doCommunication() noexcept {

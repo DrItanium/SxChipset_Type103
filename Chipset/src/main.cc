@@ -796,6 +796,8 @@ private:
 #define HI(b0, b1, later) X(2, b0, 3, b1, later)
 public:
     FORCE_INLINE
+    //[[gnu::noinline]]
+    [[gnu::optimize("no-reorder-blocks")]]
     inline
     static void
     doCommunication() noexcept {

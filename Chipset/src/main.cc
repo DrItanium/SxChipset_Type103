@@ -1546,7 +1546,7 @@ static void doIO() noexcept {
                      idleTransaction();
                      return;
         } 
-        signalReady<true>(); 
+        signalReady(); 
 }
 };
 

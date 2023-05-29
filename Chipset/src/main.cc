@@ -118,17 +118,16 @@ computeTransactionWindow_Generic(uint16_t offset) noexcept {
     return sectionMask | (offset & offsetMask);
 }
 
-template<NativeBusWidth width>
 constexpr
 uint16_t 
 computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x4000, width == NativeBusWidth::Sixteen ? 0x3FFF : 0x3FFF>(offset);
+    return computeTransactionWindow_Generic<0x4000, 0x3FFF>(offset);
 }
 
-template<NativeBusWidth width, typename T>
+template<typename T>
 DataRegister8
 getTransactionWindow(uint16_t offset, T) noexcept {
-    return memoryPointer<uint8_t>(computeTransactionWindow<width>(offset, T{}));
+    return memoryPointer<uint8_t>(computeTransactionWindow(offset, T{}));
 }
 
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
@@ -200,7 +199,7 @@ FORCE_INLINE
 inline
 static void
 doCommunication() noexcept {
-        auto theBytes = getTransactionWindow<width>(addressLinesLowerHalf, typename TreatAsOnChipAccess::AccessMethod{}); 
+        auto theBytes = getTransactionWindow(addressLinesLowerHalf, typename TreatAsOnChipAccess::AccessMethod{}); 
 #define X(base) \
     if constexpr (isReadOperation) { \
         auto a = theBytes[(base + 0)]; \
@@ -250,8 +249,7 @@ Done:
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
-        uint8_t offset = addressLines[0];
-        switch (offset) { 
+        switch (addressLines[0]) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
                             dataLinesFull = F_CPU;
@@ -787,7 +785,7 @@ public:
     static void
     doCommunication() noexcept {
         //const uint16_t al = addressLinesLowerHalf;
-        auto theBytes = getTransactionWindow<BusWidth>(addressLinesLowerHalf, typename TreatAsOnChipAccess::AccessMethod{}); 
+        auto theBytes = getTransactionWindow(addressLinesLowerHalf, typename TreatAsOnChipAccess::AccessMethod{}); 
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop
@@ -855,8 +853,7 @@ Done:
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
-        uint8_t offset = addressLines[0];
-        switch (offset) { 
+        switch (addressLines[0]) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
                             dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);

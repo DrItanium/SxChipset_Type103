@@ -1625,6 +1625,12 @@ executionBody() noexcept {
     // at this point, we are setup to be in output mode (or read) and that is the
     // expected state for _all_ i960 processors, it will load some amount of
     // data from main memory to start the execution process. 
+    //
+    // After this point, we will never need to actually keep track of the
+    // contents of the DirectionOutput pin. We will always be properly
+    // synchronized overall!
+    //
+    //
 ReadOperationStart:
     // wait until DEN goes low
     while (digitalRead<Pin::DEN>());

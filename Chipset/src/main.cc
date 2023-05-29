@@ -1622,7 +1622,7 @@ executionBody() noexcept {
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
-    while (true) {
+BodyStart:
         // only check currentDirection once at the start of the transaction
         if (sampleOutputState<Pin::DirectionOutput>()) {
             // start in read
@@ -1635,7 +1635,7 @@ executionBody() noexcept {
         // put the single cycle delay back in to be on the safe side
         singleCycleDelay();
         singleCycleDelay();
-    }
+        goto BodyStart;
 }
 
 template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>

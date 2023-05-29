@@ -184,7 +184,7 @@ LoopRestart:
         signalReady<true>();
         goto LoopRestart;
 LoopDone:
-    signalReady();
+    signalReady<true>();
 }
 template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
@@ -243,7 +243,7 @@ doCommunication() noexcept {
         signalReady<!isReadOperation>();
         X(12);
 Done:
-        signalReady();
+        signalReady<true>();
 #undef X
 
 }
@@ -869,7 +869,7 @@ public:
 #undef HI
 #undef X
 Done:
-        signalReady();
+        signalReady<true>();
     }
 
 FORCE_INLINE 
@@ -1570,7 +1570,7 @@ static void doIO() noexcept {
                      idleTransaction();
                      return;
         } 
-        signalReady(); 
+        signalReady<true>(); 
 }
 FORCE_INLINE
 inline
@@ -1650,11 +1650,6 @@ ReadOperationStart:
 ReadOperationBypass:
     // standard read operation so do the normal dispatch
     CommunicationKernel<true, width>::dispatch();
-    // we need to delay enough cycles to make sure that we never run too fast
-    // four cycles (AVR) = 2 i960 cycles. Since the last operation is generally
-    // a signal then we can just supliment that here
-    singleCycleDelay();
-    singleCycleDelay();
     // start the read operation again
     goto ReadOperationStart;
 
@@ -1673,11 +1668,6 @@ WriteOperationStart:
 WriteOperationBypass:
     // standard write operation so do the normal dispatch for write operations
     CommunicationKernel<false, width>::dispatch();
-    // we need to delay for four AVR cycles to make sure that the ready signal
-    // has time to propagate through the two stage synchronizer. We also need
-    // to make sure that we have enough time to allow for DEN to go high again.
-    singleCycleDelay();
-    singleCycleDelay();
     // restart the write loop
     goto WriteOperationStart;
     // we should never get here!

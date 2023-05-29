@@ -1585,10 +1585,6 @@ inline
 void handleFullOperationProper() noexcept {
     while (digitalRead<Pin::DEN>());
     startTransaction();
-    //const uint16_t al = addressLinesLowerHalf;
-    // okay so we know that we are going to write so don't query the
-    // pin!
-    
     if (EnableSpecialSpace && !digitalRead<Pin::SpecialSpace>()) {
         idleTransaction();
     } else {

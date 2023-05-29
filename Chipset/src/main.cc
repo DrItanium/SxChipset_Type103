@@ -1636,19 +1636,36 @@ executionBody() noexcept {
     // disable pullups!
     Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
     Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
-BodyStart:
-    // only check currentDirection once at the start of the transaction
-    if (sampleOutputState<Pin::DirectionOutput>()) {
-        // start in read
-        handleFullOperationProper<width, true>();
+    // at this point, we are setup to be in output mode (or read) and that is the
+    // expected state for _all_ i960 processors, it will load some amount of
+    // data from main memory to start the execution process. 
+ReadOperation:
+    while (digitalRead<Pin::DEN>());
+    if (digitalRead<Pin::ChangeDirection>()) {
+        CommunicationKernel<true, width>::dispatch();
+        insertCustomNopCount<6>();
+        goto ReadOperation;
     } else {
-        // start in write
-        handleFullOperationProper<width, false>();
-        // currently a write operation
+        updateDataLinesDirection<true ? 0 : 0xFF>();
+        toggle<Pin::DirectionOutput>();
+        CommunicationKernel<false, width>::dispatch();
+        insertCustomNopCount<6>();
+        goto WriteOperation;
     }
-    // put the single cycle delay back in to be on the safe side
-    insertCustomNopCount<2>();
-    goto BodyStart;
+WriteOperation:
+    while (digitalRead<Pin::DEN>());
+    if (digitalRead<Pin::ChangeDirection>()) {
+        CommunicationKernel<false, width>::dispatch();
+        insertCustomNopCount<6>();
+        goto WriteOperation;
+    } else {
+        updateDataLinesDirection<false ? 0 : 0xFF>();
+        toggle<Pin::DirectionOutput>();
+        CommunicationKernel<true, width>::dispatch();
+        insertCustomNopCount<6>();
+        goto ReadOperation;
+    }
+    // we should never get here!
 }
 
 template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>

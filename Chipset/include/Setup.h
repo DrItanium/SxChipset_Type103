@@ -253,8 +253,8 @@ class Platform final {
         static void toggleXINT6() noexcept;
         static void toggleXINT7() noexcept;
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(ControlSignals.ctl.cfg); }
-        static void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept;
-        static void setBank(const SplitWord32& addr, AccessFromXBUS) noexcept;
+        static inline void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept { setBank(addr.getIBUSBankIndex(), AccessFromIBUS{}); }
+        static inline void setBank(const SplitWord32& addr, AccessFromXBUS) noexcept { setBank(addr.full, AccessFromXBUS{}); }
         static void setBank(uint8_t bankId, AccessFromIBUS) noexcept;
         static void setBank(uint32_t bankAddress, AccessFromXBUS) noexcept;
         static uint8_t getBank(AccessFromIBUS) noexcept;

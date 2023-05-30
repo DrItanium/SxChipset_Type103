@@ -132,15 +132,6 @@ Platform::signalNMI() noexcept {
 }
 
 void 
-Platform::setBank(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    setBank(addr.getIBUSBankIndex(), AccessFromIBUS{});
-}
-void 
-Platform::setBank(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    setBank(addr.full, AccessFromXBUS{});
-}
-
-void 
 Platform::setBank(uint8_t bankId, AccessFromIBUS) noexcept {
     PORTJ = bankId;
 }

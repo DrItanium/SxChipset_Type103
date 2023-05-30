@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Setup.h"
 #include "Types.h"
 #include "Pinout.h"
-#include "Peripheral.h"
 
 
 namespace {

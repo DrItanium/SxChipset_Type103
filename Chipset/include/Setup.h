@@ -30,15 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 
-constexpr bool MCUHasDirectAccess = true;
-constexpr bool XINT0DirectConnect = true;
-constexpr bool XINT1DirectConnect = false;
-constexpr bool XINT2DirectConnect = false;
-constexpr bool XINT3DirectConnect = false;
-constexpr bool XINT4DirectConnect = false;
-constexpr bool XINT5DirectConnect = false;
-constexpr bool XINT6DirectConnect = false;
-constexpr bool XINT7DirectConnect = false;
 
 template<uint8_t count>
 [[gnu::always_inline]]
@@ -50,12 +41,6 @@ insertCustomNopCount() noexcept {
 inline void
 singleCycleDelay() noexcept {
     insertCustomNopCount<2>();
-}
-
-[[gnu::always_inline]]
-inline void
-halfCycleDelay() noexcept {
-    insertCustomNopCount<1>();
 }
 
 /**
@@ -105,105 +90,6 @@ enum class CPUFrequencyInfo {
     Clock10MHz = 0b000,
 };
 
-/// @brief the bytes to operate on in a single memory transaction cycle
-enum class ByteEnableKind : uint8_t {
-    /// @brief A full 32-bit value
-    Full32 = 0b0000,
-    /// @brief Operate on the upper 16-bits only
-    Upper16 = 0b0011,
-    /// @brief operate on the lower 16-bits only
-    Lower16 = 0b1100,
-    /// @brief only the highest 8-bits
-    Highest8 = 0b0111,
-    /// @brief bits 16-23
-    Higher8 = 0b1011,
-    /// @brief bits 8-15
-    Lower8 = 0b1101,
-    /// @brief bits 0-7
-    Lowest8 = 0b1110,
-
-    // misalignment states
-    /// @brief The upper 24-bits of the 32-bit value, generally implies misalignment
-    Upper24 = 0b0001,
-    /// @brief Operate on the lower 24-bits, generally implies a misalignment
-    Lower24 = 0b1000,
-    /// @brief a misaligned 16-bit operation
-    Mid16 = 0b1001,
-
-
-    // Impossible states (I believe)
-    Nothing = 0b1111,
-    Highest8_Lower16 = 0b0100,
-    Highest8_Lower8 = 0b0101,
-    Highest8_Lowest8 = 0b0110,
-    Upper16_Lowest8 = 0b0010,
-    Higher8_Lowest8 = 0b1010,
-};
-/**
- * @brief Given a 32-bit bus, is the given kind a legal one; A false here means
- * that there are holes in byte enable pattern; I do not think that is possible
- * with how the i960 operates
- */
-constexpr bool isLegalState(ByteEnableKind kind) noexcept {
-    switch (kind) {
-        case ByteEnableKind::Full32:
-        case ByteEnableKind::Upper24:
-        case ByteEnableKind::Upper16:
-        case ByteEnableKind::Highest8:
-        case ByteEnableKind::Lower24:
-        case ByteEnableKind::Mid16:
-        case ByteEnableKind::Higher8:
-        case ByteEnableKind::Lower16:
-        case ByteEnableKind::Lower8:
-        case ByteEnableKind::Lowest8:
-            return true;
-        default:
-            return false;
-    }
-}
-
-constexpr bool isPossibleState(NativeBusWidth width, ByteEnableKind kind) noexcept {
-    switch (width) {
-        case NativeBusWidth::Sixteen: 
-            {
-                switch (kind) {
-                    case ByteEnableKind::Upper16:
-                    case ByteEnableKind::Lower16:
-                    case ByteEnableKind::Highest8:
-                    case ByteEnableKind::Higher8:
-                    case ByteEnableKind::Lower8:
-                    case ByteEnableKind::Lowest8:
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-        case NativeBusWidth::ThirtyTwo:
-            return isLegalState(kind);
-        default:
-            return false;
-    }
-}
-
-constexpr bool isMisaligned(ByteEnableKind kind) noexcept {
-    switch (kind) {
-        case ByteEnableKind::Full32:
-        case ByteEnableKind::Upper16:
-        case ByteEnableKind::Lower16:
-        case ByteEnableKind::Highest8:
-        case ByteEnableKind::Higher8:
-        case ByteEnableKind::Lower8:
-        case ByteEnableKind::Lowest8:
-            return false;
-        default:
-            return true;
-    }
-}
-template<ByteEnableKind kind>
-constexpr auto LegalState_v = isLegalState(kind);
-
-template<ByteEnableKind kind>
-constexpr auto Misaligned_v = isMisaligned(kind);
 
 constexpr bool alignedTo32bitBoundaries(uint32_t address) noexcept {
     return (address & 0b11) == 0;

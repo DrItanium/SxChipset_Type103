@@ -180,12 +180,3 @@ Platform::viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept {
     return memoryPointer<uint8_t>(addr.unalignedBankAddress(AccessFromXBUS{})); 
 }
 
-volatile SplitWord128& 
-Platform::getTransactionWindow(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    return memory<SplitWord128>(addr.transactionAlignedBankAddress(AccessFromIBUS{}));
-}
-
-volatile SplitWord128& 
-Platform::getTransactionWindow(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    return memory<SplitWord128>(addr.transactionAlignedBankAddress(AccessFromXBUS{}));
-}

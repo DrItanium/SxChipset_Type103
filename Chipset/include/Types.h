@@ -159,16 +159,6 @@ union [[gnu::packed]] CH351 {
     } ctl;
 };
 
-struct SplitWord128 {
-    uint8_t bytes[16];
-    SplitWord32& getWord(uint8_t index) noexcept { return reinterpret_cast<SplitWord32*>(bytes)[index]; }
-    const SplitWord32& getWord(uint8_t index) const noexcept { return reinterpret_cast<const SplitWord32*>(bytes)[index]; }
-    volatile SplitWord32& getWord(uint8_t index) volatile noexcept { return reinterpret_cast<volatile SplitWord32*>(bytes)[index]; }
-    [[nodiscard]] SplitWord32& operator[](uint8_t index) noexcept { return getWord(index); }
-    [[nodiscard]] volatile SplitWord32& operator[](uint8_t index) volatile noexcept { return getWord(index); }
-    [[nodiscard]] const SplitWord32& operator[](uint8_t index) const noexcept { return getWord(index); }
-};
-
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;

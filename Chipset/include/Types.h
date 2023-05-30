@@ -55,26 +55,6 @@ union SplitWord32 {
     constexpr SplitWord32() : SplitWord32(0) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
-    [[nodiscard]] constexpr auto getWholeValue() const noexcept { return full; }
-    [[nodiscard]] constexpr auto numHalves() const noexcept { return ElementCount<uint32_t, uint16_t>; }
-    [[nodiscard]] constexpr auto numBytes() const noexcept { return ElementCount<uint32_t, uint8_t>; }
-    [[nodiscard]] constexpr bool isIOInstruction() const noexcept { return bytes[3] >= 0xF0; }
-    [[nodiscard]] constexpr uint8_t getIODeviceCode() const noexcept { return bytes[2]; }
-    [[nodiscard]] constexpr uint8_t getIOFunctionCode() const noexcept { return bytes[1]; }
-    [[nodiscard]] constexpr uint8_t getIOGroup() const noexcept { return bytes[3]; }
-    [[nodiscard]] constexpr uint8_t getIOMinorCode() const noexcept { return bytes[0]; }
-    template<typename E>
-    [[nodiscard]] constexpr E getIODevice() const noexcept { return static_cast<E>(getIODeviceCode()); }
-    template<typename E>
-    [[nodiscard]] constexpr E getIOFunction() const noexcept { return static_cast<E>(getIOFunctionCode()); }
-    [[nodiscard]] constexpr uint8_t getAddressOffset() const noexcept { 
-#ifdef __BUILTIN_AVR_INSERT_BITS
-        return __builtin_avr_insert_bits(0xfffff321, bytes[0], 0);
-#else
-        return (bytes[0] & 0b1110) >> 1; 
-#endif
-    }
-    [[nodiscard]] constexpr auto retrieveHalf(byte offset) const noexcept { return halves[offset & 0b1]; }
     [[nodiscard]] constexpr uint8_t getIBUSBankIndex() const noexcept {
         // the problem is that we are spanning two bytes in the _middle_ of an
         // address... so we have to treat them separately and merge them
@@ -89,28 +69,11 @@ union SplitWord32 {
                 __builtin_avr_insert_bits(0x543210ff, bytes[2], 0));
 #endif
     }
-    void assignHalf(byte offset, uint16_t value) noexcept { halves[offset & 0b1] = value; }
-    void clear() noexcept { full = 0; }
-    void setWholeValue(uint32_t value) noexcept {
-        full = value;
-    }
     constexpr size_t alignedBankAddress(AccessFromIBUS) const noexcept {
         return 0x4000 + (halves[0] & 0x3FFC);
     }
-    constexpr size_t alignedBankAddress(AccessFromXBUS) const noexcept {
-        return 0x8000 + (halves[0] & 0x7FFC);
-    }
     constexpr size_t unalignedBankAddress(AccessFromIBUS) const noexcept {
         return 0x4000 + (halves[0] & 0x3FFF);
-    }
-    constexpr size_t unalignedBankAddress(AccessFromXBUS) const noexcept {
-        return 0x8000 + (halves[0] & 0x7FFF);
-    }
-    constexpr size_t transactionAlignedBankAddress(AccessFromIBUS) const noexcept {
-        return 0x4000 + (halves[0] & 0x3FF0);
-    }
-    constexpr size_t transactionAlignedBankAddress(AccessFromXBUS) const noexcept {
-        return 0x8000 + (halves[0] & 0x7FF0);
     }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");

@@ -131,17 +131,6 @@ Platform::signalNMI() noexcept {
     ControlSignals.ctl.nmi = 1;
 }
 
-
-volatile SplitWord32& 
-Platform::getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept {
-    return memory<SplitWord32>(addr.alignedBankAddress(AccessFromIBUS{}));
-}
-
-volatile SplitWord32& 
-Platform::getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    return memory<SplitWord32>(addr.alignedBankAddress(AccessFromXBUS{}));
-}
-
 void 
 Platform::setBank(const SplitWord32& addr, AccessFromIBUS) noexcept {
     setBank(addr.getIBUSBankIndex(), AccessFromIBUS{});
@@ -163,20 +152,9 @@ uint8_t
 Platform::getBank(AccessFromIBUS) noexcept {
     return getOutputRegister<Port::IBUS_Bank>();
 }
-uint32_t 
-Platform::getBank(AccessFromXBUS) noexcept {
-    return XBUSBankRegister.view32.data;
-}
 
 volatile uint8_t*
 Platform::viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept {
     // support IBUS 
     return memoryPointer<uint8_t>(addr.unalignedBankAddress(AccessFromIBUS{}));
 }
-
-volatile uint8_t*
-Platform::viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept {
-    // support XBUS 
-    return memoryPointer<uint8_t>(addr.unalignedBankAddress(AccessFromXBUS{})); 
-}
-

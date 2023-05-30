@@ -235,7 +235,6 @@ class Platform final {
         static void doHold(decltype(LOW) value) noexcept;
         static uint8_t getCPUConfigValue() noexcept;
         static uint8_t getFrequencyInfo() noexcept;
-        static void tellCPUToBackOff() noexcept;
         static void signalNMI() noexcept;
         static void signalXINT0() noexcept;
         static void signalXINT1() noexcept;
@@ -253,28 +252,12 @@ class Platform final {
         static void toggleXINT5() noexcept;
         static void toggleXINT6() noexcept;
         static void toggleXINT7() noexcept;
-        [[gnu::always_inline]] inline static void waitForDataState() noexcept { while (digitalRead<Pin::DEN>() == HIGH); }
-        static void setBankConfiguration(bool value) noexcept;
-        [[gnu::always_inline]] inline static void signalReady() noexcept { toggle<Pin::READY>(); }
-        static bool checksumFailure() noexcept;
-        [[gnu::always_inline]] inline static bool isBurstLast() noexcept { return digitalRead<Pin::BLAST>() == LOW; }
-        [[gnu::always_inline]] inline static uint8_t getByteEnable() noexcept { return getInputRegister<Port::SignalCTL>() & 0b1111; }
-        [[gnu::always_inline]] inline static bool isWriteOperation() noexcept { return digitalRead<Pin::WR>(); }
         static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(ControlSignals.ctl.cfg); }
         static void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept;
         static void setBank(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static void setBank(uint8_t bankId, AccessFromIBUS) noexcept;
         static void setBank(uint32_t bankAddress, AccessFromXBUS) noexcept;
         static uint8_t getBank(AccessFromIBUS) noexcept;
-        static uint32_t getBank(AccessFromXBUS) noexcept;
-        /**
-         * @brief Return a pointer to the closest aligned SplitWord32 on the IBUS
-         */
-        static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromIBUS) noexcept;
-        /**
-         * @brief Return a pointer to the closest aligned SplitWord32 on the XBUS
-         */
-        static volatile SplitWord32& getMemoryView(const SplitWord32& addr, AccessFromXBUS) noexcept;
         static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept;
         static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept;
 };

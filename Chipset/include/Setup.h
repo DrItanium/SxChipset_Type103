@@ -221,45 +221,4 @@ static_assert(!isUpper16bitValue(0), "is 16-bit upper half check is broken");
 static_assert(isLower16bitValue(0), "is 16-bit lower half check is broken");
 static_assert(!isLower16bitValue(0b10), "is 16-bit lower half check is broken");
 
-class Platform final {
-    public:
-        Platform() = delete;
-        ~Platform() = delete;
-        Platform(const Platform&) = delete;
-        Platform(Platform&&) = delete;
-        Platform& operator=(const Platform&) = delete;
-        Platform& operator=(Platform&&) = delete;
-    public:
-        static void begin() noexcept;
-        static void doReset(decltype(LOW) value) noexcept;
-        static void doHold(decltype(LOW) value) noexcept;
-        static uint8_t getCPUConfigValue() noexcept;
-        static uint8_t getFrequencyInfo() noexcept;
-        static void signalNMI() noexcept;
-        static void signalXINT0() noexcept;
-        static void signalXINT1() noexcept;
-        static void signalXINT2() noexcept;
-        static void signalXINT3() noexcept;
-        static void signalXINT4() noexcept;
-        static void signalXINT5() noexcept;
-        static void signalXINT6() noexcept;
-        static void signalXINT7() noexcept;
-        static void toggleXINT0() noexcept;
-        static void toggleXINT1() noexcept;
-        static void toggleXINT2() noexcept;
-        static void toggleXINT3() noexcept;
-        static void toggleXINT4() noexcept;
-        static void toggleXINT5() noexcept;
-        static void toggleXINT6() noexcept;
-        static void toggleXINT7() noexcept;
-        static inline CPUKind getInstalledCPUKind() noexcept { return static_cast<CPUKind>(ControlSignals.ctl.cfg); }
-        static inline void setBank(const SplitWord32& addr, AccessFromIBUS) noexcept { setBank(addr.getIBUSBankIndex(), AccessFromIBUS{}); }
-        static inline void setBank(const SplitWord32& addr, AccessFromXBUS) noexcept { setBank(addr.full, AccessFromXBUS{}); }
-        static void setBank(uint8_t bankId, AccessFromIBUS) noexcept;
-        static void setBank(uint32_t bankAddress, AccessFromXBUS) noexcept;
-        static uint8_t getBank(AccessFromIBUS) noexcept;
-        static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromIBUS) noexcept;
-        static volatile uint8_t* viewAreaAsBytes(const SplitWord32& addr, AccessFromXBUS) noexcept;
-};
-
 #endif // end SXCHIPSET_TYPE103_SETUP_H__

@@ -71,15 +71,11 @@ X(5);
 
 void 
 putCPUInReset() noexcept {
-    Platform::doReset(LOW);
+    ControlSignals.ctl.reset = LOW;
 }
 void 
 pullCPUOutOfReset() noexcept {
-    Platform::doReset(HIGH);
-}
-void
-waitForDataState() noexcept {
-    while (digitalRead<Pin::DEN>() == HIGH); 
+    ControlSignals.ctl.reset = HIGH;
 }
 template<bool isReadOperation>
 struct RWOperation final {
@@ -1611,6 +1607,7 @@ executionBody() noexcept {
     // turn off the timer0 interrupt for system count, we don't care about it
     // anymore
     digitalWrite<Pin::DirectionOutput, HIGH>();
+    getOutputRegister<Port::IBUS_Bank>() = 0;
     getDirectionRegister<Port::IBUS_Bank>() = 0;
     // switch the XBUS bank mode to i960 instead of AVR
     // I want to use the upper four bits the XBUS address lines
@@ -1618,9 +1615,7 @@ executionBody() noexcept {
     // make sure that this works as well
     ControlSignals.ctl.bankSelect = 1;
 
-    // disable pullups!
-    Platform::setBank(0, typename TreatAsOnChipAccess::AccessMethod{});
-    Platform::setBank(0, typename TreatAsOffChipAccess::AccessMethod{});
+    XBUSBankRegister.view32.data = 0;
     // at this point, we are setup to be in output mode (or read) and that is the
     // expected state for _all_ i960 processors, it will load some amount of
     // data from main memory to start the execution process. 
@@ -1698,19 +1693,17 @@ installMemoryImage() noexcept {
             delay(1000);
         }
     } else {
-        auto previousBank = Platform::getBank(AccessFromIBUS{});
         Serial.println(F("TRANSFERRING!!"));
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
             // just modify the bank as we go along
-            Platform::setBank(view, AccessFromIBUS{});
-            auto* theBuffer = Platform::viewAreaAsBytes(view, AccessFromIBUS{});
+            getOutputRegister<Port::IBUS_Bank>() = view.getIBUSBankIndex();
+            auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress(AccessFromIBUS{}));
             theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
             Serial.print(F("."));
         }
         Serial.println(F("DONE!"));
         theFirmware.close();
-        Platform::setBank(previousBank, AccessFromIBUS{});
     }
     // okay so now end reading from the SD Card
     SD.end();
@@ -1748,13 +1741,80 @@ setupPins() noexcept {
         digitalWrite<Pin::READY, HIGH>();
     }
 }
+void 
+setupPlatform() noexcept {
+    static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
+    // setup the EBI
+    XMCRB=0b1'0000'000;
+    // use the upper and lower sector limits feature to accelerate IO space
+    // 0x2200-0x3FFF is full speed, rest has a one cycle during read/write
+    // strobe delay since SRAM is 55ns
+    //
+    // I am using an HC573 on the interface board so the single cycle delay
+    // state is necessary! When I replace the interface chip with the
+    // AHC573, I'll get rid of the single cycle delay from the lower sector
+    XMCRA=0b1'010'01'01;  
+    AddressLinesInterface.view32.direction = 0;
+    DataLinesInterface.view32.direction = 0xFFFF'FFFF;
+    DataLinesInterface.view32.data = 0;
+    ControlSignals.view32.direction = ControlSignalDirection;
+    if constexpr (MCUHasDirectAccess) {
+        ControlSignals.view8.direction[1] &= 0b11101111;
+    }
+    if constexpr (XINT0DirectConnect) {
+        ControlSignals.view8.direction[2] &= 0b11111110;
+    }
+    if constexpr (XINT1DirectConnect) {
+        ControlSignals.view8.direction[2] &= 0b11111101;
+    }
+    if constexpr (XINT2DirectConnect) {
+        ControlSignals.view8.direction[2] &= 0b11111011;
+    }
+    if constexpr (XINT3DirectConnect) {
+        ControlSignals.view8.direction[2] &= 0b11110111;
+    }
+    if constexpr (XINT4DirectConnect) {
+        ControlSignals.view8.direction[2] &= 0b11101111;
+    }
+    if constexpr (XINT5DirectConnect) {
+        ControlSignals.view8.direction[2] &= 0b11011111;
+    }
+    if constexpr (XINT6DirectConnect) {
+        ControlSignals.view8.direction[2] &= 0b10111111;
+    }
+    if constexpr (XINT7DirectConnect) {
+        ControlSignals.view8.direction[2] &= 0b01111111;
+    }
+    ControlSignals.view32.data = 0;
+    ControlSignals.ctl.hold = 0;
+    ControlSignals.ctl.reset = 0; // put i960 in reset
+    ControlSignals.ctl.backOff = 1;
+    ControlSignals.ctl.ready = 0;
+    ControlSignals.ctl.nmi = 1;
+    ControlSignals.ctl.xint0 = 1;
+    ControlSignals.ctl.xint1 = 1;
+    ControlSignals.ctl.xint2 = 1;
+    ControlSignals.ctl.xint3 = 1;
+    ControlSignals.ctl.xint4 = 1;
+    ControlSignals.ctl.xint5 = 1;
+    ControlSignals.ctl.xint6 = 1;
+    ControlSignals.ctl.xint7 = 1;
+    // select the CH351 bank chip to go over the xbus address lines
+    ControlSignals.ctl.bankSelect = 0;
+}
+
+CPUKind 
+getInstalledCPUKind() noexcept { 
+    return static_cast<CPUKind>(ControlSignals.ctl.cfg); 
+}
+
 void
 setup() {
     setupPins();
     Serial.begin(115200);
     // setup the IO Expanders
-    Platform::begin();
-    switch (Platform::getInstalledCPUKind()) {
+    setupPlatform();
+    switch (getInstalledCPUKind()) {
         case CPUKind::Sx:
             Serial.println(F("i960Sx CPU detected!"));
             break;
@@ -1780,7 +1840,7 @@ setup() {
 }
 void 
 loop() {
-    switch (getBusWidth(Platform::getInstalledCPUKind())) {
+    switch (getBusWidth(getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
             Serial.println(F("16-bit bus width detected"));
             executionBody<NativeBusWidth::Sixteen>();

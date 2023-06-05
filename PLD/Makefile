@@ -45,7 +45,7 @@ install_OperationDetect: OperationDetect.jed
 	minipro -p ATF16V8C --write OperationDetect.jed 
 
 install_BusDecoder32bit: BusDecoder32Bit.jed
-	minipro -p ATF16V8C --write BusDecoder32Bit.jed 
+	minipro -p ATF16V8B --write BusDecoder32Bit.jed 
 
 clean:
 	@echo -n "Cleaning..."

@@ -132,22 +132,15 @@ inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
 template<uint16_t sectionMask, uint16_t offsetMask>
 constexpr
 uint16_t
-computeTransactionWindow_Generic(uint16_t offset) noexcept {
+computeTransactionWindow(uint16_t offset) noexcept {
     return sectionMask | (offset & offsetMask);
 }
 
-constexpr
-uint16_t 
-computeTransactionWindow(uint16_t offset, typename TreatAsOnChipAccess::AccessMethod) noexcept {
-    return computeTransactionWindow_Generic<0x4000, 0x3FFF>(offset);
-}
-
-template<typename T>
 FORCE_INLINE
 inline
 DataRegister8
-getTransactionWindow(T) noexcept {
-    return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf, T{}));
+getTransactionWindow() noexcept {
+    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
 }
 
 template<uint8_t index>
@@ -205,7 +198,7 @@ FORCE_INLINE
 inline
 static void
 doCommunication() noexcept {
-        auto theBytes = getTransactionWindow(typename TreatAsOnChipAccess::AccessMethod{}); 
+        auto theBytes = getTransactionWindow(); 
 #define X(base) \
     if constexpr (isReadOperation) { \
         auto a = theBytes[(base + 0)]; \
@@ -807,7 +800,7 @@ public:
     static void
     doCommunication() noexcept {
         //const uint16_t al = addressLinesLowerHalf;
-        auto theBytes = getTransactionWindow(typename TreatAsOnChipAccess::AccessMethod{}); 
+        auto theBytes = getTransactionWindow(); 
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop

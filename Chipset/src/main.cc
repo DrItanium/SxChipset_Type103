@@ -760,11 +760,15 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     Self& operator=(Self&&) = delete;
 
 private:
-    template<uint8_t d0, uint8_t b0, uint8_t d1, uint8_t b1, bool later, Pin beLower, Pin beUpper>
+    template<uint8_t d0, uint8_t b0, uint8_t d1, uint8_t b1, bool later>
+    requires ((d0 == 0 && d1 == 1) || (d0 == 2 && d1 == 3))
     FORCE_INLINE
     inline
     static 
     void performCommunicationSingle(DataRegister8 theBytes) noexcept {
+        static constexpr Pin beLower = d0 == 0 ? Pin::BE0 : Pin::BE2;
+        static constexpr Pin beUpper = d1 == 1 ? Pin::BE1 : Pin::BE3;
+
         static_assert(d0 == 0 || d0 == 2, "d0 must be 0 or 2");
         static_assert(d1 == 1 || d1 == 3, "d1 must be 1 or 3");
         static_assert(beLower == Pin::BE0 || beLower == Pin::BE2, "beLower must be BE0 or BE2");
@@ -828,9 +832,7 @@ public:
             { \
                 static constexpr bool IsLastWord = (aligned && b0 == 14 && b1 == 15) || \
                                                    (!aligned && b0 == 12 && b1 == 13); \
-                static constexpr Pin beLower = Pin :: BE ## d0 ; \
-                static constexpr Pin beUpper = Pin :: BE ## d1 ; \
-                performCommunicationSingle<d0, b0, d1, b1, later, beLower, beUpper >(theBytes); \
+                performCommunicationSingle<d0, b0, d1, b1, later>(theBytes); \
                 if constexpr (!IsLastWord) { \
                     if (isBurstLast()) { \
                         goto Done; \

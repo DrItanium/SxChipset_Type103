@@ -44,7 +44,6 @@ template<typename T>
 using TreatAs = TagDispatcher<T>;
 using TreatAsOrdinal = TreatAs<uint32_t>;
 struct AccessFromIBUS final { };
-struct AccessFromXBUS final { };
 struct AccessFromInstruction final { };
 
 union SplitWord32 {

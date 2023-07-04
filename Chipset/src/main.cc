@@ -93,19 +93,6 @@ struct RWOperation final {
 };
 using ReadOperation = RWOperation<true>;
 using WriteOperation = RWOperation<false>;
-struct LoadFromIBUS final { };
-struct LoadFromXBUS final { };
-using SelectedLogic = LoadFromIBUS;
-
-struct TreatAsOnChipAccess final {
-    using AccessMethod = AccessFromIBUS;
-};
-struct TreatAsOffChipAccess final {
-    using AccessMethod = AccessFromXBUS;
-};
-struct TreatAsInstruction final { 
-    using AccessMethod = AccessFromInstruction;
-};
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
@@ -159,6 +146,7 @@ inline void setDataByte(uint8_t a, uint8_t b, uint8_t c, uint8_t d) noexcept {
     setDataByte<3>(d);
 }
 template<uint8_t index>
+requires (index < 4)
 inline uint8_t getDataByte() noexcept {
     static_assert(index < 4, "Invalid index provided to getDataByte, must be less than 4");
     if constexpr (index < 4) {

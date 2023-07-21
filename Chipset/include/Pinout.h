@@ -71,9 +71,9 @@ Count = NUM_DIGITAL_PINS,
     DirectionOutput = PortD6,
     SpecialSpace = PortD7,
     EyeSpi_Pin_INT = PortE6,
-    EyeSpi_Pin_MEMCS = PortE4,
-    EyeSpi_Pin_TFTCS = PortE5,
     EyeSpi_Pin_Backlight = PortE3,
+    EyeSpi_Pin_MEMCS = PortE4,
+    EyeSpi_Pin_TSCS = PortE5,
     EyeSpi_Pin_DC = PortG3,
     EyeSpi_Pin_RST = PortG4,
     EyeSpi_Pin_TCS = PortD2,
@@ -357,5 +357,9 @@ template<Pin p>
 inline bool sampleOutputState() noexcept {
     // we want to look at what we currently have the output register set to
     return (getOutputRegister<p>() & getPinMask<p>()) != 0;
+}
+
+inline void analogWrite(Pin pin, int value) noexcept {
+    ::analogWrite(static_cast<int>(pin), value);
 }
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

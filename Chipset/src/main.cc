@@ -25,11 +25,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1351.h>
+#include <Adafruit_ILI9341.h>
+#include <Adafruit_STMPE610.h>
 
 #include "Detect.h"
 #include "Types.h"
 #include "Pinout.h"
 #include "Setup.h"
+constexpr auto EYESPI_Pin_TFTCS = static_cast<int>(Pin::EyeSpi_Pin_TCS);
+constexpr auto EYESPI_Pin_TSCS = static_cast<int>(Pin::EyeSpi_Pin_TSCS);
+constexpr auto EYESPI_Pin_Reset = static_cast<int>(Pin::EyeSpi_Pin_RST);
+constexpr auto EYESPI_Pin_DC = static_cast<int>(Pin::EyeSpi_Pin_DC);
+
+Adafruit_SSD1351 oled(
+        128,
+        128,
+        &SPI, 
+        EYESPI_Pin_TFTCS, 
+        EYESPI_Pin_DC, 
+        EYESPI_Pin_Reset);
+Adafruit_ILI9341 touch_28_display(EYESPI_Pin_TFTCS, EYESPI_Pin_DC);
+Adafruit_STMPE610 touchController(EYESPI_Pin_TSCS);
+
 
 constexpr bool MCUHasDirectAccess = true;
 constexpr bool XINT0DirectConnect = true;
@@ -1665,7 +1684,6 @@ template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
 void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;
-    SPI.begin();
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     SdFs SD;
     Serial.println(F("Looking for an SD Card!"));
@@ -1701,7 +1719,6 @@ installMemoryImage() noexcept {
     // okay so now end reading from the SD Card
     SD.end();
     SPI.endTransaction();
-    SPI.end();
 }
 void 
 setupPins() noexcept {
@@ -1733,6 +1750,16 @@ setupPins() noexcept {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();
     }
+}
+void
+setupDisplay() noexcept {
+    oled.begin();
+    oled.setFont();
+    oled.fillScreen(0);
+    oled.setTextColor(0xFFFF);
+    oled.setTextSize(1);
+    oled.println(F("i960"));
+    oled.enableDisplay(true);
 }
 void 
 setupPlatform() noexcept {
@@ -1794,6 +1821,7 @@ setupPlatform() noexcept {
     ControlSignals.ctl.xint7 = 1;
     // select the CH351 bank chip to go over the xbus address lines
     ControlSignals.ctl.bankSelect = 0;
+    setupDisplay();
 }
 
 CPUKind 

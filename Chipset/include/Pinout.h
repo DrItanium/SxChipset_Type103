@@ -70,6 +70,14 @@ Count = NUM_DIGITAL_PINS,
     IsMemorySpaceOperation = PortD5,
     DirectionOutput = PortD6,
     SpecialSpace = PortD7,
+    EyeSpi_Pin_INT = PortE6,
+    EyeSpi_Pin_MEMCS = PortE4,
+    EyeSpi_Pin_TFTCS = PortE5,
+    EyeSpi_Pin_Backlight = PortE3,
+    EyeSpi_Pin_DC = PortG3,
+    EyeSpi_Pin_RST = PortG4,
+    EyeSpi_Pin_TCS = PortD2,
+    EyeSpi_Pin_Busy = PortD3,
 };
 enum class Port : byte {
     // stop at mega2560 tier

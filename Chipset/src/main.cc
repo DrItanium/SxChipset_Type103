@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_SSD1351.h>
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_STMPE610.h>
+#include <Adafruit_EPD.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -38,6 +39,8 @@ constexpr auto EYESPI_Pin_TFTCS = static_cast<int>(Pin::EyeSpi_Pin_TCS);
 constexpr auto EYESPI_Pin_TSCS = static_cast<int>(Pin::EyeSpi_Pin_TSCS);
 constexpr auto EYESPI_Pin_Reset = static_cast<int>(Pin::EyeSpi_Pin_RST);
 constexpr auto EYESPI_Pin_DC = static_cast<int>(Pin::EyeSpi_Pin_DC);
+constexpr auto EYESPI_Pin_BUSY = static_cast<int>(Pin::EyeSpi_Pin_Busy);
+constexpr auto EYESPI_Pin_MEMCS = static_cast<int>(Pin::EyeSpi_Pin_MEMCS);
 
 Adafruit_SSD1351 oled(
         128,
@@ -48,6 +51,16 @@ Adafruit_SSD1351 oled(
         EYESPI_Pin_Reset);
 Adafruit_ILI9341 touch_28_display(EYESPI_Pin_TFTCS, EYESPI_Pin_DC);
 Adafruit_STMPE610 touchController(EYESPI_Pin_TSCS);
+
+Adafruit_SSD1680 epaperDisplay213(
+        250, 
+        122,
+        EYESPI_Pin_DC, 
+        EYESPI_Pin_Reset,
+        EYESPI_Pin_TFTCS,
+        EYESPI_Pin_MEMCS,
+        EYESPI_Pin_BUSY,
+        &SPI);
 
 
 constexpr bool MCUHasDirectAccess = true;

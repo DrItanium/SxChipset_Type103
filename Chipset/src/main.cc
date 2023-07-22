@@ -27,8 +27,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SdFat.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1351.h>
-#include <Adafruit_ILI9341.h>
-#include <Adafruit_STMPE610.h>
 #include <Adafruit_EPD.h>
 
 #include "Detect.h"
@@ -49,8 +47,6 @@ Adafruit_SSD1351 oled(
         EYESPI_Pin_TFTCS, 
         EYESPI_Pin_DC, 
         EYESPI_Pin_Reset);
-Adafruit_ILI9341 touch_28_display(EYESPI_Pin_TFTCS, EYESPI_Pin_DC);
-Adafruit_STMPE610 touchController(EYESPI_Pin_TSCS);
 
 Adafruit_SSD1680 epaperDisplay213(
         250, 
@@ -61,6 +57,13 @@ Adafruit_SSD1680 epaperDisplay213(
         EYESPI_Pin_MEMCS,
         EYESPI_Pin_BUSY,
         &SPI);
+enum class EnabledDisplays {
+    SSD1351_OLED_128_x_128_1_5,
+    SSD1680_EPaper_250_x_122_2_13,
+};
+constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
+constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
+constexpr auto EPAPER_COLOR_RED = EPD_RED;
 
 
 constexpr bool MCUHasDirectAccess = true;
@@ -1766,13 +1769,24 @@ setupPins() noexcept {
 }
 void
 setupDisplay() noexcept {
-    oled.begin();
-    oled.setFont();
-    oled.fillScreen(0);
-    oled.setTextColor(0xFFFF);
-    oled.setTextSize(1);
-    oled.println(F("i960"));
-    oled.enableDisplay(true);
+    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
+        oled.begin();
+        oled.setFont();
+        oled.fillScreen(0);
+        oled.setTextColor(0xFFFF);
+        oled.setTextSize(1);
+        oled.println(F("i960"));
+        oled.enableDisplay(true);
+    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
+        epaperDisplay213.begin();
+        epaperDisplay213.clearBuffer();
+        epaperDisplay213.setCursor(0, 0);
+        epaperDisplay213.setTextColor(EPAPER_COLOR_BLACK);
+        epaperDisplay213.setTextWrap(true);
+        epaperDisplay213.setTextSize(2);
+        epaperDisplay213.println(F("i960"));
+        epaperDisplay213.display();
+    } 
 }
 void 
 setupPlatform() noexcept {

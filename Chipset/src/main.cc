@@ -785,8 +785,9 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
 private:
     template<uint8_t d0, uint8_t b0, uint8_t d1, uint8_t b1, bool later>
     requires ((d0 == 0 && d1 == 1) || (d0 == 2 && d1 == 3))
-    FORCE_INLINE
-    inline
+    [[gnu::noinline]]
+    //FORCE_INLINE
+    //inline
     static 
     void performCommunicationSingle(DataRegister8 theBytes) noexcept {
         static constexpr Pin beLower = d0 == 0 ? Pin::BE0 : Pin::BE2;
@@ -813,11 +814,13 @@ private:
              * However, the first time through, we want to make sure we
              * check both upper and lower.
              */ 
+            auto lower = getDataByte<d0>();
+            auto upper = getDataByte<d1>();
             if (later || digitalRead<beLower>() == LOW) { 
-                theBytes[b0] = getDataByte<d0>(); 
+                theBytes[b0] = lower;
             } 
             if (digitalRead<beUpper>() == LOW) { 
-                theBytes[b1] = getDataByte<d1>(); 
+                theBytes[b1] = upper;
             } 
         } 
     }
@@ -1625,7 +1628,6 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[2] = value;
     dataLinesDirection_bytes[3] = value;
 }
-
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]

@@ -785,9 +785,8 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
 private:
     template<uint8_t d0, uint8_t b0, uint8_t d1, uint8_t b1, bool later>
     requires ((d0 == 0 && d1 == 1) || (d0 == 2 && d1 == 3))
-    [[gnu::noinline]]
-    //FORCE_INLINE
-    //inline
+    FORCE_INLINE
+    inline
     static 
     void performCommunicationSingle(DataRegister8 theBytes) noexcept {
         static constexpr Pin beLower = d0 == 0 ? Pin::BE0 : Pin::BE2;

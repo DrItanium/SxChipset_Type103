@@ -1,0 +1,90 @@
+GAL16V8
+BEDecoder
+
+NC BE0 BE1 BE2 BE3 BLAST NC NC NC GND
+NC NC  NC  NC  NC  NC    NC NC NC VCC
+
+
+
+DESCRIPTION
+
+All of the states are as follows:
+MSB -> LSB
+0b BLAST BE3 BE2 BE1 BE0
+0b00000 -> Full32 And Terminate
+0b00001 -> Upper24 And Terminate
+0b00010 -> Invalid 
+0b00011 -> Upper16 And Terminate
+0b00100 -> Invalid 
+0b00101 -> Invalid
+0b00110 -> Invalid
+0b00111 -> Highest8 And Terminate
+0b01000 -> Lower24 And Terminate
+0b01001 -> Middle16 And Terminate
+0b01010 -> Invalid
+0b01011 -> Higher8 And Terminate
+0b01100 -> Lower16 And Terminate
+0b01101 -> Lower8 And Terminate
+0b01110 -> Lowest8 And Terminate
+0b01111 -> Invalid
+
+0b10000 -> Full32 And Continue
+0b10001 -> Upper24 And Continue
+0b10010 -> Invalid 
+0b10011 -> Upper16 And Continue
+0b10100 -> Invalid 
+0b10101 -> Invalid
+0b10110 -> Invalid
+0b10111 -> Highest8 And Continue
+0b11000 -> Lower24 And Continue
+0b11001 -> Middle16 And Continue
+0b11010 -> Invalid
+0b11011 -> Higher8 And Continue
+0b11100 -> Lower16 And Continue
+0b11101 -> Lower8 And Continue
+0b11110 -> Lowest8 And Continue
+0b11111 -> Invalid
+
+For the 32-bit bus, the valid states are:
+MSB -> LSB
+0b BLAST BE3 BE2 BE1 BE0
+0b00011 -> Upper16 And Terminate (load/store single short)
+0b00111 -> Highest8 And Terminate (load/store single byte)
+0b01011 -> Higher8 And Terminate (load/store single byte)
+0b01001 -> Middle16 And Terminate (load/store single short, unaligned)
+0b01101 -> Lower8 And Terminate (load/store single byte)
+
+0b00000 -> Full32 And Terminate  (chain terminate, single st/ld operation)
+0b01000 -> Lower24 And Terminate (chain terminate only, unaligned)
+0b01100 -> Lower16 And Terminate (chain terminate (unaligned), single load/store single short)
+0b01110 -> Lowest8 And Terminate (chain terminate (unaligned), single load/store single byte)
+
+
+0b10000 -> Full32 And Continue (chain start, middle of chain)
+0b10001 -> Upper24 And Continue (chain start (unaligned))
+0b10011 -> Upper16 And Continue (chain start (unaligned))
+0b10111 -> Highest8 And Continue (chain start (unaligned))
+
+Total of 13 valid states
+
+
+
+
+
+For the 16-bit bus, the valid states are:
+MSB -> LSB
+0b BLAST BE3 BE2 BE1 BE0
+0b00111 -> Highest8 And Terminate (load/store single)
+0b01101 -> Lower8 And Terminate (load/store single)
+
+0b00011 -> Upper16 And Terminate (load/store single short, chain terminate)
+0b01011 -> Higher8 And Terminate (load/store single byte, chain terminate (unaligned))
+0b01100 -> Lower16 And Terminate (load/store single short, chain terminate (unaligned))
+0b01110 -> Lowest8 And Terminate (load/store single byte, chain terminate (unaligned))
+
+0b10011 -> Upper16 And Continue (chain start (unaligned), middle of chain)
+0b10111 -> Highest8 And Continue (chain start (unaligned))
+0b11100 -> Lower16 And Continue (chain start, middle of chain)
+0b11101 -> Lower8 And Continue (chain start (unaligned))
+
+Total of 10 valid states

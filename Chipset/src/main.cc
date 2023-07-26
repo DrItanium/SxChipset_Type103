@@ -867,7 +867,7 @@ public:
 #define HI(b0, b1, later, aligned) X(2, b0, 3, b1, later, aligned)
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
-        if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) {
+        if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) [[gnu::likely]] {
             LO(0, 1, false, true);
             HI(2, 3, true, true);
             LO(4, 5, true, true);

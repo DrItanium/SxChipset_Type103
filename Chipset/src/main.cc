@@ -198,14 +198,13 @@ FORCE_INLINE
 inline void 
 idleTransaction() noexcept {
     // just keep going until we are done
-LoopRestart:
+    while (true) {
         if (isBurstLast()) {
-            goto LoopDone;
+            signalReady<true>();
+            return;
         }
         signalReady<true>();
-        goto LoopRestart;
-LoopDone:
-    signalReady<true>();
+    }
 }
 template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {

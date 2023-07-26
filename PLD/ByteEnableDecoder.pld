@@ -1,10 +1,11 @@
 GAL16V8
 BEDecoder
 
-NC BE0 BE1 BE2 BE3 BLAST NC NC NC GND
-NC NC  NC  NC  NC  NC    NC NC NC VCC
+NC BE0   BE1 BE2 BE3 BLAST NC NC NC GND
+NC LO16  HI16  NC  NC  NC    NC NC NC VCC
 
-
+/LO16 = /BE0 * /BE1 * BE2 * BE3 + /BE0 * BE1 * BE2 * BE3 + BE0 * /BE1 * BE2 * BE3
+/HI16 = BE0 * BE1 * /BE2 * /BE3 + BE0 * BE1 * /BE2 * BE3 + BE0 * BE1 * BE2 * /BE3
 
 DESCRIPTION
 
@@ -207,4 +208,4 @@ W0    W1    W2    W3    W4    W5    W6    W7
 11101 10011 11100 10011 11100 10011 11100 00011 -> Load/store 120-bit value (unaligned) (0000000000000001)
 11100 10011 11100 10011 11100 10011 11100 00011 -> Load/store 128-bit value (aligned)   (0000000000000000)
 
-
+as far as I can tell, there are 60 unique combinations that represent every other possible combination

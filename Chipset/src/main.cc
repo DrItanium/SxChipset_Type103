@@ -1526,15 +1526,6 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[2] = value;
     dataLinesDirection_bytes[3] = value;
 }
-template<uint8_t value>
-[[gnu::always_inline]]
-inline 
-void
-changeDirectionAndUpdate() noexcept {
-    updateDataLinesDirection<value>();
-    // update the direction pin 
-    toggle<Pin::DirectionOutput>();
-}
 
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
@@ -1573,7 +1564,9 @@ ReadOperationStart:
     // check to see if we need to change directions
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
-        changeDirectionAndUpdate<0>();
+        updateDataLinesDirection<0>();
+        // update the direction pin 
+        toggle<Pin::DirectionOutput>();
         // then jump into the write loop
         goto WriteOperationBypass;
     }
@@ -1589,7 +1582,9 @@ WriteOperationStart:
     // check to see if we need to change directions
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change data lines to be output since we are doing write -> read
-        changeDirectionAndUpdate<0xFF>();
+        updateDataLinesDirection<0xFF>();
+        // update the direction pin
+        toggle<Pin::DirectionOutput>();
         // jump to the read loop
         goto ReadOperationBypass;
     } 

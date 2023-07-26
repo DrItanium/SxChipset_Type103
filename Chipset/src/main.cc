@@ -828,7 +828,6 @@ public:
     inline
     static void
     doCommunication() noexcept {
-        //const uint16_t al = addressLinesLowerHalf;
         auto theBytes = getTransactionWindow(); 
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
@@ -896,6 +895,11 @@ public:
 Done:
         signalReady<true>();
     }
+#define I960_Signal_Switch \
+    if (isBurstLast()) { \
+        break; \
+    } \
+    signalReady<true>()
 
 FORCE_INLINE 
 inline 
@@ -905,37 +909,25 @@ static void doIO() noexcept {
                         if constexpr (isReadOperation) { 
                             dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);
                         } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 2: { 
                         if constexpr (isReadOperation) { 
                             dataLinesHalves[1] = static_cast<uint16_t>((F_CPU) >> 16);
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 4: { 
                         if constexpr (isReadOperation) { 
                             dataLinesHalves[0] = static_cast<uint16_t>(F_CPU / 2);
                         } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 6: { 
                         if constexpr (isReadOperation) { 
                             dataLinesHalves[1] = static_cast<uint16_t>((F_CPU / 2) >> 16);
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 8: { 
                         /* Serial RW connection */
@@ -946,19 +938,13 @@ static void doIO() noexcept {
                             // enable lines
                             Serial.write(static_cast<uint8_t>(getDataByte<0>()));
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 10: {
                          if constexpr (isReadOperation) { 
                              dataLinesHalves[1] = 0;
                          } 
-                         if (isBurstLast()) { 
-                             break; 
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 12: { 
                          /* OCRnC */ 
@@ -967,10 +953,7 @@ static void doIO() noexcept {
                          } else { 
                              Serial.flush();
                          } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 14: { 
                         /* nothing to do on writes but do update the data port
@@ -994,10 +977,7 @@ static void doIO() noexcept {
                                 timer1.TCCRxB = getDataByte<1>();
                             } 
                         } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 0x10 + 2: { 
                         /* TCCRnC and Reserved (ignore that) */ 
@@ -1009,10 +989,7 @@ static void doIO() noexcept {
                                 timer1.TCCRxC = getDataByte<2>();
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 0x10 + 4: { 
                         /* TCNTn should only be accessible if you do a full 16-bit
@@ -1032,10 +1009,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x10 + 6: { 
                         /* ICRn should only be accessible if you do a full 16-bit
@@ -1055,10 +1029,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x10 + 8: { 
                         /* OCRnA should only be accessible if you do a full 16-bit write */ 
@@ -1076,10 +1047,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x10 + 10: {
                          /* OCRnB */ 
@@ -1097,10 +1065,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                              } 
                          } 
-                         if (isBurstLast()) { 
-                             break; 
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 0x10 + 12: { 
                          /* OCRnC */ 
@@ -1118,10 +1083,7 @@ static void doIO() noexcept {
                                   interrupts(); 
                               }
                          } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 0x10 + 14: { 
                         /* nothing to do on writes but do update the data port
@@ -1146,10 +1108,7 @@ static void doIO() noexcept {
                                 timer3.TCCRxB = getDataByte<1>();
                             } 
                         } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 0x20 + 2: { 
                         /* TCCRnC and Reserved (ignore that) */ 
@@ -1161,10 +1120,7 @@ static void doIO() noexcept {
                                 timer3.TCCRxC = getDataByte<2>();
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 0x20 + 4: { 
                         /* TCNTn should only be accessible if you do a full 16-bit
@@ -1184,10 +1140,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x20 + 6: { 
                         /* ICRn should only be accessible if you do a full 16-bit
@@ -1207,10 +1160,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x20 + 8: { 
                         /* OCRnA should only be accessible if you do a full 16-bit write */ 
@@ -1228,10 +1178,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x20 + 10: {
                          /* OCRnB */ 
@@ -1249,10 +1196,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                              } 
                          } 
-                         if (isBurstLast()) { 
-                             break; 
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 0x20 + 12: { 
                          /* OCRnC */ 
@@ -1270,10 +1214,7 @@ static void doIO() noexcept {
                                   interrupts(); 
                               }
                          } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 0x20 + 14: { 
                         /* nothing to do on writes but do update the data port
@@ -1298,10 +1239,7 @@ static void doIO() noexcept {
                                 timer4.TCCRxB = getDataByte<1>();
                             } 
                         } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 0x30 + 2: { 
                         /* TCCRnC and Reserved (ignore that) */ 
@@ -1313,10 +1251,7 @@ static void doIO() noexcept {
                                 timer4.TCCRxC = getDataByte<2>();
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 0x30 + 4: { 
                         /* TCNTn should only be accessible if you do a full 16-bit
@@ -1336,10 +1271,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x30 + 6: { 
                         /* ICRn should only be accessible if you do a full 16-bit
@@ -1359,10 +1291,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x30 + 8: { 
                         /* OCRnA should only be accessible if you do a full 16-bit write */ 
@@ -1380,10 +1309,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x30 + 10: {
                          /* OCRnB */ 
@@ -1401,10 +1327,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                              } 
                          } 
-                         if (isBurstLast()) { 
-                             break; 
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 0x30 + 12: { 
                          /* OCRnC */ 
@@ -1422,10 +1345,7 @@ static void doIO() noexcept {
                                   interrupts(); 
                               }
                          } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 0x30 + 14: { 
                         /* nothing to do on writes but do update the data port
@@ -1450,10 +1370,7 @@ static void doIO() noexcept {
                                 timer5.TCCRxB = getDataByte<1>();
                             } 
                         } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 0x40 + 2: { 
                         /* TCCRnC and Reserved (ignore that) */ 
@@ -1465,10 +1382,7 @@ static void doIO() noexcept {
                                 timer5.TCCRxC = getDataByte<2>();
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 0x40 + 4: { 
                         /* TCNTn should only be accessible if you do a full 16-bit
@@ -1488,10 +1402,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x40 + 6: { 
                         /* ICRn should only be accessible if you do a full 16-bit
@@ -1511,10 +1422,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x40 + 8: { 
                         /* OCRnA should only be accessible if you do a full 16-bit write */ 
@@ -1532,10 +1440,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                             } 
                         } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
+                        I960_Signal_Switch;
                     } 
             case 0x40 + 10: {
                          /* OCRnB */ 
@@ -1553,10 +1458,7 @@ static void doIO() noexcept {
                                 interrupts(); 
                              } 
                          } 
-                         if (isBurstLast()) { 
-                             break; 
-                         } 
-                         signalReady<true>(); 
+                         I960_Signal_Switch;
                      } 
             case 0x40 + 12: { 
                          /* OCRnC */ 
@@ -1574,10 +1476,7 @@ static void doIO() noexcept {
                                   interrupts(); 
                               }
                          } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
+                         I960_Signal_Switch;
                      } 
             case 0x40 + 14: { 
                         /* nothing to do on writes but do update the data port
@@ -1597,6 +1496,7 @@ static void doIO() noexcept {
         } 
         signalReady<true>(); 
 }
+#undef I960_Signal_Switch
 FORCE_INLINE
 inline
 static

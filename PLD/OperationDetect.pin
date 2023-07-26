@@ -18,7 +18,7 @@
   14   | NC       | NC
   15   | NC       | NC
   16   | NC       | NC
-  17   | SPECIAL  | Output
+  17   | NC       | NC
   18   | SW       | Output
   19   | IO       | Output
   20   | VCC      | VCC

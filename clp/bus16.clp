@@ -1,5 +1,16 @@
 ; responsible for generating all possible legal 16-bit bus states (as individual letters)
-
+(deftemplate group-properties
+             (slot title 
+                   (type SYMBOL)
+                   (default ?NONE))
+             (slot max-length
+                   (type INTEGER)
+                   (range 0 ?VARIABLE)
+                   (default ?NONE))
+             (slot max-size
+                   (type INTEGER)
+                   (range 0 ?VARIABLE)
+                   (default-dynamic 128)))
 (deftemplate node
              (slot group
                    (type SYMBOL)
@@ -50,7 +61,8 @@
           (defnode bus16 TRUE FALSE)
           (defnode bus16 FALSE TRUE)
           (defnode bus16 TRUE TRUE)
-          (max-path-length bus16 8)
+          (group-properties (title bus16)
+                            (max-length 8))
           (defnode bus32 TRUE  FALSE FALSE FALSE)
           (defnode bus32 FALSE TRUE  FALSE FALSE)
           (defnode bus32 FALSE FALSE TRUE  FALSE)
@@ -61,7 +73,28 @@
           (defnode bus32 TRUE TRUE TRUE FALSE)
           (defnode bus32 FALSE TRUE TRUE TRUE)
           (defnode bus32 TRUE TRUE TRUE TRUE)
-          (max-path-length bus32 4)
+          (group-properties (title bus32)
+                            (max-length 4))
+
+          (defnode bus64 TRUE  TRUE  FALSE FALSE FALSE FALSE FALSE FALSE)
+          (defnode bus64 FALSE FALSE TRUE  TRUE  FALSE FALSE FALSE FALSE)
+          (defnode bus64 FALSE FALSE FALSE FALSE TRUE  TRUE  FALSE FALSE)
+          (defnode bus64 FALSE FALSE FALSE FALSE FALSE FALSE TRUE  TRUE )
+          (defnode bus64 TRUE  TRUE  TRUE TRUE FALSE FALSE FALSE FALSE)
+          (defnode bus64 FALSE FALSE FALSE FALSE TRUE  TRUE  TRUE TRUE)
+          (defnode bus64 TRUE  TRUE  TRUE TRUE TRUE TRUE TRUE TRUE)
+          (defnode bus64 FALSE TRUE  TRUE TRUE TRUE TRUE TRUE TRUE)
+          (defnode bus64 TRUE  TRUE TRUE TRUE TRUE TRUE TRUE FALSE)
+          (defnode bus64 TRUE  FALSE FALSE FALSE FALSE FALSE FALSE FALSE)
+          (defnode bus64 FALSE TRUE  FALSE FALSE FALSE FALSE FALSE FALSE)
+          (defnode bus64 FALSE FALSE TRUE  FALSE FALSE FALSE FALSE FALSE)
+          (defnode bus64 FALSE FALSE FALSE TRUE  FALSE FALSE FALSE FALSE)
+          (defnode bus64 FALSE FALSE FALSE FALSE TRUE  FALSE FALSE FALSE)
+          (defnode bus64 FALSE FALSE FALSE FALSE FALSE TRUE  FALSE FALSE)
+          (defnode bus64 FALSE FALSE FALSE FALSE FALSE FALSE TRUE  FALSE)
+          (defnode bus64 FALSE FALSE FALSE FALSE FALSE FALSE FALSE TRUE )
+          (group-properties (title bus64)
+                            (max-length 2))
           )
 
 (defrule make-node
@@ -125,8 +158,8 @@
          (node (title ?next)
                (group ?group)
                (width ?cost))
-         (max-path-length ?group 
-                          ?length)
+         (group-properties (title ?group)
+                           (max-length ?length))
          (test (< (+ (length$ ?before)
                      1)
                   ?length))

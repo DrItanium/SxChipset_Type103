@@ -10,6 +10,26 @@
              (slot width
                    (type INTEGER)
                    (range 0 ?VARIABLE)
+                   (default ?NONE))
+             (slot link-to-next
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot continue-from-prev 
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot be0
+                   (type SYMBOL)
+                   (allowed-symbols FALSE
+                                    TRUE)
+                   (default ?NONE))
+             (slot be1
+                   (type SYMBOL)
+                   (allowed-symbols FALSE
+                                    TRUE)
                    (default ?NONE)))
 (deftemplate transition
              (slot group
@@ -32,68 +52,38 @@
              (multislot contents
                         (default ?NONE)))
 (deffacts bus16-states
-          (defnode bus16 A 8)
-          (defnode bus16 B 8)
-          (defnode bus16 C 8)
-          (defnode bus16 D 8)
-          (defnode bus16 E 16)
-          (defnode bus16 F 16)
-          (defstate bus16 B -> F)
-          (defstate bus16 B -> C)
-          (defstate bus16 D -> E)
-          (defstate bus16 D -> A)
-          (defstate bus16 E -> F)
-          (defstate bus16 E -> C)
-          (defstate bus16 F -> E)
-          (defstate bus16 F -> A)
+          (defnode bus16 A 8 TRUE FALSE)
+          (defnode bus16 B 8 FALSE TRUE)
+          (defnode bus16 C 16 TRUE TRUE)
           (max-path-length bus16 8))
-(deffacts bus32-states
-          (defnode bus32 A 8)
-          (defnode bus32 B 8)
-          (defnode bus32 C 8)
-          (defnode bus32 D 8)
-          (defnode bus32 E 16)
-          (defnode bus32 F 16)
-          (defnode bus32 G 32)
-          (defnode bus32 H 16)
-          (defnode bus32 I 24)
-          (defnode bus32 J 24)
-          (defstate bus32 D -> A)
-          (defstate bus32 D -> E)
-          (defstate bus32 D -> I)
-          (defstate bus32 D -> G)
-
-          (defstate bus32 F -> A)
-          (defstate bus32 F -> E)
-          (defstate bus32 F -> I)
-          (defstate bus32 F -> G)
-
-          (defstate bus32 G -> A)
-          (defstate bus32 G -> E)
-          (defstate bus32 G -> I)
-          (defstate bus32 G -> G)
-
-          (defstate bus32 J -> A)
-          (defstate bus32 J -> E)
-          (defstate bus32 J -> I)
-          (defstate bus32 J -> G)
-
-          (max-path-length bus32 4))
 
 (defrule make-node
          (declare (salience 10000))
-         ?f <- (defnode ?group ?name ?cost)
+         ?f <- (defnode ?group ?name ?cost ?be0 ?be1)
          =>
          (retract ?f)
          (assert (node (group ?group)
                        (title ?name)
-                       (width ?cost))))
+                       (width ?cost)
+                       (be0 ?be0)
+                       (be1 ?be1)
+                       (link-to-next ?be1)
+                       (continue-from-prev ?be0))))
+
+(defrule make-custom-transition
+         (node (group ?group)
+               (title ?from)
+               (link-to-next TRUE))
+         (node (group ?group)
+               (title ?to)
+               (continue-from-prev TRUE))
+         =>
+         (assert (defstate ?group ?from -> ?to)))
 
 (defrule make-transition
          (declare (salience 10000))
-         ?f <- (defstate ?group ?from -> ?to)
+         (defstate ?group ?from -> ?to)
          =>
-         (retract ?f)
          (assert (transition (group ?group)
                              (from ?from)
                              (to ?to))))

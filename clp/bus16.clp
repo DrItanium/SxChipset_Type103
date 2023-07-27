@@ -1,6 +1,9 @@
 ; responsible for generating all possible legal 16-bit bus states (as individual letters)
 
 (deftemplate node
+             (slot group
+                   (type SYMBOL)
+                   (default ?NONE))
              (slot title
                    (type SYMBOL)
                    (default ?NONE))
@@ -9,64 +12,108 @@
                    (range 0 ?VARIABLE)
                    (default ?NONE)))
 (deftemplate transition
+             (slot group
+                   (type SYMBOL)
+                   (default ?NONE))
              (slot from
                    (type SYMBOL)
                    (default ?NONE))
              (slot to
                    (type SYMBOL)
                    (default ?NONE)))
-(deffacts bus-states
-          ;(defnode nil 0)
-          (defnode A 8)
-          (defnode B 8)
-          (defnode C 8)
-          (defnode D 8)
-          (defnode E 16)
-          (defnode F 16)
-          ;(defstate A -> nil)
-          ;(defstate B -> nil)
-          (defstate B -> F)
-          (defstate B -> C)
-          ;(defstate C -> nil)
-          ;(defstate D -> nil)
-          (defstate D -> E)
-          (defstate D -> A)
-          ;(defstate E -> nil)
-          (defstate E -> F)
-          (defstate E -> C)
-          ;(defstate F -> nil)
-          (defstate F -> E)
-          (defstate F -> A)
-          (max-path-length 8))
+(deftemplate path
+             (slot group
+                   (type SYMBOL)
+                   (default ?NONE))
+             (multislot contents
+                        (default ?NONE)))
+(deffacts bus16-states
+          (defnode bus16 A 8)
+          (defnode bus16 B 8)
+          (defnode bus16 C 8)
+          (defnode bus16 D 8)
+          (defnode bus16 E 16)
+          (defnode bus16 F 16)
+          (defstate bus16 B -> F)
+          (defstate bus16 B -> C)
+          (defstate bus16 D -> E)
+          (defstate bus16 D -> A)
+          (defstate bus16 E -> F)
+          (defstate bus16 E -> C)
+          (defstate bus16 F -> E)
+          (defstate bus16 F -> A)
+          (max-path-length bus16 8))
+(deffacts bus32-states
+          (defnode bus32 A 8)
+          (defnode bus32 B 8)
+          (defnode bus32 C 8)
+          (defnode bus32 D 8)
+          (defnode bus32 E 16)
+          (defnode bus32 F 16)
+          (defnode bus32 G 32)
+          (defnode bus32 H 16)
+          (defnode bus32 I 24)
+          (defnode bus32 J 24)
+          (defstate bus32 D -> A)
+          (defstate bus32 D -> E)
+          (defstate bus32 D -> I)
+          (defstate bus32 D -> G)
+
+          (defstate bus32 F -> A)
+          (defstate bus32 F -> E)
+          (defstate bus32 F -> I)
+          (defstate bus32 F -> G)
+
+          (defstate bus32 G -> A)
+          (defstate bus32 G -> E)
+          (defstate bus32 G -> I)
+          (defstate bus32 G -> G)
+
+          (defstate bus32 J -> A)
+          (defstate bus32 J -> E)
+          (defstate bus32 J -> I)
+          (defstate bus32 J -> G)
+
+          (max-path-length bus32 4))
 
 (defrule make-node
          (declare (salience 10000))
-         ?f <- (defnode ?name ?cost)
+         ?f <- (defnode ?group ?name ?cost)
          =>
          (retract ?f)
-         (assert (node (title ?name)
+         (assert (node (group ?group)
+                       (title ?name)
                        (width ?cost))))
 
 (defrule make-transition
          (declare (salience 10000))
-         ?f <- (defstate ?from -> ?to)
+         ?f <- (defstate ?group ?from -> ?to)
          =>
          (retract ?f)
-         (assert (transition (from ?from)
+         (assert (transition (group ?group)
+                             (from ?from)
                              (to ?to))))
 
 (defrule generate-initial-path
-         ?f <- (node (title ?name))
+         ?f <- (node (title ?name)
+                     (group ?group))
          =>
-         (assert (path ?name)))
-(defrule walk-path
-         (path $?before ?curr)
-         (transition (from ?curr)
-                     (to ?next))
-         (max-path-length ?length)
-         (test (<= (+ (length$ ?before)
-                      1)
-                   ?length))
-         =>
-         (assert (path $?before ?curr ?next)))
+         (assert (path (group ?group)
+                       (contents ?name))))
 
+(defrule walk-path
+         ?f <- (path (group ?group)
+                     (contents $?before ?curr))
+         (transition (group ?group)
+                     (from ?curr)
+                     (to ?next))
+         (max-path-length ?group 
+                          ?length)
+         (test (< (+ (length$ ?before)
+                     1)
+                  ?length))
+         =>
+         (duplicate ?f 
+                    (contents $?before
+                              ?curr
+                              ?next)))

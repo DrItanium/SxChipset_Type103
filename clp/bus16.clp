@@ -77,9 +77,6 @@
           (defnode bus32 TRUE  TRUE  TRUE  TRUE)
           (group-properties (title bus32)
                             (max-length 4))
-          (combine bus16 and bus16 to generate bus16.32)
-          (group-properties (title bus16.32)
-                            (max-length 8))
           )
 
 (defrule make-node
@@ -156,10 +153,3 @@
                     (contents $?before
                               ?curr
                               ?next)))
-
-(defrule combine-two-groups
-         (combine ?p0 and ?p1 to generate ?new-name)
-         (defnode ?p0 $?first)
-         (defnode ?p1 $?second)
-         =>
-         (assert (defnode-combination ?new-name ?first + ?second)))

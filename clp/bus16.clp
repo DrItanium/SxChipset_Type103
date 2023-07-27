@@ -21,16 +21,11 @@
                    (allowed-symbols UNKNOWN
                                     FALSE
                                     TRUE))
-             (slot be0
-                   (type SYMBOL)
-                   (allowed-symbols FALSE
-                                    TRUE)
-                   (default ?NONE))
-             (slot be1
-                   (type SYMBOL)
-                   (allowed-symbols FALSE
-                                    TRUE)
-                   (default ?NONE)))
+             (multislot byte-enable-bits
+                        (type SYMBOL)
+                        (allowed-symbols FALSE
+                                         TRUE)
+                        (default ?NONE)))
 (deftemplate transition
              (slot group
                    (type SYMBOL)
@@ -51,26 +46,48 @@
                    (default ?NONE))
              (multislot contents
                         (default ?NONE)))
-(deffacts bus16-states
-          (defnode bus16 A 8 TRUE FALSE)
-          (defnode bus16 B 8 FALSE TRUE)
-          (defnode bus16 C 16 TRUE TRUE)
-          (max-path-length bus16 8))
+(deffacts states
+          (defnode bus16 TRUE FALSE)
+          (defnode bus16 FALSE TRUE)
+          (defnode bus16 TRUE TRUE)
+          (max-path-length bus16 8)
+          (defnode bus32 TRUE  FALSE FALSE FALSE)
+          (defnode bus32 FALSE TRUE  FALSE FALSE)
+          (defnode bus32 FALSE FALSE TRUE  FALSE)
+          (defnode bus32 FALSE FALSE FALSE TRUE)
+          (defnode bus32 TRUE TRUE FALSE FALSE)
+          (defnode bus32 FALSE FALSE TRUE TRUE)
+          (defnode bus32 FALSE TRUE TRUE FALSE)
+          (defnode bus32 TRUE TRUE TRUE FALSE)
+          (defnode bus32 FALSE TRUE TRUE TRUE)
+          (defnode bus32 TRUE TRUE TRUE TRUE)
+          (max-path-length bus32 4)
+          )
 
 (defrule make-node
          (declare (salience 10000))
-         ?f <- (defnode ?group ?name ?cost ?be0 ?be1)
+         ?f <- (defnode ?group ?cont $?middle ?end)
          =>
          (retract ?f)
+         (bind ?size 
+               (+ (if ?cont then 8 else 0)
+                  (if ?end then 8 else 0)))
+         (progn$ (?v ?middle)
+                 (bind ?size
+                       (+ ?size
+                          (if ?v then 8 else 0))))
+         
          (assert (node (group ?group)
-                       (title ?name)
-                       (width ?cost)
-                       (be0 ?be0)
-                       (be1 ?be1)
-                       (link-to-next ?be1)
-                       (continue-from-prev ?be0))))
+                       (title (gensym*))
+                       (width ?size)
+                       (byte-enable-bits ?cont 
+                                         $?middle 
+                                         ?end)
+                       (link-to-next ?end)
+                       (continue-from-prev ?cont))))
 
 (defrule make-custom-transition
+         (declare (salience 10000))
          (node (group ?group)
                (title ?from)
                (link-to-next TRUE))
@@ -82,8 +99,9 @@
 
 (defrule make-transition
          (declare (salience 10000))
-         (defstate ?group ?from -> ?to)
+         ?f <- (defstate ?group ?from -> ?to)
          =>
+         (retract ?f)
          (assert (transition (group ?group)
                              (from ?from)
                              (to ?to))))

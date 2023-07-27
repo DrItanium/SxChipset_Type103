@@ -1,13 +1,23 @@
 GAL16V8
 BEDecoder
 
-NC BE0   BE1 BE2 BE3 BLAST NC NC NC GND
-NC LO16  HI16  NC  NC  NC    NC NC NC VCC
+NC BE0   BE1   BE2   BE3   BLAST A3 A2 A1 GND
+NC AL16  DONE  LO16  HI16  NC    NC NC NC VCC
 
-/LO16 = /BE0 * /BE1 * BE2 * BE3 + /BE0 * BE1 * BE2 * BE3 + BE0 * /BE1 * BE2 * BE3
-/HI16 = BE0 * BE1 * /BE2 * /BE3 + BE0 * BE1 * /BE2 * BE3 + BE0 * BE1 * BE2 * /BE3
+/LO16 = /BE0 * /BE1
+/HI16 = /BE2 * /BE3
+/AL16 = /BE0 * /BE1 * BE2 * BE3 + /BE0 * BE1 * BE2 * BE3 + BE0 * /BE1 * BE2 * BE3
+/DONE = /BE0 * BE1 + /BE2 * BE3 + /BLAST
 
 DESCRIPTION
+
+This GAL takes in all of the byte enable signals and uses it to figure out different information 
+about the state of the transaction. For example, we want to know if the given byte enable is upper 
+or lower on starting execution. At least for a 16-bit data bus. A given transaction is aligned if 
+it starts off on the lower 16-bits instead of the upper 16-bits. This important to "align" the 
+chipset to start on the upper or lower parts of the CH351 used for data communication.
+
+The rest of this documentation is about the different data transaction states and all posibilities
 
 All of the states are as follows:
 MSB -> LSB
@@ -45,6 +55,92 @@ MSB -> LSB
 0b11101 -> Lower8 And Continue
 0b11110 -> Lowest8 And Continue
 0b11111 -> Invalid
+
+
+For the 16-bit bus, the valid states are:
+MSB -> LSB
+0b BLAST BE3 BE2 BE1 BE0
+0b00111 -> Highest8 And Terminate (load/store single)
+0b01101 -> Lower8 And Terminate (load/store single)
+
+0b00011 -> Upper16 And Terminate (load/store single short, chain terminate)
+0b01011 -> Higher8 And Terminate (load/store single byte, chain terminate (unaligned))
+0b01100 -> Lower16 And Terminate (load/store single short, chain terminate (unaligned))
+0b01110 -> Lowest8 And Terminate (load/store single byte, chain terminate (unaligned))
+
+0b10011 -> Upper16 And Continue (chain start (unaligned), middle of chain)
+0b10111 -> Highest8 And Continue (chain start (unaligned))
+0b11100 -> Lower16 And Continue (chain start, middle of chain)
+0b11101 -> Lower8 And Continue (chain start (unaligned))
+
+Total of 10 valid states
+
+There are a maximum of eight words per transaction here, but remember that only
+BE0/1 or BE2/3 are active at any given time! The 16-bit data bus is transformed
+into a 32-bit data bus through some hackery. So some of the rules for 32-bit
+busses do not apply or are different!
+
+W0    W1    W2    W3    W4    W5    W6    W7
+01110 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> lowest 8-bit (aligned)    (1111111111111110) (done) [A]
+01101 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> lower 8-bit (aligned)     (1111111111111101) (unaligned scan) [B]
+01011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> higher 8-bit (aligned)    (1111111111111011) (done) [C]
+00111 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> highest 8-bit (aligned)   (1111111111110111) (unaligned scan) [D]
+01100 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> lower 16-bit (aligned)    (1111111111111100) (aligned scan) [E]
+11101 01011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> middle 16-bit (unaligned) (1111111111111001) (start) [BC]
+00011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> upper 16-bit (aligned)    (1111111111110011) (aligned scan) [F]
+10111 01110 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> 16-bit (unaligned)        (1111111111100111) (start) [DA]
+11100 01011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> 24-bit (unaligned)        (1111111111111000) (start, continue) [EC]
+11101 00011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> 24-bit (unaligned)        (1111111111110001) (start) [BF]
+10011 01110 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> 24-bit (unaligned)        (1111111111100011) (start) [FA]
+10111 01100 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> 24-bit (unaligned)        (1111111111000111) (start) [DE]
+11100 00011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> 32-bit (aligned)          (1111111111110000) (start, continue) [EF]
+11101 10011 01110 xxxxx xxxxx xxxxx xxxxx xxxxx -> 32-bit (unaligned)        (1111111111100001) (start)
+10011 01100 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> 32-bit (unaligned)        (1111111111000011) (start)
+10111 11100 01011 xxxxx xxxxx xxxxx xxxxx xxxxx -> 32-bit (unaligned)        (1111111110000111) (start)
+11100 10011 01110 xxxxx xxxxx xxxxx xxxxx xxxxx -> 40-bit (unaligned)        (1111111111100000) (start, continue)
+11101 10011 01100 xxxxx xxxxx xxxxx xxxxx xxxxx -> 40-bit (unaligned)        (1111111111000001) (start)
+10011 11100 01110 xxxxx xxxxx xxxxx xxxxx xxxxx -> 40-bit (unaligned)        (1111111110000011) (start)
+10111 11100 01100 xxxxx xxxxx xxxxx xxxxx xxxxx -> 40-bit (unaligned)        (1111111100000111) (start)
+11100 10011 01100 xxxxx xxxxx xxxxx xxxxx xxxxx -> 48-bit (unaligned)        (1111111111000000) (start, continue)
+11101 10011 11100 01110 xxxxx xxxxx xxxxx xxxxx -> 48-bit (unaligned)        (1111111110000001) (start)
+10011 11100 00011 xxxxx xxxxx xxxxx xxxxx xxxxx -> 48-bit (unaligned)        (1111111100000011) (start)
+10111 11100 10011 01110 xxxxx xxxxx xxxxx xxxxx -> 48-bit (unaligned)        (1111111000000111) (start)
+11100 10011 11100 01011 xxxxx xxxxx xxxxx xxxxx -> 56-bit (unaligned)        (1111111110000000) (start, continue)
+11101 10011 11100 01011 xxxxx xxxxx xxxxx xxxxx -> 56-bit (unaligned)        (1111111100000001) (start)
+10011 11100 10011 01110 xxxxx xxxxx xxxxx xxxxx -> 56-bit (unaligned)        (1111111000000011) (start)
+10111 11100 10011 01100 xxxxx xxxxx xxxxx xxxxx -> 56-bit (unaligned)        (1111110000000111) (start)
+11100 10011 11100 00011 xxxxx xxxxx xxxxx xxxxx -> 64-bit (aligned)          (1111111100000000) (start, continue) [EFEF]
+11101 10011 11100 10011 01110 xxxxx xxxxx xxxxx -> 64-bit (unaligned)        (1111111000000001) (start)
+10011 11100 10011 01100 xxxxx xxxxx xxxxx xxxxx -> 64-bit (unaligned)        (1111110000000011) (start) [FEFE]
+10111 11100 10011 11100 01011 xxxxx xxxxx xxxxx -> 64-bit (unaligned)        (1111100000000111) (start)
+11100 10011 11100 10011 01110 xxxxx xxxxx xxxxx -> 72-bit (unaligned)        (1111111000000000) (start, continue)
+11101 10011 11100 10011 01100 xxxxx xxxxx xxxxx -> 72-bit (unaligned)        (1111110000000001) (start)
+10011 11100 10011 11100 01011 xxxxx xxxxx xxxxx -> 72-bit (unaligned)        (1111100000000011) (start)
+10111 11100 10011 11100 00011 xxxxx xxxxx xxxxx -> 72-bit (unaligned)        (1111000000000111) (start)
+11100 10011 11100 10011 01100 xxxxx xxxxx xxxxx -> 80-bit (unaligned)        (1111110000000000) (start, continue)
+11101 10011 11100 10011 11100 01011 xxxxx xxxxx -> 80-bit (unaligned)        (1111100000000001) (start)
+10011 11100 10011 11100 10011 01100 xxxxx xxxxx -> 80-bit (unaligned)        (1111000000000011) (start)
+10111 11100 10011 11100 10011 11100 01110 xxxxx -> 80-bit (unaligned)        (1110000000000111) (start)
+11100 10011 11100 10011 11100 01011 xxxxx xxxxx -> 88-bit (unaligned)        (1111100000000000) (start, continue)
+11101 10011 11100 10011 11100 00011 xxxxx xxxxx -> 88-bit (unaligned)        (1111000000000001) (start)
+10011 11100 10011 11100 10011 01110 xxxxx xxxxx -> 88-bit (unaligned)        (1110000000000011) (start) [FEFEFA]
+10111 11100 10011 11100 10011 01100 xxxxx xxxxx -> 88-bit (unaligned)        (1100000000000111) (start) [DEFEFE]
+11100 10011 11100 10011 11100 00011 xxxxx xxxxx -> 96-bit (aligned)          (1111000000000000) (start, continue) [EFEFEF]
+11101 10011 11100 10011 11100 10011 01110 xxxxx -> 96-bit (unaligned)        (1110000000000001) (start) [BFEFEFA]
+10011 11100 10011 11100 10011 01100 xxxxx xxxxx -> 96-bit (unaligned)        (1100000000000011) (start) [FEFEFE]
+10111 11100 10011 11100 10011 11100 01011 xxxxx -> 96-bit (unaligned)        (1000000000000111) (start) [DEFEFEC]
+11100 10011 11100 10011 11100 10011 01110 xxxxx -> 104-bit (unaligned)       (1110000000000000) (start, continue) [EFEFEFA]
+11101 10011 11100 10011 11100 10011 01100 xxxxx -> 104-bit (unaligned)       (1100000000000001) (start) [BFEFEFE]
+10011 11100 10011 11100 10011 11100 01011 xxxxx -> 104-bit (unaligned)       (1000000000000011) (start) [FEFEFEC]
+10111 11100 10011 11100 10011 11100 00011 xxxxx -> 104-bit (unaligned)       (0000000000000111) (start) [DEFEFEF]
+11100 10011 11100 10011 11100 10011 01100 xxxxx -> 112-bit (unaligned)       (1100000000000000) (start, continue) [EFEFEFE]
+11101 10011 11100 10011 11100 10011 11100 01110 -> 112-bit (unaligned)       (1000000000000001) (start) [BFEFEFEA]
+10011 11100 10011 11100 10011 11100 10011 01100 -> 112-bit (unaligned)       (0000000000000011) (start) [FEFEFEFE]
+11100 10011 11100 10011 11100 10011 11100 01011 -> 120-bit (unaligned)       (1000000000000000) (start, continue) [EFEFEFEC]
+11101 10011 11100 10011 11100 10011 11100 00011 -> 120-bit (unaligned)       (0000000000000001) (start) [BFEFEFEF]
+11100 10011 11100 10011 11100 10011 11100 00011 -> 128-bit (aligned)         (0000000000000000) (start) [EFEFEFEF]
+
+as far as I can tell, there are 60 unique combinations that represent every other possible combination
 
 For the 32-bit bus, the valid states are:
 MSB -> LSB
@@ -124,88 +220,3 @@ rules:
 1) For the start of the chain, the most significant bit must be zero and be a contiguous chain of zeros (no 1s interspersed)
 2) For the end of the chain, the least significant bit must be zero and be a contiguous chain of zeros going from low to high
 3) All bytes in a word must be enabled to be considered a link in the chain
-
-For the 16-bit bus, the valid states are:
-MSB -> LSB
-0b BLAST BE3 BE2 BE1 BE0
-0b00111 -> Highest8 And Terminate (load/store single)
-0b01101 -> Lower8 And Terminate (load/store single)
-
-0b00011 -> Upper16 And Terminate (load/store single short, chain terminate)
-0b01011 -> Higher8 And Terminate (load/store single byte, chain terminate (unaligned))
-0b01100 -> Lower16 And Terminate (load/store single short, chain terminate (unaligned))
-0b01110 -> Lowest8 And Terminate (load/store single byte, chain terminate (unaligned))
-
-0b10011 -> Upper16 And Continue (chain start (unaligned), middle of chain)
-0b10111 -> Highest8 And Continue (chain start (unaligned))
-0b11100 -> Lower16 And Continue (chain start, middle of chain)
-0b11101 -> Lower8 And Continue (chain start (unaligned))
-
-Total of 10 valid states
-
-There are a maximum of eight words per transaction here, but remember that only
-BE0/1 or BE2/3 are active at any given time! The 16-bit data bus is transformed
-into a 32-bit data bus through some hackery. So some of the rules for 32-bit
-busses do not apply or are different!
-
-W0    W1    W2    W3    W4    W5    W6    W7
-01110 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store lowest 8-bit (aligned)    (1111111111111110) (done)
-01101 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store lower 8-bit (aligned)     (1111111111111101) (unaligned scan)
-01011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store higher 8-bit (aligned)    (1111111111111011) (done)
-00111 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store highest 8-bit (aligned)   (1111111111110111) (unaligned scan)
-01100 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store lower 16-bit (aligned)    (1111111111111100) (aligned scan)
-11101 01011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 16-bit (unaligned)        (1111111111111001) 
-00011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store upper 16-bit (aligned)	(1111111111110011) (aligned scan)
-10111 01110 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 16-bit (unaligned)        (1111111111100111) 
-11100 01011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 24-bit (unaligned)        (1111111111111000)
-11101 00011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 24-bit (unaligned)        (1111111111110001)
-10011 01110 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 24-bit (unaligned)        (1111111111100011)
-10111 01100 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 24-bit (unaligned)        (1111111111000111)
-11100 00011 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 32-bit value (aligned)    (1111111111110000)
-11101 10011 01110 xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 32-bit value (unaligned)  (1111111111100001)
-10011 01100 xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 32-bit value (unaligned)  (1111111111000011)
-10111 11100 01011 xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 32-bit value (unaligned)  (1111111110000111)
-11100 10011 01110 xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 40-bit value (unaligned)  (1111111111100000)
-11101 10011 01100 xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 40-bit value (unaligned)  (1111111111000001)
-10011 11100 01110 xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 40-bit value (unaligned)  (1111111110000011)
-10111 11100 01100 xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 40-bit value (unaligned)  (1111111100000111)
-11100 10011 01100 xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 48-bit value (unaligned)  (1111111111000000)
-11101 10011 11100 01110 xxxxx xxxxx xxxxx xxxxx -> Load/store 48-bit value (unaligned)  (1111111110000001)
-10011 11100 00011 xxxxx xxxxx xxxxx xxxxx xxxxx -> Load/store 48-bit value (unaligned)  (1111111100000011)
-10111 11100 10011 01110 xxxxx xxxxx xxxxx xxxxx -> Load/store 48-bit value (unaligned)  (1111111000000111)
-11100 10011 11100 01011 xxxxx xxxxx xxxxx xxxxx -> Load/store 56-bit value (unaligned)  (1111111110000000)
-11101 10011 11100 01011 xxxxx xxxxx xxxxx xxxxx -> Load/store 56-bit value (unaligned)  (1111111100000001)
-10011 11100 10011 01110 xxxxx xxxxx xxxxx xxxxx -> Load/store 56-bit value (unaligned)  (1111111000000011)
-10111 11100 10011 01100 xxxxx xxxxx xxxxx xxxxx -> Load/store 56-bit value (unaligned)  (1111110000000111)
-11100 10011 11100 00011 xxxxx xxxxx xxxxx xxxxx -> Load/store 64-bit value (aligned)    (1111111100000000)
-11101 10011 11100 10011 01110 xxxxx xxxxx xxxxx -> Load/store 64-bit value (unaligned)  (1111111000000001)
-10011 11100 10011 01100 xxxxx xxxxx xxxxx xxxxx -> Load/store 64-bit value (unaligned)  (1111110000000011)
-10111 11100 10011 11100 01011 xxxxx xxxxx xxxxx -> Load/store 64-bit value (unaligned)  (1111100000000111)
-11100 10011 11100 10011 01110 xxxxx xxxxx xxxxx -> Load/store 72-bit value (unaligned)  (1111111000000000)
-11101 10011 11100 10011 01100 xxxxx xxxxx xxxxx -> Load/store 72-bit value (unaligned)  (1111110000000001)
-10011 11100 10011 11100 01011 xxxxx xxxxx xxxxx -> Load/store 72-bit value (unaligned)  (1111100000000011)
-10111 11100 10011 11100 00011 xxxxx xxxxx xxxxx -> Load/store 72-bit value (unaligned)  (1111000000000111)
-11100 10011 11100 10011 01100 xxxxx xxxxx xxxxx -> Load/store 80-bit value (unaligned)  (1111110000000000)
-11101 10011 11100 10011 11100 01011 xxxxx xxxxx -> Load/store 80-bit value (unaligned)  (1111100000000001)
-10011 11100 10011 11100 10011 01100 xxxxx xxxxx -> Load/store 80-bit value (unaligned)  (1111000000000011)
-10111 11100 10011 11100 10011 11100 01110 xxxxx -> Load/store 80-bit value (unaligned)  (1110000000000111)
-11100 10011 11100 10011 11100 01011 xxxxx xxxxx -> Load/store 88-bit value (unaligned)  (1111100000000000)
-11101 10011 11100 10011 11100 00011 xxxxx xxxxx -> Load/store 88-bit value (unaligned)  (1111000000000001)
-10011 11100 10011 11100 10011 01110 xxxxx xxxxx -> Load/store 88-bit value (unaligned)  (1110000000000011)
-10111 11100 10011 11100 10011 01100 xxxxx xxxxx -> Load/store 88-bit value (unaligned)  (1100000000000111)
-11100 10011 11100 10011 11100 00011 xxxxx xxxxx -> Load/store 96-bit value (aligned)    (1111000000000000)
-11101 10011 11100 10011 11100 10011 01110 xxxxx -> Load/store 96-bit value (unaligned)  (1110000000000001)
-10011 11100 10011 11100 10011 01100 xxxxx xxxxx -> Load/store 96-bit value (unaligned)  (1100000000000011)
-10111 11100 10011 11100 10011 11100 01011 xxxxx -> Load/store 96-bit value (unaligned)  (1000000000000111)
-11100 10011 11100 10011 11100 10011 01110 xxxxx -> Load/store 104-bit value (unaligned) (1110000000000000)
-11101 10011 11100 10011 11100 10011 01100 xxxxx -> Load/store 104-bit value (unaligned) (1100000000000001)
-10011 11100 10011 11100 10011 11100 01011 xxxxx -> Load/store 104-bit value (unaligned) (1000000000000011)
-10111 11100 10011 11100 10011 11100 00011 xxxxx -> Load/store 104-bit value (unaligned) (0000000000000111)
-11100 10011 11100 10011 11100 10011 01100 xxxxx -> Load/store 112-bit value (unaligned) (1100000000000000)
-11101 10011 11100 10011 11100 10011 11100 01110 -> Load/store 112-bit value (unaligned) (1000000000000001)
-10011 11100 10011 11100 10011 11100 10011 01100 -> Load/store 112-bit value (unaligned) (0000000000000011)
-11100 10011 11100 10011 11100 10011 11100 01011 -> Load/store 120-bit value (unaligned) (1000000000000000)
-11101 10011 11100 10011 11100 10011 11100 00011 -> Load/store 120-bit value (unaligned) (0000000000000001)
-11100 10011 11100 10011 11100 10011 11100 00011 -> Load/store 128-bit value (aligned)   (0000000000000000)
-
-as far as I can tell, there are 60 unique combinations that represent every other possible combination

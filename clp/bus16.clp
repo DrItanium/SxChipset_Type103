@@ -22,6 +22,10 @@
                    (type SYMBOL)
                    (default ?NONE)))
 (deftemplate path
+             (slot width
+                   (type INTEGER)
+                   (range 0 ?VARIABLE)
+                   (default-dynamic 0))
              (slot group
                    (type SYMBOL)
                    (default ?NONE))
@@ -96,17 +100,23 @@
 
 (defrule generate-initial-path
          ?f <- (node (title ?name)
-                     (group ?group))
+                     (group ?group)
+                     (width ?width))
          =>
          (assert (path (group ?group)
-                       (contents ?name))))
+                       (contents ?name)
+                       (width ?width))))
 
 (defrule walk-path
          ?f <- (path (group ?group)
-                     (contents $?before ?curr))
+                     (contents $?before ?curr)
+                     (width ?width))
          (transition (group ?group)
                      (from ?curr)
                      (to ?next))
+         (node (title ?next)
+               (group ?group)
+               (width ?cost))
          (max-path-length ?group 
                           ?length)
          (test (< (+ (length$ ?before)
@@ -114,6 +124,9 @@
                   ?length))
          =>
          (duplicate ?f 
+                    (width (+ ?width ?cost))
                     (contents $?before
                               ?curr
                               ?next)))
+
+

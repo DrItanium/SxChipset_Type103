@@ -63,33 +63,24 @@
           (defnode bus16 TRUE TRUE)
           (group-properties (title bus16)
                             (max-length 8))
-          (defnode bus16.32 TRUE FALSE FALSE FALSE)
-          (defnode bus16.32 FALSE TRUE FALSE FALSE)
-          (defnode bus16.32 FALSE FALSE TRUE FALSE)
-          (defnode bus16.32 FALSE FALSE FALSE TRUE)
-          (defnode bus16.32 TRUE TRUE FALSE FALSE)
-          (defnode bus16.32 FALSE FALSE TRUE TRUE)
-          (group-properties (title bus16.32)
-                            (max-length 8))
           (defnode bus32 TRUE  FALSE FALSE FALSE)
           (defnode bus32 FALSE TRUE  FALSE FALSE)
           (defnode bus32 FALSE FALSE TRUE  FALSE)
           (defnode bus32 FALSE FALSE FALSE TRUE)
-          (defnode bus32 TRUE TRUE FALSE FALSE)
-          (defnode bus32 FALSE FALSE TRUE TRUE)
-          (defnode bus32 FALSE TRUE TRUE FALSE)
-          (defnode bus32 TRUE TRUE TRUE FALSE)
-          (defnode bus32 FALSE TRUE TRUE TRUE)
-          (defnode bus32 TRUE TRUE TRUE TRUE)
+          (defnode bus32 TRUE  TRUE  FALSE FALSE)
+          (defnode bus32 FALSE FALSE TRUE  TRUE)
+          (defnode bus32 FALSE TRUE  TRUE  FALSE)
+          (defnode bus32 TRUE  TRUE  TRUE  FALSE)
+          (defnode bus32 FALSE TRUE  TRUE  TRUE)
+          (defnode bus32 TRUE  TRUE  TRUE  TRUE)
           (group-properties (title bus32)
                             (max-length 4))
+          (map bus16 to bus32)
           )
 
 (defrule make-node
-         (declare (salience 10000))
-         ?f <- (defnode ?group ?cont $?middle ?end)
+         (defnode ?group ?cont $?middle ?end)
          =>
-         (retract ?f)
          (bind ?size 
                (+ (if ?cont then 8 else 0)
                   (if ?end then 8 else 0)))
@@ -108,7 +99,6 @@
                        (continue-from-prev ?cont))))
 
 (defrule make-custom-transition
-         (declare (salience 10000))
          (node (group ?group)
                (title ?from)
                (link-to-next TRUE))
@@ -119,18 +109,16 @@
          (assert (defstate ?group ?from -> ?to)))
 
 (defrule make-transition
-         (declare (salience 10000))
-         ?f <- (defstate ?group ?from -> ?to)
+         (defstate ?group ?from -> ?to)
          =>
-         (retract ?f)
          (assert (transition (group ?group)
                              (from ?from)
                              (to ?to))))
 
 (defrule generate-initial-path
-         ?f <- (node (title ?name)
-                     (group ?group)
-                     (width ?width))
+         (node (title ?name)
+               (group ?group)
+               (width ?width))
          =>
          (assert (path (group ?group)
                        (contents ?name)

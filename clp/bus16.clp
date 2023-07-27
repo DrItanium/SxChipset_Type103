@@ -6,11 +6,7 @@
              (slot max-length
                    (type INTEGER)
                    (range 0 ?VARIABLE)
-                   (default ?NONE))
-             (slot max-size
-                   (type INTEGER)
-                   (range 0 ?VARIABLE)
-                   (default-dynamic 128)))
+                   (default ?NONE)))
 (deftemplate node
              (slot group
                    (type SYMBOL)
@@ -36,7 +32,12 @@
                         (type SYMBOL)
                         (allowed-symbols FALSE
                                          TRUE)
-                        (default ?NONE)))
+                        (default ?NONE))
+             (slot valid
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE)))
 (deftemplate transition
              (slot group
                    (type SYMBOL)
@@ -61,6 +62,7 @@
           (defnode bus16 TRUE FALSE)
           (defnode bus16 FALSE TRUE)
           (defnode bus16 TRUE TRUE)
+          (defnode bus16 FALSE FALSE)
           (group-properties (title bus16)
                             (max-length 8))
           (defnode bus32 TRUE  FALSE FALSE FALSE)
@@ -75,7 +77,9 @@
           (defnode bus32 TRUE  TRUE  TRUE  TRUE)
           (group-properties (title bus32)
                             (max-length 4))
-          (map bus16 to bus32)
+          (combine bus16 and bus16 to generate bus16.32)
+          (group-properties (title bus16.32)
+                            (max-length 8))
           )
 
 (defrule make-node
@@ -84,14 +88,20 @@
          (bind ?size 
                (+ (if ?cont then 8 else 0)
                   (if ?end then 8 else 0)))
+         (bind ?is-valid
+               (or ?cont
+                   ?end))
          (progn$ (?v ?middle)
+                 (bind ?is-valid
+                       (or ?is-valid
+                           ?v))
                  (bind ?size
                        (+ ?size
                           (if ?v then 8 else 0))))
-         
          (assert (node (group ?group)
                        (title (gensym*))
                        (width ?size)
+                       (valid ?is-valid)
                        (byte-enable-bits ?cont 
                                          $?middle 
                                          ?end)
@@ -139,6 +149,7 @@
          (test (< (+ (length$ ?before)
                      1)
                   ?length))
+         (test (<= (+ ?cost ?width) 128))
          =>
          (duplicate ?f 
                     (width (+ ?width ?cost))
@@ -146,4 +157,9 @@
                               ?curr
                               ?next)))
 
-
+(defrule combine-two-groups
+         (combine ?p0 and ?p1 to generate ?new-name)
+         (defnode ?p0 $?first)
+         (defnode ?p1 $?second)
+         =>
+         (assert (defnode-combination ?new-name ?first + ?second)))

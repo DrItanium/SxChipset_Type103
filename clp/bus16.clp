@@ -125,7 +125,8 @@
           (busgen bus16 2 8)
           (busgen bus32 4 4)
           (busgen bus64 8 2)
-          (busgen bus128 16 1))
+          ;(busgen bus128 16 1)
+          )
 (deffacts stages
           (stage (current construct)
                  (rest cleanup
@@ -220,64 +221,64 @@
                               ?next)))
 
 
-(defrule map-smaller-to-larger 
-         "map the smaller bus width to the larger ones"
-         (stage (current infer))
-         (node (title ?title)
-               (group ?g0)
-               (byte-enable-bits $?bits))
-         (node (title ?title2)
-               (group ~?g0)
-               (byte-enable-bits $?a $?bits $?b))
-         =>
-         (assert (smaller-to-larger-mapping (smaller ?title)
-                                            (larger ?title2)
-                                            (match-before ?a)
-                                            (match ?bits)
-                                            (match-after ?b))))
-(defrule update-mapping-flow-in0 
-         (stage (current infer))
-         ?f <- (smaller-to-larger-mapping (can-flow-in UNKNOWN)
-                                          (match-before ?start $?))
-         =>
-         (modify ?f
-                 (can-flow-in ?start)))
-
-(defrule update-mapping-flow-in1
-         (stage (current infer))
-         ?f <- (smaller-to-larger-mapping (can-flow-in UNKNOWN)
-                                          (match-before)
-                                          (match ?start $?))
-         =>
-         (modify ?f
-                 (can-flow-in ?start)))
-
-(defrule update-mapping-flow-out0 
-         (stage (current infer))
-         ?f <- (smaller-to-larger-mapping (can-flow-out UNKNOWN)
-                                          (match-after $? ?end))
-         =>
-         (modify ?f
-                 (can-flow-out ?end)))
-
-(defrule update-mapping-flow-out1
-         (stage (current infer))
-         ?f <- (smaller-to-larger-mapping (can-flow-out UNKNOWN)
-                                          (match-after)
-                                          (match $? ?end))
-         =>
-         (modify ?f
-                 (can-flow-out ?end)))
-
-(defrule update-mapping-standalone
-         (stage (current infer))
-         ?f <- (smaller-to-larger-mapping (standalone UNKNOWN)
-                                          (can-flow-in ?in&~UNKNOWN)
-                                          (can-flow-out ?out&~UNKNOWN))
-         =>
-         (modify ?f 
-                 (standalone (and (not ?in)
-                                  (not ?out)))))
+;(defrule map-smaller-to-larger 
+;         "map the smaller bus width to the larger ones"
+;         (stage (current infer))
+;         (node (title ?title)
+;               (group ?g0)
+;               (byte-enable-bits $?bits))
+;         (node (title ?title2)
+;               (group ~?g0)
+;               (byte-enable-bits $?a $?bits $?b))
+;         =>
+;         (assert (smaller-to-larger-mapping (smaller ?title)
+;                                            (larger ?title2)
+;                                            (match-before ?a)
+;                                            (match ?bits)
+;                                            (match-after ?b))))
+;(defrule update-mapping-flow-in0 
+;         (stage (current infer))
+;         ?f <- (smaller-to-larger-mapping (can-flow-in UNKNOWN)
+;                                          (match-before ?start $?))
+;         =>
+;         (modify ?f
+;                 (can-flow-in ?start)))
+;
+;(defrule update-mapping-flow-in1
+;         (stage (current infer))
+;         ?f <- (smaller-to-larger-mapping (can-flow-in UNKNOWN)
+;                                          (match-before)
+;                                          (match ?start $?))
+;         =>
+;         (modify ?f
+;                 (can-flow-in ?start)))
+;
+;(defrule update-mapping-flow-out0 
+;         (stage (current infer))
+;         ?f <- (smaller-to-larger-mapping (can-flow-out UNKNOWN)
+;                                          (match-after $? ?end))
+;         =>
+;         (modify ?f
+;                 (can-flow-out ?end)))
+;
+;(defrule update-mapping-flow-out1
+;         (stage (current infer))
+;         ?f <- (smaller-to-larger-mapping (can-flow-out UNKNOWN)
+;                                          (match-after)
+;                                          (match $? ?end))
+;         =>
+;         (modify ?f
+;                 (can-flow-out ?end)))
+;
+;(defrule update-mapping-standalone
+;         (stage (current infer))
+;         ?f <- (smaller-to-larger-mapping (standalone UNKNOWN)
+;                                          (can-flow-in ?in&~UNKNOWN)
+;                                          (can-flow-out ?out&~UNKNOWN))
+;         =>
+;         (modify ?f 
+;                 (standalone (and (not ?in)
+;                                  (not ?out)))))
 
 
 (defrule make-path-expansion
@@ -303,29 +304,29 @@
                  (original $?rest)
                  (expansion $?exp 
                             $?bits)))
-(defrule match-two-distinct-paths
-         (stage (current infer))
-         (path-expansion (original)
-                         (expansion $?exp)
-                         (title ?name))
-         (path-expansion (original)
-                         (expansion $?exp)
-                         (title ?other&~?name))
-         =>
-         (assert (distinct-path-match (target0 ?name)
-                                      (target1 ?other)
-                                      (match $?exp))))
-
-(defrule eliminate-duplicate-matches
-         (stage (current infer))
-         ?f <- (distinct-path-match (target0 ?a)
-                                    (target1 ?b)
-                                    (match $?m))
-         (distinct-path-match (target0 ?b)
-                              (target1 ?a)
-                              (match $?m))
-         =>
-         (retract ?f))
+;(defrule match-two-distinct-paths
+;         (stage (current infer))
+;         (path-expansion (original)
+;                         (expansion $?exp)
+;                         (title ?name))
+;         (path-expansion (original)
+;                         (expansion $?exp)
+;                         (title ?other&~?name))
+;         =>
+;         (assert (distinct-path-match (target0 ?name)
+;                                      (target1 ?other)
+;                                      (match $?exp))))
+;
+;(defrule eliminate-duplicate-matches
+;         (stage (current infer))
+;         ?f <- (distinct-path-match (target0 ?a)
+;                                    (target1 ?b)
+;                                    (match $?m))
+;         (distinct-path-match (target0 ?b)
+;                              (target1 ?a)
+;                              (match $?m))
+;         =>
+;         (retract ?f))
 
 
 ;(deffacts instruction-mappings

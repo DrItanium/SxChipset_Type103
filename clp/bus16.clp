@@ -88,6 +88,16 @@
                    (allowed-symbols UNKNOWN
                                     FALSE
                                     TRUE))
+             (slot maximal-closed
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot mapped-to-actual-operation
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
              (multislot original
                         (type SYMBOL)
                         (default ?NONE))
@@ -307,6 +317,20 @@
          =>
          (retract ?f))
 
+(defrule eliminate-transitions-with-bad-from-field
+         (stage (current cleanup))
+         ?f <- (transition (from ?from))
+         (not (node (title ?from)))
+         =>
+         (retract ?f))
+
+(defrule eliminate-transitions-with-bad-to-field
+         (stage (current cleanup))
+         ?f <- (transition (to ?from))
+         (not (node (title ?from)))
+         =>
+         (retract ?f))
+
 (defrule find-illegal-match-group
          (stage (current cleanup))
          ?f <- (node (byte-enable-bits $? 
@@ -345,3 +369,50 @@
          =>
          (modify ?f
                  (absolute-starter (not ?k))))
+
+(defrule mark-path-as-maximally-closed
+         (stage (current infer))
+         ?f <- (path-expansion (original)
+                               (group ?group)
+                               (num-nodes ?nn)
+                               (maximal-closed UNKNOWN)
+                               (expansion $?exp))
+         (group-properties (title ?group)
+                           (max-length ?ml))
+         =>
+         (modify ?f 
+                 (maximal-closed (and (= ?nn ?ml)
+                                      (expand$ ?exp)))))
+(deffacts operation-mappings
+          (valid-op-width 128)
+          (valid-op-width 64)
+          (valid-op-width 32)
+          (valid-op-width 16))
+
+(defrule mark-path-as-mapped-valid-op-width
+         (stage (current infer))
+         ?f <- (path-expansion (original)
+                               (mapped-to-actual-operation UNKNOWN)
+                               (width ?width))
+         (valid-op-width ?width)
+         =>
+         (modify ?f
+                 (mapped-to-actual-operation TRUE)))
+
+(defrule mark-path-as-not-mapped-to-valid-op-width
+         (stage (current infer))
+         ?f <- (path-expansion (original)
+                               (mapped-to-actual-operation UNKNOWN)
+                               (width ?width))
+         (not (valid-op-width ?width))
+         =>
+         (modify ?f
+                 (mapped-to-actual-operation FALSE)))
+
+(defrule eliminate-entries-which-are-standalone-but-not-possibly-mapped
+         (stage (current infer))
+         ?f <- (path-expansion (mapped-to-actual-operation FALSE)
+                               (standalone TRUE)
+                               (maximal-closed FALSE))
+         =>
+         (retract ?f))

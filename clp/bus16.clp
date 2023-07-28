@@ -158,14 +158,21 @@
 (deffacts bus-groups
           (busgen bus16 2 8)
           (busgen bus32 4 4)
-          ;(busgen bus64 8 2)
-          ;(busgen bus128 16 1)
           )
 (deffacts stages
           (stage (current construct)
                  (rest cleanup
                        generate
                        infer)))
+
+(deffacts operation-mappings
+          (valid-op-width 128)
+          (valid-op-width 96)
+          (valid-op-width 64)
+          (valid-op-width 32)
+          (valid-op-width 16)
+          (valid-op-width 8)
+          )
 (defrule next-stage
          (declare (salience -10000))
          ?f <- (stage (rest ?next $?rest))
@@ -383,12 +390,6 @@
          (modify ?f 
                  (maximal-closed (and (= ?nn ?ml)
                                       (expand$ ?exp)))))
-(deffacts operation-mappings
-          (valid-op-width 128)
-          (valid-op-width 96)
-          (valid-op-width 64)
-          (valid-op-width 32)
-          (valid-op-width 16))
 
 (defrule mark-path-as-mapped-valid-op-width
          (stage (current infer))

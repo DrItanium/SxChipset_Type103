@@ -229,21 +229,21 @@ doCommunication() noexcept {
         auto d = theBytes[(base + 3)]; \
         setDataByte(a, b, c, d); \
     } else { \
+        auto a = getDataByte<0>(); \
+        auto b = getDataByte<1>(); \
+        auto c = getDataByte<2>(); \
+        auto d = getDataByte<3>(); \
         if (digitalRead<Pin::BE0>() == LOW) { \
-            auto a = getDataByte<0>(); \
             theBytes[(base + 0)] = a; \
         } \
         if (digitalRead<Pin::BE1>() == LOW) { \
-            auto a = getDataByte<1>(); \
-            theBytes[(base + 1)] = a; \
+            theBytes[(base + 1)] = b; \
         } \
         if (digitalRead<Pin::BE2>() == LOW) { \
-            auto a = getDataByte<2>(); \
-            theBytes[(base + 2)] = a; \
+            theBytes[(base + 2)] = c; \
         } \
         if (digitalRead<Pin::BE3>() == LOW) { \
-            auto a = getDataByte<3>(); \
-            theBytes[(base + 3)] = a; \
+            theBytes[(base + 3)] = d; \
         } \
     }
         X(0);

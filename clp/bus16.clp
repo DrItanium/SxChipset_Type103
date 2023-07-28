@@ -266,6 +266,9 @@
                                   (not ?out)))))
 
 (deftemplate path-expansion
+             (slot title
+                   (type SYMBOL)
+                   (default-dynamic (gensym*)))
              (slot group
                    (type SYMBOL)
                    (default ?NONE))

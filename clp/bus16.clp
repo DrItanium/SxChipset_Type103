@@ -62,7 +62,6 @@
           (defnode bus16 TRUE FALSE)
           (defnode bus16 FALSE TRUE)
           (defnode bus16 TRUE TRUE)
-          (defnode bus16 FALSE FALSE)
           (group-properties (title bus16)
                             (max-length 8))
           (defnode bus32 TRUE  FALSE FALSE FALSE)
@@ -78,8 +77,25 @@
           (group-properties (title bus32)
                             (max-length 4))
           )
-
+(deftemplate stage
+             (slot current
+                   (type SYMBOL)
+                   (default ?NONE))
+             (multislot rest
+                        (type SYMBOL)))
+(defrule next-stage
+         (declare (salience -10000))
+         ?f <- (stage (rest ?next $?rest))
+         =>
+         (modify ?f 
+                 (current ?next)
+                 (rest $?rest)))
+(deffacts stages
+          (stage (current construct)
+                 (rest generate
+                       infer)))
 (defrule make-node
+         (stage (current construct))
          (defnode ?group ?cont $?middle ?end)
          =>
          (bind ?size 
@@ -106,6 +122,7 @@
                        (continue-from-prev ?cont))))
 
 (defrule make-custom-transition
+         (stage (current construct))
          (node (group ?group)
                (title ?from)
                (link-to-next TRUE))
@@ -116,6 +133,7 @@
          (assert (defstate ?group ?from -> ?to)))
 
 (defrule make-transition
+         (stage (current construct))
          (defstate ?group ?from -> ?to)
          =>
          (assert (transition (group ?group)
@@ -123,6 +141,7 @@
                              (to ?to))))
 
 (defrule generate-initial-path
+         (stage (current generate))
          (node (title ?name)
                (group ?group)
                (width ?width))
@@ -132,6 +151,7 @@
                        (width ?width))))
 
 (defrule walk-path
+         (stage (current generate))
          ?f <- (path (group ?group)
                      (contents $?before ?curr)
                      (width ?width))
@@ -153,3 +173,93 @@
                     (contents $?before
                               ?curr
                               ?next)))
+(deftemplate smaller-to-larger-mapping
+             (slot standalone
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot can-flow-in
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot can-flow-out
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot smaller
+                   (type SYMBOL)
+                   (default ?NONE))
+             (slot larger
+                   (type SYMBOL)
+                   (default ?NONE))
+             (multislot match-before 
+                        (type SYMBOL)
+                        (default ?NONE))
+             (multislot match 
+                        (type SYMBOL)
+                        (default ?NONE))
+             (multislot match-after
+                        (type SYMBOL)
+                        (default ?NONE)))
+
+(defrule map-smaller-to-larger 
+         "map the smaller bus width to the larger ones"
+         (stage (current infer))
+         (node (title ?title)
+               (group ?g0)
+               (byte-enable-bits $?bits))
+         (node (title ?title2)
+               (group ~?g0)
+               (byte-enable-bits $?a $?bits $?b))
+         =>
+         (assert (smaller-to-larger-mapping (smaller ?title)
+                                            (larger ?title2)
+                                            (match-before ?a)
+                                            (match ?bits)
+                                            (match-after ?b))))
+(defrule update-mapping-flow-in0 
+         (stage (current infer))
+         ?f <- (smaller-to-larger-mapping (can-flow-in UNKNOWN)
+                                          (match-before ?start $?))
+         =>
+         (modify ?f
+                 (can-flow-in ?start)))
+
+(defrule update-mapping-flow-in1
+         (stage (current infer))
+         ?f <- (smaller-to-larger-mapping (can-flow-in UNKNOWN)
+                                          (match-before)
+                                          (match ?start $?))
+         =>
+         (modify ?f
+                 (can-flow-in ?start)))
+
+(defrule update-mapping-flow-out0 
+         (stage (current infer))
+         ?f <- (smaller-to-larger-mapping (can-flow-out UNKNOWN)
+                                          (match-after $? ?end))
+         =>
+         (modify ?f
+                 (can-flow-out ?end)))
+
+(defrule update-mapping-flow-out1
+         (stage (current infer))
+         ?f <- (smaller-to-larger-mapping (can-flow-out UNKNOWN)
+                                          (match-after)
+                                          (match $? ?end))
+         =>
+         (modify ?f
+                 (can-flow-out ?end)))
+
+(defrule update-mapping-standalone
+         (stage (current infer))
+         ?f <- (smaller-to-larger-mapping (standalone UNKNOWN)
+                                          (can-flow-in ?in&:(neq ?in UNKNOWN))
+                                          (can-flow-out ?out&:(neq ?out UNKNOWN)))
+         =>
+         (modify ?f 
+                 (standalone (and (not ?in)
+                                  (not ?out)))))

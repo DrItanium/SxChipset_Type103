@@ -418,8 +418,12 @@
 
 (defrule find-illegal-match-group
          (stage (current cleanup))
-         ?f <- (node (byte-enable-bits $? TRUE $?match&:(> (length$ ?match) 0) TRUE $?))
-         (test (not (neq FALSE (expand$ ?match))))
+         ?f <- (node (byte-enable-bits $? 
+                                       TRUE 
+                                       $?match&:(and (> (length$ ?match) 0) 
+                                                     (not (neq FALSE (expand$ ?match))))
+                                       TRUE 
+                                       $?))
          =>
          (retract ?f))
 

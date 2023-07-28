@@ -141,8 +141,9 @@
                  (rest $?rest)))
 (defrule make-node
          (stage (current construct))
-         (defnode ?group ?cont $?middle ?end)
+         ?f <- (defnode ?group ?cont $?middle ?end)
          =>
+         (retract ?f)
          (bind ?size 
                (+ (if ?cont then 8 else 0)
                   (if ?end then 8 else 0)))
@@ -180,8 +181,9 @@
 
 (defrule make-transition
          (stage (current construct))
-         (defstate ?group ?from -> ?to)
+         ?f <- (defstate ?group ?from -> ?to)
          =>
+         (retract ?f)
          (assert (transition (group ?group)
                              (from ?from)
                              (to ?to))))

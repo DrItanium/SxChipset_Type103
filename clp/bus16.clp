@@ -225,10 +225,11 @@
 
 (defrule make-path-expansion
          (stage (current infer))
-         (path (group ?group)
-               (width ?width)
-               (contents $?contents))
+         ?f <- (path (group ?group)
+                     (width ?width)
+                     (contents $?contents))
          =>
+         (retract ?f)
          (assert (path-expansion (group ?group)
                                  (width ?width)
                                  (original ?contents))))

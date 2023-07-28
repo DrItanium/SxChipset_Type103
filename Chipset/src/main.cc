@@ -315,434 +315,125 @@ static void doIO() noexcept {
                          signalReady<true>(); 
                      } 
                      break;
-#ifdef TCCR1A
-            case 0x10 + 0: { 
-                        /* TCCRnA and TCCRnB */ 
-                        if constexpr (isReadOperation) { 
-                            setDataByte(timer1.TCCRxA, timer1.TCCRxB, timer1.TCCRxC, 0);
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW) { 
-                                timer1.TCCRxA = getDataByte<0>();
-                            } 
-                            if (digitalRead<Pin::BE1>() == LOW) { 
-                                timer1.TCCRxB = getDataByte<1>();
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW) { 
-                                timer1.TCCRxC = getDataByte<2>();
-                            } 
-                        } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
-                    } 
-            case 0x10 + 4: { 
+#define X(obj, index) \
+            case index + 0: { \
+                        /* TCCRnA and TCCRnB */ \
+                        if constexpr (isReadOperation) { \
+                            setDataByte(obj.TCCRxA, obj.TCCRxB, obj.TCCRxC, 0);\
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW) { \
+                                obj.TCCRxA = getDataByte<0>();\
+                            } \
+                            if (digitalRead<Pin::BE1>() == LOW) { \
+                                obj.TCCRxB = getDataByte<1>();\
+                            } \
+                            if (digitalRead<Pin::BE2>() == LOW) { \
+                                obj.TCCRxC = getDataByte<2>();\
+                            } \
+                        } \
+                        if (isBurstLast()) {\
+                            break; \
+                        }\
+                        signalReady<true>();  \
+                    } \
+            case index + 4: { \
                         /* TCNTn should only be accessible if you do a full 16-bit
                          * write 
-                         */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto tmp = timer1.TCNTx;
-                            auto tmp2 = timer1.ICRx;
-                            interrupts(); 
-                            dataLinesHalves[0] = tmp; 
-                            dataLinesHalves[1] = tmp2;
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW && 
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                timer1.TCNTx = value;
-                                interrupts(); 
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW &&  
-                                    digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                timer1.ICRx = value;
-                                interrupts(); 
-                            } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
-            case 0x10 + 8: { 
-                        /* OCRnA should only be accessible if you do a full 16-bit write */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto tmp = timer1.OCRxA;
-                             auto tmp2 = timer1.OCRxB;
-                            interrupts(); 
-                            dataLinesHalves[0] = tmp; 
-                            dataLinesHalves[1] = tmp2; 
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW &&  
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                timer1.OCRxA = value;
-                                interrupts(); 
-                            } 
-                             if (digitalRead<Pin::BE2>() == LOW &&  
-                                     digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                timer1.OCRxB = value; 
-                                interrupts(); 
-                             } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
-            case 0x10 + 12: { 
-                         /* OCRnC */ 
-                         if constexpr (isReadOperation) { 
-                             noInterrupts(); 
-                             auto tmp = timer1.OCRxC; 
-                             interrupts(); 
-                             dataLinesHalves[0] = tmp; 
-                             dataLinesHalves[1] = 0;
-                         } else { 
-                              if (digitalRead<Pin::BE0>() == LOW && 
-                                      digitalRead<Pin::BE1>() == LOW) { 
-                                  auto value = dataLinesHalves[0]; 
-                                  noInterrupts(); 
-                                  timer1.OCRxC = value;
-                                  interrupts(); 
-                              }
-                         } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
-                         break;
+                         */ \
+                        if constexpr (isReadOperation) { \
+                            noInterrupts(); \
+                            auto tmp = obj.TCNTx;\
+                            auto tmp2 = obj.ICRx;\
+                            interrupts(); \
+                            dataLinesHalves[0] = tmp; \
+                            dataLinesHalves[1] = tmp2;\
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW && \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
+                                noInterrupts(); \
+                                obj.TCNTx = value;\
+                                interrupts(); \
+                            } \
+                            if (digitalRead<Pin::BE2>() == LOW &&  \
+                                    digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
+                                noInterrupts(); \
+                                obj.ICRx = value;\
+                                interrupts(); \
+                            } \
+                        } \
+                        if (isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case index + 8: { \
+                        /* OCRnA should only be accessible if you do a full 16-bit write */ \
+                        if constexpr (isReadOperation) { \
+                            noInterrupts(); \
+                            auto tmp = obj.OCRxA;\
+                             auto tmp2 = obj.OCRxB;\
+                            interrupts(); \
+                            dataLinesHalves[0] = tmp; \
+                            dataLinesHalves[1] = tmp2; \
+                        } else { \
+                            if (digitalRead<Pin::BE0>() == LOW &&  \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
+                                noInterrupts(); \
+                                obj.OCRxA = value;\
+                                interrupts(); \
+                            } \
+                             if (digitalRead<Pin::BE2>() == LOW &&  \
+                                     digitalRead<Pin::BE3>() == LOW) { \
+                                auto value = dataLinesHalves[1]; \
+                                noInterrupts(); \
+                                obj.OCRxB = value; \
+                                interrupts(); \
+                             } \
+                        } \
+                        if (isBurstLast()) { \
+                            break; \
+                        } \
+                        signalReady<true>(); \
+                    } \
+            case index + 12: { \
+                         /* OCRnC */ \
+                         if constexpr (isReadOperation) { \
+                             noInterrupts(); \
+                             auto tmp = obj.OCRxC; \
+                             interrupts(); \
+                             dataLinesHalves[0] = tmp; \
+                             dataLinesHalves[1] = 0;\
+                         } else { \
+                              if (digitalRead<Pin::BE0>() == LOW && \
+                                      digitalRead<Pin::BE1>() == LOW) { \
+                                  auto value = dataLinesHalves[0]; \
+                                  noInterrupts(); \
+                                  obj.OCRxC = value;\
+                                  interrupts(); \
+                              }\
+                         } \
+                         if (isBurstLast()) {\
+                             break;\
+                         } \
+                         signalReady<true>(); \
+                         break;\
                      } 
+#ifdef TCCR1A
+                    X(timer1, 0x10);
 #endif
 #ifdef TCCR3A
-            case 0x20 + 0: { 
-                        /* TCCRnA and TCCRnB */ 
-                        if constexpr (isReadOperation) { 
-                            setDataByte(timer3.TCCRxA, timer3.TCCRxB, timer3.TCCRxC, 0);
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW) { 
-                                timer3.TCCRxA = getDataByte<0>();
-                            } 
-                            if (digitalRead<Pin::BE1>() == LOW) { 
-                                timer3.TCCRxB = getDataByte<1>();
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW) { 
-                                timer3.TCCRxC = getDataByte<2>();
-                            } 
-                        } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
-                    } 
-            case 0x20 + 4: { 
-                        /* TCNTn should only be accessible if you do a full 16-bit
-                         * write 
-                         */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto tmp = timer3.TCNTx;
-                            auto tmp2 = timer3.ICRx;
-                            interrupts(); 
-                            dataLinesHalves[0] = tmp; 
-                            dataLinesHalves[1] = tmp2;
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW && 
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                timer3.TCNTx = value;
-                                interrupts(); 
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW &&  
-                                    digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                timer3.ICRx = value;
-                                interrupts(); 
-                            } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
-            case 0x20 + 8: { 
-                        /* OCRnA should only be accessible if you do a full 16-bit write */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto tmp = timer3.OCRxA;
-                             auto tmp2 = timer3.OCRxB;
-                            interrupts(); 
-                            dataLinesHalves[0] = tmp; 
-                            dataLinesHalves[1] = tmp2; 
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW &&  
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                timer3.OCRxA = value;
-                                interrupts(); 
-                            } 
-                             if (digitalRead<Pin::BE2>() == LOW &&  
-                                     digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                timer3.OCRxB = value; 
-                                interrupts(); 
-                             } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
-            case 0x20 + 12: { 
-                         /* OCRnC */ 
-                         if constexpr (isReadOperation) { 
-                             noInterrupts(); 
-                             auto tmp = timer3.OCRxC; 
-                             interrupts(); 
-                             dataLinesHalves[0] = tmp; 
-                             dataLinesHalves[1] = 0;
-                         } else { 
-                              if (digitalRead<Pin::BE0>() == LOW && 
-                                      digitalRead<Pin::BE1>() == LOW) { 
-                                  auto value = dataLinesHalves[0]; 
-                                  noInterrupts(); 
-                                  timer3.OCRxC = value;
-                                  interrupts(); 
-                              }
-                         } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
-                         break;
-                     } 
+                    X(timer3, 0x20);
 #endif
 #ifdef TCCR4A
-            case 0x30 + 0: { 
-                        /* TCCRnA and TCCRnB */ 
-                        if constexpr (isReadOperation) { 
-                            setDataByte(timer4.TCCRxA, timer4.TCCRxB, timer4.TCCRxC, 0);
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW) { 
-                                timer4.TCCRxA = getDataByte<0>();
-                            } 
-                            if (digitalRead<Pin::BE1>() == LOW) { 
-                                timer4.TCCRxB = getDataByte<1>();
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW) { 
-                                timer4.TCCRxC = getDataByte<2>();
-                            } 
-                        } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
-                    } 
-            case 0x30 + 4: { 
-                        /* TCNTn should only be accessible if you do a full 16-bit
-                         * write 
-                         */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto tmp = timer4.TCNTx;
-                            auto tmp2 = timer4.ICRx;
-                            interrupts(); 
-                            dataLinesHalves[0] = tmp; 
-                            dataLinesHalves[1] = tmp2;
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW && 
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                timer4.TCNTx = value;
-                                interrupts(); 
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW &&  
-                                    digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                timer4.ICRx = value;
-                                interrupts(); 
-                            } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
-            case 0x30 + 8: { 
-                        /* OCRnA should only be accessible if you do a full 16-bit write */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto tmp = timer4.OCRxA;
-                             auto tmp2 = timer4.OCRxB;
-                            interrupts(); 
-                            dataLinesHalves[0] = tmp; 
-                            dataLinesHalves[1] = tmp2; 
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW &&  
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                timer4.OCRxA = value;
-                                interrupts(); 
-                            } 
-                             if (digitalRead<Pin::BE2>() == LOW &&  
-                                     digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                timer4.OCRxB = value; 
-                                interrupts(); 
-                             } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
-            case 0x30 + 12: { 
-                         /* OCRnC */ 
-                         if constexpr (isReadOperation) { 
-                             noInterrupts(); 
-                             auto tmp = timer4.OCRxC; 
-                             interrupts(); 
-                             dataLinesHalves[0] = tmp; 
-                             dataLinesHalves[1] = 0;
-                         } else { 
-                              if (digitalRead<Pin::BE0>() == LOW && 
-                                      digitalRead<Pin::BE1>() == LOW) { 
-                                  auto value = dataLinesHalves[0]; 
-                                  noInterrupts(); 
-                                  timer4.OCRxC = value;
-                                  interrupts(); 
-                              }
-                         } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
-                         break;
-                     } 
+                    X(timer4, 0x30);
 #endif
 #ifdef TCCR5A
-            case 0x40 + 0: { 
-                        /* TCCRnA and TCCRnB */ 
-                        if constexpr (isReadOperation) { 
-                            setDataByte(timer5.TCCRxA, timer5.TCCRxB, timer5.TCCRxC, 0);
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW) { 
-                                timer5.TCCRxA = getDataByte<0>();
-                            } 
-                            if (digitalRead<Pin::BE1>() == LOW) { 
-                                timer5.TCCRxB = getDataByte<1>();
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW) { 
-                                timer5.TCCRxC = getDataByte<2>();
-                            } 
-                        } 
-                        if (isBurstLast()) {
-                            break; 
-                        }
-                        signalReady<true>();  
-                    } 
-            case 0x40 + 4: { 
-                        /* TCNTn should only be accessible if you do a full 16-bit
-                         * write 
-                         */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto tmp = timer5.TCNTx;
-                            auto tmp2 = timer5.ICRx;
-                            interrupts(); 
-                            dataLinesHalves[0] = tmp; 
-                            dataLinesHalves[1] = tmp2;
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW && 
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                timer5.TCNTx = value;
-                                interrupts(); 
-                            } 
-                            if (digitalRead<Pin::BE2>() == LOW &&  
-                                    digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                timer5.ICRx = value;
-                                interrupts(); 
-                            } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
-            case 0x40 + 8: { 
-                        /* OCRnA should only be accessible if you do a full 16-bit write */ 
-                        if constexpr (isReadOperation) { 
-                            noInterrupts(); 
-                            auto tmp = timer5.OCRxA;
-                             auto tmp2 = timer5.OCRxB;
-                            interrupts(); 
-                            dataLinesHalves[0] = tmp; 
-                            dataLinesHalves[1] = tmp2; 
-                        } else { 
-                            if (digitalRead<Pin::BE0>() == LOW &&  
-                                    digitalRead<Pin::BE1>() == LOW) { 
-                                auto value = dataLinesHalves[0]; 
-                                noInterrupts(); 
-                                timer5.OCRxA = value;
-                                interrupts(); 
-                            } 
-                             if (digitalRead<Pin::BE2>() == LOW &&  
-                                     digitalRead<Pin::BE3>() == LOW) { 
-                                auto value = dataLinesHalves[1]; 
-                                noInterrupts(); 
-                                timer5.OCRxB = value; 
-                                interrupts(); 
-                             } 
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>(); 
-                    } 
-            case 0x40 + 12: { 
-                         /* OCRnC */ 
-                         if constexpr (isReadOperation) { 
-                             noInterrupts(); 
-                             auto tmp = timer5.OCRxC; 
-                             interrupts(); 
-                             dataLinesHalves[0] = tmp; 
-                             dataLinesHalves[1] = 0;
-                         } else { 
-                              if (digitalRead<Pin::BE0>() == LOW && 
-                                      digitalRead<Pin::BE1>() == LOW) { 
-                                  auto value = dataLinesHalves[0]; 
-                                  noInterrupts(); 
-                                  timer5.OCRxC = value;
-                                  interrupts(); 
-                              }
-                         } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
-                         break;
-                     } 
+                    X(timer5, 0x40);
 #endif
+#undef X
             default:
                      if constexpr (isReadOperation) {
                          dataLinesFull = 0;
@@ -946,15 +637,14 @@ static void doIO() noexcept {
                         I960_Signal_Switch;
                      } 
             case 12: { 
-                         /* OCRnC */ 
                          if constexpr (isReadOperation) { 
                              dataLinesHalves[0] = 0; 
                          } else { 
                              Serial.flush();
-                         } 
-                        I960_Signal_Switch;
-                     } 
-            case 14: { 
+                         }
+                         I960_Signal_Switch;
+                     }
+            case 14: {
                         /* nothing to do on writes but do update the data port
                          * on reads */ 
                          if constexpr (isReadOperation) { 

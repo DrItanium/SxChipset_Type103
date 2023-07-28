@@ -121,25 +121,30 @@
                    (default ?NONE))
              (multislot rest
                         (type SYMBOL)))
-(deffacts states
-          (defnode bus16 TRUE FALSE)
-          (defnode bus16 FALSE TRUE)
-          (defnode bus16 TRUE TRUE)
-          (group-properties (title bus16)
-                            (max-length 8))
-          (defnode bus32 TRUE  FALSE FALSE FALSE)
-          (defnode bus32 FALSE TRUE  FALSE FALSE)
-          (defnode bus32 FALSE FALSE TRUE  FALSE)
-          (defnode bus32 FALSE FALSE FALSE TRUE)
-          (defnode bus32 TRUE  TRUE  FALSE FALSE)
-          (defnode bus32 FALSE FALSE TRUE  TRUE)
-          (defnode bus32 FALSE TRUE  TRUE  FALSE)
-          (defnode bus32 TRUE  TRUE  TRUE  FALSE)
-          (defnode bus32 FALSE TRUE  TRUE  TRUE)
-          (defnode bus32 TRUE  TRUE  TRUE  TRUE)
-          (group-properties (title bus32)
-                            (max-length 4))
-          )
+;(deffacts states
+;          (defnode bus16 TRUE FALSE)
+;          (defnode bus16 FALSE TRUE)
+;          (defnode bus16 TRUE TRUE)
+;          (group-properties (title bus16)
+;                            (max-length 8))
+;          (defnode bus32 TRUE  FALSE FALSE FALSE)
+;          (defnode bus32 FALSE TRUE  FALSE FALSE)
+;          (defnode bus32 FALSE FALSE TRUE  FALSE)
+;          (defnode bus32 FALSE FALSE FALSE TRUE)
+;          (defnode bus32 TRUE  TRUE  FALSE FALSE)
+;          (defnode bus32 FALSE FALSE TRUE  TRUE)
+;          (defnode bus32 FALSE TRUE  TRUE  FALSE)
+;          (defnode bus32 TRUE  TRUE  TRUE  FALSE)
+;          (defnode bus32 FALSE TRUE  TRUE  TRUE)
+;          (defnode bus32 TRUE  TRUE  TRUE  TRUE)
+;          (group-properties (title bus32)
+;                            (max-length 4))
+;          )
+(deffacts stages
+          (stage (current construct)
+                 (rest cleanup
+                       generate
+                       infer)))
 (defrule next-stage
          (declare (salience -10000))
          ?f <- (stage (rest ?next $?rest))
@@ -147,10 +152,6 @@
          (modify ?f 
                  (current ?next)
                  (rest $?rest)))
-(deffacts stages
-          (stage (current construct)
-                 (rest generate
-                       infer)))
 (defrule make-node
          (stage (current construct))
          (defnode ?group ?cont $?middle ?end)
@@ -339,3 +340,97 @@
          =>
          (retract ?f))
 
+
+;(deffacts instruction-mappings
+;          (path-expansion (group quad-word)
+;                          (original)
+;                          (width 128)
+;                          (expansion TRUE TRUE TRUE TRUE
+;                                     TRUE TRUE TRUE TRUE
+;                                     TRUE TRUE TRUE TRUE
+;                                     TRUE TRUE TRUE TRUE))
+;
+;          (path-expansion (group triple-word)
+;                          (original)
+;                          (width 96)
+;                          (expansion TRUE TRUE TRUE TRUE
+;                                     TRUE TRUE TRUE TRUE
+;                                     TRUE TRUE TRUE TRUE))
+;          (path-expansion (group long-word)
+;                          (original)
+;                          (width 64)
+;                          (expansion TRUE TRUE TRUE TRUE
+;                                     TRUE TRUE TRUE TRUE))
+;          (path-expansion (group word)
+;                          (original)
+;                          (width 32)
+;                          (expansion TRUE TRUE TRUE TRUE))
+;          (path-expansion (group short-word)
+;                          (original)
+;                          (width 16)
+;                          (expansion FALSE FALSE TRUE TRUE))
+;          (path-expansion (group short-word)
+;                          (original)
+;                          (width 16)
+;                          (expansion TRUE TRUE FALSE FALSE))
+;          (path-expansion (group short-word)
+;                          (original)
+;                          (width 16)
+;                          (expansion FALSE TRUE TRUE FALSE))
+;          (path-expansion (group byte-word)
+;                          (original)
+;                          (width 8)
+;                          (expansion TRUE FALSE FALSE FALSE))
+;          (path-expansion (group byte-word)
+;                          (original)
+;                          (width 8)
+;                          (expansion FALSE TRUE FALSE FALSE))
+;          (path-expansion (group byte-word)
+;                          (original)
+;                          (width 8)
+;                          (expansion FALSE FALSE TRUE FALSE))
+;          (path-expansion (group byte-word)
+;                          (original)
+;                          (width 8)
+;                          (expansion FALSE FALSE FALSE TRUE))
+;          )
+
+(deffunction generate-bus-recursive
+             (?title ?depth ?contents)
+             (if (<= ?depth 0) then
+               (assert (defnode ?title ?contents))
+               else
+               (progn$ (?v (create$ FALSE
+                                    TRUE))
+                       (generate-bus-recursive ?title
+                                               (- ?depth 1)
+                                               (create$ ?contents
+                                                        ?v)))))
+
+(deffunction generate-bus-full
+             (?title ?depth ?length)
+             (assert (group-properties (title ?title)
+                                       (max-length ?length)))
+             (generate-bus-recursive ?title
+                                     ?depth
+                                     (create$)))
+
+(defrule generate-bus-group
+         (stage (current construct))
+         ?f <- (busgen ?title 
+                       ?depth
+                       ?length)
+         =>
+         (retract ?f)
+         (generate-bus-full ?title
+                            ?depth
+                            ?length))
+(deffacts bus-groups
+          (busgen bus16 2 8)
+          (busgen bus32 4 4))
+
+(defrule eliminate-empty-paths
+         (stage (current cleanup))
+         ?f <- (node (width 0))
+         =>
+         (retract ?f))

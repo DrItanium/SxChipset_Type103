@@ -83,6 +83,38 @@
                    (default ?NONE))
              (multislot match
                         (default ?NONE)))
+
+(deftemplate smaller-to-larger-mapping
+             (slot standalone
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot can-flow-in
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot can-flow-out
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot smaller
+                   (type SYMBOL)
+                   (default ?NONE))
+             (slot larger
+                   (type SYMBOL)
+                   (default ?NONE))
+             (multislot match-before 
+                        (type SYMBOL)
+                        (default ?NONE))
+             (multislot match 
+                        (type SYMBOL)
+                        (default ?NONE))
+             (multislot match-after
+                        (type SYMBOL)
+                        (default ?NONE)))
 (deftemplate stage
              (slot current
                    (type SYMBOL)
@@ -178,7 +210,8 @@
 (defrule walk-path
          (stage (current generate))
          ?f <- (path (group ?group)
-                     (contents $?before ?curr)
+                     (contents $?before 
+                               ?curr)
                      (width ?width))
          (transition (group ?group)
                      (from ?curr)
@@ -186,50 +219,18 @@
          (node (title ?next)
                (group ?group)
                (width ?cost))
+         (test (<= (+ ?cost ?width) 128))
          (group-properties (title ?group)
                            (max-length ?length))
-         (test (< (+ (length$ ?before)
-                     1)
-                  ?length))
-         (test (<= (+ ?cost ?width) 128))
+         (test (< (+ (length$ ?before) 1) ?length))
          =>
          (duplicate ?f 
-                    (width (+ ?width ?cost))
+                    (width (+ ?width 
+                              ?cost))
                     (contents $?before
                               ?curr
                               ?next)))
 
-(deftemplate smaller-to-larger-mapping
-             (slot standalone
-                   (type SYMBOL)
-                   (allowed-symbols UNKNOWN
-                                    FALSE
-                                    TRUE))
-             (slot can-flow-in
-                   (type SYMBOL)
-                   (allowed-symbols UNKNOWN
-                                    FALSE
-                                    TRUE))
-             (slot can-flow-out
-                   (type SYMBOL)
-                   (allowed-symbols UNKNOWN
-                                    FALSE
-                                    TRUE))
-             (slot smaller
-                   (type SYMBOL)
-                   (default ?NONE))
-             (slot larger
-                   (type SYMBOL)
-                   (default ?NONE))
-             (multislot match-before 
-                        (type SYMBOL)
-                        (default ?NONE))
-             (multislot match 
-                        (type SYMBOL)
-                        (default ?NONE))
-             (multislot match-after
-                        (type SYMBOL)
-                        (default ?NONE)))
 
 (defrule map-smaller-to-larger 
          "map the smaller bus width to the larger ones"
@@ -303,7 +304,8 @@
 (defrule expand-path
          (stage (current infer))
          ?f <- (path-expansion (group ?group)
-                               (original ?first $?rest)
+                               (original ?first 
+                                         $?rest)
                                (expansion $?exp))
          (node (group ?group)
                (title ?first)
@@ -311,7 +313,8 @@
          =>
          (modify ?f
                  (original $?rest)
-                 (expansion $?exp $?bits)))
+                 (expansion $?exp 
+                            $?bits)))
 (defrule match-two-distinct-paths
          (stage (current infer))
          (path-expansion (original)
@@ -335,3 +338,4 @@
                               (match $?m))
          =>
          (retract ?f))
+

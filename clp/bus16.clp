@@ -303,3 +303,35 @@
          (modify ?f
                  (original $?rest)
                  (expansion $?exp $?bits)))
+(deftemplate distinct-path-match
+             (slot target0
+                   (type SYMBOL)
+                   (default ?NONE))
+             (slot target1
+                   (type SYMBOL)
+                   (default ?NONE))
+             (multislot match
+                        (default ?NONE)))
+(defrule match-two-distinct-paths
+         (stage (current infer))
+         (path-expansion (original)
+                         (expansion $?exp)
+                         (title ?name))
+         (path-expansion (original)
+                         (expansion $?exp)
+                         (title ?other&~?name))
+         =>
+         (assert (distinct-path-match (target0 ?name)
+                                      (target1 ?other)
+                                      (match $?exp))))
+
+(defrule eliminate-duplicate-matches
+         (stage (current infer))
+         ?f <- (distinct-path-match (target0 ?a)
+                                    (target1 ?b)
+                                    (match $?m))
+         (distinct-path-match (target0 ?b)
+                              (target1 ?a)
+                              (match $?m))
+         =>
+         (retract ?f))

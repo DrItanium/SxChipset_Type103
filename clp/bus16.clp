@@ -123,7 +123,9 @@
                         (type SYMBOL)))
 (deffacts bus-groups
           (busgen bus16 2 8)
-          (busgen bus32 4 4))
+          (busgen bus32 4 4)
+          (busgen bus64 8 2)
+          (busgen bus128 16 1))
 (deffacts stages
           (stage (current construct)
                  (rest cleanup
@@ -162,9 +164,10 @@
                                          ?end)
                        (link-to-next ?end)
                        (continue-from-prev ?cont))))
-
 (defrule make-custom-transition
          (stage (current construct))
+         (group-properties (title ?group)
+                           (max-length ?len&:(> ?len 1)))
          (node (group ?group)
                (title ?from)
                (link-to-next TRUE))

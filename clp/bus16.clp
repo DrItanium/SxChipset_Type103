@@ -121,25 +121,9 @@
                    (default ?NONE))
              (multislot rest
                         (type SYMBOL)))
-;(deffacts states
-;          (defnode bus16 TRUE FALSE)
-;          (defnode bus16 FALSE TRUE)
-;          (defnode bus16 TRUE TRUE)
-;          (group-properties (title bus16)
-;                            (max-length 8))
-;          (defnode bus32 TRUE  FALSE FALSE FALSE)
-;          (defnode bus32 FALSE TRUE  FALSE FALSE)
-;          (defnode bus32 FALSE FALSE TRUE  FALSE)
-;          (defnode bus32 FALSE FALSE FALSE TRUE)
-;          (defnode bus32 TRUE  TRUE  FALSE FALSE)
-;          (defnode bus32 FALSE FALSE TRUE  TRUE)
-;          (defnode bus32 FALSE TRUE  TRUE  FALSE)
-;          (defnode bus32 TRUE  TRUE  TRUE  FALSE)
-;          (defnode bus32 FALSE TRUE  TRUE  TRUE)
-;          (defnode bus32 TRUE  TRUE  TRUE  TRUE)
-;          (group-properties (title bus32)
-;                            (max-length 4))
-;          )
+(deffacts bus-groups
+          (busgen bus16 2 8)
+          (busgen bus32 4 4))
 (deffacts stages
           (stage (current construct)
                  (rest cleanup
@@ -425,12 +409,17 @@
          (generate-bus-full ?title
                             ?depth
                             ?length))
-(deffacts bus-groups
-          (busgen bus16 2 8)
-          (busgen bus32 4 4))
 
 (defrule eliminate-empty-paths
          (stage (current cleanup))
          ?f <- (node (width 0))
          =>
          (retract ?f))
+
+(defrule find-illegal-match-group
+         (stage (current cleanup))
+         ?f <- (node (byte-enable-bits $? TRUE $?match&:(> (length$ ?match) 0) TRUE $?))
+         (test (not (neq FALSE (expand$ ?match))))
+         =>
+         (retract ?f))
+

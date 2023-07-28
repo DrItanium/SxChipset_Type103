@@ -69,6 +69,21 @@
                    (type INTEGER)
                    (range 0 ?VARIABLE)
                    (default ?NONE))
+             (slot absolute-terminator 
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot absolute-starter
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
+             (slot standalone
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
              (multislot original
                         (type SYMBOL)
                         (default ?NONE))
@@ -298,3 +313,30 @@
          =>
          (retract ?f))
 
+(defrule mark-path-as-fully-standalone
+         (stage (current infer))
+         ?f <- (path-expansion (original)
+                               (standalone UNKNOWN)
+                               (absolute-terminator ?a&~UNKNOWN)
+                               (absolute-starter ?b&~UNKNOWN))
+         =>
+         (modify ?f
+                 (standalone (and ?a ?b))))
+
+(defrule mark-path-as-absolute-terminator
+         (stage (current infer))
+         ?f <- (path-expansion (original)
+                               (expansion $? ?k)
+                               (absolute-terminator UNKNOWN))
+         =>
+         (modify ?f
+                 (absolute-terminator (not ?k))))
+
+(defrule mark-path-as-absolute-starter
+         (stage (current infer))
+         ?f <- (path-expansion (original)
+                               (expansion ?k $?)
+                               (absolute-starter UNKNOWN))
+         =>
+         (modify ?f
+                 (absolute-starter (not ?k))))

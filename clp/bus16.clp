@@ -439,14 +439,7 @@
          (stage (current infer))
          ?f <- (path-expansion (original)
                                (mapped-to-actual-operation ?a&~UNKNOWN)
-                               (absolute-terminator ?b&~UNKNOWN)
-                               (absolute-starter ?c&~UNKNOWN)
                                (must-span-transactions UNKNOWN))
          =>
          (modify ?f
-                 (must-span-transactions (or (and (not ?a)
-                                                  ?b
-                                                  (not ?c))
-                                             (and (not ?a)
-                                                  (not ?b)
-                                                  ?c)))))
+                 (must-span-transactions (not ?a))))

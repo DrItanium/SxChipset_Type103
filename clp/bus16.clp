@@ -58,6 +58,37 @@
                    (default ?NONE))
              (multislot contents
                         (default ?NONE)))
+(deftemplate path-expansion
+             (slot title
+                   (type SYMBOL)
+                   (default-dynamic (gensym*)))
+             (slot group
+                   (type SYMBOL)
+                   (default ?NONE))
+             (slot width
+                   (type INTEGER)
+                   (range 0 ?VARIABLE)
+                   (default ?NONE))
+             (multislot original
+                        (type SYMBOL)
+                        (default ?NONE))
+             (multislot expansion
+                        (type SYMBOL)))
+(deftemplate distinct-path-match
+             (slot target0
+                   (type SYMBOL)
+                   (default ?NONE))
+             (slot target1
+                   (type SYMBOL)
+                   (default ?NONE))
+             (multislot match
+                        (default ?NONE)))
+(deftemplate stage
+             (slot current
+                   (type SYMBOL)
+                   (default ?NONE))
+             (multislot rest
+                        (type SYMBOL)))
 (deffacts states
           (defnode bus16 TRUE FALSE)
           (defnode bus16 FALSE TRUE)
@@ -77,12 +108,6 @@
           (group-properties (title bus32)
                             (max-length 4))
           )
-(deftemplate stage
-             (slot current
-                   (type SYMBOL)
-                   (default ?NONE))
-             (multislot rest
-                        (type SYMBOL)))
 (defrule next-stage
          (declare (salience -10000))
          ?f <- (stage (rest ?next $?rest))
@@ -265,22 +290,6 @@
                  (standalone (and (not ?in)
                                   (not ?out)))))
 
-(deftemplate path-expansion
-             (slot title
-                   (type SYMBOL)
-                   (default-dynamic (gensym*)))
-             (slot group
-                   (type SYMBOL)
-                   (default ?NONE))
-             (slot width
-                   (type INTEGER)
-                   (range 0 ?VARIABLE)
-                   (default ?NONE))
-             (multislot original
-                        (type SYMBOL)
-                        (default ?NONE))
-             (multislot expansion
-                        (type SYMBOL)))
 
 (defrule make-path-expansion
          (stage (current infer))
@@ -303,15 +312,6 @@
          (modify ?f
                  (original $?rest)
                  (expansion $?exp $?bits)))
-(deftemplate distinct-path-match
-             (slot target0
-                   (type SYMBOL)
-                   (default ?NONE))
-             (slot target1
-                   (type SYMBOL)
-                   (default ?NONE))
-             (multislot match
-                        (default ?NONE)))
 (defrule match-two-distinct-paths
          (stage (current infer))
          (path-expansion (original)

@@ -69,7 +69,11 @@
                    (type INTEGER)
                    (range 0 ?VARIABLE)
                    (default ?NONE))
-             (slot absolute-terminator 
+             (slot num-nodes
+                   (type INTEGER)
+                   (range 0 ?VARIABLE)
+                   (default ?NONE))
+             (slot absolute-terminator
                    (type SYMBOL)
                    (allowed-symbols UNKNOWN
                                     FALSE
@@ -247,6 +251,7 @@
          (retract ?f)
          (assert (path-expansion (group ?group)
                                  (width ?width)
+                                 (num-nodes (length$ ?contents))
                                  (original ?contents))))
 (defrule expand-path
          (stage (current infer))

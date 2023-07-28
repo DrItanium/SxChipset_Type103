@@ -284,8 +284,8 @@
 (defrule update-mapping-standalone
          (stage (current infer))
          ?f <- (smaller-to-larger-mapping (standalone UNKNOWN)
-                                          (can-flow-in ?in&:(neq ?in UNKNOWN))
-                                          (can-flow-out ?out&:(neq ?out UNKNOWN)))
+                                          (can-flow-in ?in&~UNKNOWN)
+                                          (can-flow-out ?out&~UNKNOWN))
          =>
          (modify ?f 
                  (standalone (and (not ?in)

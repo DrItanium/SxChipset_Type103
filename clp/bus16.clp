@@ -124,7 +124,7 @@
 (deffacts bus-groups
           (busgen bus16 2 8)
           (busgen bus32 4 4)
-          (busgen bus64 8 2)
+          ;(busgen bus64 8 2)
           ;(busgen bus128 16 1)
           )
 (deffacts stages

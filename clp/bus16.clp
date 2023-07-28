@@ -98,6 +98,11 @@
                    (allowed-symbols UNKNOWN
                                     FALSE
                                     TRUE))
+             (slot unaligned 
+                   (type SYMBOL)
+                   (allowed-symbols UNKNOWN
+                                    FALSE
+                                    TRUE))
              (multislot original
                         (type SYMBOL)
                         (default ?NONE))
@@ -380,6 +385,7 @@
                                       (expand$ ?exp)))))
 (deffacts operation-mappings
           (valid-op-width 128)
+          (valid-op-width 96)
           (valid-op-width 64)
           (valid-op-width 32)
           (valid-op-width 16))
@@ -411,3 +417,14 @@
                                (maximal-closed FALSE))
          =>
          (retract ?f))
+
+(defrule check-if-path-is-unaligned 
+         (stage (current infer))
+         ?f <- (path-expansion (original)
+                               (mapped-to-actual-operation ?result&~UNKNOWN)
+                               (unaligned UNKNOWN)
+                               (expansion $?x))
+         =>
+         (modify ?f
+                 (unaligned (and ?result 
+                                 (not (and (expand$ ?x)))))))

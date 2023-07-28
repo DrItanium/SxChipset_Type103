@@ -173,6 +173,7 @@
                     (contents $?before
                               ?curr
                               ?next)))
+
 (deftemplate smaller-to-larger-mapping
              (slot standalone
                    (type SYMBOL)
@@ -263,3 +264,39 @@
          (modify ?f 
                  (standalone (and (not ?in)
                                   (not ?out)))))
+
+(deftemplate path-expansion
+             (slot group
+                   (type SYMBOL)
+                   (default ?NONE))
+             (slot width
+                   (type INTEGER)
+                   (range 0 ?VARIABLE)
+                   (default ?NONE))
+             (multislot original
+                        (type SYMBOL)
+                        (default ?NONE))
+             (multislot expansion
+                        (type SYMBOL)))
+
+(defrule make-path-expansion
+         (stage (current infer))
+         (path (group ?group)
+               (width ?width)
+               (contents $?contents))
+         =>
+         (assert (path-expansion (group ?group)
+                                 (width ?width)
+                                 (original ?contents))))
+(defrule expand-path
+         (stage (current infer))
+         ?f <- (path-expansion (group ?group)
+                               (original ?first $?rest)
+                               (expansion $?exp))
+         (node (group ?group)
+               (title ?first)
+               (byte-enable-bits $?bits))
+         =>
+         (modify ?f
+                 (original $?rest)
+                 (expansion $?exp $?bits)))

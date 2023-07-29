@@ -580,8 +580,53 @@ public:
                 }
                 signalReady<true>();
             } else {
-                LO(0, 1, false, true);
-                HI(2, 3, true, true);
+                {
+                    auto lowest = dataLines[0];
+                    auto lower = dataLines[1];
+                    auto captureSnapshotLower = (~getInputRegister<Port::SignalCTL>()) & 0b1111;
+                    if (isBurstLast()) {
+                        if ((captureSnapshotLower & 0b1)) {
+                            theBytes[0] = lowest;
+                        } 
+                        if ((captureSnapshotLower & 0b10)) {
+                            theBytes[1] = lower;
+                        }
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto higher = dataLines[2];
+                    auto highest = dataLines[3];
+                    auto captureSnapshotUpper = (~getInputRegister<Port::SignalCTL>()) & 0b1111;
+                    if (isBurstLast()) {
+                        if ((captureSnapshotLower & 0b1)) {
+                            theBytes[0] = lowest;
+                        }
+                        if ((captureSnapshotLower & 0b10)) {
+                            theBytes[1] = lower;
+                        }
+                        if ((captureSnapshotUpper & 0b100)) {
+                            theBytes[2] = higher;
+                        }
+                        if ((captureSnapshotUpper & 0b1000)) {
+                            theBytes[3] = highest;
+                        }
+                        goto Done;
+                    } else {
+                        signalReady<false>();
+                        if ((captureSnapshotLower & 0b1)) {
+                            theBytes[0] = lowest;
+                        }
+                        if ((captureSnapshotLower & 0b10)) {
+                            theBytes[1] = lower;
+                        }
+                        if ((captureSnapshotUpper & 0b100)) {
+                            theBytes[2] = higher;
+                        }
+                        if ((captureSnapshotUpper & 0b1000)) {
+                            theBytes[3] = highest;
+                        }
+                    }
+                }
                 LO(4, 5, true, true);
                 HI(6, 7, true, true);
                 LO(8, 9, true, true);

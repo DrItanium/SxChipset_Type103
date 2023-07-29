@@ -616,8 +616,38 @@ public:
                         signalReady<true>();
                     }
                 }
-                LO(4, 5, true, true);
-                HI(6, 7, true, true);
+                {
+                    auto lowest = dataLines[0];
+                    auto lower = dataLines[1];
+                    auto captureSnapshotLower = (getInputRegister<Port::SignalCTL>() & 0b1111);
+                    if (isBurstLast()) {
+                        theBytes[4] = lowest;
+                        if ((captureSnapshotLower & 0b10) == 0) {
+                            theBytes[5] = lower;
+                        }
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto higher = dataLines[2];
+                    auto highest = dataLines[3];
+                    auto captureSnapshotUpper = (getInputRegister<Port::SignalCTL>() & 0b1111);
+                    theBytes[4] = lowest;
+                    theBytes[5] = lower;
+                    theBytes[6] = higher;
+                    if (isBurstLast()) {
+                        // lower must be valid since we are flowing into the
+                        // next 16-bit word
+                        if ((captureSnapshotUpper & 0b1000) == 0) {
+                            theBytes[7] = highest;
+                        }
+                        goto Done;
+                    } else {
+                        // we know that all of these entries must be valid so
+                        // don't check the values
+                        theBytes[7] = highest;
+                        signalReady<true>();
+                    }
+                }
                 LO(8, 9, true, true);
                 HI(10, 11, true, true);
                 LO(12, 13, true, true);

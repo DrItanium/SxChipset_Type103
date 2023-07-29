@@ -489,8 +489,8 @@ private:
         if constexpr (isReadOperation) { 
             auto lower = theBytes[b0]; 
             auto upper = theBytes[b1]; 
-            setDataByte<d0>(lower); 
-            setDataByte<d1>(upper); 
+            dataLines[d0] = lower;
+            dataLines[d1] = upper;
         } else { 
             /* in the case where later is true, we 
              * will not check the lower byte enable bit for the given
@@ -503,8 +503,8 @@ private:
              * However, the first time through, we want to make sure we
              * check both upper and lower.
              */ 
-            auto lower = getDataByte<d0>();
-            auto upper = getDataByte<d1>();
+            auto lower = dataLines[d0];
+            auto upper = dataLines[d1];
             if (later || digitalRead<beLower>() == LOW) { 
                 theBytes[b0] = lower;
             } 

@@ -611,6 +611,8 @@ public:
                     }
                 }
                 {
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
                     auto lowest = dataLines[0];
                     auto lower = dataLines[1];
                     if (isBurstLast()) {
@@ -640,10 +642,62 @@ public:
                         signalReady<true>();
                     }
                 }
-                LO(8, 9, true, true);
-                HI(10, 11, true, true);
-                LO(12, 13, true, true);
-                HI(14, 15, true, true);
+                {
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto lowest = dataLines[0];
+                    auto lower = dataLines[1];
+                    if (isBurstLast()) {
+                        theBytes[8] = lowest;
+                        if (digitalRead<Pin::BE1>() == LOW) {
+                            theBytes[9] = lower;
+                        }
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto higher = dataLines[2];
+                    auto highest = dataLines[3];
+                    theBytes[8] = lowest;
+                    theBytes[9] = lower;
+                    theBytes[10] = higher;
+                    if (isBurstLast()) {
+                        // lower must be valid since we are flowing into the
+                        // next 16-bit word
+                        if (digitalRead<Pin::BE3>() == LOW) {
+                            theBytes[11] = highest;
+                        }
+                        goto Done;
+                    } else {
+                        // we know that all of these entries must be valid so
+                        // don't check the values
+                        theBytes[11] = highest;
+                        signalReady<true>();
+                    }
+                }
+
+                {
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto lowest = dataLines[0];
+                    auto lower = dataLines[1];
+                    if (isBurstLast()) {
+                        theBytes[12] = lowest;
+                        if (digitalRead<Pin::BE1>() == LOW) {
+                            theBytes[13] = lower;
+                        }
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto higher = dataLines[2];
+                    auto highest = dataLines[3];
+                    theBytes[12] = lowest;
+                    theBytes[13] = lower;
+                    theBytes[14] = higher;
+                    if (digitalRead<Pin::BE3>() == LOW) {
+                        theBytes[15] = highest;
+                    }
+                    goto Done;
+                }
             }
         } else {
             // because we are operating on 16-byte windows, there is no way

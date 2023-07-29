@@ -473,6 +473,7 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     Self& operator=(Self&&) = delete;
 
 public:
+    //[[gnu::optimize("no-reorder-blocks")]]
     FORCE_INLINE
     inline
     static void
@@ -545,14 +546,49 @@ public:
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) [[gnu::likely]] {
-            LO(0, 1, false, true);
-            HI(2, 3, true, true);
-            LO(4, 5, true, true);
-            HI(6, 7, true, true);
-            LO(8, 9, true, true);
-            HI(10, 11, true, true);
-            LO(12, 13, true, true);
-            HI(14, 15, true, true);
+            if constexpr (isReadOperation) {
+                setDataByte(theBytes[0], theBytes[1], theBytes[2], theBytes[3]);
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<false>();
+                setDataByte(theBytes[4], theBytes[5], theBytes[6], theBytes[7]);
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<false>();
+                setDataByte(theBytes[8], theBytes[9], theBytes[10], theBytes[11]);
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<false>();
+                setDataByte(theBytes[12], theBytes[13], theBytes[14], theBytes[15]);
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
+            } else {
+                LO(0, 1, false, true);
+                HI(2, 3, true, true);
+                LO(4, 5, true, true);
+                HI(6, 7, true, true);
+                LO(8, 9, true, true);
+                HI(10, 11, true, true);
+                LO(12, 13, true, true);
+                HI(14, 15, true, true);
+            }
         } else {
             // because we are operating on 16-byte windows, there is no way
             // that we would ever fully access the entire 16-bytes in a single

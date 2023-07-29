@@ -583,29 +583,23 @@ public:
                 {
                     auto lowest = dataLines[0];
                     auto lower = dataLines[1];
-                    auto captureSnapshotLower = (getInputRegister<Port::SignalCTL>() & 0b1111);
+                    if (digitalRead<Pin::BE0>() == LOW) {
+                        theBytes[0] = lowest;
+                    }
+                    if (digitalRead<Pin::BE1>() == LOW) {
+                        theBytes[1] = lower;
+                    }
                     if (isBurstLast()) {
-                        if ((captureSnapshotLower & 0b1) == 0) {
-                            theBytes[0] = lowest;
-                        }
-                        if ((captureSnapshotLower & 0b10) == 0) {
-                            theBytes[1] = lower;
-                        }
                         goto Done;
                     }
                     signalReady<true>();
                     auto higher = dataLines[2];
                     auto highest = dataLines[3];
-                    auto captureSnapshotUpper = (getInputRegister<Port::SignalCTL>() & 0b1111);
-                    if ((captureSnapshotLower & 0b1) == 0) {
-                        theBytes[0] = lowest;
-                    }
-                    theBytes[1] = lower;
                     theBytes[2] = higher;
                     if (isBurstLast()) {
                         // lower must be valid since we are flowing into the
                         // next 16-bit word
-                        if ((captureSnapshotUpper & 0b1000) == 0) {
+                        if (digitalRead<Pin::BE3>() == LOW) {
                             theBytes[3] = highest;
                         }
                         goto Done;
@@ -619,10 +613,9 @@ public:
                 {
                     auto lowest = dataLines[0];
                     auto lower = dataLines[1];
-                    auto captureSnapshotLower = (getInputRegister<Port::SignalCTL>() & 0b1111);
                     if (isBurstLast()) {
                         theBytes[4] = lowest;
-                        if ((captureSnapshotLower & 0b10) == 0) {
+                        if (digitalRead<Pin::BE1>() == LOW) {
                             theBytes[5] = lower;
                         }
                         goto Done;
@@ -630,14 +623,13 @@ public:
                     signalReady<true>();
                     auto higher = dataLines[2];
                     auto highest = dataLines[3];
-                    auto captureSnapshotUpper = (getInputRegister<Port::SignalCTL>() & 0b1111);
                     theBytes[4] = lowest;
                     theBytes[5] = lower;
                     theBytes[6] = higher;
                     if (isBurstLast()) {
                         // lower must be valid since we are flowing into the
                         // next 16-bit word
-                        if ((captureSnapshotUpper & 0b1000) == 0) {
+                        if (digitalRead<Pin::BE3>() == LOW) {
                             theBytes[7] = highest;
                         }
                         goto Done;

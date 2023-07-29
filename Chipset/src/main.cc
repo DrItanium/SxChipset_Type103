@@ -593,30 +593,27 @@ public:
                         }
                         goto Done;
                     }
-                    signalReady<false>();
-                    if ((captureSnapshotLower & 0b1) == 0) {
-                        theBytes[0] = lowest;
-                    }
-                    asm volatile ("nop");
+                    signalReady<true>();
                     auto higher = dataLines[2];
                     auto highest = dataLines[3];
                     auto captureSnapshotUpper = (getInputRegister<Port::SignalCTL>() & 0b1111);
+                    if ((captureSnapshotLower & 0b1) == 0) {
+                        theBytes[0] = lowest;
+                    }
+                    theBytes[1] = lower;
+                    theBytes[2] = higher;
                     if (isBurstLast()) {
                         // lower must be valid since we are flowing into the
                         // next 16-bit word
-                        theBytes[1] = lower;
-                        theBytes[2] = higher;
                         if ((captureSnapshotUpper & 0b1000) == 0) {
                             theBytes[3] = highest;
                         }
                         goto Done;
                     } else {
-                        signalReady<false>();
                         // we know that all of these entries must be valid so
                         // don't check the values
-                        theBytes[1] = lower;
-                        theBytes[2] = higher;
                         theBytes[3] = highest;
+                        signalReady<true>();
                     }
                 }
                 LO(4, 5, true, true);

@@ -556,7 +556,8 @@ public:
                     goto Done; 
                 }
                 signalReady<false>();
-                setDataByte(theBytes[4], theBytes[5], theBytes[6], theBytes[7]);
+                setDataByte(theBytes[4], theBytes[5], 
+                            theBytes[6], theBytes[7]);
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -580,8 +581,28 @@ public:
                 }
                 signalReady<true>();
             } else {
-                LO(0, 1, false, true);
-                HI(2, 3, true, true);
+                auto lower = dataLines[0];
+                auto upper = dataLines[1];
+                if (digitalRead<Pin::BE0>() == LOW) { 
+                    theBytes[0] = lower;
+                } 
+                if (digitalRead<Pin::BE1>() == LOW) { 
+                    theBytes[1] = upper;
+                } 
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
+                lower = dataLines[2];
+                upper = dataLines[3];
+                theBytes[2] = lower;
+                if (digitalRead<Pin::BE3>() == LOW) {
+                    theBytes[3] = upper;
+                }
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
                 LO(4, 5, true, true);
                 HI(6, 7, true, true);
                 LO(8, 9, true, true);

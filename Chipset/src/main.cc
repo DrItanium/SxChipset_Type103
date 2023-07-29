@@ -502,47 +502,7 @@ public:
         // fine but in all cases the first 1 we encounter after finding the
         // first zero in the byte enable bits we are going to terminate
         // anyway. So don't waste time evaluating BLAST at all!
-#define X(d0, b0, d1, b1, later, aligned) \
-            { \
-                static constexpr bool IsLastWord = (aligned && b0 == 14 && b1 == 15) || \
-                                                   (!aligned && b0 == 12 && b1 == 13); \
-                static constexpr Pin beLower = d0 == 0 ? Pin::BE0 : Pin::BE2; \
-                static constexpr Pin beUpper = d1 == 1 ? Pin::BE1 : Pin::BE3; \
-                if constexpr (isReadOperation) { \
-                    auto lower = theBytes[b0]; \
-                    auto upper = theBytes[b1]; \
-                    dataLines[d0] = lower;\
-                    dataLines[d1] = upper;\
-                } else { \
-                    /* in the case where later is true, we 
-                     * will not check the lower byte enable bit for the given
-                     * pair
-                     *
-                     * Also, since this is later on in the process, it
-                     * should be safe to just propagate without performing
-                     * the check itself
-                     *
-                     * However, the first time through, we want to make sure we
-                     * check both upper and lower.
-                     */ \
-                    auto lower = dataLines[d0];\
-                    auto upper = dataLines[d1];\
-                    if (later || digitalRead<beLower>() == LOW) { \
-                        theBytes[b0] = lower;\
-                    } \
-                    if (digitalRead<beUpper>() == LOW) { \
-                        theBytes[b1] = upper;\
-                    } \
-                } \
-                if constexpr (!IsLastWord) { \
-                    if (isBurstLast()) { \
-                        goto Done; \
-                    } \
-                    signalReady<!isReadOperation>(); \
-                } \
-            }
-#define LO(b0, b1, later, aligned) X(0, b0, 1, b1, later, aligned)
-#define HI(b0, b1, later, aligned) X(2, b0, 3, b1, later, aligned)
+        //
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) [[gnu::likely]] {
@@ -737,18 +697,113 @@ public:
                 }
                 signalReady<true>();
             } else {
-                HI(0, 1, false, false);
-                LO(2, 3, true, false);
-                HI(4, 5, true, false);
-                LO(6, 7, true, false);
-                HI(8, 9, true, false);
-                LO(10, 11, true, false);
-                HI(12, 13, true, false);
+                {
+                    auto lowest = dataLines[2];
+                    auto lower = dataLines[3];
+                    if (digitalRead<Pin::BE2>() == LOW) {
+                        theBytes[0] = lowest;
+                    }
+                    if (digitalRead<Pin::BE3>() == LOW) {
+                        theBytes[1] = lower;
+                    }
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto higher = dataLines[0];
+                    auto highest = dataLines[1];
+                    theBytes[2] = higher;
+                    if (isBurstLast()) {
+                        // lower must be valid since we are flowing into the
+                        // next 16-bit word
+                        if (digitalRead<Pin::BE1>() == LOW) {
+                            theBytes[3] = highest;
+                        }
+                        goto Done;
+                    } else {
+                        // we know that all of these entries must be valid so
+                        // don't check the values
+                        theBytes[3] = highest;
+                        signalReady<true>();
+                    }
+                }
+                {
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto lowest = dataLines[2];
+                    auto lower = dataLines[3];
+                    if (isBurstLast()) {
+                        theBytes[4] = lowest;
+                        if (digitalRead<Pin::BE3>() == LOW) {
+                            theBytes[5] = lower;
+                        }
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto higher = dataLines[0];
+                    auto highest = dataLines[1];
+                    theBytes[4] = lowest;
+                    theBytes[5] = lower;
+                    theBytes[6] = higher;
+                    if (isBurstLast()) {
+                        // lower must be valid since we are flowing into the
+                        // next 16-bit word
+                        if (digitalRead<Pin::BE1>() == LOW) {
+                            theBytes[7] = highest;
+                        }
+                        goto Done;
+                    } else {
+                        // we know that all of these entries must be valid so
+                        // don't check the values
+                        theBytes[7] = highest;
+                        signalReady<true>();
+                    }
+                }
+                {
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto lowest = dataLines[2];
+                    auto lower = dataLines[3];
+                    if (isBurstLast()) {
+                        theBytes[8] = lowest;
+                        if (digitalRead<Pin::BE3>() == LOW) {
+                            theBytes[9] = lower;
+                        }
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto higher = dataLines[0];
+                    auto highest = dataLines[1];
+                    theBytes[8] = lowest;
+                    theBytes[9] = lower;
+                    theBytes[10] = higher;
+                    if (isBurstLast()) {
+                        // lower must be valid since we are flowing into the
+                        // next 16-bit word
+                        if (digitalRead<Pin::BE1>() == LOW) {
+                            theBytes[11] = highest;
+                        }
+                        goto Done;
+                    } else {
+                        // we know that all of these entries must be valid so
+                        // don't check the values
+                        theBytes[11] = highest;
+                        signalReady<true>();
+                    }
+                }
+
+                {
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto lowest = dataLines[2];
+                    auto lower = dataLines[3];
+                    theBytes[12] = lowest;
+                    if (digitalRead<Pin::BE3>() == LOW) {
+                        theBytes[13] = lower;
+                    }
+                }
             }
         }
-#undef LO
-#undef HI
-#undef X
 Done:
         signalReady<true>();
     }

@@ -164,12 +164,17 @@ DataRegister8
 getTransactionWindow() noexcept {
     return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
 }
-
+uint8_t backupCopy[4] { 0 };
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 4, "Invalid index provided to setDataByte, must be less than 4");
     if constexpr (index < 4) {
-        dataLines[index] = value;
+        if (backupCopy[index] == value) {
+            return;
+        } else {
+            dataLines[index] = value;
+            backupCopy[index] = value;
+        }
     }
 }
 

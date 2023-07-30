@@ -164,17 +164,11 @@ DataRegister8
 getTransactionWindow() noexcept {
     return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
 }
-uint8_t backupCopy[4] { 0 };
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 4, "Invalid index provided to setDataByte, must be less than 4");
     if constexpr (index < 4) {
-        if (backupCopy[index] == value) {
-            return;
-        } else {
-            dataLines[index] = value;
-            backupCopy[index] = value;
-        }
+        dataLines[index] = value;
     }
 }
 
@@ -185,6 +179,7 @@ inline void setDataByte(uint8_t a, uint8_t b, uint8_t c, uint8_t d) noexcept {
     setDataByte<2>(c);
     setDataByte<3>(d);
 }
+
 template<uint8_t index>
 requires (index < 4)
 inline uint8_t getDataByte() noexcept {
@@ -512,7 +507,7 @@ public:
         // creative. The base offsets have been modified
         if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) [[gnu::likely]] {
             if constexpr (isReadOperation) {
-                setDataByte(theBytes[0], theBytes[1], theBytes[2], theBytes[3]);
+                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[0];
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -521,7 +516,7 @@ public:
                     goto Done; 
                 }
                 signalReady<false>();
-                setDataByte(theBytes[4], theBytes[5], theBytes[6], theBytes[7]);
+                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[1];
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -530,7 +525,7 @@ public:
                     goto Done; 
                 }
                 signalReady<false>();
-                setDataByte(theBytes[8], theBytes[9], theBytes[10], theBytes[11]);
+                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[2];
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -539,7 +534,7 @@ public:
                     goto Done; 
                 }
                 signalReady<false>();
-                setDataByte(theBytes[12], theBytes[13], theBytes[14], theBytes[15]);
+                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[3];
                 if (isBurstLast()) {
                     goto Done; 
                 }

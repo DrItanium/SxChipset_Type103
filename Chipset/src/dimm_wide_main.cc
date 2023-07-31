@@ -34,46 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 #include "Setup.h"
-constexpr auto EYESPI_Pin_TFTCS = static_cast<int>(Pin::EyeSpi_Pin_TCS);
-constexpr auto EYESPI_Pin_TSCS = static_cast<int>(Pin::EyeSpi_Pin_TSCS);
-constexpr auto EYESPI_Pin_Reset = static_cast<int>(Pin::EyeSpi_Pin_RST);
-constexpr auto EYESPI_Pin_DC = static_cast<int>(Pin::EyeSpi_Pin_DC);
-constexpr auto EYESPI_Pin_BUSY = static_cast<int>(Pin::EyeSpi_Pin_Busy);
-constexpr auto EYESPI_Pin_MEMCS = static_cast<int>(Pin::EyeSpi_Pin_MEMCS);
-Adafruit_SSD1351 oled(
-        128,
-        128,
-        &SPI, 
-        EYESPI_Pin_TFTCS, 
-        EYESPI_Pin_DC, 
-        EYESPI_Pin_Reset);
 
-Adafruit_SSD1680 epaperDisplay213(
-        250, 
-        122,
-        EYESPI_Pin_DC, 
-        EYESPI_Pin_Reset,
-        EYESPI_Pin_TFTCS,
-        EYESPI_Pin_MEMCS,
-        EYESPI_Pin_BUSY,
-        &SPI);
-enum class EnabledDisplays {
-    SSD1351_OLED_128_x_128_1_5,
-    SSD1680_EPaper_250_x_122_2_13,
-};
-constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
-constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
-constexpr auto EPAPER_COLOR_RED = EPD_RED;
-
-constexpr bool MCUHasDirectAccess = true;
-constexpr bool XINT0DirectConnect = true;
-constexpr bool XINT1DirectConnect = false;
-constexpr bool XINT2DirectConnect = false;
-constexpr bool XINT3DirectConnect = false;
-constexpr bool XINT4DirectConnect = false;
-constexpr bool XINT5DirectConnect = false;
-constexpr bool XINT6DirectConnect = false;
-constexpr bool XINT7DirectConnect = false;
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
@@ -115,11 +76,11 @@ X(5);
 
 void 
 putCPUInReset() noexcept {
-    ControlSignals.ctl.reset = LOW;
+    /// @todo implement
 }
 void 
 pullCPUOutOfReset() noexcept {
-    ControlSignals.ctl.reset = HIGH;
+    /// @todo implement
 }
 template<bool isReadOperation>
 struct RWOperation final {
@@ -131,7 +92,7 @@ using WriteOperation = RWOperation<false>;
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 using DataRegister32 = volatile uint32_t*;
-
+#if 0
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
@@ -184,6 +145,13 @@ requires (index < 4)
 inline uint8_t getDataByte() noexcept {
     static_assert(index < 4, "Invalid index provided to getDataByte, must be less than 4");
     if constexpr (index < 4) {
+        switch (index) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+
+        }
         return dataLines[index];
     } else {
         return 0;
@@ -1053,11 +1021,12 @@ template<uint8_t value>
 inline 
 void 
 updateDataLinesDirection() noexcept {
-    dataLinesDirection_bytes[0] = value;
-    dataLinesDirection_bytes[1] = value;
-    dataLinesDirection_bytes[2] = value;
-    dataLinesDirection_bytes[3] = value;
+    getDirectionRegister<Port::D0_7>() = value;
+    getDirectionRegister<Port::D8_15>() = value;
+    getDirectionRegister<Port::D16_23>() = value;
+    getDirectionRegister<Port::D24_31>() = value;
 }
+#endif
 
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
@@ -1067,16 +1036,16 @@ void
 executionBody() noexcept {
     // turn off the timer0 interrupt for system count, we don't care about it
     // anymore
-    digitalWrite<Pin::DirectionOutput, HIGH>();
-    getOutputRegister<Port::IBUS_Bank>() = 0;
-    getDirectionRegister<Port::IBUS_Bank>() = 0;
+    //digitalWrite<Pin::DirectionOutput, HIGH>();
+    //getOutputRegister<Port::IBUS_Bank>() = 0;
+    //getDirectionRegister<Port::IBUS_Bank>() = 0;
     // switch the XBUS bank mode to i960 instead of AVR
     // I want to use the upper four bits the XBUS address lines
     // while I can directly connect to the address lines, I want to test to
     // make sure that this works as well
-    ControlSignals.ctl.bankSelect = 1;
+    //ControlSignals.ctl.bankSelect = 1;
 
-    XBUSBankRegister.view32.data = 0;
+    //XBUSBankRegister.view32.data = 0;
     // at this point, we are setup to be in output mode (or read) and that is the
     // expected state for _all_ i960 processors, it will load some amount of
     // data from main memory to start the execution process. 
@@ -1090,6 +1059,7 @@ executionBody() noexcept {
     // compiler to try and do this instead leads to implicit jumping issues
     // where the compiler has way too much fun with its hands. It will over
     // optimize things and create problems!
+#if 0
 ReadOperationStart:
     // wait until DEN goes low
     while (digitalRead<Pin::DEN>());
@@ -1098,7 +1068,7 @@ ReadOperationStart:
         // change direction to input since we are doing read -> write
         updateDataLinesDirection<0>();
         // update the direction pin 
-        toggle<Pin::DirectionOutput>();
+        //toggle<Pin::DirectionOutput>();
         // then jump into the write loop
         goto WriteOperationBypass;
     }
@@ -1126,63 +1096,28 @@ WriteOperationBypass:
     // restart the write loop
     goto WriteOperationStart;
     // we should never get here!
+#endif
+    while (true) {
+
+    }
 }
 
-template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
-[[gnu::noinline]]
-void
-installMemoryImage() noexcept {
-    static constexpr uint32_t MaximumFileSize = maxFileSize;
-    SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    SdFs SD;
-    Serial.println(F("Looking for an SD Card!"));
-    while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
-        Serial.println(F("NO SD CARD!"));
-        delay(1000);
-    }
-    Serial.println(F("SD CARD FOUND!"));
-    // look for firmware.bin and open it readonly
-    if (auto theFirmware = SD.open("firmware.bin", FILE_READ); !theFirmware) {
-        Serial.println(F("Could not open firmware.bin for reading!"));
-        while (true) {
-            delay(1000);
-        }
-    } else if (theFirmware.size() > MaximumFileSize) {
-        Serial.println(F("The firmware image is too large to fit in sram!"));
-        while (true) {
-            delay(1000);
-        }
-    } else {
-        Serial.println(F("TRANSFERRING!!"));
-        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
-            SplitWord32 view{address};
-            // just modify the bank as we go along
-            getOutputRegister<Port::IBUS_Bank>() = view.getIBUSBankIndex();
-            auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress(AccessFromIBUS{}));
-            theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
-            Serial.print(F("."));
-        }
-        Serial.println(F("DONE!"));
-        theFirmware.close();
-    }
-    // okay so now end reading from the SD Card
-    SD.end();
-    SPI.endTransaction();
-}
 void 
 setupPins() noexcept {
     // power down the ADC, TWI, and USART3
     // currently we can't use them
-    PRR0 = 0b1000'0001; // deactivate TWI and ADC
-    PRR1 = 0b00000'100; // deactivate USART3
 
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
+    pinMode<Pin::XINT2_960_>(OUTPUT);
+    pinMode<Pin::XINT4_960_>(OUTPUT);
+    pinMode<Pin::XINT6_960_>(OUTPUT);
     digitalWrite<Pin::INT0_960_, HIGH>();
+    digitalWrite<Pin::XINT2_960_, HIGH>();
+    digitalWrite<Pin::XINT4_960_, HIGH>();
+    digitalWrite<Pin::XINT6_960_, HIGH>();
     // setup the IBUS bank
-    getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
-    getOutputRegister<Port::IBUS_Bank>() = 0;
-    pinMode(Pin::IsMemorySpaceOperation, INPUT);
+    //pinMode(Pin::IsMemorySpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BE2, INPUT);
@@ -1190,110 +1125,27 @@ setupPins() noexcept {
     pinMode(Pin::DEN, INPUT);
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
-    pinMode(Pin::DirectionOutput, OUTPUT);
+    //pinMode(Pin::DirectionOutput, OUTPUT);
     // we start with 0xFF for the direction output so reflect it here
-    digitalWrite<Pin::DirectionOutput, HIGH>();
-    pinMode(Pin::ChangeDirection, INPUT);
-    if constexpr (MCUHasDirectAccess) {
-        pinMode(Pin::READY, OUTPUT);
-        digitalWrite<Pin::READY, HIGH>();
-    }
-}
-void
-setupDisplay() noexcept {
-    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
-        oled.begin();
-        oled.setFont();
-        oled.fillScreen(0);
-        oled.setTextColor(0xFFFF);
-        oled.setTextSize(1);
-        oled.println(F("i960"));
-        oled.enableDisplay(true);
-    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
-        epaperDisplay213.begin();
-        epaperDisplay213.clearBuffer();
-        epaperDisplay213.setCursor(0, 0);
-        epaperDisplay213.setTextColor(EPAPER_COLOR_BLACK);
-        epaperDisplay213.setTextWrap(true);
-        epaperDisplay213.setTextSize(2);
-        epaperDisplay213.println(F("i960"));
-        epaperDisplay213.display();
-    } 
-}
-void 
-setupPlatform() noexcept {
-    static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
-    // setup the EBI
-    XMCRB=0b1'0000'000;
-    // use the upper and lower sector limits feature to accelerate IO space
-    // 0x2200-0x3FFF is full speed, rest has a one cycle during read/write
-    // strobe delay since SRAM is 55ns
-    //
-    // I am using an HC573 on the interface board so the single cycle delay
-    // state is necessary! When I replace the interface chip with the
-    // AHC573, I'll get rid of the single cycle delay from the lower sector
-    XMCRA=0b1'010'01'01;  
-    AddressLinesInterface.view32.direction = 0;
-    DataLinesInterface.view32.direction = 0xFFFF'FFFF;
-    DataLinesInterface.view32.data = 0;
-    ControlSignals.view32.direction = ControlSignalDirection;
-    if constexpr (MCUHasDirectAccess) {
-        ControlSignals.view8.direction[1] &= 0b11101111;
-    }
-    if constexpr (XINT0DirectConnect) {
-        ControlSignals.view8.direction[2] &= 0b11111110;
-    }
-    if constexpr (XINT1DirectConnect) {
-        ControlSignals.view8.direction[2] &= 0b11111101;
-    }
-    if constexpr (XINT2DirectConnect) {
-        ControlSignals.view8.direction[2] &= 0b11111011;
-    }
-    if constexpr (XINT3DirectConnect) {
-        ControlSignals.view8.direction[2] &= 0b11110111;
-    }
-    if constexpr (XINT4DirectConnect) {
-        ControlSignals.view8.direction[2] &= 0b11101111;
-    }
-    if constexpr (XINT5DirectConnect) {
-        ControlSignals.view8.direction[2] &= 0b11011111;
-    }
-    if constexpr (XINT6DirectConnect) {
-        ControlSignals.view8.direction[2] &= 0b10111111;
-    }
-    if constexpr (XINT7DirectConnect) {
-        ControlSignals.view8.direction[2] &= 0b01111111;
-    }
-    ControlSignals.view32.data = 0;
-    ControlSignals.ctl.hold = 0;
-    ControlSignals.ctl.reset = 0; // put i960 in reset
-    ControlSignals.ctl.backOff = 1;
-    ControlSignals.ctl.ready = 0;
-    ControlSignals.ctl.nmi = 1;
-    ControlSignals.ctl.xint0 = 1;
-    ControlSignals.ctl.xint1 = 1;
-    ControlSignals.ctl.xint2 = 1;
-    ControlSignals.ctl.xint3 = 1;
-    ControlSignals.ctl.xint4 = 1;
-    ControlSignals.ctl.xint5 = 1;
-    ControlSignals.ctl.xint6 = 1;
-    ControlSignals.ctl.xint7 = 1;
-    // select the CH351 bank chip to go over the xbus address lines
-    ControlSignals.ctl.bankSelect = 0;
-    setupDisplay();
+    //digitalWrite<Pin::DirectionOutput, HIGH>();
+    //pinMode(Pin::ChangeDirection, INPUT);
+    pinMode(Pin::READY, OUTPUT);
+    digitalWrite<Pin::READY, HIGH>();
 }
 
 CPUKind 
 getInstalledCPUKind() noexcept { 
-    return static_cast<CPUKind>(ControlSignals.ctl.cfg); 
+    /// @todo implement
+    return CPUKind::Reserved2;
 }
 
 void
 setup() {
+    SPI.begin();
     setupPins();
+    putCPUInReset();
     Serial.begin(115200);
     // setup the IO Expanders
-    setupPlatform();
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:
             Serial.println(F("i960Sx CPU detected!"));
@@ -1315,7 +1167,6 @@ setup() {
             break;
     }
     // find firmware.bin and install it into the 512k block of memory
-    installMemoryImage();
     pullCPUOutOfReset();
 }
 void 

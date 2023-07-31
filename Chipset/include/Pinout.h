@@ -85,6 +85,9 @@ Count = NUM_DIGITAL_PINS,
     XINT2_960_ = PortB4, // OC2A
     XINT4_960_ = PortB6, // OC1B
     XINT6_960_ = PortB7, // OC1C
+    IO_OPERATION = PortG0,
+    IO_EXP_ENABLE = PortG1,
+    DataDirection = PortG2,
 #endif
 };
 enum class Port : byte {

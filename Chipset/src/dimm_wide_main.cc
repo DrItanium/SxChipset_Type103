@@ -26,9 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1351.h>
-#include <Adafruit_EPD.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -1107,30 +1104,37 @@ setupPins() noexcept {
     // power down the ADC, TWI, and USART3
     // currently we can't use them
 
+    // setup the direction of the data and address ports to be inputs to start
+    getDirectionRegister<Port::A2_9>() = 0;
+    getDirectionRegister<Port::D0_7>() = 0;
+    getDirectionRegister<Port::D8_15>() = 0;
+    getDirectionRegister<Port::D16_23>() = 0;
+    getDirectionRegister<Port::D24_31>() = 0;
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
     pinMode<Pin::XINT2_960_>(OUTPUT);
     pinMode<Pin::XINT4_960_>(OUTPUT);
     pinMode<Pin::XINT6_960_>(OUTPUT);
+    pinMode<Pin::BE0>(INPUT);
+    pinMode<Pin::BE1>(INPUT);
+    pinMode<Pin::BE2>(INPUT);
+    pinMode<Pin::BE3>(INPUT);
+    pinMode<Pin::DEN>(INPUT);
+    pinMode<Pin::BLAST>(INPUT);
+    pinMode<Pin::WR>(INPUT);
+    pinMode<Pin::READY>(OUTPUT);
+    pinMode<Pin::SD_EN>(OUTPUT);
+    pinMode<Pin::IO_OPERATION>(INPUT);
+    pinMode<Pin::IO_EXP_ENABLE>(OUTPUT);
+    pinMode<Pin::DataDirection>(OUTPUT);
     digitalWrite<Pin::INT0_960_, HIGH>();
     digitalWrite<Pin::XINT2_960_, HIGH>();
     digitalWrite<Pin::XINT4_960_, HIGH>();
     digitalWrite<Pin::XINT6_960_, HIGH>();
-    // setup the IBUS bank
-    //pinMode(Pin::IsMemorySpaceOperation, INPUT);
-    pinMode(Pin::BE0, INPUT);
-    pinMode(Pin::BE1, INPUT);
-    pinMode(Pin::BE2, INPUT);
-    pinMode(Pin::BE3, INPUT);
-    pinMode(Pin::DEN, INPUT);
-    pinMode(Pin::BLAST, INPUT);
-    pinMode(Pin::WR, INPUT);
-    //pinMode(Pin::DirectionOutput, OUTPUT);
-    // we start with 0xFF for the direction output so reflect it here
-    //digitalWrite<Pin::DirectionOutput, HIGH>();
-    //pinMode(Pin::ChangeDirection, INPUT);
-    pinMode(Pin::READY, OUTPUT);
     digitalWrite<Pin::READY, HIGH>();
+    digitalWrite<Pin::SD_EN, HIGH>();
+    digitalWrite<Pin::IO_EXP_ENABLE, HIGH>();
+    digitalWrite<Pin::DataDirection, HIGH>();
 }
 
 CPUKind 

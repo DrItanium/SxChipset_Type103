@@ -726,8 +726,6 @@ setupPins() noexcept {
     // currently we can't use them
 
     // setup the direction of the data and address ports to be inputs to start
-    getDirectionRegister<Port::A2_9>() = 0;
-    updateDataLinesDirection<0>();
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
     pinMode<Pin::XINT2_960_>(OUTPUT);
@@ -752,10 +750,12 @@ setupPins() noexcept {
     digitalWrite<Pin::READY, HIGH>();
     digitalWrite<Pin::SD_EN, HIGH>();
     digitalWrite<Pin::IO_EXP_ENABLE, HIGH>();
-    digitalWrite<Pin::DataDirection, HIGH>();
+    digitalWrite<Pin::DataDirection, LOW>();
     uint16_t iodir = 0b0000'0000'1101'0000;
     ioExpWrite16<Pin::IO_EXP_ENABLE>(0x00, iodir);
     ioExpWrite16<Pin::IO_EXP_ENABLE>(0x12, 0xFFFF);
+    getDirectionRegister<Port::A2_9>() = 0;
+    updateDataLinesDirection<0>();
 }
 
 CPUKind 

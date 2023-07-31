@@ -124,6 +124,43 @@ struct RWOperation final {
     static constexpr bool IsReadOperation = isReadOperation;
 };
 
+template<uint8_t index>
+requires (index < 4)
+inline void setDataByte(uint8_t value) noexcept {
+    static_assert(index < 4, "Invalid index provided to setDataByte, must be less than 4");
+    if constexpr (index < 4) {
+        switch (index) {
+            case 0: getOutputRegister<Port::D0_7>() = value; break;
+            case 1: getOutputRegister<Port::D8_15>() = value; break;
+            case 2: getOutputRegister<Port::D16_23>() = value; break;
+            case 3: getOutputRegister<Port::D24_31>() = value; break;
+        }
+    }
+}
+[[gnu::always_inline]]
+inline void setDataWord(uint32_t value) noexcept {
+    setDataByte<0>(static_cast<uint8_t>(value));
+    setDataByte<1>(static_cast<uint8_t>(value >> 8));
+    setDataByte<2>(static_cast<uint8_t>(value >> 16));
+    setDataByte<3>(static_cast<uint8_t>(value >> 24));
+}
+
+template<uint8_t index>
+requires (index < 4)
+inline uint8_t getDataByte() noexcept {
+    static_assert(index < 4, "Invalid index provided to getDataByte, must be less than 4");
+    if constexpr (index < 4) {
+        switch (index) {
+            case 0: return getInputRegister<Port::D0_7>();
+            case 1: return getInputRegister<Port::D8_15>();
+            case 2: return getInputRegister<Port::D16_23>();
+            case 3: return getInputRegister<Port::D24_31>();
+        }
+    } else {
+        return 0;
+    }
+}
+
 /**
  * @brief Just go through the motions of a write operation but do not capture
  * anything being sent by the i960
@@ -156,7 +193,7 @@ static void doIO() noexcept {
         switch (addressLines[0]) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesFull = F_CPU;
+                            setDataWord(F_CPU);
                         } 
                         if (isBurstLast()) { 
                             break; 
@@ -165,7 +202,7 @@ static void doIO() noexcept {
                     } 
             case 4: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesFull = F_CPU / 2;
+                            setDataWord(F_CPU / 2);
                         } 
                         if (isBurstLast()) { 
                             break; 
@@ -190,7 +227,7 @@ static void doIO() noexcept {
             case 12: { 
                          Serial.flush();
                          if constexpr (isReadOperation) { 
-                             dataLinesFull = 0;
+                             setDataWord(0);
                          } 
                          if (isBurstLast()) {
                              break;
@@ -319,7 +356,7 @@ static void doIO() noexcept {
 #undef X
             default:
                      if constexpr (isReadOperation) {
-                         dataLinesFull = 0;
+                         setDataWord(0);
                      }
                      idleTransaction();
                      return;
@@ -562,7 +599,7 @@ static void doIO() noexcept {
 
             default:
                      if constexpr (isReadOperation) {
-                         dataLinesFull = 0;
+                         setDataWord(0);
                      }
                      idleTransaction();
                      return;

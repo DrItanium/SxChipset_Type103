@@ -682,6 +682,7 @@ template<uint8_t value>
 inline 
 void 
 updateDataLinesDirection() noexcept {
+    digitalWrite<Pin::DataDirection, value == 0 ? HIGH : LOW>();
     getDirectionRegister<Port::D0_7>() = value;
     getDirectionRegister<Port::D8_15>() = value;
     getDirectionRegister<Port::D16_23>() = value;

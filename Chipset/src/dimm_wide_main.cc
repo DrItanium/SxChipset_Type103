@@ -51,12 +51,12 @@ signalReady() noexcept {
 template<Pin enablePin>
 [[gnu::always_inline]]
 inline void 
-ioExpWrite16(uint8_t address, uint8_t second, uint8_t third) noexcept {
+ioExpWrite16(uint8_t address, uint16_t value) noexcept {
     digitalWrite<enablePin, LOW>();
     SPI.transfer(0b0100'0000); // opcode
     SPI.transfer(address);
-    SPI.transfer(second);
-    SPI.transfer(third);
+    SPI.transfer(static_cast<uint8_t>(value));
+    SPI.transfer(static_cast<uint8_t>(value >> 8));
     digitalWrite<enablePin, HIGH>();
 }
 
@@ -117,9 +117,9 @@ X(3);
 X(4);
 X(5);
 #undef X
-
 void 
 putCPUInReset() noexcept {
+    
     /// @todo implement
 }
 void 
@@ -1179,12 +1179,14 @@ setupPins() noexcept {
     digitalWrite<Pin::SD_EN, HIGH>();
     digitalWrite<Pin::IO_EXP_ENABLE, HIGH>();
     digitalWrite<Pin::DataDirection, HIGH>();
+    uint16_t iodir = 0b0000'0000'1101'0000;
+    ioExpWrite16<Pin::IO_EXP_ENABLE>(0x00, iodir);
+    ioExpWrite16<Pin::IO_EXP_ENABLE>(0x12, 0xFFFF);
 }
 
 CPUKind 
 getInstalledCPUKind() noexcept { 
-    /// @todo implement
-    return CPUKind::Reserved2;
+    return static_cast<CPUKind>(ioExpRead8<Pin::IO_EXP_ENABLE>(0x13) & 0b111);
 }
 
 void

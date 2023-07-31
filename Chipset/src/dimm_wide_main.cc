@@ -47,6 +47,53 @@ signalReady() noexcept {
         insertCustomNopCount<4>();
     }
 }
+
+template<Pin enablePin>
+[[gnu::always_inline]]
+inline void 
+ioExpWrite16(uint8_t address, uint8_t second, uint8_t third) noexcept {
+    digitalWrite<enablePin, LOW>();
+    SPI.transfer(0b0100'0000); // opcode
+    SPI.transfer(address);
+    SPI.transfer(second);
+    SPI.transfer(third);
+    digitalWrite<enablePin, HIGH>();
+}
+
+template<Pin enablePin>
+[[gnu::always_inline]]
+inline void 
+ioExpWrite8(uint8_t address, uint8_t second) noexcept {
+    digitalWrite<enablePin, LOW>();
+    SPI.transfer(0b0100'0000); // opcode
+    SPI.transfer(address);
+    SPI.transfer(second);
+    digitalWrite<enablePin, HIGH>();
+}
+
+template<Pin enablePin>
+[[gnu::always_inline]]
+inline uint16_t 
+ioExpRead16(uint8_t address) noexcept {
+    digitalWrite<enablePin, LOW>();
+    SPI.transfer(0b0100'0001); // opcode
+    SPI.transfer(address);
+    uint16_t value = static_cast<uint16_t>(SPI.transfer(0));
+    value |= (static_cast<uint16_t>(SPI.transfer(0)) << 8);
+    digitalWrite<enablePin, HIGH>();
+    return value;
+}
+template<Pin enablePin>
+[[gnu::always_inline]]
+inline uint8_t 
+ioExpRead8(uint8_t address) noexcept {
+    digitalWrite<enablePin, LOW>();
+    SPI.transfer(0b0100'0001); // opcode
+    SPI.transfer(address);
+    uint8_t value = SPI.transfer(0);
+    digitalWrite<enablePin, HIGH>();
+    return value;
+}
 using Register8 = volatile uint8_t&;
 using Register16 = volatile uint16_t&;
 template<int index>
@@ -1013,6 +1060,7 @@ dispatch() noexcept {
 
 
 
+#endif
 template<uint8_t value>
 [[gnu::always_inline]]
 inline 
@@ -1023,7 +1071,6 @@ updateDataLinesDirection() noexcept {
     getDirectionRegister<Port::D16_23>() = value;
     getDirectionRegister<Port::D24_31>() = value;
 }
-#endif
 
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
@@ -1106,10 +1153,7 @@ setupPins() noexcept {
 
     // setup the direction of the data and address ports to be inputs to start
     getDirectionRegister<Port::A2_9>() = 0;
-    getDirectionRegister<Port::D0_7>() = 0;
-    getDirectionRegister<Port::D8_15>() = 0;
-    getDirectionRegister<Port::D16_23>() = 0;
-    getDirectionRegister<Port::D24_31>() = 0;
+    updateDataLinesDirection<0>();
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
     pinMode<Pin::XINT2_960_>(OUTPUT);

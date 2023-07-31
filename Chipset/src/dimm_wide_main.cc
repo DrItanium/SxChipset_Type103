@@ -207,6 +207,23 @@ inline void setDataHalf(uint16_t value) noexcept {
     } 
 }
 
+template<uint8_t index>
+requires (index < 2)
+inline void setDataHalf(uint8_t lower, uint8_t upper) noexcept {
+    if constexpr (index < 2) {
+        switch (index) {
+            case 0:
+                setDataByte<0>(lower);
+                setDataByte<1>(upper);
+                break;
+            case 1:
+                setDataByte<2>(lower);
+                setDataByte<3>(upper);
+                break;
+        }
+    } 
+}
+
 /**
  * @brief Just go through the motions of a write operation but do not capture
  * anything being sent by the i960
@@ -499,8 +516,7 @@ static void doIO() noexcept {
             case offset + 0: { \
                         /* TCCRnA and TCCRnB */ \
                         if constexpr (isReadOperation) { \
-                            setDataByte<0>(obj.TCCRxA);\
-                            setDataByte<1>(obj.TCCRxB);\
+                            setDataHalf<0>(obj.TCCRxA, obj.TCCRxB); \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW) { \
                                 obj.TCCRxA = getDataByte<0>();\
@@ -514,8 +530,7 @@ static void doIO() noexcept {
             case offset + 2: { \
                         /* TCCRnC and Reserved (ignore that) */ \
                         if constexpr (isReadOperation) { \
-                            setDataByte<2>(obj.TCCRxC);\
-                            setDataByte<3>(0); \
+                            setDataHalf<1>(obj.TCCRxC, 0); \
                         } else { \
                             if (digitalRead<Pin::BE2>() == LOW) { \
                                 obj.TCCRxC = getDataByte<2>();\

@@ -117,90 +117,13 @@ X(3);
 X(4);
 X(5);
 #undef X
-void 
-putCPUInReset() noexcept {
-    
-    /// @todo implement
-}
-void 
-pullCPUOutOfReset() noexcept {
-    /// @todo implement
-}
+void putCPUInReset() noexcept;
+void pullCPUOutOfReset() noexcept;
 template<bool isReadOperation>
 struct RWOperation final {
     static constexpr bool IsReadOperation = isReadOperation;
 };
-using ReadOperation = RWOperation<true>;
-using WriteOperation = RWOperation<false>;
 
-using DataRegister8 = volatile uint8_t*;
-using DataRegister16 = volatile uint16_t*;
-using DataRegister32 = volatile uint32_t*;
-#if 0
-[[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
-[[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
-[[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
-[[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
-
-[[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
-[[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
-[[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
-[[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
-[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
-[[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
-
-template<NativeBusWidth width>
-inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
-    return value & 0b1100;
-}
-template<uint16_t sectionMask, uint16_t offsetMask>
-constexpr
-uint16_t
-computeTransactionWindow(uint16_t offset) noexcept {
-    return sectionMask | (offset & offsetMask);
-}
-
-FORCE_INLINE
-inline
-DataRegister8
-getTransactionWindow() noexcept {
-    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
-}
-template<uint8_t index>
-inline void setDataByte(uint8_t value) noexcept {
-    static_assert(index < 4, "Invalid index provided to setDataByte, must be less than 4");
-    if constexpr (index < 4) {
-        dataLines[index] = value;
-    }
-}
-
-FORCE_INLINE
-inline void setDataByte(uint8_t a, uint8_t b, uint8_t c, uint8_t d) noexcept {
-    setDataByte<0>(a);
-    setDataByte<1>(b);
-    setDataByte<2>(c);
-    setDataByte<3>(d);
-}
-
-template<uint8_t index>
-requires (index < 4)
-inline uint8_t getDataByte() noexcept {
-    static_assert(index < 4, "Invalid index provided to getDataByte, must be less than 4");
-    if constexpr (index < 4) {
-        switch (index) {
-            case 0:
-            case 1:
-            case 2:
-            case 3:
-
-        }
-        return dataLines[index];
-    } else {
-        return 0;
-    }
-}
 /**
  * @brief Just go through the motions of a write operation but do not capture
  * anything being sent by the i960
@@ -227,57 +150,6 @@ struct CommunicationKernel {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 
-FORCE_INLINE
-inline
-static void
-doCommunication() noexcept {
-        auto theBytes = getTransactionWindow(); 
-#define X(base) \
-    if constexpr (isReadOperation) { \
-        auto a = theBytes[(base + 0)]; \
-        auto b = theBytes[(base + 1)]; \
-        auto c = theBytes[(base + 2)]; \
-        auto d = theBytes[(base + 3)]; \
-        setDataByte(a, b, c, d); \
-    } else { \
-        auto a = getDataByte<0>(); \
-        auto b = getDataByte<1>(); \
-        auto c = getDataByte<2>(); \
-        auto d = getDataByte<3>(); \
-        if (digitalRead<Pin::BE0>() == LOW) { \
-            theBytes[(base + 0)] = a; \
-        } \
-        if (digitalRead<Pin::BE1>() == LOW) { \
-            theBytes[(base + 1)] = b; \
-        } \
-        if (digitalRead<Pin::BE2>() == LOW) { \
-            theBytes[(base + 2)] = c; \
-        } \
-        if (digitalRead<Pin::BE3>() == LOW) { \
-            theBytes[(base + 3)] = d; \
-        } \
-    }
-        X(0);
-        if (isBurstLast()) {
-            goto Done;
-        }
-        signalReady<!isReadOperation>();
-        X(4);
-        if (isBurstLast()) {
-            goto Done;
-        }
-        signalReady<!isReadOperation>();
-        X(8);
-        if (isBurstLast()) {
-            goto Done;
-        }
-        signalReady<!isReadOperation>();
-        X(12);
-Done:
-        signalReady<true>();
-#undef X
-
-}
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
@@ -459,16 +331,8 @@ inline
 static
 void
 dispatch() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        doCommunication();
-    } else {
-        // io operation
-        doIO();
-    }
+    // io operation
+    doIO();
 }
 };
 
@@ -484,340 +348,6 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     Self& operator=(Self&&) = delete;
 
 public:
-    //[[gnu::optimize("no-reorder-blocks")]]
-    FORCE_INLINE
-    inline
-    static void
-    doCommunication() noexcept {
-        auto theBytes = getTransactionWindow(); 
-        // figure out which word we are currently looking at
-        // if we are aligned to 32-bit word boundaries then just assume we
-        // are at the start of the 16-byte block (the processor will stop
-        // when it doesn't need data anymore). If we are not then skip over
-        // this first two bytes and start at the upper two bytes of the
-        // current word.
-        //
-        // I am also exploiting the fact that the processor can only ever
-        // accept up to 16-bytes at a time if it is aligned to 16-byte
-        // boundaries. If it is unaligned then the operation is broken up
-        // into multiple transactions within the i960 itself. So yes, this
-        // code will go out of bounds but it doesn't matter because the
-        // processor will never go out of bounds.
-
-
-        // The later field is used to denote if the given part of the
-        // transaction is later on in burst. If it is then we will
-        // terminate early without evaluating BLAST if the upper byte
-        // enable is high. This is because if we hit 0b1001 this would be
-        // broken up into two 16-bit values (0b1101 and 0b1011) which is
-        // fine but in all cases the first 1 we encounter after finding the
-        // first zero in the byte enable bits we are going to terminate
-        // anyway. So don't waste time evaluating BLAST at all!
-        //
-        // since we are using the pointer directly we have to be a little more
-        // creative. The base offsets have been modified
-        if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) [[gnu::likely]] {
-            if constexpr (isReadOperation) {
-                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[0];
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[1];
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[2];
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[3];
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-            } else {
-                {
-                    auto lowest = dataLines[0];
-                    auto lower = dataLines[1];
-                    if (digitalRead<Pin::BE0>() == LOW) {
-                        theBytes[0] = lowest;
-                    }
-                    if (digitalRead<Pin::BE1>() == LOW) {
-                        theBytes[1] = lower;
-                    }
-                    if (isBurstLast()) {
-                        goto Done;
-                    }
-                    signalReady<true>();
-                    auto higher = dataLines[2];
-                    auto highest = dataLines[3];
-                    theBytes[2] = higher;
-                    if (isBurstLast()) {
-                        // lower must be valid since we are flowing into the
-                        // next 16-bit word
-                        if (digitalRead<Pin::BE3>() == LOW) {
-                            theBytes[3] = highest;
-                        }
-                        goto Done;
-                    } else {
-                        // we know that all of these entries must be valid so
-                        // don't check the values
-                        theBytes[3] = highest;
-                        signalReady<true>();
-                    }
-                }
-                {
-                    // since this is a flow in from previous values we actually
-                    // can eliminate checking as many pins as possible
-                    auto lowest = dataLines[0];
-                    auto lower = dataLines[1];
-                    if (isBurstLast()) {
-                        theBytes[4] = lowest;
-                        if (digitalRead<Pin::BE1>() == LOW) {
-                            theBytes[5] = lower;
-                        }
-                        goto Done;
-                    }
-                    signalReady<true>();
-                    auto higher = dataLines[2];
-                    auto highest = dataLines[3];
-                    theBytes[4] = lowest;
-                    theBytes[5] = lower;
-                    theBytes[6] = higher;
-                    if (isBurstLast()) {
-                        // lower must be valid since we are flowing into the
-                        // next 16-bit word
-                        if (digitalRead<Pin::BE3>() == LOW) {
-                            theBytes[7] = highest;
-                        }
-                        goto Done;
-                    } else {
-                        // we know that all of these entries must be valid so
-                        // don't check the values
-                        theBytes[7] = highest;
-                        signalReady<true>();
-                    }
-                }
-                {
-                    // since this is a flow in from previous values we actually
-                    // can eliminate checking as many pins as possible
-                    auto lowest = dataLines[0];
-                    auto lower = dataLines[1];
-                    if (isBurstLast()) {
-                        theBytes[8] = lowest;
-                        if (digitalRead<Pin::BE1>() == LOW) {
-                            theBytes[9] = lower;
-                        }
-                        goto Done;
-                    }
-                    signalReady<true>();
-                    auto higher = dataLines[2];
-                    auto highest = dataLines[3];
-                    theBytes[8] = lowest;
-                    theBytes[9] = lower;
-                    theBytes[10] = higher;
-                    if (isBurstLast()) {
-                        // lower must be valid since we are flowing into the
-                        // next 16-bit word
-                        if (digitalRead<Pin::BE3>() == LOW) {
-                            theBytes[11] = highest;
-                        }
-                        goto Done;
-                    } else {
-                        // we know that all of these entries must be valid so
-                        // don't check the values
-                        theBytes[11] = highest;
-                        signalReady<true>();
-                    }
-                }
-
-                {
-                    // since this is a flow in from previous values we actually
-                    // can eliminate checking as many pins as possible
-                    auto lowest = dataLines[0];
-                    auto lower = dataLines[1];
-                    if (isBurstLast()) {
-                        theBytes[12] = lowest;
-                        if (digitalRead<Pin::BE1>() == LOW) {
-                            theBytes[13] = lower;
-                        }
-                        goto Done;
-                    }
-                    signalReady<true>();
-                    auto higher = dataLines[2];
-                    auto highest = dataLines[3];
-                    theBytes[12] = lowest;
-                    theBytes[13] = lower;
-                    theBytes[14] = higher;
-                    if (digitalRead<Pin::BE3>() == LOW) {
-                        theBytes[15] = highest;
-                    }
-                    goto Done;
-                }
-            }
-        } else {
-            // because we are operating on 16-byte windows, there is no way
-            // that we would ever fully access the entire 16-bytes in a single
-            // transaction if we started unaligned like this
-            if constexpr (isReadOperation) {
-                setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                setDataByte(theBytes[6], theBytes[7], theBytes[4], theBytes[5]);
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                setDataByte(theBytes[10], theBytes[11], theBytes[8], theBytes[9]);
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                setDataByte(theBytes[14], theBytes[15], theBytes[12], theBytes[13]);
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-            } else {
-                {
-                    auto lowest = dataLines[2];
-                    auto lower = dataLines[3];
-                    if (digitalRead<Pin::BE2>() == LOW) {
-                        theBytes[0] = lowest;
-                    }
-                    if (digitalRead<Pin::BE3>() == LOW) {
-                        theBytes[1] = lower;
-                    }
-                    if (isBurstLast()) {
-                        goto Done;
-                    }
-                    signalReady<true>();
-                    auto higher = dataLines[0];
-                    auto highest = dataLines[1];
-                    theBytes[2] = higher;
-                    if (isBurstLast()) {
-                        // lower must be valid since we are flowing into the
-                        // next 16-bit word
-                        if (digitalRead<Pin::BE1>() == LOW) {
-                            theBytes[3] = highest;
-                        }
-                        goto Done;
-                    } else {
-                        // we know that all of these entries must be valid so
-                        // don't check the values
-                        theBytes[3] = highest;
-                        signalReady<true>();
-                    }
-                }
-                {
-                    // since this is a flow in from previous values we actually
-                    // can eliminate checking as many pins as possible
-                    auto lowest = dataLines[2];
-                    auto lower = dataLines[3];
-                    if (isBurstLast()) {
-                        theBytes[4] = lowest;
-                        if (digitalRead<Pin::BE3>() == LOW) {
-                            theBytes[5] = lower;
-                        }
-                        goto Done;
-                    }
-                    signalReady<true>();
-                    auto higher = dataLines[0];
-                    auto highest = dataLines[1];
-                    theBytes[4] = lowest;
-                    theBytes[5] = lower;
-                    theBytes[6] = higher;
-                    if (isBurstLast()) {
-                        // lower must be valid since we are flowing into the
-                        // next 16-bit word
-                        if (digitalRead<Pin::BE1>() == LOW) {
-                            theBytes[7] = highest;
-                        }
-                        goto Done;
-                    } else {
-                        // we know that all of these entries must be valid so
-                        // don't check the values
-                        theBytes[7] = highest;
-                        signalReady<true>();
-                    }
-                }
-                {
-                    // since this is a flow in from previous values we actually
-                    // can eliminate checking as many pins as possible
-                    auto lowest = dataLines[2];
-                    auto lower = dataLines[3];
-                    if (isBurstLast()) {
-                        theBytes[8] = lowest;
-                        if (digitalRead<Pin::BE3>() == LOW) {
-                            theBytes[9] = lower;
-                        }
-                        goto Done;
-                    }
-                    signalReady<true>();
-                    auto higher = dataLines[0];
-                    auto highest = dataLines[1];
-                    theBytes[8] = lowest;
-                    theBytes[9] = lower;
-                    theBytes[10] = higher;
-                    if (isBurstLast()) {
-                        // lower must be valid since we are flowing into the
-                        // next 16-bit word
-                        if (digitalRead<Pin::BE1>() == LOW) {
-                            theBytes[11] = highest;
-                        }
-                        goto Done;
-                    } else {
-                        // we know that all of these entries must be valid so
-                        // don't check the values
-                        theBytes[11] = highest;
-                        signalReady<true>();
-                    }
-                }
-
-                {
-                    // since this is a flow in from previous values we actually
-                    // can eliminate checking as many pins as possible
-                    auto lowest = dataLines[2];
-                    auto lower = dataLines[3];
-                    theBytes[12] = lowest;
-                    if (digitalRead<Pin::BE3>() == LOW) {
-                        theBytes[13] = lower;
-                    }
-                }
-            }
-        }
-Done:
-        signalReady<true>();
-    }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
         break; \
@@ -1045,22 +575,13 @@ inline
 static
 void
 dispatch() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        doCommunication();
-    } else {
-        // io operation
-        doIO();
-    }
+    // io operation
+    doIO();
 }
 };
 
 
 
-#endif
 template<uint8_t value>
 [[gnu::always_inline]]
 inline 
@@ -1078,71 +599,28 @@ template<NativeBusWidth width>
 [[noreturn]] 
 void 
 executionBody() noexcept {
-    // turn off the timer0 interrupt for system count, we don't care about it
-    // anymore
-    //digitalWrite<Pin::DirectionOutput, HIGH>();
-    //getOutputRegister<Port::IBUS_Bank>() = 0;
-    //getDirectionRegister<Port::IBUS_Bank>() = 0;
-    // switch the XBUS bank mode to i960 instead of AVR
-    // I want to use the upper four bits the XBUS address lines
-    // while I can directly connect to the address lines, I want to test to
-    // make sure that this works as well
-    //ControlSignals.ctl.bankSelect = 1;
-
-    //XBUSBankRegister.view32.data = 0;
-    // at this point, we are setup to be in output mode (or read) and that is the
-    // expected state for _all_ i960 processors, it will load some amount of
-    // data from main memory to start the execution process. 
-    //
-    // After this point, we will never need to actually keep track of the
-    // contents of the DirectionOutput pin. We will always be properly
-    // synchronized overall!
-    //
-    // It is not lost on me that this is goto nightmare bingo, however in this
-    // case I need the extra control of the goto statement. Allowing the
-    // compiler to try and do this instead leads to implicit jumping issues
-    // where the compiler has way too much fun with its hands. It will over
-    // optimize things and create problems!
-#if 0
-ReadOperationStart:
-    // wait until DEN goes low
-    while (digitalRead<Pin::DEN>());
-    // check to see if we need to change directions
-    if (!digitalRead<Pin::ChangeDirection>()) {
-        // change direction to input since we are doing read -> write
-        updateDataLinesDirection<0>();
-        // update the direction pin 
-        //toggle<Pin::DirectionOutput>();
-        // then jump into the write loop
-        goto WriteOperationBypass;
-    }
-ReadOperationBypass:
-    // standard read operation so do the normal dispatch
-    CommunicationKernel<true, width>::dispatch();
-    // start the read operation again
-    goto ReadOperationStart;
-
-WriteOperationStart:
-    // wait until DEN goes low
-    while (digitalRead<Pin::DEN>());
-    // check to see if we need to change directions
-    if (!digitalRead<Pin::ChangeDirection>()) {
-        // change data lines to be output since we are doing write -> read
-        updateDataLinesDirection<0xFF>();
-        // update the direction pin
-        toggle<Pin::DirectionOutput>();
-        // jump to the read loop
-        goto ReadOperationBypass;
-    } 
-WriteOperationBypass:
-    // standard write operation so do the normal dispatch for write operations
-    CommunicationKernel<false, width>::dispatch();
-    // restart the write loop
-    goto WriteOperationStart;
-    // we should never get here!
-#endif
+    // at this point we want the code to just respond with non io operations
     while (true) {
-
+        while (digitalRead<Pin::DEN>());
+        if (digitalRead<Pin::IO_OPERATION>() == LOW) {
+            // this is an io operation. So make sure that we have our data
+            // lines in the correct direction
+            if (digitalRead<Pin::WR>() == LOW) {
+                // a read operation means output so 0xFF
+                updateDataLinesDirection<0xFF>();
+                // now we need to pull the data in and do the transaction as we
+                // walk through
+                CommunicationKernel<true, width>::dispatch();
+            } else {
+                // a write operation means input so 0
+                updateDataLinesDirection<0>();
+                CommunicationKernel<false, width>::dispatch();
+            }
+        } else {
+            // it's not an IO operation so instead just do an "idle"
+            // transaction
+            idleTransaction();
+        }
     }
 }
 
@@ -1187,6 +665,18 @@ setupPins() noexcept {
 CPUKind 
 getInstalledCPUKind() noexcept { 
     return static_cast<CPUKind>(ioExpRead8<Pin::IO_EXP_ENABLE>(0x13) & 0b111);
+}
+
+void 
+putCPUInReset() noexcept {
+    auto updatedValue = ioExpRead8<Pin::IO_EXP_ENABLE>(0x12) & 0b0111'1111;
+    ioExpWrite8<Pin::IO_EXP_ENABLE>(0x12, updatedValue);
+}
+void 
+pullCPUOutOfReset() noexcept {
+    /// @todo implement
+    auto updatedValue = ioExpRead8<Pin::IO_EXP_ENABLE>(0x12) | 0b1000'0000;
+    ioExpWrite8<Pin::IO_EXP_ENABLE>(0x12, updatedValue);
 }
 
 void

@@ -138,11 +138,27 @@ inline void setDataByte(uint8_t value) noexcept {
     }
 }
 [[gnu::always_inline]]
+inline void setDataWord(uint8_t a, uint8_t b, uint8_t c, uint8_t d) noexcept {
+    setDataByte<0>(a);
+    setDataByte<1>(b);
+    setDataByte<2>(c);
+    setDataByte<3>(d);
+}
+[[gnu::always_inline]]
 inline void setDataWord(uint32_t value) noexcept {
     setDataByte<0>(static_cast<uint8_t>(value));
     setDataByte<1>(static_cast<uint8_t>(value >> 8));
     setDataByte<2>(static_cast<uint8_t>(value >> 16));
     setDataByte<3>(static_cast<uint8_t>(value >> 24));
+}
+
+
+[[gnu::always_inline]]
+inline void setDataWord(uint16_t lo, uint16_t hi) noexcept {
+    setDataWord(static_cast<uint8_t>(lo), 
+            static_cast<uint8_t>(lo >> 8),
+            static_cast<uint8_t>(hi), 
+            static_cast<uint8_t>(hi >> 8));
 }
 
 template<uint8_t index>
@@ -159,6 +175,36 @@ inline uint8_t getDataByte() noexcept {
     } else {
         return 0;
     }
+}
+
+template<uint8_t index>
+requires (index < 2)
+inline uint16_t getDataHalf() noexcept {
+    if constexpr (index < 2) {
+        switch (index) {
+            case 0: return makeWord(getDataByte<1>(), getDataByte<0>());
+            case 1: return makeWord(getDataByte<3>(), getDataByte<2>());
+        }
+    } else {
+        return 0;
+    }
+}
+
+template<uint8_t index>
+requires (index < 2)
+inline void setDataHalf(uint16_t value) noexcept {
+    if constexpr (index < 2) {
+        switch (index) {
+            case 0:
+                setDataByte<0>(static_cast<uint8_t>(value));
+                setDataByte<1>(static_cast<uint8_t>(value >> 8));
+                break;
+            case 1:
+                setDataByte<2>(static_cast<uint8_t>(value));
+                setDataByte<3>(static_cast<uint8_t>(value >> 8));
+                break;
+        }
+    } 
 }
 
 /**
@@ -190,7 +236,7 @@ struct CommunicationKernel {
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
-        switch (addressLines[0]) { 
+        switch (getInputRegister<Port::A2_9>()) {
             case 0: { 
                         if constexpr (isReadOperation) { 
                             setDataWord(F_CPU);
@@ -212,12 +258,12 @@ static void doIO() noexcept {
             case 8: { 
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = Serial.read();
-                            dataLinesHalves[1] = 0;
+                            setDataHalf<0>(Serial.read());
+                            setDataHalf<1>(0);
                         } else { 
                             // no need to check this out just ignore the byte
                             // enable lines
-                            Serial.write(static_cast<uint8_t>(dataLinesHalves[0]));
+                            Serial.write(static_cast<uint8_t>(getDataHalf<0>()));
                         } 
                          if (isBurstLast()) { 
                              break; 
@@ -239,7 +285,7 @@ static void doIO() noexcept {
             case index + 0: { \
                         /* TCCRnA and TCCRnB */ \
                         if constexpr (isReadOperation) { \
-                            setDataByte(obj.TCCRxA, obj.TCCRxB, obj.TCCRxC, 0);\
+                            setDataWord(obj.TCCRxA, obj.TCCRxB, obj.TCCRxC, 0);\
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW) { \
                                 obj.TCCRxA = getDataByte<0>();\
@@ -265,19 +311,18 @@ static void doIO() noexcept {
                             auto tmp = obj.TCNTx;\
                             auto tmp2 = obj.ICRx;\
                             interrupts(); \
-                            dataLinesHalves[0] = tmp; \
-                            dataLinesHalves[1] = tmp2;\
+                            setDataWord(tmp, tmp2); \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW && \
                                     digitalRead<Pin::BE1>() == LOW) { \
-                                auto value = dataLinesHalves[0]; \
+                                auto value = getDataHalf<0>(); \
                                 noInterrupts(); \
                                 obj.TCNTx = value;\
                                 interrupts(); \
                             } \
                             if (digitalRead<Pin::BE2>() == LOW &&  \
                                     digitalRead<Pin::BE3>() == LOW) { \
-                                auto value = dataLinesHalves[1]; \
+                                auto value = getDataHalf<1>(); \
                                 noInterrupts(); \
                                 obj.ICRx = value;\
                                 interrupts(); \
@@ -295,19 +340,18 @@ static void doIO() noexcept {
                             auto tmp = obj.OCRxA;\
                              auto tmp2 = obj.OCRxB;\
                             interrupts(); \
-                            dataLinesHalves[0] = tmp; \
-                            dataLinesHalves[1] = tmp2; \
+                            setDataWord(tmp, tmp2); \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) { \
-                                auto value = dataLinesHalves[0]; \
+                                auto value = getDataHalf<0>(); \
                                 noInterrupts(); \
                                 obj.OCRxA = value;\
                                 interrupts(); \
                             } \
                              if (digitalRead<Pin::BE2>() == LOW &&  \
                                      digitalRead<Pin::BE3>() == LOW) { \
-                                auto value = dataLinesHalves[1]; \
+                                auto value = getDataHalf<1>(); \
                                 noInterrupts(); \
                                 obj.OCRxB = value; \
                                 interrupts(); \
@@ -324,12 +368,11 @@ static void doIO() noexcept {
                              noInterrupts(); \
                              auto tmp = obj.OCRxC; \
                              interrupts(); \
-                             dataLinesHalves[0] = tmp; \
-                             dataLinesHalves[1] = 0;\
+                             setDataWord(tmp, 0); \
                          } else { \
                               if (digitalRead<Pin::BE0>() == LOW && \
                                       digitalRead<Pin::BE1>() == LOW) { \
-                                  auto value = dataLinesHalves[0]; \
+                                  auto value = getDataHalf<0>(); \
                                   noInterrupts(); \
                                   obj.OCRxC = value;\
                                   interrupts(); \
@@ -394,51 +437,51 @@ public:
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
-        switch (addressLines[0]) { 
+        switch (getInputRegister<Port::A2_9>()) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);
+                            setDataHalf<0>(static_cast<uint16_t>(F_CPU));
                         } 
                         I960_Signal_Switch;
                     } 
             case 2: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = static_cast<uint16_t>((F_CPU) >> 16);
+                            setDataHalf<1>(static_cast<uint16_t>(F_CPU >> 16));
                         } 
                         I960_Signal_Switch;
                     } 
             case 4: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = static_cast<uint16_t>(F_CPU / 2);
+                            setDataHalf<0>(static_cast<uint16_t>(F_CPU / 2));
                         } 
                         I960_Signal_Switch;
                     } 
             case 6: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = static_cast<uint16_t>((F_CPU / 2) >> 16);
+                            setDataHalf<1>(static_cast<uint16_t>((F_CPU / 2)>> 16));
                         } 
                         I960_Signal_Switch;
                     } 
             case 8: { 
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = Serial.read();
+                            setDataHalf<0>(Serial.read());
                         } else { 
                             // no need to check this out just ignore the byte
                             // enable lines
-                            Serial.write(static_cast<uint8_t>(getDataByte<0>()));
+                            Serial.write(getDataByte<0>());
                         } 
                         I960_Signal_Switch;
                     } 
             case 10: {
                          if constexpr (isReadOperation) { 
-                             dataLinesHalves[1] = 0;
+                             setDataHalf<1>(0);
                          } 
                         I960_Signal_Switch;
                      } 
             case 12: { 
                          if constexpr (isReadOperation) { 
-                             dataLinesHalves[0] = 0; 
+                             setDataHalf<0>(0);
                          } else { 
                              Serial.flush();
                          }
@@ -448,7 +491,7 @@ static void doIO() noexcept {
                         /* nothing to do on writes but do update the data port
                          * on reads */ 
                          if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = 0; 
+                             setDataHalf<1>(0);
                          } 
                      }
                      break;
@@ -488,11 +531,11 @@ static void doIO() noexcept {
                             noInterrupts(); \
                             auto tmp = obj.TCNTx; \
                             interrupts();  \
-                            dataLinesHalves[0] = tmp;  \
+                            setDataHalf<0>(tmp); \
                         } else {  \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) {  \
-                                auto value = dataLinesHalves[0];  \
+                                auto value = getDataHalf<0>(); \
                                 noInterrupts();  \
                                 obj.TCNTx = value; \
                                 interrupts();  \
@@ -508,11 +551,11 @@ static void doIO() noexcept {
                             noInterrupts(); \
                             auto tmp = obj.ICRx;\
                             interrupts(); \
-                            dataLinesHalves[1] = tmp; \
+                            setDataHalf<1>(tmp); \
                         } else { \
                             if (digitalRead<Pin::BE2>() == LOW &&  \
                                     digitalRead<Pin::BE3>() == LOW) { \
-                                auto value = dataLinesHalves[1]; \
+                                auto value = getDataHalf<1>(); \
                                 noInterrupts(); \
                                 obj.ICRx = value;\
                                 interrupts(); \
@@ -526,11 +569,11 @@ static void doIO() noexcept {
                             noInterrupts(); \
                             auto tmp = obj.OCRxA;\
                             interrupts(); \
-                            dataLinesHalves[0] = tmp; \
+                            setDataHalf<0>(tmp); \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) { \
-                                auto value = dataLinesHalves[0]; \
+                                auto value = getDataHalf<0>(); \
                                 noInterrupts(); \
                                 obj.OCRxA = value;\
                                 interrupts(); \
@@ -544,11 +587,11 @@ static void doIO() noexcept {
                              noInterrupts(); \
                              auto tmp = obj.OCRxB;\
                              interrupts(); \
-                             dataLinesHalves[1] = tmp; \
+                            setDataHalf<1>(tmp); \
                          } else { \
                              if (digitalRead<Pin::BE2>() == LOW &&  \
                                      digitalRead<Pin::BE3>() == LOW) { \
-                                auto value = dataLinesHalves[1]; \
+                                auto value = getDataHalf<1>(); \
                                 noInterrupts(); \
                                 obj.OCRxB = value; \
                                 interrupts(); \
@@ -562,11 +605,11 @@ static void doIO() noexcept {
                              noInterrupts(); \
                              auto tmp = obj.OCRxC; \
                              interrupts(); \
-                             dataLinesHalves[0] = tmp; \
+                             setDataHalf<0>(tmp); \
                          } else { \
                               if (digitalRead<Pin::BE0>() == LOW && \
                                       digitalRead<Pin::BE1>() == LOW) { \
-                                  auto value = dataLinesHalves[0]; \
+                                  auto value = getDataHalf<0>(); \
                                   noInterrupts(); \
                                   obj.OCRxC = value;\
                                   interrupts(); \
@@ -578,7 +621,7 @@ static void doIO() noexcept {
                         /* nothing to do on writes but do update the data port
                          * on reads */ \
                          if constexpr (isReadOperation) { \
-                            dataLinesHalves[1] = 0; \
+                             setDataHalf<1>(0); \
                          } \
                          break;\
                      }  

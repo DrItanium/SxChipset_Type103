@@ -484,14 +484,15 @@ static void doIO() noexcept {
                             setDataHalf<0>(Serial.read());
                             setDataHalf<1>(0);
                             I960_Alignment_Signal_Switch;
+                            I960_Signal_Switch;
                         } else { 
                             // no need to check this out just ignore the byte
                             // enable lines, if it is unaligned then what are
                             // you doing?
                             Serial.write(getDataByte<0>());
                             I960_Alignment_Signal_Switch;
+                            I960_Signal_Switch;
                         } 
-                        I960_Signal_Switch;
                      } 
             case 3: { 
                          if constexpr (isReadOperation) { 
@@ -509,6 +510,7 @@ static void doIO() noexcept {
                             setDataHalf<0>(obj.TCCRxA, obj.TCCRxB); \
                             setDataHalf<1>(obj.TCCRxC, 0); \
                             I960_Alignment_Signal_Switch; \
+                            I960_Signal_Switch;\
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW) { \
                                 obj.TCCRxA = getDataByte<0>();\
@@ -521,8 +523,8 @@ static void doIO() noexcept {
                             if (digitalRead<Pin::BE2>() == LOW) { \
                                 obj.TCCRxC = getDataByte<2>();\
                             } \
+                            I960_Signal_Switch;\
                         } \
-                        I960_Signal_Switch;\
                     } \
             case offset + 1: { \
                         /* TCNTn should only be accessible if you do a full 16-bit
@@ -539,6 +541,7 @@ static void doIO() noexcept {
                             setDataHalf<0>(tmp); \
                             setDataHalf<1>(tmp2); \
                             I960_Alignment_Signal_Switch; \
+                            I960_Signal_Switch; \
                         } else {  \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) {  \
@@ -555,8 +558,8 @@ static void doIO() noexcept {
                                 obj.ICRx = value;\
                                 interrupts(); \
                             } \
+                            I960_Signal_Switch; \
                         }  \
-                        I960_Signal_Switch; \
                     }  \
             case offset + 2: { \
                         /* OCRnA should only be accessible if you do a full 16-bit write */ \
@@ -568,6 +571,7 @@ static void doIO() noexcept {
                             setDataHalf<0>(tmp); \
                             setDataHalf<1>(tmp2); \
                             I960_Alignment_Signal_Switch; \
+                            I960_Signal_Switch; \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) { \
@@ -584,8 +588,8 @@ static void doIO() noexcept {
                                 obj.OCRxB = value; \
                                 interrupts(); \
                              } \
+                             I960_Signal_Switch; \
                         } \
-                        I960_Signal_Switch;\
                     } \
             case offset + 3: { \
                          /* OCRnC */ \
@@ -609,16 +613,16 @@ static void doIO() noexcept {
                      } \
                      break
 #ifdef TCCR1A
-                              X(timer1, 0x10);
+                              X(timer1, 0x10/4);
 #endif
 #ifdef TCCR3A
-                              X(timer3, 0x20);
+                              X(timer3, 0x20/4);
 #endif
 #ifdef TCCR4A
-                              X(timer4, 0x30);
+                              X(timer4, 0x30/4);
 #endif
 #ifdef TCCR5A
-                              X(timer5, 0x40);
+                              X(timer5, 0x40/4);
 #endif
 #undef X
 

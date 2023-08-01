@@ -450,6 +450,8 @@ public:
         break; \
     } \
     signalReady<true>()
+#define I960_Alignment_Signal_Switch \
+    if (digitalRead<Pin::BE0>() == LOW || digitalRead<Pin::BE1>() == LOW) I960_Signal_Switch 
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
@@ -459,79 +461,48 @@ static void doIO() noexcept {
     // in 16-bit bus mode we just need to be careful and do alignment detection
         uint16_t base = getInputRegister<Port::A2_9>();
         base <<= 2;
-        /// @todo accelerate detection by migrating to another GAL chip
-        /// @todo reimplement using 32-bit offsets instead, just need to keep track of starting location
-        /// @todo when reimplementing for 32-bit mode, see if we just need to disallow spanning or not...
-        switch (getInputRegister<Port::SignalCTL>() & 0b1111) {
-            case 0b0011:
-            case 0b0111:
-            case 0b1011:
-                base |= 0b10;
-                break;
-            default:
-                break;
-        }
         switch (base) {
             case 0: {
                         if constexpr (isReadOperation) { 
-                            setDataHalf<0>(static_cast<uint16_t>(F_CPU));
+                            setDataWord(F_CPU);
                         } 
-                        /// @todo implement a check to see if we should perform
-                        /// the update or not, do it through hardware
-                        /// acceleration
-                        if (digitalRead<Pin::BE0>() == LOW || digitalRead<Pin::BE1>() == LOW) {
-                            I960_Signal_Switch;
-                        }
-                    }
-            case 2: { 
-                        if constexpr (isReadOperation) { 
-                            setDataHalf<1>(static_cast<uint16_t>(F_CPU >> 16));
-                        } 
+                        // alignment check
+                        I960_Alignment_Signal_Switch;
                         I960_Signal_Switch;
                     } 
-            case 4: { 
+            case 1: { 
                         if constexpr (isReadOperation) { 
-                            setDataHalf<0>(static_cast<uint16_t>(F_CPU / 2));
+                            setDataWord(F_CPU / 2);
                         } 
+                        // alignment check
+                        I960_Alignment_Signal_Switch;
                         I960_Signal_Switch;
                     }
-            case 6: {
-                        if constexpr (isReadOperation) { 
-                            setDataHalf<1>(static_cast<uint16_t>((F_CPU / 2)>> 16));
-                        } 
-                        I960_Signal_Switch;
-                    }
-            case 8: {
+            case 2: {
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
-                            setDataHalf<0>(Serial.read());
+                            setDataWord(0);
+                            if (digitalRead<Pin::BE0>() == LOW || digitalRead<Pin::BE1>() == LOW) {
+                                setDataHalf<0>(Serial.read());
+                                I960_Signal_Switch;
+                            }
                         } else { 
                             // no need to check this out just ignore the byte
                             // enable lines
-                            Serial.write(getDataByte<0>());
+                            if (digitalRead<Pin::BE0>() == LOW) {
+                                Serial.write(getDataByte<0>());
+                            }
+                            I960_Alignment_Signal_Switch;
                         } 
                         I960_Signal_Switch;
-                    } 
-            case 10: {
-                         if constexpr (isReadOperation) { 
-                             setDataHalf<1>(0);
-                         } 
-                        I960_Signal_Switch;
                      } 
-            case 12: { 
+            case 3: { 
                          if constexpr (isReadOperation) { 
-                             setDataHalf<0>(0);
+                             setDataWord(0);
                          } else { 
                              Serial.flush();
                          }
-                         I960_Signal_Switch;
-                     }
-            case 14: {
-                        /* nothing to do on writes but do update the data port
-                         * on reads */ 
-                         if constexpr (isReadOperation) { 
-                             setDataHalf<1>(0);
-                         } 
+                         I960_Alignment_Signal_Switch;
                      }
                      break;
 #define X(obj, offset) \
@@ -539,6 +510,8 @@ static void doIO() noexcept {
                         /* TCCRnA and TCCRnB */ \
                         if constexpr (isReadOperation) { \
                             setDataHalf<0>(obj.TCCRxA, obj.TCCRxB); \
+                            setDataHalf<1>(obj.TCCRxC, 0); \
+                            I960_Alignment_Signal_Switch; \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW) { \
                                 obj.TCCRxA = getDataByte<0>();\
@@ -546,29 +519,29 @@ static void doIO() noexcept {
                             if (digitalRead<Pin::BE1>() == LOW) { \
                                 obj.TCCRxB = getDataByte<1>();\
                             } \
-                        } \
-                        I960_Signal_Switch;\
-                    } \
-            case offset + 2: { \
-                        /* TCCRnC and Reserved (ignore that) */ \
-                        if constexpr (isReadOperation) { \
-                            setDataHalf<1>(obj.TCCRxC, 0); \
-                        } else { \
+                            I960_Alignment_Signal_Switch; \
+                            /* TCCRnC and Reserved (ignore that) */ \
                             if (digitalRead<Pin::BE2>() == LOW) { \
                                 obj.TCCRxC = getDataByte<2>();\
                             } \
                         } \
                         I960_Signal_Switch;\
                     } \
-            case offset + 4: { \
+            case offset + 1: { \
                         /* TCNTn should only be accessible if you do a full 16-bit
                          * write 
                          */ \
+                        /* ICRn should only be accessible if you do a full 16-bit 
+                         * write
+                         */  \
                         if constexpr (isReadOperation) { \
                             noInterrupts(); \
                             auto tmp = obj.TCNTx; \
+                            auto tmp2 = obj.ICRx;\
                             interrupts();  \
                             setDataHalf<0>(tmp); \
+                            setDataHalf<1>(tmp2); \
+                            I960_Alignment_Signal_Switch; \
                         } else {  \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) {  \
@@ -576,20 +549,8 @@ static void doIO() noexcept {
                                 noInterrupts();  \
                                 obj.TCNTx = value; \
                                 interrupts();  \
+                                I960_Signal_Switch; \
                             }  \
-                        }  \
-                        I960_Signal_Switch; \
-                    }  \
-            case offset + 6: {  \
-                        /* ICRn should only be accessible if you do a full 16-bit 
-                         * write
-                         */  \
-                        if constexpr (isReadOperation) { \
-                            noInterrupts(); \
-                            auto tmp = obj.ICRx;\
-                            interrupts(); \
-                            setDataHalf<1>(tmp); \
-                        } else { \
                             if (digitalRead<Pin::BE2>() == LOW &&  \
                                     digitalRead<Pin::BE3>() == LOW) { \
                                 auto value = getDataHalf<1>(); \
@@ -597,16 +558,19 @@ static void doIO() noexcept {
                                 obj.ICRx = value;\
                                 interrupts(); \
                             } \
-                        } \
-                        I960_Signal_Switch;\
-                    } \
-            case offset + 8: { \
+                        }  \
+                        I960_Signal_Switch; \
+                    }  \
+            case offset + 2: { \
                         /* OCRnA should only be accessible if you do a full 16-bit write */ \
                         if constexpr (isReadOperation) { \
                             noInterrupts(); \
                             auto tmp = obj.OCRxA;\
+                            auto tmp2 = obj.OCRxB; \
                             interrupts(); \
                             setDataHalf<0>(tmp); \
+                            setDataHalf<1>(tmp2); \
+                            I960_Alignment_Signal_Switch; \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) { \
@@ -614,18 +578,8 @@ static void doIO() noexcept {
                                 noInterrupts(); \
                                 obj.OCRxA = value;\
                                 interrupts(); \
+                                I960_Signal_Switch;\
                             } \
-                        } \
-                        I960_Signal_Switch;\
-                    } \
-            case offset + 10: {\
-                         /* OCRnB */ \
-                         if constexpr (isReadOperation) { \
-                             noInterrupts(); \
-                             auto tmp = obj.OCRxB;\
-                             interrupts(); \
-                            setDataHalf<1>(tmp); \
-                         } else { \
                              if (digitalRead<Pin::BE2>() == LOW &&  \
                                      digitalRead<Pin::BE3>() == LOW) { \
                                 auto value = getDataHalf<1>(); \
@@ -633,16 +587,18 @@ static void doIO() noexcept {
                                 obj.OCRxB = value; \
                                 interrupts(); \
                              } \
-                         } \
+                        } \
                         I960_Signal_Switch;\
-                     } \
-            case offset + 12: { \
+                    } \
+            case offset + 3: { \
                          /* OCRnC */ \
                          if constexpr (isReadOperation) { \
                              noInterrupts(); \
                              auto tmp = obj.OCRxC; \
                              interrupts(); \
                              setDataHalf<0>(tmp); \
+                             setDataHalf<1>(0); \
+                             I960_Alignment_Signal_Switch; \
                          } else { \
                               if (digitalRead<Pin::BE0>() == LOW && \
                                       digitalRead<Pin::BE1>() == LOW) { \
@@ -650,18 +606,11 @@ static void doIO() noexcept {
                                   noInterrupts(); \
                                   obj.OCRxC = value;\
                                   interrupts(); \
+                                  I960_Signal_Switch;\
                               }\
                          } \
-                        I960_Signal_Switch;\
                      } \
-            case offset + 14: { \
-                        /* nothing to do on writes but do update the data port
-                         * on reads */ \
-                         if constexpr (isReadOperation) { \
-                             setDataHalf<1>(0); \
-                         } \
-                         break;\
-                     }  
+                     break
 #ifdef TCCR1A
                               X(timer1, 0x10);
 #endif

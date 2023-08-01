@@ -450,7 +450,6 @@ public:
         break; \
     } \
     signalReady<true>()
-
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
@@ -463,10 +462,14 @@ static void doIO() noexcept {
         /// @todo accelerate detection by migrating to another GAL chip
         /// @todo reimplement using 32-bit offsets instead, just need to keep track of starting location
         /// @todo when reimplementing for 32-bit mode, see if we just need to disallow spanning or not...
-        auto enableBits = getInputRegister<Port::SignalCTL>() & 0b1111;
-        bool isAligned = (enableBits & 0b11) != 0b11;
-        if (!isAligned) {
-            base |= 0b10;
+        switch (getInputRegister<Port::SignalCTL>() & 0b1111) {
+            case 0b0011:
+            case 0b0111:
+            case 0b1011:
+                base |= 0b10;
+                break;
+            default:
+                break;
         }
         switch (base) {
             case 0: {

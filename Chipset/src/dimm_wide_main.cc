@@ -240,15 +240,6 @@ idleTransaction() noexcept {
         signalReady<true>();
     }
 }
-template<bool isReadOperation, NativeBusWidth width>
-struct CommunicationKernel {
-    using Self = CommunicationKernel<isReadOperation, width>;
-    CommunicationKernel() = delete;
-    ~CommunicationKernel() = delete;
-    CommunicationKernel(const Self&) = delete;
-    CommunicationKernel(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
 
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
@@ -257,9 +248,10 @@ struct CommunicationKernel {
     signalReady<true>()
 #define I960_Alignment_Signal_Switch \
     if (digitalRead<Pin::BE0>() == LOW || digitalRead<Pin::BE1>() == LOW) I960_Signal_Switch 
+template<bool isReadOperation, NativeBusWidth width>
 FORCE_INLINE 
 inline 
-static void doIO() noexcept { 
+void doIO() noexcept { 
         switch (getInputRegister<Port::A2_9>()) {
             case 0: { 
                         if constexpr (isReadOperation) { 
@@ -449,18 +441,6 @@ static void doIO() noexcept {
 #undef I960_Alignment_Signal_Switch
 #undef I960_Signal_Switch
 
-FORCE_INLINE
-inline
-static
-void
-dispatch() noexcept {
-    // io operation
-    doIO();
-}
-};
-
-
-
 template<uint8_t value>
 [[gnu::always_inline]]
 inline 
@@ -490,11 +470,11 @@ executionBody() noexcept {
                 updateDataLinesDirection<0xFF>();
                 // now we need to pull the data in and do the transaction as we
                 // walk through
-                CommunicationKernel<true, width>::dispatch();
+                doIO<true, width>();
             } else {
                 // a write operation means input so 0
                 updateDataLinesDirection<0>();
-                CommunicationKernel<false, width>::dispatch();
+                doIO<false, width>();
             }
         } else {
             // it's not an IO operation so instead just do an "idle"

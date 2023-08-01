@@ -33,10 +33,10 @@ install_BusDecoder: BusDecoder.jed
 	minipro -p ATF16LV8C --write BusDecoder.jed 
 
 install_CPUDimmChip1: CPUDimmChip1.jed
-	minipro -p ATF16V8C --write CPUDimmChip1.jed 
+	minipro -p ATF16V8B --write CPUDimmChip1.jed 
 
 install_CPUDimmChip2: CPUDimmChip2.jed
-	minipro -p ATF16V8C --write CPUDimmChip2.jed 
+	minipro -p ATF16V8B --write CPUDimmChip2.jed 
 
 install_1MEGDecoderCard: 1MEGDecoderCard.jed
 	minipro -p ATF16V8C --write 1MEGDecoderCard.jed 

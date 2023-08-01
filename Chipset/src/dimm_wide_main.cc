@@ -481,6 +481,7 @@ static void doIO() noexcept {
             case 2: {
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
+                            // if one does an unaligned read then that's on them!
                             setDataHalf<0>(Serial.read());
                             setDataHalf<1>(0);
                             I960_Alignment_Signal_Switch;

@@ -263,7 +263,7 @@ static void doIO() noexcept {
                         } 
                         signalReady<true>();  
                     } 
-            case 4: { 
+            case 1: { 
                         if constexpr (isReadOperation) { 
                             setDataWord(F_CPU / 2);
                         } 
@@ -272,7 +272,7 @@ static void doIO() noexcept {
                         } 
                         signalReady<true>();  
                     } 
-            case 8: { 
+            case 2: { 
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
                             setDataHalf<0>(Serial.read());
@@ -287,7 +287,7 @@ static void doIO() noexcept {
                          } 
                          signalReady<true>(); 
                      } 
-            case 12: { 
+            case 3: { 
                          Serial.flush();
                          if constexpr (isReadOperation) { 
                              setDataWord(0);
@@ -319,7 +319,7 @@ static void doIO() noexcept {
                         }\
                         signalReady<true>();  \
                     } \
-            case index + 4: { \
+            case index + 1: { \
                         /* TCNTn should only be accessible if you do a full 16-bit
                          * write 
                          */ \
@@ -350,7 +350,7 @@ static void doIO() noexcept {
                         } \
                         signalReady<true>(); \
                     } \
-            case index + 8: { \
+            case index + 2: { \
                         /* OCRnA should only be accessible if you do a full 16-bit write */ \
                         if constexpr (isReadOperation) { \
                             noInterrupts(); \
@@ -379,7 +379,7 @@ static void doIO() noexcept {
                         } \
                         signalReady<true>(); \
                     } \
-            case index + 12: { \
+            case index + 3: { \
                          /* OCRnC */ \
                          if constexpr (isReadOperation) { \
                              noInterrupts(); \
@@ -402,16 +402,16 @@ static void doIO() noexcept {
                          break;\
                      } 
 #ifdef TCCR1A
-                    X(timer1, 0x10);
+                    X(timer1, 0x10/4);
 #endif
 #ifdef TCCR3A
-                    X(timer3, 0x20);
+                    X(timer3, 0x20/4);
 #endif
 #ifdef TCCR4A
-                    X(timer4, 0x30);
+                    X(timer4, 0x30/4);
 #endif
 #ifdef TCCR5A
-                    X(timer5, 0x40);
+                    X(timer5, 0x40/4);
 #endif
 #undef X
             default:
@@ -454,13 +454,27 @@ public:
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
-        switch (getInputRegister<Port::A2_9>()) { 
-            case 0: { 
+    // the io address lines are conceptually shifted right by two so all
+    // addresses are 32-bits wide
+    //
+    // in 16-bit bus mode we just need to be careful and do alignment detection
+        uint16_t base = getInputRegister<Port::A2_9>();
+        base <<= 2;
+        /// @todo accelerate detection by migrating to another GAL chip
+        /// @todo reimplement using 32-bit offsets instead, just need to keep track of starting location
+        /// @todo when reimplementing for 32-bit mode, see if we just need to disallow spanning or not...
+        auto enableBits = getInputRegister<Port::SignalCTL>() & 0b1111;
+        bool isAligned = (enableBits & 0b11) != 0b11;
+        if (!isAligned) {
+            base |= 0b10;
+        }
+        switch (base) {
+            case 0: {
                         if constexpr (isReadOperation) { 
                             setDataHalf<0>(static_cast<uint16_t>(F_CPU));
                         } 
                         I960_Signal_Switch;
-                    } 
+                    }
             case 2: { 
                         if constexpr (isReadOperation) { 
                             setDataHalf<1>(static_cast<uint16_t>(F_CPU >> 16));
@@ -472,14 +486,14 @@ static void doIO() noexcept {
                             setDataHalf<0>(static_cast<uint16_t>(F_CPU / 2));
                         } 
                         I960_Signal_Switch;
-                    } 
-            case 6: { 
+                    }
+            case 6: {
                         if constexpr (isReadOperation) { 
                             setDataHalf<1>(static_cast<uint16_t>((F_CPU / 2)>> 16));
                         } 
                         I960_Signal_Switch;
-                    } 
-            case 8: { 
+                    }
+            case 8: {
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
                             setDataHalf<0>(Serial.read());

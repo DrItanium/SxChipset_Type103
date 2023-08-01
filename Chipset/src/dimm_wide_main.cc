@@ -250,6 +250,13 @@ struct CommunicationKernel {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 
+#define I960_Signal_Switch \
+    if (isBurstLast()) { \
+        break; \
+    } \
+    signalReady<true>()
+#define I960_Alignment_Signal_Switch \
+    if (digitalRead<Pin::BE0>() == LOW || digitalRead<Pin::BE1>() == LOW) I960_Signal_Switch 
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
@@ -258,19 +265,19 @@ static void doIO() noexcept {
                         if constexpr (isReadOperation) { 
                             setDataWord(F_CPU);
                         } 
-                        if (isBurstLast()) { 
-                            break; 
+                        if constexpr (width == NativeBusWidth::Sixteen) { 
+                            I960_Alignment_Signal_Switch; 
                         } 
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 1: { 
                         if constexpr (isReadOperation) { 
                             setDataWord(F_CPU / 2);
                         } 
-                        if (isBurstLast()) { 
-                            break; 
+                        if constexpr (width == NativeBusWidth::Sixteen) { 
+                            I960_Alignment_Signal_Switch; 
                         } 
-                        signalReady<true>();  
+                        I960_Signal_Switch;
                     } 
             case 2: { 
                         /* Serial RW connection */
@@ -279,25 +286,27 @@ static void doIO() noexcept {
                             // lose the character!
                             setDataHalf<0>(Serial.read());
                             setDataHalf<1>(0);
+                            if constexpr (width == NativeBusWidth::Sixteen) { 
+                                I960_Alignment_Signal_Switch; 
+                            } 
                         } else { 
                             // no need to check this out just ignore the byte
                             // enable lines
                             Serial.write(static_cast<uint8_t>(getDataHalf<0>()));
+                            if constexpr (width == NativeBusWidth::Sixteen) { 
+                                I960_Alignment_Signal_Switch; 
+                            } 
                         } 
-                         if (isBurstLast()) { 
-                             break; 
-                         } 
-                         signalReady<true>(); 
+                        I960_Signal_Switch;
                      } 
             case 3: { 
                          Serial.flush();
                          if constexpr (isReadOperation) { 
                              setDataWord(0);
                          } 
-                         if (isBurstLast()) {
-                             break;
+                         if constexpr (width == NativeBusWidth::Sixteen) { 
+                             I960_Alignment_Signal_Switch; 
                          } 
-                         signalReady<true>(); 
                      } 
                      break;
 #define X(obj, index) \
@@ -305,6 +314,9 @@ static void doIO() noexcept {
                         /* TCCRnA and TCCRnB */ \
                         if constexpr (isReadOperation) { \
                             setDataWord(obj.TCCRxA, obj.TCCRxB, obj.TCCRxC, 0);\
+                            if constexpr (width == NativeBusWidth::Sixteen) { \
+                                I960_Alignment_Signal_Switch; \
+                            } \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW) { \
                                 obj.TCCRxA = getDataByte<0>();\
@@ -312,14 +324,14 @@ static void doIO() noexcept {
                             if (digitalRead<Pin::BE1>() == LOW) { \
                                 obj.TCCRxB = getDataByte<1>();\
                             } \
+                            if constexpr (width == NativeBusWidth::Sixteen) { \
+                                I960_Alignment_Signal_Switch; \
+                            } \
                             if (digitalRead<Pin::BE2>() == LOW) { \
                                 obj.TCCRxC = getDataByte<2>();\
                             } \
                         } \
-                        if (isBurstLast()) {\
-                            break; \
-                        }\
-                        signalReady<true>();  \
+                        I960_Signal_Switch; \
                     } \
             case index + 1: { \
                         /* TCNTn should only be accessible if you do a full 16-bit
@@ -331,6 +343,9 @@ static void doIO() noexcept {
                             auto tmp2 = obj.ICRx;\
                             interrupts(); \
                             setDataWord(tmp, tmp2); \
+                            if constexpr (width == NativeBusWidth::Sixteen) { \
+                                I960_Alignment_Signal_Switch; \
+                            } \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW && \
                                     digitalRead<Pin::BE1>() == LOW) { \
@@ -338,6 +353,9 @@ static void doIO() noexcept {
                                 noInterrupts(); \
                                 obj.TCNTx = value;\
                                 interrupts(); \
+                            } \
+                            if constexpr (width == NativeBusWidth::Sixteen) { \
+                                I960_Alignment_Signal_Switch; \
                             } \
                             if (digitalRead<Pin::BE2>() == LOW &&  \
                                     digitalRead<Pin::BE3>() == LOW) { \
@@ -347,10 +365,7 @@ static void doIO() noexcept {
                                 interrupts(); \
                             } \
                         } \
-                        if (isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<true>(); \
+                        I960_Signal_Switch; \
                     } \
             case index + 2: { \
                         /* OCRnA should only be accessible if you do a full 16-bit write */ \
@@ -360,6 +375,9 @@ static void doIO() noexcept {
                              auto tmp2 = obj.OCRxB;\
                             interrupts(); \
                             setDataWord(tmp, tmp2); \
+                            if constexpr (width == NativeBusWidth::Sixteen) { \
+                                I960_Alignment_Signal_Switch; \
+                            } \
                         } else { \
                             if (digitalRead<Pin::BE0>() == LOW &&  \
                                     digitalRead<Pin::BE1>() == LOW) { \
@@ -367,6 +385,9 @@ static void doIO() noexcept {
                                 noInterrupts(); \
                                 obj.OCRxA = value;\
                                 interrupts(); \
+                            } \
+                            if constexpr (width == NativeBusWidth::Sixteen) { \
+                                I960_Alignment_Signal_Switch; \
                             } \
                              if (digitalRead<Pin::BE2>() == LOW &&  \
                                      digitalRead<Pin::BE3>() == LOW) { \
@@ -376,10 +397,7 @@ static void doIO() noexcept {
                                 interrupts(); \
                              } \
                         } \
-                        if (isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<true>(); \
+                        I960_Signal_Switch; \
                     } \
             case index + 3: { \
                          /* OCRnC */ \
@@ -388,6 +406,9 @@ static void doIO() noexcept {
                              auto tmp = obj.OCRxC; \
                              interrupts(); \
                              setDataWord(tmp, 0); \
+                            if constexpr (width == NativeBusWidth::Sixteen) { \
+                                I960_Alignment_Signal_Switch; \
+                            } \
                          } else { \
                               if (digitalRead<Pin::BE0>() == LOW && \
                                       digitalRead<Pin::BE1>() == LOW) { \
@@ -396,11 +417,11 @@ static void doIO() noexcept {
                                   obj.OCRxC = value;\
                                   interrupts(); \
                               }\
+                              if constexpr (width == NativeBusWidth::Sixteen) { \
+                                  I960_Alignment_Signal_Switch; \
+                              } \
                          } \
-                         if (isBurstLast()) {\
-                             break;\
-                         } \
-                         signalReady<true>(); \
+                         I960_Signal_Switch; \
                          break;\
                      } 
 #ifdef TCCR1A
@@ -447,13 +468,6 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     Self& operator=(Self&&) = delete;
 
 public:
-#define I960_Signal_Switch \
-    if (isBurstLast()) { \
-        break; \
-    } \
-    signalReady<true>()
-#define I960_Alignment_Signal_Switch \
-    if (digitalRead<Pin::BE0>() == LOW || digitalRead<Pin::BE1>() == LOW) I960_Signal_Switch 
 FORCE_INLINE 
 inline 
 static void doIO() noexcept { 
@@ -637,6 +651,7 @@ static void doIO() noexcept {
         } 
         signalReady<true>(); 
 }
+#undef I960_Alignment_Signal_Switch
 #undef I960_Signal_Switch
 FORCE_INLINE
 inline

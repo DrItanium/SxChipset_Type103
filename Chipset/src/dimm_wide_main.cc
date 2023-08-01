@@ -546,8 +546,8 @@ static void doIO() noexcept {
                                 noInterrupts();  \
                                 obj.TCNTx = value; \
                                 interrupts();  \
-                                I960_Signal_Switch; \
                             }  \
+                            I960_Alignment_Signal_Switch; \
                             if (digitalRead<Pin::BE2>() == LOW &&  \
                                     digitalRead<Pin::BE3>() == LOW) { \
                                 auto value = getDataHalf<1>(); \
@@ -575,8 +575,8 @@ static void doIO() noexcept {
                                 noInterrupts(); \
                                 obj.OCRxA = value;\
                                 interrupts(); \
-                                I960_Signal_Switch;\
                             } \
+                            I960_Alignment_Signal_Switch; \
                              if (digitalRead<Pin::BE2>() == LOW &&  \
                                      digitalRead<Pin::BE3>() == LOW) { \
                                 auto value = getDataHalf<1>(); \
@@ -603,8 +603,8 @@ static void doIO() noexcept {
                                   noInterrupts(); \
                                   obj.OCRxC = value;\
                                   interrupts(); \
-                                  I960_Signal_Switch;\
                               }\
+                              I960_Alignment_Signal_Switch; \
                          } \
                      } \
                      break

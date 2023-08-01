@@ -476,7 +476,12 @@ static void doIO() noexcept {
                         if constexpr (isReadOperation) { 
                             setDataHalf<0>(static_cast<uint16_t>(F_CPU));
                         } 
-                        I960_Signal_Switch;
+                        /// @todo implement a check to see if we should perform
+                        /// the update or not, do it through hardware
+                        /// acceleration
+                        if (digitalRead<Pin::BE0>() == LOW || digitalRead<Pin::BE1>() == LOW) {
+                            I960_Signal_Switch;
+                        }
                     }
             case 2: { 
                         if constexpr (isReadOperation) { 

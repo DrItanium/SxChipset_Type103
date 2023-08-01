@@ -275,6 +275,8 @@ static void doIO() noexcept {
             case 2: { 
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
+                            // if you do an unaligned read then tough! You can
+                            // lose the character!
                             setDataHalf<0>(Serial.read());
                             setDataHalf<1>(0);
                         } else { 
@@ -459,9 +461,7 @@ static void doIO() noexcept {
     // addresses are 32-bits wide
     //
     // in 16-bit bus mode we just need to be careful and do alignment detection
-        uint16_t base = getInputRegister<Port::A2_9>();
-        base <<= 2;
-        switch (base) {
+        switch (getInputRegister<Port::A2_9>()) {
             case 0: {
                         if constexpr (isReadOperation) { 
                             setDataWord(F_CPU);
@@ -481,17 +481,14 @@ static void doIO() noexcept {
             case 2: {
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
-                            setDataWord(0);
-                            if (digitalRead<Pin::BE0>() == LOW || digitalRead<Pin::BE1>() == LOW) {
-                                setDataHalf<0>(Serial.read());
-                                I960_Signal_Switch;
-                            }
+                            setDataHalf<0>(Serial.read());
+                            setDataHalf<1>(0);
+                            I960_Alignment_Signal_Switch;
                         } else { 
                             // no need to check this out just ignore the byte
-                            // enable lines
-                            if (digitalRead<Pin::BE0>() == LOW) {
-                                Serial.write(getDataByte<0>());
-                            }
+                            // enable lines, if it is unaligned then what are
+                            // you doing?
+                            Serial.write(getDataByte<0>());
                             I960_Alignment_Signal_Switch;
                         } 
                         I960_Signal_Switch;

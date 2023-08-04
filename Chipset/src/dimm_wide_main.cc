@@ -460,7 +460,9 @@ void
 executionBody() noexcept {
     // at this point we want the code to just respond with non io operations
     while (true) {
-        while (digitalRead<Pin::DEN>());
+        Serial.println(F("WAITING FOR DEN!"));
+        while (digitalRead<Pin::DEN>() == HIGH);
+        Serial.println(F("DEN FOUND!"));
         if (digitalRead<Pin::IO_OPERATION>() == LOW) {
             // this is an io operation. So make sure that we have our data
             // lines in the correct direction
@@ -476,6 +478,8 @@ executionBody() noexcept {
                 doIO<false, width>();
             }
         } else {
+            Serial.print(F("READ ADDRESS: 0x"));
+            Serial.println(getInputRegister<Port::A2_9>(), HEX);
             // it's not an IO operation so instead just do an "idle"
             // transaction
             idleTransaction();
@@ -529,12 +533,14 @@ getInstalledCPUKind() noexcept {
 void 
 putCPUInReset() noexcept {
     auto updatedValue = ioExpRead8<Pin::IO_EXP_ENABLE>(0x12) & 0b0111'1111;
+    Serial.println(updatedValue, BIN);
     ioExpWrite8<Pin::IO_EXP_ENABLE>(0x12, updatedValue);
 }
 void 
 pullCPUOutOfReset() noexcept {
     /// @todo implement
     auto updatedValue = ioExpRead8<Pin::IO_EXP_ENABLE>(0x12) | 0b1000'0000;
+    Serial.println(updatedValue, BIN);
     ioExpWrite8<Pin::IO_EXP_ENABLE>(0x12, updatedValue);
 }
 
@@ -542,8 +548,8 @@ void
 setup() {
     SPI.begin();
     setupPins();
-    putCPUInReset();
     Serial.begin(115200);
+    putCPUInReset();
     // setup the IO Expanders
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:

@@ -518,9 +518,11 @@ setupPins() noexcept {
     digitalWrite<Pin::SD_EN, HIGH>();
     digitalWrite<Pin::IO_EXP_ENABLE, HIGH>();
     digitalWrite<Pin::DataDirection, LOW>();
-    uint16_t iodir = 0b0000'0000'1101'0000;
+    uint16_t iodir = 0b1111'1111'0110'1111;
+    ioExpWrite8<Pin::IO_EXP_ENABLE>(0x05, 0b0000'1000);
     ioExpWrite16<Pin::IO_EXP_ENABLE>(0x00, iodir);
-    ioExpWrite16<Pin::IO_EXP_ENABLE>(0x12, 0xFFFF);
+    // make sure that we put the device in reset
+    ioExpWrite16<Pin::IO_EXP_ENABLE>(0x12, 0);
     getDirectionRegister<Port::A2_9>() = 0;
     updateDataLinesDirection<0>();
 }
@@ -550,29 +552,37 @@ setup() {
     setupPins();
     Serial.begin(115200);
     putCPUInReset();
-    // setup the IO Expanders
-    switch (getInstalledCPUKind()) {
-        case CPUKind::Sx:
-            Serial.println(F("i960Sx CPU detected!"));
-            break;
-        case CPUKind::Kx:
-            Serial.println(F("i960Kx CPU detected!"));
-            break;
-        case CPUKind::Jx:
-            Serial.println(F("i960Jx CPU detected!"));
-            break;
-        case CPUKind::Hx:
-            Serial.println(F("i960Hx CPU detected!"));
-            break;
-        case CPUKind::Cx:
-            Serial.println(F("i960Cx CPU detected!"));
-            break;
-        default:
-            Serial.println(F("Unknown i960 CPU detected!"));
-            break;
+    {
+        // setup the IO Expanders
+        switch (getInstalledCPUKind()) {
+            case CPUKind::Sx:
+                Serial.println(F("i960Sx CPU detected!"));
+                break;
+            case CPUKind::Kx:
+                Serial.println(F("i960Kx CPU detected!"));
+                break;
+            case CPUKind::Jx:
+                Serial.println(F("i960Jx CPU detected!"));
+                break;
+            case CPUKind::Hx:
+                Serial.println(F("i960Hx CPU detected!"));
+                break;
+            case CPUKind::Cx:
+                Serial.println(F("i960Cx CPU detected!"));
+                break;
+            default:
+                Serial.println(F("Unknown i960 CPU detected!"));
+                break;
+        }
     }
     // find firmware.bin and install it into the 512k block of memory
+    delay(1000);
     pullCPUOutOfReset();
+    {
+        auto contents = getInputRegister<Port::SignalCTL>();
+        Serial.print(F("Contents: 0b")); Serial.println(contents, BIN);
+    }
+
 }
 void 
 loop() {

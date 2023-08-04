@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef DIMM_WIDE
 #include <Arduino.h>
 #include <SPI.h>
-#include <SdFat.h>
 
 #include "Detect.h"
 #include "Types.h"

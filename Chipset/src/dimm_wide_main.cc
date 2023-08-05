@@ -51,46 +51,54 @@ template<Pin enablePin>
 [[gnu::always_inline]]
 inline void 
 ioExpWrite16(uint8_t address, uint16_t value) noexcept {
+    SPI.beginTransaction(SPISettings(5000000, MSBFIRST, SPI_MODE0));
     digitalWrite<enablePin, LOW>();
     SPI.transfer(0b0100'0000); // opcode
     SPI.transfer(address);
     SPI.transfer(static_cast<uint8_t>(value));
     SPI.transfer(static_cast<uint8_t>(value >> 8));
     digitalWrite<enablePin, HIGH>();
+    SPI.endTransaction();
 }
 
 template<Pin enablePin>
 [[gnu::always_inline]]
 inline void 
 ioExpWrite8(uint8_t address, uint8_t second) noexcept {
+    SPI.beginTransaction(SPISettings(5000000, MSBFIRST, SPI_MODE0));
     digitalWrite<enablePin, LOW>();
     SPI.transfer(0b0100'0000); // opcode
     SPI.transfer(address);
     SPI.transfer(second);
     digitalWrite<enablePin, HIGH>();
+    SPI.endTransaction();
 }
 
 template<Pin enablePin>
 [[gnu::always_inline]]
 inline uint16_t 
 ioExpRead16(uint8_t address) noexcept {
+    SPI.beginTransaction(SPISettings(5000000, MSBFIRST, SPI_MODE0));
     digitalWrite<enablePin, LOW>();
     SPI.transfer(0b0100'0001); // opcode
     SPI.transfer(address);
-    uint16_t value = static_cast<uint16_t>(SPI.transfer(0));
-    value |= (static_cast<uint16_t>(SPI.transfer(0)) << 8);
+    auto lower = SPI.transfer(0);
+    auto upper = SPI.transfer(0);
     digitalWrite<enablePin, HIGH>();
-    return value;
+    SPI.endTransaction();
+    return makeWord(upper, lower);
 }
 template<Pin enablePin>
 [[gnu::always_inline]]
 inline uint8_t 
 ioExpRead8(uint8_t address) noexcept {
+    SPI.beginTransaction(SPISettings(5000000, MSBFIRST, SPI_MODE0));
     digitalWrite<enablePin, LOW>();
     SPI.transfer(0b0100'0001); // opcode
     SPI.transfer(address);
     uint8_t value = SPI.transfer(0);
     digitalWrite<enablePin, HIGH>();
+    SPI.endTransaction();
     return value;
 }
 using Register8 = volatile uint8_t&;
@@ -231,13 +239,14 @@ FORCE_INLINE
 inline void 
 idleTransaction() noexcept {
     // just keep going until we are done
+    insertCustomNopCount<8>();
     while (true) {
         if (isBurstLast()) {
-            signalReady<true>();
-            return;
+            break;
         }
         signalReady<true>();
     }
+    signalReady<true>();
 }
 
 #define I960_Signal_Switch \
@@ -460,9 +469,8 @@ void
 executionBody() noexcept {
     // at this point we want the code to just respond with non io operations
     while (true) {
-        Serial.println(F("WAITING FOR DEN!"));
         while (digitalRead<Pin::DEN>() == HIGH);
-        Serial.println(F("DEN FOUND!"));
+        digitalWrite<Pin::TransactionEnable, LOW>();
         if (digitalRead<Pin::IO_OPERATION>() == LOW) {
             // this is an io operation. So make sure that we have our data
             // lines in the correct direction
@@ -478,12 +486,11 @@ executionBody() noexcept {
                 doIO<false, width>();
             }
         } else {
-            Serial.print(F("READ ADDRESS: 0x"));
-            Serial.println(getInputRegister<Port::A2_9>(), HEX);
             // it's not an IO operation so instead just do an "idle"
             // transaction
             idleTransaction();
         }
+        digitalWrite<Pin::TransactionEnable, HIGH>();
     }
 }
 
@@ -494,6 +501,8 @@ setupPins() noexcept {
 
     // setup the direction of the data and address ports to be inputs to start
     // enable interrupt pin output
+    pinMode<Pin::TransactionEnable>(OUTPUT);
+    digitalWrite<Pin::TransactionEnable, HIGH>();
     pinMode<Pin::INT0_960_>(OUTPUT);
     pinMode<Pin::XINT2_960_>(OUTPUT);
     pinMode<Pin::XINT4_960_>(OUTPUT);
@@ -534,23 +543,23 @@ getInstalledCPUKind() noexcept {
 
 void 
 putCPUInReset() noexcept {
-    auto updatedValue = ioExpRead8<Pin::IO_EXP_ENABLE>(0x12) & 0b0111'1111;
-    Serial.println(updatedValue, BIN);
-    ioExpWrite8<Pin::IO_EXP_ENABLE>(0x12, updatedValue);
+    auto stockValue = ioExpRead16<Pin::IO_EXP_ENABLE>(0x12);
+    auto updatedValue = stockValue & 0b1111'1111'0111'1111;
+    ioExpWrite16<Pin::IO_EXP_ENABLE>(0x12, updatedValue);
 }
 void 
 pullCPUOutOfReset() noexcept {
     /// @todo implement
-    auto updatedValue = ioExpRead8<Pin::IO_EXP_ENABLE>(0x12) | 0b1000'0000;
-    Serial.println(updatedValue, BIN);
-    ioExpWrite8<Pin::IO_EXP_ENABLE>(0x12, updatedValue);
+    auto stockValue = ioExpRead16<Pin::IO_EXP_ENABLE>(0x12);
+    auto updatedValue = stockValue | 0b0000'0000'1000'0000;
+    ioExpWrite16<Pin::IO_EXP_ENABLE>(0x12, updatedValue);
 }
 
 void
 setup() {
     SPI.begin();
-    setupPins();
     Serial.begin(115200);
+    setupPins();
     putCPUInReset();
     {
         // setup the IO Expanders
@@ -576,12 +585,7 @@ setup() {
         }
     }
     // find firmware.bin and install it into the 512k block of memory
-    delay(1000);
     pullCPUOutOfReset();
-    {
-        auto contents = getInputRegister<Port::SignalCTL>();
-        Serial.print(F("Contents: 0b")); Serial.println(contents, BIN);
-    }
 
 }
 void 

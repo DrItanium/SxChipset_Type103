@@ -88,6 +88,7 @@ Count = NUM_DIGITAL_PINS,
     IO_OPERATION = PortG0,
     IO_EXP_ENABLE = PortG1,
     DataDirection = PortG2,
+    TransactionEnable = PortG4,
 #endif
 };
 enum class Port : byte {

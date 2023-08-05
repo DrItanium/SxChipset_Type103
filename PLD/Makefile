@@ -13,7 +13,8 @@ all: Type103PLD.jed \
 	1MEGDecoderCard.jed \
 	OperationDetect.jed \
 	BusDecoder32Bit.jed \
-	Flash32Decoder.jed
+	Flash32Decoder.jed \
+	SRAM32Decoder.jed 
 
 
 
@@ -50,6 +51,9 @@ install_BusDecoder32bit: BusDecoder32Bit.jed
 	
 install_Flash32Decoder: Flash32Decoder.jed
 	minipro -p ATF16V8B --write Flash32Decoder.jed 
+
+install_SRAM32Decoder: SRAM32Decoder.jed
+	minipro -p ATF16V8B --write SRAM32Decoder.jed 
 
 clean:
 	@echo -n "Cleaning..."

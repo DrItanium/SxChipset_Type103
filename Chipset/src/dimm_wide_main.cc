@@ -35,10 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }
-template<bool waitForReady = false>
+template<bool waitForReady = false, bool enableDebugging = true>
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
+    if constexpr (enableDebugging) {
+        Serial.println(__PRETTY_FUNCTION__);
+    }
     toggle<Pin::READY>();
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
@@ -239,7 +242,6 @@ FORCE_INLINE
 inline void 
 idleTransaction() noexcept {
     // just keep going until we are done
-    insertCustomNopCount<8>();
     while (true) {
         if (isBurstLast()) {
             break;
@@ -469,7 +471,9 @@ void
 executionBody() noexcept {
     // at this point we want the code to just respond with non io operations
     while (true) {
+        Serial.println(F("WAITING FOR DEN!"));
         while (digitalRead<Pin::DEN>() == HIGH);
+        Serial.println(F("DEN FOUND!"));
         digitalWrite<Pin::TransactionEnable, LOW>();
         if (digitalRead<Pin::IO_OPERATION>() == LOW) {
             // this is an io operation. So make sure that we have our data
@@ -507,12 +511,12 @@ setupPins() noexcept {
     pinMode<Pin::XINT2_960_>(OUTPUT);
     pinMode<Pin::XINT4_960_>(OUTPUT);
     pinMode<Pin::XINT6_960_>(OUTPUT);
-    pinMode<Pin::BE0>(INPUT);
-    pinMode<Pin::BE1>(INPUT);
-    pinMode<Pin::BE2>(INPUT);
-    pinMode<Pin::BE3>(INPUT);
-    pinMode<Pin::DEN>(INPUT);
-    pinMode<Pin::BLAST>(INPUT);
+    pinMode<Pin::BE0>(INPUT_PULLUP);
+    pinMode<Pin::BE1>(INPUT_PULLUP);
+    pinMode<Pin::BE2>(INPUT_PULLUP);
+    pinMode<Pin::BE3>(INPUT_PULLUP);
+    pinMode<Pin::DEN>(INPUT_PULLUP);
+    pinMode<Pin::BLAST>(INPUT_PULLUP);
     pinMode<Pin::WR>(INPUT);
     pinMode<Pin::READY>(OUTPUT);
     pinMode<Pin::SD_EN>(OUTPUT);

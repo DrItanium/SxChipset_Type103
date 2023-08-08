@@ -35,13 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }
-template<bool waitForReady = false, bool enableDebugging = true>
+template<bool waitForReady = false>
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
-    if constexpr (enableDebugging) {
-        Serial.println(__PRETTY_FUNCTION__);
-    }
     toggle<Pin::READY>();
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
@@ -471,9 +468,7 @@ void
 executionBody() noexcept {
     // at this point we want the code to just respond with non io operations
     while (true) {
-        Serial.println(F("WAITING FOR DEN!"));
         while (digitalRead<Pin::DEN>() == HIGH);
-        Serial.println(F("DEN FOUND!"));
         digitalWrite<Pin::TransactionEnable, LOW>();
         if (digitalRead<Pin::IO_OPERATION>() == LOW) {
             // this is an io operation. So make sure that we have our data
@@ -565,28 +560,26 @@ setup() {
     Serial.begin(115200);
     setupPins();
     putCPUInReset();
-    {
-        // setup the IO Expanders
-        switch (getInstalledCPUKind()) {
-            case CPUKind::Sx:
-                Serial.println(F("i960Sx CPU detected!"));
-                break;
-            case CPUKind::Kx:
-                Serial.println(F("i960Kx CPU detected!"));
-                break;
-            case CPUKind::Jx:
-                Serial.println(F("i960Jx CPU detected!"));
-                break;
-            case CPUKind::Hx:
-                Serial.println(F("i960Hx CPU detected!"));
-                break;
-            case CPUKind::Cx:
-                Serial.println(F("i960Cx CPU detected!"));
-                break;
-            default:
-                Serial.println(F("Unknown i960 CPU detected!"));
-                break;
-        }
+    // setup the IO Expanders
+    switch (getInstalledCPUKind()) {
+        case CPUKind::Sx:
+            Serial.println(F("i960Sx CPU detected!"));
+            break;
+        case CPUKind::Kx:
+            Serial.println(F("i960Kx CPU detected!"));
+            break;
+        case CPUKind::Jx:
+            Serial.println(F("i960Jx CPU detected!"));
+            break;
+        case CPUKind::Hx:
+            Serial.println(F("i960Hx CPU detected!"));
+            break;
+        case CPUKind::Cx:
+            Serial.println(F("i960Cx CPU detected!"));
+            break;
+        default:
+            Serial.println(F("Unknown i960 CPU detected!"));
+            break;
     }
     // find firmware.bin and install it into the 512k block of memory
     pullCPUOutOfReset();

@@ -5,10 +5,10 @@ CLK A31  A30  A29  A28 A27 A26 A25 A24 GND
 OE  RAM  SRAM FLSH IO  DEN NC  NC  NC  VCC
 
 
-/FLSH = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 * /A24 * /DEN + A31 * A30 * A29 * A28 * A27 * A26 * A25 * /A24 * /DEN
-/IO = A31 * A30 * A29 * A28 * A27 * A26 * /A25 * A24 * /DEN
-/SRAM = /A31 * /A30 * /A29 * /A28 * /A26 * /A25 * A24 * /DEN
-/RAM = /FLSH * /IO * /SRAM * /DEN
+/FLSH = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 * /A24 * /DEN
+/SRAM = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 *  A24 * /DEN
+/IO   =  A31 *  A30 *  A29 *  A28 *  A27 *  A26 *  A25 * /A24 * /DEN
+/RAM =  /FLSH * /IO * /SRAM * /DEN
 
 DESCRIPTION
 
@@ -29,6 +29,9 @@ well.
 Flash is special because it needs to be mapped into two separate locations.
 0x00000000 (for Sx and Kx based targets) and 0xFE000000 (for Hx and Jx targets). 
 
+But for now, I am only supporting the Sx/Kx based targets. It is trivial to
+upgrade this in the future
+
 Ideally, this mirroring also allows us to unmap the unused portion to allow us
 to free up memory as well after boot is complete. However, it is not active at
 this point in time. It would create some really strange problems for execution
@@ -44,3 +47,6 @@ memory mapped I/O which talks to the conductor
 The SRAM section is 16 megabytes in size maximum. It is always
 mapped 0x0100'0000-0x01ff'ffff. Everywhere else is bound to the RAM signal
 instead!
+
+This configuration only works for Kx/Mx/Sx based processors. The Hx, Jx, Cx,
+and Vx based targets are not supported with this design

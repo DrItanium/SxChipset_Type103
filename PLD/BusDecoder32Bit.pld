@@ -5,10 +5,10 @@ CLK A24  A25  A26  A27 A28 A29 A30 A31 GND
 OE  RAM  SRAM FLSH IO  DEN NC  NC  NC  VCC
 
 
-/FLSH = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 * /A24 * /DEN
-/SRAM = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 *  A24 * /DEN
-/IO   =  A31 *  A30 *  A29 *  A28 *  A27 *  A26 *  A25 * /A24 * /DEN
-/RAM =  FLSH * IO * SRAM * /DEN
+/FLSH.R = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 * /A24 * /DEN
+/SRAM.R = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 *  A24 * /DEN
+/IO.R   =  A31 *  A30 *  A29 *  A28 *  A27 *  A26 *  A25 * /A24 * /DEN
+/RAM.R =  FLSH * IO * SRAM * /DEN
 
 DESCRIPTION
 

@@ -42,7 +42,7 @@ Pin 16 = DEN          XOR = 0   AC1 = 1
 
 Pin 15 = IO           XOR = 0   AC1 = 1
  32  ---- ---- ---- ---- ---- ---- ---- ----
- 33  x--- x--- x--- x--x x--- x--- x--- -x--
+ 33  -x-- x--- x--- x--x x--- x--- x--- x---
  34  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  35  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  36  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -62,7 +62,7 @@ Pin 14 = FLSH         XOR = 0   AC1 = 1
 
 Pin 13 = SRAM         XOR = 0   AC1 = 1
  48  ---- ---- ---- ---- ---- ---- ---- ----
- 49  -x-- -x-- -x-- -x-x -x-- -x-- -x-- x---
+ 49  x--- -x-- -x-- -x-x -x-- -x-- -x-- -x--
  50  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  51  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  52  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

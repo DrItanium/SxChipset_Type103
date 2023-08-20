@@ -87,7 +87,7 @@ signalReady() noexcept {
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
-        insertCustomNopCount<2>();
+        insertCustomNopCount<4>();
     }
 }
 using Register8 = volatile uint8_t&;

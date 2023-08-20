@@ -11,10 +11,18 @@ I0.R = XINT0
 I3.R = XINT6
 Z0.R = RDY
 Z1.R = Z0
-/RSYNC = Z1 * /Z0 + /Z1 * Z0
+/RSYNC = Z1 * /Z0
 
 DESCRIPTION
+The following is used for either edge detection
+/RSYNC = Z1 * /Z0 + /Z1 * Z0
+The following is used for falling edge detection 
+/RSYNC = Z1 * /Z0
+The following is used for rising edge detection
+/RSYNC = /Z1 * Z0
 
 Provide ready signal and synchronization work to the i960Sx chip
 
-The ready signal synchronized to be an either edge detector
+The ready signal synchronized to be an either edge detector (by default)
+
+The current design is useful for testing falling edge detection

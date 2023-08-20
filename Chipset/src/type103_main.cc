@@ -82,7 +82,7 @@ template<bool waitForReady = false>
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
-    toggle<Pin::READY>();
+    pulse<Pin::READY>();
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960

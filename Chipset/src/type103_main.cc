@@ -86,7 +86,7 @@ signalReady() noexcept {
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
-        insertCustomNopCount<4>();
+        insertCustomNopCount<2>();
     }
 }
 using Register8 = volatile uint8_t&;
@@ -506,7 +506,8 @@ public:
         // creative. The base offsets have been modified
         if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) [[gnu::likely]] {
             if constexpr (isReadOperation) {
-                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[0];
+                DataRegister32 view32 = reinterpret_cast<DataRegister32>(theBytes);
+                dataLinesFull = view32[0];
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -515,7 +516,7 @@ public:
                     goto Done; 
                 }
                 signalReady<false>();
-                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[1];
+                dataLinesFull = view32[1];
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -524,7 +525,7 @@ public:
                     goto Done; 
                 }
                 signalReady<false>();
-                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[2];
+                dataLinesFull = view32[2];
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -533,7 +534,7 @@ public:
                     goto Done; 
                 }
                 signalReady<false>();
-                dataLinesFull = reinterpret_cast<DataRegister32>(theBytes)[3];
+                dataLinesFull = view32[3];
                 if (isBurstLast()) {
                     goto Done; 
                 }

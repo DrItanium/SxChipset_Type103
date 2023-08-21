@@ -670,6 +670,8 @@ public:
                         goto Done;
                     }
                     signalReady<false>();
+                    auto k = dataLines[2];
+                    auto l = dataLines[3];
                     theBytes[1] = x;
                     theBytes[2] = y;
                     theBytes[3] = z;
@@ -683,9 +685,9 @@ public:
                     theBytes[11] = h;
                     theBytes[12] = i;
                     theBytes[13] = j;
-                    theBytes[14] = dataLines[2];
-                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                        theBytes[15] = dataLines[3];
+                    theBytes[14] = k;
+                    if (digitalRead<Pin::BE3>() == LOW) {
+                        theBytes[15] = l;
                     }
                     goto Done;
                 }

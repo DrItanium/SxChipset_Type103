@@ -556,11 +556,11 @@ public:
                     // we only need to check to see if BE0 is enabled
                     // BE1 must be enabled since we are going to flow into
                     // the next byte
-                    signalReady<false>();
-                    theBytes[1] = x;
+                    signalReady<true>();
                     auto y = dataLines[2];
                     auto z = dataLines[3];
                     if (isBurstLast()) {
+                        theBytes[1] = x;
                         theBytes[2] = y;
                         // lower must be valid since we are flowing into the
                         // next 16-bit word
@@ -569,13 +569,14 @@ public:
                         }
                         goto Done;
                     } 
-                    signalReady<false>();
-                    theBytes[2] = y;
+                    signalReady<true>();
                     auto a = dataLines[0];
                     auto b = dataLines[1];
                     // since this is a flow in from previous values we actually
                     // can eliminate checking as many pins as possible
                     if (isBurstLast()) [[gnu::unlikely]] {
+                        theBytes[1] = x;
+                        theBytes[2] = y;
                         theBytes[3] = z;
                         theBytes[4] = a ;
                         if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
@@ -583,11 +584,13 @@ public:
                         }
                         goto Done;
                     }
-                    signalReady<false>();
-                    theBytes[3] = z;
+                    signalReady<true>();
                     auto c = dataLines[2];
                     auto d = dataLines[3];
                     if (isBurstLast()) {
+                        theBytes[1] = x;
+                        theBytes[2] = y;
+                        theBytes[3] = z;
                         theBytes[4] = a;
                         theBytes[5] = b;
                         theBytes[6] = c;
@@ -606,6 +609,9 @@ public:
                     auto e = dataLines[0];
                     auto f = dataLines[1];
                     if (isBurstLast()) [[gnu::unlikely]] {
+                        theBytes[1] = x;
+                        theBytes[2] = y;
+                        theBytes[3] = z;
                         theBytes[4] = a;
                         theBytes[5] = b;
                         theBytes[6] = c;
@@ -620,6 +626,9 @@ public:
                     auto g = dataLines[2];
                     auto h = dataLines[3];
                     if (isBurstLast()) {
+                        theBytes[1] = x;
+                        theBytes[2] = y;
+                        theBytes[3] = z;
                         theBytes[4] = a;
                         theBytes[5] = b;
                         theBytes[6] = c;
@@ -642,6 +651,9 @@ public:
                     // since this is a flow in from previous values we actually
                     // can eliminate checking as many pins as possible
                     if (isBurstLast()) [[gnu::unlikely]] {
+                        theBytes[1] = x;
+                        theBytes[2] = y;
+                        theBytes[3] = z;
                         theBytes[4] = a;
                         theBytes[5] = b;
                         theBytes[6] = c;
@@ -657,6 +669,9 @@ public:
                         goto Done;
                     }
                     signalReady<false>();
+                    theBytes[1] = x;
+                    theBytes[2] = y;
+                    theBytes[3] = z;
                     theBytes[4] = a;
                     theBytes[5] = b;
                     theBytes[6] = c;

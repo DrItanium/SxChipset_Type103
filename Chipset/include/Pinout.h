@@ -101,6 +101,7 @@ enum class Port : byte {
 #ifdef TYPE103
     IBUS_Bank = J,
     ExecutionState = D,
+    BankCapture = H,
 #endif
 #ifdef DIMM_WIDE
     A2_9 = A,

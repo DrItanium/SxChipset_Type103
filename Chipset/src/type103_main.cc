@@ -170,12 +170,9 @@ inline
 DataRegister8
 getTransactionWindow() noexcept {
     if constexpr (MCUMustControlBankSwitching) {
-        SplitWord32 view{addressLinesLower24};
-        setBankIndex(view.getIBUSBankIndex());
-        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(view.halves[0]));
-    } else {
-        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
+        setBankIndex(getInputRegister<Port::BankCapture>());
     }
+    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
 }
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
@@ -1377,6 +1374,10 @@ setupPins() noexcept {
     if constexpr (MCUHasDirectAccess) {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();
+    }
+    if constexpr (MCUMustControlBankSwitching) {
+        // setup bank capture to read in address lines
+        getDirectionRegister<Port::BankCapture>() = 0;
     }
 }
 void

@@ -208,9 +208,6 @@ idleTransaction() noexcept {
 }
 template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
-    static constexpr auto BusWidth = width == NativeBusWidth::Sixteen ? 16 : 32;
-    static constexpr auto On16BitBus = (width == NativeBusWidth::Sixteen);
-    static constexpr auto On32BitBus = !On16BitBus;
     using Self = CommunicationKernel<isReadOperation, width>;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
@@ -224,50 +221,87 @@ inline
 static void
 doCommunication() noexcept {
         auto theBytes = getTransactionWindow(); 
-#define X(base) \
-    if constexpr (isReadOperation) { \
-        auto a = theBytes[(base + 0)]; \
-        auto b = theBytes[(base + 1)]; \
-        auto c = theBytes[(base + 2)]; \
-        auto d = theBytes[(base + 3)]; \
-        setDataByte(a, b, c, d); \
-    } else { \
-        auto a = getDataByte<0>(); \
-        auto b = getDataByte<1>(); \
-        auto c = getDataByte<2>(); \
-        auto d = getDataByte<3>(); \
-        if (digitalRead<Pin::BE0>() == LOW) { \
-            theBytes[(base + 0)] = a; \
-        } \
-        if (digitalRead<Pin::BE1>() == LOW) { \
-            theBytes[(base + 1)] = b; \
-        } \
-        if (digitalRead<Pin::BE2>() == LOW) { \
-            theBytes[(base + 2)] = c; \
-        } \
-        if (digitalRead<Pin::BE3>() == LOW) { \
-            theBytes[(base + 3)] = d; \
-        } \
-    }
-        X(0);
-        if (isBurstLast()) {
-            goto Done;
+        if constexpr (isReadOperation) {
+            DataRegister32 view32 = reinterpret_cast<DataRegister32>(theBytes);
+            dataLinesFull = view32[0];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<true>();
+            dataLinesFull = view32[1];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<true>();
+            dataLinesFull = view32[2];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<true>();
+            dataLinesFull = view32[3];
+        } else {
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[0] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[1] = getDataByte<1>();
+            }
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[2] = getDataByte<2>();
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[3] = getDataByte<3>();
+            } 
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<true>();
+            // we know that we can safely write to the lowest byte since we
+            // flowed into this
+            theBytes[4] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[5] = getDataByte<1>();
+            }
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[6] = getDataByte<2>();
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[7] = getDataByte<3>();
+            } 
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<true>();
+            // we know that we can safely write to the lowest byte since we
+            // flowed into this
+            theBytes[8] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[9] = getDataByte<1>();
+            }
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[10] = getDataByte<2>();
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[11] = getDataByte<3>();
+            } 
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<true>();
+            // we know that we can safely write to the lowest byte!
+            theBytes[12] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[13] = getDataByte<1>();
+            }
+            if (digitalRead<Pin::BE2>() == LOW) {
+                theBytes[14] = getDataByte<2>();
+            }
+            if (digitalRead<Pin::BE3>() == LOW) {
+                theBytes[15] = getDataByte<3>();
+            } 
         }
-        signalReady<!isReadOperation>();
-        X(4);
-        if (isBurstLast()) {
-            goto Done;
-        }
-        signalReady<!isReadOperation>();
-        X(8);
-        if (isBurstLast()) {
-            goto Done;
-        }
-        signalReady<!isReadOperation>();
-        X(12);
 Done:
         signalReady<true>();
-#undef X
 
 }
 FORCE_INLINE 

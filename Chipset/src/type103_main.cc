@@ -75,6 +75,8 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
+constexpr bool SupportOnChipCache = false;
+static_assert(!(SupportOnChipCache && !MCUMustControlBankSwitching), "On chip caching only works when the AVR is fully in control of bank switching");
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 

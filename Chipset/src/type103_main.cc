@@ -618,7 +618,7 @@ public:
                         theBytes[3] = z;
                     }
                     if constexpr (MCUMustControlBankSwitching) {
-                        signalReady<true>();
+                        signalReady<false>();
                     }
                     theBytes[1] = x;
                     theBytes[2] = y;
@@ -635,12 +635,18 @@ public:
                 // since this is a flow in from previous values we actually
                 // can eliminate checking as many pins as possible
                 if (isBurstLast()) [[gnu::unlikely]] {
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[5] = b ;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = x;
                     theBytes[2] = y;
                     theBytes[3] = z;
                     theBytes[4] = a ;
-                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                        theBytes[5] = b ;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 }
@@ -648,16 +654,22 @@ public:
                 auto c = dataLines[2];
                 auto d = dataLines[3];
                 if (isBurstLast()) {
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[7] = d;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = x;
                     theBytes[2] = y;
                     theBytes[3] = z;
                     theBytes[4] = a;
                     theBytes[5] = b;
                     theBytes[6] = c;
-                    // lower must be valid since we are flowing into the
-                    // next 16-bit word
-                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                        theBytes[7] = d;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 } 

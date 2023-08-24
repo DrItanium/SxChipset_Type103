@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include "Detect.h"
 
-
+using uint24_t = __uint24;
 
 template<typename W, typename E>
 constexpr auto ElementCount = sizeof(W) / sizeof(E);

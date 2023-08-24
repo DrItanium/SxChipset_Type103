@@ -74,7 +74,7 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
-constexpr bool MCUMustControlBankSwitching = false;
+constexpr bool MCUMustControlBankSwitching = true;
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
@@ -156,6 +156,7 @@ using DataRegister32 = volatile uint32_t*;
 [[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 [[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
+[[gnu::address(0x2200)]] volatile uint24_t addressLinesLower24;
 
 template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
@@ -173,7 +174,7 @@ inline
 DataRegister8
 getTransactionWindow() noexcept {
     if constexpr (MCUMustControlBankSwitching) {
-        SplitWord32 view{addressLinesValue32};
+        SplitWord32 view{addressLinesLower24};
         setBankIndex(view.getIBUSBankIndex());
         return memoryPointer<uint8_t>(view.unalignedBankAddress(AccessFromIBUS{}));
     } else {

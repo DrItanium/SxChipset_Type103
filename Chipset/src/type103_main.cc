@@ -208,6 +208,9 @@ idleTransaction() noexcept {
 }
 template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
+    static constexpr auto BusWidth = width == NativeBusWidth::Sixteen ? 16 : 32;
+    static constexpr auto On16BitBus = (width == NativeBusWidth::Sixteen);
+    static constexpr auto On32BitBus = !On16BitBus;
     using Self = CommunicationKernel<isReadOperation, width>;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;

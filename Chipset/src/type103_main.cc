@@ -681,6 +681,12 @@ public:
                 auto e = dataLines[0];
                 auto f = dataLines[1];
                 if (isBurstLast()) [[gnu::unlikely]] {
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[9] = f;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = x;
                     theBytes[2] = y;
                     theBytes[3] = z;
@@ -689,8 +695,8 @@ public:
                     theBytes[6] = c;
                     theBytes[7] = d;
                     theBytes[8] = e;
-                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                        theBytes[9] = f;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 }
@@ -698,6 +704,14 @@ public:
                 auto g = dataLines[2];
                 auto h = dataLines[3];
                 if (isBurstLast()) {
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[11] = h;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = x;
                     theBytes[2] = y;
                     theBytes[3] = z;
@@ -708,10 +722,8 @@ public:
                     theBytes[8] = e;
                     theBytes[9] = f;
                     theBytes[10] = g;
-                    // lower must be valid since we are flowing into the
-                    // next 16-bit word
-                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                        theBytes[11] = h;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 } 
@@ -723,6 +735,12 @@ public:
                 // since this is a flow in from previous values we actually
                 // can eliminate checking as many pins as possible
                 if (isBurstLast()) [[gnu::unlikely]] {
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[13] = j;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = x;
                     theBytes[2] = y;
                     theBytes[3] = z;
@@ -735,14 +753,20 @@ public:
                     theBytes[10] = g;
                     theBytes[11] = h;
                     theBytes[12] = i;
-                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                        theBytes[13] = j;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 }
                 signalReady<false>();
                 auto k = dataLines[2];
                 auto l = dataLines[3];
+                if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                    theBytes[15] = l;
+                }
+                if constexpr (MCUMustControlBankSwitching) {
+                    signalReady<false>();
+                }
                 theBytes[1] = x;
                 theBytes[2] = y;
                 theBytes[3] = z;
@@ -757,8 +781,8 @@ public:
                 theBytes[12] = i;
                 theBytes[13] = j;
                 theBytes[14] = k;
-                if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                    theBytes[15] = l;
+                if constexpr (MCUMustControlBankSwitching) {
+                    return;
                 }
                 goto Done;
             }

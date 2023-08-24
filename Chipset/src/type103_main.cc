@@ -839,13 +839,19 @@ public:
                 auto c = dataLines[0];
                 auto d = dataLines[1];
                 if (isBurstLast()) {
-                    theBytes[1] = b;
-                    theBytes[2] = c;
-                    // lower must be valid since we are flowing into the
-                    // next 16-bit word
                     if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
                         theBytes[3] = d;
                     }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
+                    theBytes[1] = b;
+                    theBytes[2] = c;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
+                    }
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
                     goto Done;
                 } 
                 // we know that all of these entries must be valid so
@@ -859,12 +865,18 @@ public:
                 auto e = dataLines[2];
                 auto f = dataLines[3];
                 if (isBurstLast()) {
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[5] = f;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = b;
                     theBytes[2] = c;
                     theBytes[3] = d;
                     theBytes[4] = e;
-                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                        theBytes[5] = f;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 }
@@ -872,34 +884,37 @@ public:
                 auto g = dataLines[0];
                 auto h = dataLines[1];
                 if (isBurstLast()) {
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[7] = h;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = b;
                     theBytes[2] = c;
                     theBytes[3] = d;
                     theBytes[4] = e;
                     theBytes[5] = f;
                     theBytes[6] = g;
-                    // lower must be valid since we are flowing into the
-                    // next 16-bit word
-                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                        theBytes[7] = h;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 } 
-                // we know that all of these entries must be valid so
-                // don't check the values
-                theBytes[1] = b;
-                theBytes[2] = c;
-                theBytes[3] = d;
-                theBytes[4] = e;
-                theBytes[5] = f;
-                theBytes[6] = g;
-                theBytes[7] = h;
                 signalReady<true>();
                 // since this is a flow in from previous values we actually
                 // can eliminate checking as many pins as possible
                 auto i = dataLines[2];
                 auto j = dataLines[3];
                 if (isBurstLast()) {
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[9] = j;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = b;
                     theBytes[2] = c;
                     theBytes[3] = d;
@@ -908,8 +923,8 @@ public:
                     theBytes[6] = g;
                     theBytes[7] = h;
                     theBytes[8] = i;
-                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                        theBytes[9] = j;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 }
@@ -917,6 +932,14 @@ public:
                 auto k = dataLines[0];
                 auto l = dataLines[1];
                 if (isBurstLast()) {
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[11] = l;
+                    }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<false>();
+                    }
                     theBytes[1] = b;
                     theBytes[2] = c;
                     theBytes[3] = d;
@@ -927,10 +950,8 @@ public:
                     theBytes[8] = i;
                     theBytes[9] = j;
                     theBytes[10] = k;
-                    // lower must be valid since we are flowing into the
-                    // next 16-bit word
-                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                        theBytes[11] = l;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
                     }
                     goto Done;
                 } 
@@ -941,6 +962,12 @@ public:
                 // can eliminate checking as many pins as possible
                 auto m = dataLines[2];
                 auto n = dataLines[3];
+                if (digitalRead<Pin::BE3>() == LOW) {
+                    theBytes[13] = n;
+                }
+                if constexpr (MCUMustControlBankSwitching) {
+                    signalReady<false>();
+                }
                 theBytes[1] = b;
                 theBytes[2] = c;
                 theBytes[3] = d;
@@ -953,8 +980,8 @@ public:
                 theBytes[10] = k;
                 theBytes[11] = l;
                 theBytes[12] = m;
-                if (digitalRead<Pin::BE3>() == LOW) {
-                    theBytes[13] = n;
+                if constexpr (MCUMustControlBankSwitching) {
+                    return;
                 }
             }
         }

@@ -74,6 +74,7 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
+constexpr bool MCUMustControlBankSwitching = false;
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
@@ -88,6 +89,15 @@ signalReady() noexcept {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
         insertCustomNopCount<4>();
+    }
+}
+template<bool active = MCUMustControlBankSwitching>
+[[gnu::always_inline]]
+inline
+void 
+setBankIndex(uint8_t value) {
+    if constexpr (active) {
+        getOutputRegister<Port::IBUS_Bank>() = value;
     }
 }
 using Register8 = volatile uint8_t&;
@@ -162,7 +172,13 @@ FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
-    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
+    if constexpr (MCUMustControlBankSwitching) {
+        SplitWord32 view{addressLinesValue32};
+        setBankIndex(view.getIBUSBankIndex());
+        return memoryPointer<uint8_t>(view.unalignedBankAddress(AccessFromIBUS{}));
+    } else {
+        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
+    }
 }
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
@@ -1164,7 +1180,7 @@ executionBody() noexcept {
     // turn off the timer0 interrupt for system count, we don't care about it
     // anymore
     digitalWrite<Pin::DirectionOutput, HIGH>();
-    getOutputRegister<Port::IBUS_Bank>() = 0;
+    setBankIndex<true>(0);
     getDirectionRegister<Port::IBUS_Bank>() = 0;
     // switch the XBUS bank mode to i960 instead of AVR
     // I want to use the upper four bits the XBUS address lines
@@ -1253,7 +1269,7 @@ installMemoryImage() noexcept {
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
             // just modify the bank as we go along
-            getOutputRegister<Port::IBUS_Bank>() = view.getIBUSBankIndex();
+            setBankIndex<true>(view.getIBUSBankIndex());
             auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress(AccessFromIBUS{}));
             theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
             Serial.print(F("."));

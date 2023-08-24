@@ -67,10 +67,10 @@ union SplitWord32 {
 #endif
     }
     constexpr size_t alignedBankAddress(AccessFromIBUS) const noexcept {
-        return 0x4000 + (halves[0] & 0x3FFC);
+        return 0x4000 | (halves[0] & 0x3FFC);
     }
     constexpr size_t unalignedBankAddress(AccessFromIBUS) const noexcept {
-        return 0x4000 + (halves[0] & 0x3FFF);
+        return 0x4000 | (halves[0] & 0x3FFF);
     }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");

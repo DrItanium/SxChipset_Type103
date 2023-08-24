@@ -176,7 +176,7 @@ getTransactionWindow() noexcept {
     if constexpr (MCUMustControlBankSwitching) {
         SplitWord32 view{addressLinesLower24};
         setBankIndex(view.getIBUSBankIndex());
-        return memoryPointer<uint8_t>(view.unalignedBankAddress(AccessFromIBUS{}));
+        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(view.halves[0]));
     } else {
         return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
     }
@@ -758,7 +758,7 @@ public:
                     }
                     goto Done;
                 }
-                signalReady<false>();
+                signalReady<true>();
                 auto k = dataLines[2];
                 auto l = dataLines[3];
                 if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {

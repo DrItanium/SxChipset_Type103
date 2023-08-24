@@ -134,12 +134,6 @@ void
 pullCPUOutOfReset() noexcept {
     ControlSignals.ctl.reset = HIGH;
 }
-template<bool isReadOperation>
-struct RWOperation final {
-    static constexpr bool IsReadOperation = isReadOperation;
-};
-using ReadOperation = RWOperation<true>;
-using WriteOperation = RWOperation<false>;
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;

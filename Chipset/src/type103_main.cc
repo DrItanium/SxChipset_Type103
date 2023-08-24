@@ -614,13 +614,19 @@ public:
                 auto y = dataLines[2];
                 auto z = dataLines[3];
                 if (isBurstLast()) {
-                    theBytes[1] = x;
-                    theBytes[2] = y;
-                    // lower must be valid since we are flowing into the
-                    // next 16-bit word
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[3] = z;
                     }
+                    if constexpr (MCUMustControlBankSwitching) {
+                        signalReady<true>();
+                    }
+                    theBytes[1] = x;
+                    theBytes[2] = y;
+                    if constexpr (MCUMustControlBankSwitching) {
+                        return;
+                    }
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
                     goto Done;
                 } 
                 signalReady<true>();

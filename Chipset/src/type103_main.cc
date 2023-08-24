@@ -1177,11 +1177,13 @@ template<NativeBusWidth width>
 [[noreturn]] 
 void 
 executionBody() noexcept {
-    // turn off the timer0 interrupt for system count, we don't care about it
-    // anymore
     digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex<true>(0);
-    getDirectionRegister<Port::IBUS_Bank>() = 0;
+    if constexpr (!MCUMustControlBankSwitching) {
+        // if we are letting the i960 control things then turn the IBUS_Bank
+        // direction register to input
+        getDirectionRegister<Port::IBUS_Bank>() = 0;
+    }
     // switch the XBUS bank mode to i960 instead of AVR
     // I want to use the upper four bits the XBUS address lines
     // while I can directly connect to the address lines, I want to test to

@@ -129,11 +129,10 @@ getTransactionWindow() noexcept {
 // 4 bits -> offset
 // 8 bits -> 
 struct CacheEntry {
-    static constexpr int NumberOfBytesCached = 256;
-    static constexpr int NumberOfOffsetBits = 8;
-    static constexpr uintptr_t PointerMask = 0xFF00;
-    static constexpr uintptr_t OffsetMask = 0x00FF;
-    static constexpr auto TagMask = 0xF;
+    static constexpr int NumberOfBytesCached = 16;
+    static constexpr int NumberOfOffsetBits = 4;
+    static constexpr uintptr_t PointerMask = 0xFFF0;
+    static constexpr uintptr_t OffsetMask = ~PointerMask;
 
     uint8_t bank = 0;
     DataRegister8 pointer = nullptr;
@@ -182,13 +181,14 @@ struct CacheEntry {
     void markDirty() noexcept { flags.bits.dirty = true; }
     void markClean() noexcept { flags.bits.dirty = false; }
 };
-constexpr auto NumberOfCacheEntries = 16;
+constexpr auto NumberOfCacheEntries = 256;
+constexpr auto TagMask = NumberOfCacheEntries - 1;
 CacheEntry cache[NumberOfCacheEntries];
 
 CacheEntry& find(uint8_t bank, DataRegister8 newPointer) noexcept {
     // we need to perform pointer alignment...
     auto ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(newPointer) & CacheEntry::PointerMask);
-    auto tag = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) >> CacheEntry::NumberOfOffsetBits) & CacheEntry::TagMask;
+    auto tag = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) >> CacheEntry::NumberOfOffsetBits) & TagMask;
     auto& target = cache[tag];
     if (!target.matches(bank, ptr)) {
         target.updateContents(bank, ptr);
@@ -198,12 +198,17 @@ CacheEntry& find(uint8_t bank, DataRegister8 newPointer) noexcept {
 
 template<bool isReadOperation>
 DataRegister8 getCachedTransactionWindow(uint8_t bank, DataRegister8 newPointer) noexcept {
-    auto& entry = find(bank, newPointer);
-    auto offset = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) & CacheEntry::OffsetMask);
-    if constexpr (!isReadOperation) {
-        entry.markDirty();
-    } 
-    return entry.data + offset;
+    if constexpr (SupportOnChipCache) {
+        auto& entry = find(bank, newPointer);
+        auto offset = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) & CacheEntry::OffsetMask);
+        if constexpr (!isReadOperation) {
+            entry.markDirty();
+        } 
+        return entry.data + offset;
+    } else {
+        setBankIndex(bank);
+        return newPointer;
+    }
 }
 
 template<bool waitForReady = false>
@@ -605,8 +610,7 @@ public:
     static void
     doCommunication() noexcept {
         auto theWindow = getTransactionWindow(); 
-        auto theBank = getInputRegister<Port::BankCapture>();
-        auto theBytes = getCachedTransactionWindow<isReadOperation>(theBank, theWindow);
+        auto theBytes = getCachedTransactionWindow<isReadOperation>(getInputRegister<Port::BankCapture>(), theWindow);
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop
@@ -930,9 +934,6 @@ public:
                 } 
                 // we know that all of these entries must be valid so
                 // don't check the values
-                theBytes[1] = b;
-                theBytes[2] = c;
-                theBytes[3] = d;
                 signalReady<true>();
                 // since this is a flow in from previous values we actually
                 // can eliminate checking as many pins as possible
@@ -1557,8 +1558,10 @@ setup() {
     // setup the IO Expanders
     setupPlatform();
     // setup the cache
-    for (int i = 0; i < NumberOfCacheEntries; ++i) {
-        cache[i].clear();
+    if constexpr (SupportOnChipCache) {
+        for (int i = 0; i < NumberOfCacheEntries; ++i) {
+            cache[i].clear();
+        }
     }
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:

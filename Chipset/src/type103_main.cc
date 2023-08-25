@@ -77,32 +77,137 @@ constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
 constexpr bool SupportOnChipCache = false;
 static_assert(!(SupportOnChipCache && !MCUMustControlBankSwitching), "On chip caching only works when the AVR is fully in control of bank switching");
+
+using DataRegister8 = volatile uint8_t*;
+using DataRegister16 = volatile uint16_t*;
+using DataRegister32 = volatile uint32_t*;
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
+}
+template<bool active = MCUMustControlBankSwitching>
+[[gnu::always_inline]]
+inline
+void 
+setBankIndex(uint8_t value) {
+    if constexpr (active) {
+        getOutputRegister<Port::IBUS_Bank>() = value;
+    }
+}
+[[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
+[[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
+[[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
+[[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
+[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
+[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
+
+[[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
+[[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
+[[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
+[[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
+[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
+[[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
+[[gnu::address(0x2200)]] volatile uint24_t addressLinesLower24;
+
+template<NativeBusWidth width>
+inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
+    return value & 0b1100;
+}
+template<uint16_t sectionMask, uint16_t offsetMask>
+constexpr
+uint16_t
+computeTransactionWindow(uint16_t offset) noexcept {
+    return sectionMask | (offset & offsetMask);
+}
+FORCE_INLINE
+inline
+DataRegister8
+getTransactionWindow() noexcept {
+    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
 }
 // cache layout is 24 bits total spread across (lowest to highest)
 // 4 bits -> offset
 // 8 bits -> 
 struct CacheEntry {
-    uint16_t key : 12;
+    uint8_t bank = 0;
+    DataRegister8 pointer = nullptr;
     union {
         uint8_t full;
         struct {
             uint8_t dirty : 1;
-            uint8_t valid : 1;
         } bits;
     } flags;
     uint8_t data[16];
     void clear() {
+        bank = 0;
+        pointer = nullptr;
         flags.full = 0;
-        key = 0;
         for (int i = 0; i < 16; ++i) {
             data[i] = 0;
         }
     }
+    [[nodiscard]] constexpr bool valid() const noexcept { return pointer != nullptr; }
+    [[nodiscard]] constexpr bool dirty() const noexcept { return flags.bits.dirty; }
+    [[nodiscard]] constexpr bool mustCommitOnReplace() const noexcept { return valid() && dirty(); }
+    void commitBack() noexcept {
+        setBankIndex(bank);
+        for (int i = 0; i < 16; ++i) {
+            pointer[i] = data[i];
+        }
+    }
+    void populateContents() noexcept {
+        setBankIndex(bank);
+        for (int i = 0; i < 16; ++i) {
+            data[i] = pointer[i];
+        }
+    }
+    void updateContents(uint8_t bank, uint8_t* pointer) noexcept {
+        if (mustCommitOnReplace()) {
+            commitBack();
+        }
+        this->bank = bank;
+        this->pointer = pointer;
+        markClean();
+        flags.bits.dirty = false;
+        populateContents();
+    }
+    constexpr bool matches(uint8_t otherBank, uint8_t* otherPointer) const noexcept {
+        return bank == otherBank && pointer == otherPointer; 
+    }
+    void markDirty() noexcept { flags.bits.dirty = true; }
+    void markClean() noexcept { flags.bits.dirty = false; }
+    void setValue(uint8_t offset, uint8_t value) noexcept {
+        data[offset] = value;
+        markDirty();
+    }
+    constexpr uint8_t getValue(uint8_t offset) const noexcept { return data[offset]; }
 };
 CacheEntry cache[256];
+
+//[[gnu::used]]
+CacheEntry& find(uint8_t bank, DataRegister8 newPointer) noexcept {
+    // we need to perform pointer alignment...
+    auto ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(newPointer) & 0b1111'1111'1111'0000);
+    auto tag = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) >> 4);
+    auto& target = cache[tag];
+    if (target.matches(bank, ptr)) {
+        return target;
+    } else {
+        target.updateContents(bank, ptr);
+        return target;
+    }
+}
+
+template<bool isReadOperation>
+DataRegister8 getCachedTransactionWindow(uint8_t bank, DataRegister8 newPointer) noexcept {
+    auto& entry = find(bank, newPointer);
+    auto offset = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) & 0b1111);
+    if constexpr (!isReadOperation) {
+        entry.markDirty();
+    } 
+    return entry.data + offset;
+}
+
 template<bool waitForReady = false>
 [[gnu::always_inline]] 
 inline void 
@@ -113,15 +218,6 @@ signalReady() noexcept {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
         insertCustomNopCount<4>();
-    }
-}
-template<bool active = MCUMustControlBankSwitching>
-[[gnu::always_inline]]
-inline
-void 
-setBankIndex(uint8_t value) {
-    if constexpr (active) {
-        getOutputRegister<Port::IBUS_Bank>() = value;
     }
 }
 using Register8 = volatile uint8_t&;
@@ -157,44 +253,8 @@ pullCPUOutOfReset() noexcept {
     ControlSignals.ctl.reset = HIGH;
 }
 
-using DataRegister8 = volatile uint8_t*;
-using DataRegister16 = volatile uint16_t*;
-using DataRegister32 = volatile uint32_t*;
 
-[[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
-[[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
-[[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
-[[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
 
-[[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
-[[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
-[[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
-[[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
-[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
-[[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
-[[gnu::address(0x2200)]] volatile uint24_t addressLinesLower24;
-
-template<NativeBusWidth width>
-inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
-    return value & 0b1100;
-}
-template<uint16_t sectionMask, uint16_t offsetMask>
-constexpr
-uint16_t
-computeTransactionWindow(uint16_t offset) noexcept {
-    return sectionMask | (offset & offsetMask);
-}
-FORCE_INLINE
-inline
-DataRegister8
-getTransactionWindow() noexcept {
-    if constexpr (MCUMustControlBankSwitching) {
-        setBankIndex(getInputRegister<Port::BankCapture>());
-    }
-    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
-}
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 4, "Invalid index provided to setDataByte, must be less than 4");
@@ -546,7 +606,9 @@ public:
     inline
     static void
     doCommunication() noexcept {
-        auto theBytes = getTransactionWindow(); 
+        auto theWindow = getTransactionWindow(); 
+        auto theBank = getInputRegister<Port::BankCapture>();
+        auto theBytes = getCachedTransactionWindow<isReadOperation>(theBank, theWindow);
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop

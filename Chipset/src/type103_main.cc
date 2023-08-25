@@ -1398,11 +1398,28 @@ getInstalledCPUKind() noexcept {
 }
 
 void
+banner() {
+    Serial.println(F("Features: "));
+    if constexpr (MCUMustControlBankSwitching) {
+        Serial.println(F("AVR Controls Bank Switching for i960"));
+    } else {
+        Serial.println(F("i960 Directly Controls Bank Switching"));
+    }
+    Serial.print(F("Microcontroller Has Data Cache: "));
+    if constexpr (SupportOnChipCache) {
+        Serial.println(F("Enabled"));
+    } else {
+        Serial.println(F("Disabled"));
+    }
+}
+
+void
 setup() {
     setupPins();
     Serial.begin(115200);
     // setup the IO Expanders
     setupPlatform();
+    banner();
     // setup the cache
     if constexpr (SupportOnChipCache) {
         for (int i = 0; i < NumberOfCacheEntries; ++i) {
@@ -1428,18 +1445,6 @@ setup() {
         default:
             Serial.println(F("Unknown i960 CPU detected!"));
             break;
-    }
-    Serial.println(F("Features: "));
-    if constexpr (MCUMustControlBankSwitching) {
-        Serial.println(F("AVR Controls Bank Switching for i960"));
-    } else {
-        Serial.println(F("i960 Directly Controls Bank Switching"));
-    }
-    Serial.print(F("Microcontroller Has Data Cache: "));
-    if constexpr (SupportOnChipCache) {
-        Serial.println(F("Enabled"));
-    } else {
-        Serial.println(F("Disabled"));
     }
     // find firmware.bin and install it into the 512k block of memory
     installMemoryImage();

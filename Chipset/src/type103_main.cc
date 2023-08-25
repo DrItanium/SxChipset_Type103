@@ -558,13 +558,12 @@ public:
             auto a = theBytes[0];
             auto b = theBytes[1];
             if (isBurstLast()) {
-                if (digitalRead<Pin::AlignmentCheck>() == LOW) {
-                    dataLines[0] = a;
-                    dataLines[1] = b;
-                } else {
-                    dataLines[2] = a;
-                    dataLines[3] = b;
+                uint8_t baseIndex = 0;
+                if (digitalRead<Pin::AlignmentCheck>() != LOW) {
+                    baseIndex = 2;
                 }
+                dataLines[baseIndex] = a;
+                dataLines[baseIndex+1] = b;
                 goto Done;
             } else {
                 auto c = theBytes[2];
@@ -572,45 +571,57 @@ public:
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     dataLines[0] = a;
                     dataLines[1] = b;
+                    signalReady<true>();
                     dataLines[2] = c;
                     dataLines[3] = d;
-                    signalReady<true>();
                     if (isBurstLast()) {
                         goto Done; 
                     }
+                    auto e = theBytes[4];
+                    auto f = theBytes[5];
                     signalReady<true>();
-                    dataLines[0] = theBytes[4];
-                    dataLines[1] = theBytes[5];
+                    dataLines[0] = e;
+                    dataLines[1] = f;
                     if (isBurstLast()) {
                         goto Done; 
                     }
-                    dataLines[2] = theBytes[6];
-                    dataLines[3] = theBytes[7];
+                    auto g = theBytes[6];
+                    auto h = theBytes[7];
                     signalReady<true>();
+                    dataLines[2] = g;
+                    dataLines[3] = h;
                     if (isBurstLast()) {
                         goto Done; 
                     }
+                    auto i = theBytes[8];
+                    auto j = theBytes[9];
                     signalReady<true>();
-                    dataLines[0] = theBytes[8];
-                    dataLines[1] = theBytes[9];
+                    dataLines[0] = i;
+                    dataLines[1] = j;
                     if (isBurstLast()) {
                         goto Done; 
                     }
-                    dataLines[2] = theBytes[10];
-                    dataLines[3] = theBytes[11];
+                    auto k = theBytes[10];
+                    auto l = theBytes[11];
                     signalReady<true>();
+                    dataLines[2] = k;
+                    dataLines[3] = l;
                     if (isBurstLast()) {
                         goto Done; 
                     }
+                    auto m = theBytes[12];
+                    auto n = theBytes[13];
                     signalReady<true>();
-                    dataLines[0] = theBytes[12];
-                    dataLines[1] = theBytes[13];
+                    dataLines[0] = m;
+                    dataLines[1] = n;
                     if (isBurstLast()) {
                         goto Done; 
                     }
-                    dataLines[2] = theBytes[14];
-                    dataLines[3] = theBytes[15];
+                    auto o = theBytes[14];
+                    auto p = theBytes[15];
                     signalReady<true>();
+                    dataLines[2] = o;
+                    dataLines[3] = p;
                     goto Done;
                 } else {
                     setDataByte(c, d, a, b);

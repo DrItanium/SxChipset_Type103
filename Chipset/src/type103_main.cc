@@ -555,9 +555,9 @@ public:
         // creative. The base offsets have been modified
         
         if constexpr (isReadOperation) {
+            auto a = theBytes[0];
+            auto b = theBytes[1];
             if (isBurstLast()) {
-                auto a = theBytes[0];
-                auto b = theBytes[1];
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     dataLines[0] = a;
                     dataLines[1] = b;
@@ -567,11 +567,13 @@ public:
                 }
                 goto Done;
             } else {
+                auto c = theBytes[2];
+                auto d = theBytes[3];
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
-                    dataLines[0] = theBytes[0];
-                    dataLines[1] = theBytes[1];
-                    dataLines[2] = theBytes[2];
-                    dataLines[3] = theBytes[3];
+                    dataLines[0] = a;
+                    dataLines[1] = b;
+                    dataLines[2] = c;
+                    dataLines[3] = d;
                     signalReady<true>();
                     if (isBurstLast()) {
                         goto Done; 
@@ -611,7 +613,7 @@ public:
                     signalReady<true>();
                     goto Done;
                 } else {
-                    setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);
+                    setDataByte(c, d, a, b);
                     if (isBurstLast()) {
                         goto Done; 
                     }

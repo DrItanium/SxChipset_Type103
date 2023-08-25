@@ -81,6 +81,28 @@ static_assert(!(SupportOnChipCache && !MCUMustControlBankSwitching), "On chip ca
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }
+// cache layout is 24 bits total spread across (lowest to highest)
+// 4 bits -> offset
+// 8 bits -> 
+struct CacheEntry {
+    uint16_t key : 12;
+    union {
+        uint8_t full;
+        struct {
+            uint8_t dirty : 1;
+            uint8_t valid : 1;
+        } bits;
+    } flags;
+    uint8_t data[16];
+    void clear() {
+        flags.full = 0;
+        key = 0;
+        for (int i = 0; i < 16; ++i) {
+            data[i] = 0;
+        }
+    }
+};
+CacheEntry cache[256];
 template<bool waitForReady = false>
 [[gnu::always_inline]] 
 inline void 
@@ -164,7 +186,6 @@ uint16_t
 computeTransactionWindow(uint16_t offset) noexcept {
     return sectionMask | (offset & offsetMask);
 }
-
 FORCE_INLINE
 inline
 DataRegister8
@@ -1475,6 +1496,10 @@ setup() {
     Serial.begin(115200);
     // setup the IO Expanders
     setupPlatform();
+    // setup the cache
+    for (int i = 0; i < 256; ++i) {
+        cache[i].clear();
+    }
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:
             Serial.println(F("i960Sx CPU detected!"));

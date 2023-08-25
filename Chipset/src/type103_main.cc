@@ -76,6 +76,7 @@ constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
 constexpr bool SupportOnChipCache = true;
+constexpr bool PrintBanner = true;
 static_assert(!(SupportOnChipCache && !MCUMustControlBankSwitching), "On chip caching only works when the AVR is fully in control of bank switching");
 
 using DataRegister8 = volatile uint8_t*;
@@ -1400,10 +1401,11 @@ getInstalledCPUKind() noexcept {
 void
 banner() {
     Serial.println(F("Features: "));
+    Serial.print(F("Bank Switching Controlled By: "));
     if constexpr (MCUMustControlBankSwitching) {
-        Serial.println(F("AVR Controls Bank Switching for i960"));
+        Serial.println(F("AVR"));
     } else {
-        Serial.println(F("i960 Directly Controls Bank Switching"));
+        Serial.println(F("i960"));
     }
     Serial.print(F("Microcontroller Has Data Cache: "));
     if constexpr (SupportOnChipCache) {
@@ -1419,7 +1421,9 @@ setup() {
     Serial.begin(115200);
     // setup the IO Expanders
     setupPlatform();
-    banner();
+    if constexpr (PrintBanner) {
+        banner();
+    }
     // setup the cache
     if constexpr (SupportOnChipCache) {
         for (int i = 0; i < NumberOfCacheEntries; ++i) {

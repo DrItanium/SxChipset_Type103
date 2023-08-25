@@ -563,15 +563,16 @@ public:
                 if (isBurstLast()) {
                     goto Done; 
                 }
+                // shift out stuff ahead of time to keep one step ahead
                 dataLines[2] = theBytes[2];
                 dataLines[3] = theBytes[3];
                 signalReady<true>();
                 if (isBurstLast()) {
                     goto Done; 
                 }
+                signalReady<true>();
                 dataLines[0] = theBytes[4];
                 dataLines[1] = theBytes[5];
-                signalReady<true>();
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -581,9 +582,9 @@ public:
                 if (isBurstLast()) {
                     goto Done; 
                 }
+                signalReady<true>();
                 dataLines[0] = theBytes[8];
                 dataLines[1] = theBytes[9];
-                signalReady<true>();
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -593,9 +594,9 @@ public:
                 if (isBurstLast()) {
                     goto Done; 
                 }
+                signalReady<true>();
                 dataLines[0] = theBytes[12];
                 dataLines[1] = theBytes[13];
-                signalReady<true>();
                 if (isBurstLast()) {
                     goto Done; 
                 }
@@ -604,15 +605,18 @@ public:
                 signalReady<true>();
             } else {
                 // defer writes as much as possible
+                auto w = dataLines[0];
+                auto x = dataLines[1];
                 if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
-                    theBytes[0] = dataLines[0];
+                    theBytes[0] = w;
                 } 
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    theBytes[1] = dataLines[1];
-                }
                 if (isBurstLast()) [[gnu::unlikely]] {
+                    if (digitalRead<Pin::BE1>() == LOW) {
+                        theBytes[1] = x;
+                    }
                     goto Done;
                 } 
+                theBytes[1] = x;
                 // we only need to check to see if BE0 is enabled
                 // BE1 must be enabled since we are going to flow into
                 // the next byte

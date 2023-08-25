@@ -578,7 +578,7 @@ public:
                     if (isBurstLast()) {
                         goto Done; 
                     }
-                    signalReady<false>();
+                    signalReady<true>();
                     dataLines[0] = theBytes[4];
                     dataLines[1] = theBytes[5];
                     if (isBurstLast()) {
@@ -590,7 +590,7 @@ public:
                     if (isBurstLast()) {
                         goto Done; 
                     }
-                    signalReady<false>();
+                    signalReady<true>();
                     dataLines[0] = theBytes[8];
                     dataLines[1] = theBytes[9];
                     if (isBurstLast()) {
@@ -602,7 +602,7 @@ public:
                     if (isBurstLast()) {
                         goto Done; 
                     }
-                    signalReady<false>();
+                    signalReady<true>();
                     dataLines[0] = theBytes[12];
                     dataLines[1] = theBytes[13];
                     if (isBurstLast()) {

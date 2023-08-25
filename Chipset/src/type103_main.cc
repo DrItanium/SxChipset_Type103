@@ -129,10 +129,12 @@ getTransactionWindow() noexcept {
 // 4 bits -> offset
 // 8 bits -> 
 struct CacheEntry {
-    static constexpr auto NumberOfBytesCached = 16;
-    static constexpr auto NumberOfOffsetBits = 4;
-    static constexpr uintptr_t PointerMask = 0xFFF0;
-    static constexpr uintptr_t OffsetMask = ~PointerMask;
+    static constexpr int NumberOfBytesCached = 256;
+    static constexpr int NumberOfOffsetBits = 8;
+    static constexpr uintptr_t PointerMask = 0xFF00;
+    static constexpr uintptr_t OffsetMask = 0x00FF;
+    static constexpr auto TagMask = 0xF;
+
     uint8_t bank = 0;
     DataRegister8 pointer = nullptr;
     union {
@@ -141,7 +143,7 @@ struct CacheEntry {
             uint8_t dirty : 1;
         } bits;
     } flags;
-    uint8_t data[NumberOfBytesCached];
+    uint8_t data[NumberOfBytesCached] = {0 };
     void clear() {
         bank = 0;
         pointer = nullptr;
@@ -180,14 +182,13 @@ struct CacheEntry {
     void markDirty() noexcept { flags.bits.dirty = true; }
     void markClean() noexcept { flags.bits.dirty = false; }
 };
-CacheEntry cache[256];
+constexpr auto NumberOfCacheEntries = 16;
+CacheEntry cache[NumberOfCacheEntries];
 
-//[[gnu::used]]
-inline
 CacheEntry& find(uint8_t bank, DataRegister8 newPointer) noexcept {
     // we need to perform pointer alignment...
     auto ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(newPointer) & CacheEntry::PointerMask);
-    auto tag = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) >> CacheEntry::NumberOfOffsetBits);
+    auto tag = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) >> CacheEntry::NumberOfOffsetBits) & CacheEntry::TagMask;
     auto& target = cache[tag];
     if (!target.matches(bank, ptr)) {
         target.updateContents(bank, ptr);
@@ -1556,7 +1557,7 @@ setup() {
     // setup the IO Expanders
     setupPlatform();
     // setup the cache
-    for (int i = 0; i < 256; ++i) {
+    for (int i = 0; i < NumberOfCacheEntries; ++i) {
         cache[i].clear();
     }
     switch (getInstalledCPUKind()) {

@@ -554,268 +554,289 @@ public:
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         
-
-        //if ((reinterpret_cast<uintptr_t>(theWindow) & 0b10) == 0) [[gnu::likely]] {
-        if (digitalRead<Pin::AlignmentCheck>() == LOW) {
-            if constexpr (isReadOperation) {
-                dataLines[0] = theBytes[0];
-                dataLines[1] = theBytes[1];
-                if (isBurstLast()) {
-                    goto Done; 
+        if constexpr (isReadOperation) {
+            if (isBurstLast()) {
+                auto a = theBytes[0];
+                auto b = theBytes[1];
+                if (digitalRead<Pin::AlignmentCheck>() == LOW) {
+                    dataLines[0] = a;
+                    dataLines[1] = b;
+                } else {
+                    dataLines[2] = a;
+                    dataLines[3] = b;
                 }
-                // shift out stuff ahead of time to keep one step ahead
-                dataLines[2] = theBytes[2];
-                dataLines[3] = theBytes[3];
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                dataLines[0] = theBytes[4];
-                dataLines[1] = theBytes[5];
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                dataLines[2] = theBytes[6];
-                dataLines[3] = theBytes[7];
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                dataLines[0] = theBytes[8];
-                dataLines[1] = theBytes[9];
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                dataLines[2] = theBytes[10];
-                dataLines[3] = theBytes[11];
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                dataLines[0] = theBytes[12];
-                dataLines[1] = theBytes[13];
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                dataLines[2] = theBytes[14];
-                dataLines[3] = theBytes[15];
-                signalReady<true>();
+                goto Done;
             } else {
-                // defer writes as much as possible
-                auto w = dataLines[0];
-                auto x = dataLines[1];
-                if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
-                    theBytes[0] = w;
-                } 
-                if (isBurstLast()) [[gnu::unlikely]] {
+                if (digitalRead<Pin::AlignmentCheck>() == LOW) {
+                    dataLines[0] = theBytes[0];
+                    dataLines[1] = theBytes[1];
+                    dataLines[2] = theBytes[2];
+                    dataLines[3] = theBytes[3];
+                    signalReady<true>();
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<true>();
+                    dataLines[0] = theBytes[4];
+                    dataLines[1] = theBytes[5];
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    dataLines[2] = theBytes[6];
+                    dataLines[3] = theBytes[7];
+                    signalReady<true>();
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<true>();
+                    dataLines[0] = theBytes[8];
+                    dataLines[1] = theBytes[9];
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    dataLines[2] = theBytes[10];
+                    dataLines[3] = theBytes[11];
+                    signalReady<true>();
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<true>();
+                    dataLines[0] = theBytes[12];
+                    dataLines[1] = theBytes[13];
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    dataLines[2] = theBytes[14];
+                    dataLines[3] = theBytes[15];
+                    signalReady<true>();
+                    goto Done;
+                } else {
+                    setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<true>();
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<false>();
+                    setDataByte(theBytes[6], theBytes[7], theBytes[4], theBytes[5]);
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<true>();
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<false>();
+                    setDataByte(theBytes[10], theBytes[11], theBytes[8], theBytes[9]);
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<true>();
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<false>();
+                    setDataByte(theBytes[14], theBytes[15], theBytes[12], theBytes[13]);
+                    if (isBurstLast()) {
+                        goto Done; 
+                    }
+                    signalReady<true>();
+                    goto Done;
+                }
+            }
+        } else {
+            if (isBurstLast()) {
+                if (digitalRead<Pin::AlignmentCheck>() == LOW) {
+                    auto w = dataLines[0];
+                    auto x = dataLines[1];
+                    if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
+                        theBytes[0] = w;
+                    } 
                     if (digitalRead<Pin::BE1>() == LOW) {
                         theBytes[1] = x;
                     }
-                    goto Done;
-                } 
-                theBytes[1] = x;
-                // we only need to check to see if BE0 is enabled
-                // BE1 must be enabled since we are going to flow into
-                // the next byte
-                signalReady<true>();
-                auto y = dataLines[2];
-                auto z = dataLines[3];
-                theBytes[2] = y;
-                if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                    theBytes[3] = z;
-                }
-                if (isBurstLast()) {
-                    // lower must be valid since we are flowing into the
-                    // next 16-bit word
-                    goto Done;
-                } 
-                signalReady<true>();
-                // since this is a flow in from previous values we actually
-                // can eliminate checking as many pins as possible
-                theBytes[4] = dataLines[0];
-                auto b = dataLines[1];
-                if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                    theBytes[5] = b ;
-                }
-                if (isBurstLast()) [[gnu::unlikely]] {
-                    goto Done;
-                }
-                signalReady<true>();
-                theBytes[6] = dataLines[2];
-                auto d = dataLines[3];
-                if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                    theBytes[7] = d;
-                }
-                if (isBurstLast()) {
-                    goto Done;
-                } 
-                // we know that all of these entries must be valid so
-                // don't check the enable lines
-                signalReady<true>();
-                // since this is a flow in from previous values we actually
-                // can eliminate checking as many pins as possible
-                auto f = dataLines[1];
-                theBytes[8] = dataLines[0];
-                if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                    theBytes[9] = f;
-                }
-                if (isBurstLast()) [[gnu::unlikely]] {
-                    goto Done;
-                }
-                signalReady<true>();
-                theBytes[10] = dataLines[2];
-                auto h = dataLines[3];
-                if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                    theBytes[11] = h;
-                }
-                if (isBurstLast()) {
-                    goto Done;
-                } 
-                // we know that all of these entries must be valid so
-                // don't check the values
-                signalReady<true>();
-                theBytes[12] = dataLines[0];
-                auto j = dataLines[1];
-                if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                    theBytes[13] = j;
-                }
-                // since this is a flow in from previous values we actually
-                // can eliminate checking as many pins as possible
-                if (isBurstLast()) [[gnu::unlikely]] {
-                    goto Done;
-                }
-                signalReady<true>();
-                theBytes[14] = dataLines[2];
-                auto l = dataLines[3];
-                if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                    theBytes[15] = l;
+                } else {
+                    auto w = dataLines[2];
+                    auto x = dataLines[3];
+                    if (digitalRead<Pin::BE2>() == LOW) [[gnu::likely]] {
+                        theBytes[0] = w;
+                    } 
+                    if (digitalRead<Pin::BE3>() == LOW) {
+                        theBytes[1] = x;
+                    }
                 }
                 goto Done;
-            }
-        } else {
-            // because we are operating on 16-byte windows, there is no way
-            // that we would ever fully access the entire 16-bytes in a single
-            // transaction if we started unaligned like this
-            if constexpr (isReadOperation) {
-                setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                setDataByte(theBytes[6], theBytes[7], theBytes[4], theBytes[5]);
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                setDataByte(theBytes[10], theBytes[11], theBytes[8], theBytes[9]);
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<false>();
-                setDataByte(theBytes[14], theBytes[15], theBytes[12], theBytes[13]);
-                if (isBurstLast()) {
-                    goto Done; 
-                }
-                signalReady<true>();
             } else {
-                auto a = dataLines[2];
-                auto b = dataLines[3];
-                if (digitalRead<Pin::BE2>() == LOW) [[gnu::likely]] {
-                    theBytes[0] = a;
-                }
-                if (digitalRead<Pin::BE3>() == LOW) {
-                    theBytes[1] = b;
-                }
-                if (isBurstLast()) {
+                if (digitalRead<Pin::AlignmentCheck>() == LOW) {
+                    // defer writes as much as possible
+                    auto w = dataLines[0];
+                    auto x = dataLines[1];
+                    if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
+                        theBytes[0] = w;
+                    } 
+                    theBytes[1] = x;
+                    // we only need to check to see if BE0 is enabled
+                    // BE1 must be enabled since we are going to flow into
+                    // the next byte
+                    signalReady<true>();
+                    auto y = dataLines[2];
+                    auto z = dataLines[3];
+                    theBytes[2] = y;
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[3] = z;
+                    }
+                    if (isBurstLast()) {
+                        // lower must be valid since we are flowing into the
+                        // next 16-bit word
+                        goto Done;
+                    } 
+                    signalReady<true>();
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    theBytes[4] = dataLines[0];
+                    auto b = dataLines[1];
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[5] = b ;
+                    }
+                    if (isBurstLast()) [[gnu::unlikely]] {
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    theBytes[6] = dataLines[2];
+                    auto d = dataLines[3];
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[7] = d;
+                    }
+                    if (isBurstLast()) {
+                        goto Done;
+                    } 
+                    // we know that all of these entries must be valid so
+                    // don't check the enable lines
+                    signalReady<true>();
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto f = dataLines[1];
+                    theBytes[8] = dataLines[0];
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[9] = f;
+                    }
+                    if (isBurstLast()) [[gnu::unlikely]] {
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    theBytes[10] = dataLines[2];
+                    auto h = dataLines[3];
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[11] = h;
+                    }
+                    if (isBurstLast()) {
+                        goto Done;
+                    } 
+                    // we know that all of these entries must be valid so
+                    // don't check the values
+                    signalReady<true>();
+                    theBytes[12] = dataLines[0];
+                    auto j = dataLines[1];
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[13] = j;
+                    }
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    if (isBurstLast()) [[gnu::unlikely]] {
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    theBytes[14] = dataLines[2];
+                    auto l = dataLines[3];
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[15] = l;
+                    }
                     goto Done;
-                }
-                signalReady<true>();
-                auto c = dataLines[0];
-                auto d = dataLines[1];
-                // lower must be valid since we are flowing into the
-                // next 16-bit word
-                theBytes[2] = c;
-                if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                    theBytes[3] = d;
-                }
-                if (isBurstLast()) {
+                } else {
+                    auto a = dataLines[2];
+                    auto b = dataLines[3];
+                    if (digitalRead<Pin::BE2>() == LOW) [[gnu::likely]] {
+                        theBytes[0] = a;
+                    }
+                    if (digitalRead<Pin::BE3>() == LOW) {
+                        theBytes[1] = b;
+                    }
+                    signalReady<true>();
+                    auto c = dataLines[0];
+                    auto d = dataLines[1];
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
+                    theBytes[2] = c;
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[3] = d;
+                    }
+                    if (isBurstLast()) {
+                        goto Done;
+                    } 
+                    // we know that all of these entries must be valid so
+                    // don't check the values
+                    signalReady<true>();
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto e = dataLines[2];
+                    auto f = dataLines[3];
+                    theBytes[4] = e;
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[5] = f;
+                    }
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto g = dataLines[0];
+                    auto h = dataLines[1];
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
+                    theBytes[6] = g;
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[7] = h;
+                    }
+                    if (isBurstLast()) {
+                        goto Done;
+                    } 
+                    signalReady<true>();
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto i = dataLines[2];
+                    auto j = dataLines[3];
+                    theBytes[8] = i;
+                    if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
+                        theBytes[9] = j;
+                    }
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    signalReady<true>();
+                    auto k = dataLines[0];
+                    auto l = dataLines[1];
+                    // lower must be valid since we are flowing into the
+                    // next 16-bit word
+                    theBytes[10] = k;
+                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                        theBytes[11] = l;
+                    }
+                    if (isBurstLast()) {
+                        goto Done;
+                    } 
+                    // we know that all of these entries must be valid so
+                    // don't check the values
+                    signalReady<true>();
+                    // since this is a flow in from previous values we actually
+                    // can eliminate checking as many pins as possible
+                    auto m = dataLines[2];
+                    auto n = dataLines[3];
+                    theBytes[12] = m;
+                    if (digitalRead<Pin::BE3>() == LOW) {
+                        theBytes[13] = n;
+                    }
                     goto Done;
-                } 
-                // we know that all of these entries must be valid so
-                // don't check the values
-                signalReady<true>();
-                // since this is a flow in from previous values we actually
-                // can eliminate checking as many pins as possible
-                auto e = dataLines[2];
-                auto f = dataLines[3];
-                theBytes[4] = e;
-                if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                    theBytes[5] = f;
-                }
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
-                auto g = dataLines[0];
-                auto h = dataLines[1];
-                // lower must be valid since we are flowing into the
-                // next 16-bit word
-                theBytes[6] = g;
-                if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                    theBytes[7] = h;
-                }
-                if (isBurstLast()) {
-                    goto Done;
-                } 
-                signalReady<true>();
-                // since this is a flow in from previous values we actually
-                // can eliminate checking as many pins as possible
-                auto i = dataLines[2];
-                auto j = dataLines[3];
-                theBytes[8] = i;
-                if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
-                    theBytes[9] = j;
-                }
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
-                auto k = dataLines[0];
-                auto l = dataLines[1];
-                // lower must be valid since we are flowing into the
-                // next 16-bit word
-                theBytes[10] = k;
-                if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                    theBytes[11] = l;
-                }
-                if (isBurstLast()) {
-                    goto Done;
-                } 
-                // we know that all of these entries must be valid so
-                // don't check the values
-                signalReady<true>();
-                // since this is a flow in from previous values we actually
-                // can eliminate checking as many pins as possible
-                auto m = dataLines[2];
-                auto n = dataLines[3];
-                theBytes[12] = m;
-                if (digitalRead<Pin::BE3>() == LOW) {
-                    theBytes[13] = n;
                 }
             }
         }

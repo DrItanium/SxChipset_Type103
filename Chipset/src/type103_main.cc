@@ -64,7 +64,6 @@ enum class EnabledDisplays {
 constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
 constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
 constexpr auto EPAPER_COLOR_RED = EPD_RED;
-
 constexpr bool MCUHasDirectAccess = true;
 constexpr bool XINT0DirectConnect = true;
 constexpr bool XINT1DirectConnect = false;
@@ -75,9 +74,7 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
-constexpr bool SupportOnChipCache = true;
 constexpr bool PrintBanner = true;
-static_assert(!(SupportOnChipCache && !MCUMustControlBankSwitching), "On chip caching only works when the AVR is fully in control of bank switching");
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
@@ -124,98 +121,12 @@ FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
+    if constexpr (MCUMustControlBankSwitching) {
+        setBankIndex(getInputRegister<Port::BankCapture>());
+    }
     return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
 }
-// cache layout is 24 bits total spread across (lowest to highest)
-// 4 bits -> offset
-// 8 bits -> 
-struct CacheEntry {
-    static constexpr int NumberOfBytesCached = 16;
-    static constexpr int NumberOfOffsetBits = 4;
-    static constexpr uintptr_t PointerMask = 0xFFF0;
-    static constexpr uintptr_t OffsetMask = ~PointerMask;
 
-    uint8_t bank = 0;
-    DataRegister8 pointer = nullptr;
-    union {
-        uint8_t full;
-        struct {
-            uint8_t dirty : 1;
-        } bits;
-    } flags;
-    uint8_t data[NumberOfBytesCached] = {0 };
-    void clear() {
-        bank = 0;
-        pointer = nullptr;
-        flags.full = 0;
-        for (int i = 0; i < NumberOfBytesCached; ++i) {
-            data[i] = 0;
-        }
-    }
-    [[nodiscard]] constexpr bool valid() const noexcept { return pointer != nullptr; }
-    [[nodiscard]] constexpr bool dirty() const noexcept { return flags.bits.dirty; }
-    [[nodiscard]] constexpr bool mustCommitOnReplace() const noexcept { return valid() && dirty(); }
-    void commitBack() noexcept {
-        setBankIndex(bank);
-        for (int i = 0; i < NumberOfBytesCached; ++i) {
-            pointer[i] = data[i];
-        }
-    }
-    void populateContents() noexcept {
-        setBankIndex(bank);
-        for (int i = 0; i < NumberOfBytesCached; ++i) {
-            data[i] = pointer[i];
-        }
-    }
-    void updateContents(uint8_t bank, uint8_t* pointer) noexcept {
-        if (mustCommitOnReplace()) {
-            commitBack();
-        }
-        this->bank = bank;
-        this->pointer = pointer;
-        markClean();
-        populateContents();
-    }
-    constexpr bool matches(uint8_t otherBank, uint8_t* otherPointer) const noexcept {
-        return bank == otherBank && pointer == otherPointer; 
-    }
-    void markDirty() noexcept { flags.bits.dirty = true; }
-    void markClean() noexcept { flags.bits.dirty = false; }
-};
-constexpr auto NumberOfCacheEntries = 256;
-constexpr auto TagMask = NumberOfCacheEntries - 1;
-CacheEntry cache[NumberOfCacheEntries];
-
-inline
-CacheEntry& find(uint8_t bank, DataRegister8 newPointer) noexcept {
-    // we need to perform pointer alignment...
-    auto ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(newPointer) & CacheEntry::PointerMask);
-    auto tag = (reinterpret_cast<uintptr_t>(newPointer) >> CacheEntry::NumberOfOffsetBits) & TagMask;
-    auto& target = cache[tag];
-    if (!target.matches(bank, ptr)) {
-        target.updateContents(bank, ptr);
-    }
-    return target;
-}
-
-template<bool isReadOperation>
-inline
-DataRegister8 getCachedTransactionWindow(uint8_t bank, DataRegister8 newPointer) noexcept {
-    if constexpr (SupportOnChipCache) {
-        auto& entry = find(bank, newPointer);
-        auto offset = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) & CacheEntry::OffsetMask);
-        if constexpr (!isReadOperation) {
-            // just implicitly mark the cache line as dirty
-            entry.markDirty();
-        } 
-        return entry.data + offset;
-    } else {
-        if constexpr (MCUMustControlBankSwitching) {
-            setBankIndex(bank);
-        }
-        return newPointer;
-    }
-}
 
 template<bool waitForReady = false>
 [[gnu::always_inline]] 
@@ -615,8 +526,7 @@ public:
     inline
     static void
     doCommunication() noexcept {
-        auto theWindow = getTransactionWindow(); 
-        auto theBytes = getCachedTransactionWindow<isReadOperation>(getInputRegister<Port::BankCapture>(), theWindow);
+        auto theBytes = getTransactionWindow(); 
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop
@@ -1407,12 +1317,6 @@ banner() {
     } else {
         Serial.println(F("i960"));
     }
-    Serial.print(F("Microcontroller Has Data Cache: "));
-    if constexpr (SupportOnChipCache) {
-        Serial.println(F("Enabled"));
-    } else {
-        Serial.println(F("Disabled"));
-    }
 }
 
 void
@@ -1423,12 +1327,6 @@ setup() {
     setupPlatform();
     if constexpr (PrintBanner) {
         banner();
-    }
-    // setup the cache
-    if constexpr (SupportOnChipCache) {
-        for (int i = 0; i < NumberOfCacheEntries; ++i) {
-            cache[i].clear();
-        }
     }
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:

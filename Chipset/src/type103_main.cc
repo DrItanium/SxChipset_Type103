@@ -168,7 +168,6 @@ struct CacheEntry {
         this->bank = bank;
         this->pointer = pointer;
         markClean();
-        flags.bits.dirty = false;
         populateContents();
     }
     constexpr bool matches(uint8_t otherBank, uint8_t* otherPointer) const noexcept {
@@ -176,26 +175,20 @@ struct CacheEntry {
     }
     void markDirty() noexcept { flags.bits.dirty = true; }
     void markClean() noexcept { flags.bits.dirty = false; }
-    void setValue(uint8_t offset, uint8_t value) noexcept {
-        data[offset] = value;
-        markDirty();
-    }
-    constexpr uint8_t getValue(uint8_t offset) const noexcept { return data[offset]; }
 };
 CacheEntry cache[256];
 
 //[[gnu::used]]
+inline
 CacheEntry& find(uint8_t bank, DataRegister8 newPointer) noexcept {
     // we need to perform pointer alignment...
     auto ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(newPointer) & 0b1111'1111'1111'0000);
     auto tag = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) >> 4);
     auto& target = cache[tag];
-    if (target.matches(bank, ptr)) {
-        return target;
-    } else {
+    if (!target.matches(bank, ptr)) {
         target.updateContents(bank, ptr);
-        return target;
     }
+    return target;
 }
 
 template<bool isReadOperation>
@@ -635,7 +628,7 @@ public:
         //
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
-        if ((reinterpret_cast<uintptr_t>(theBytes) & 0b10) == 0) [[gnu::likely]] {
+        if ((reinterpret_cast<uintptr_t>(theWindow) & 0b10) == 0) [[gnu::likely]] {
             if constexpr (isReadOperation) {
                 DataRegister32 view32 = reinterpret_cast<DataRegister32>(theBytes);
                 dataLinesFull = view32[0];

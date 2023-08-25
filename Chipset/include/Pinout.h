@@ -79,6 +79,7 @@ Count = NUM_DIGITAL_PINS,
     EyeSpi_Pin_RST = PortG4,
     EyeSpi_Pin_TCS = PortD2,
     EyeSpi_Pin_Busy = PortD3,
+    AlignmentCheck = PortG5,
 #endif
 
 #ifdef DIMM_WIDE

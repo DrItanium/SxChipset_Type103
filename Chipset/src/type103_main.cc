@@ -185,10 +185,11 @@ constexpr auto NumberOfCacheEntries = 256;
 constexpr auto TagMask = NumberOfCacheEntries - 1;
 CacheEntry cache[NumberOfCacheEntries];
 
+inline
 CacheEntry& find(uint8_t bank, DataRegister8 newPointer) noexcept {
     // we need to perform pointer alignment...
     auto ptr = reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(newPointer) & CacheEntry::PointerMask);
-    auto tag = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) >> CacheEntry::NumberOfOffsetBits) & TagMask;
+    auto tag = (reinterpret_cast<uintptr_t>(newPointer) >> CacheEntry::NumberOfOffsetBits) & TagMask;
     auto& target = cache[tag];
     if (!target.matches(bank, ptr)) {
         target.updateContents(bank, ptr);
@@ -197,16 +198,20 @@ CacheEntry& find(uint8_t bank, DataRegister8 newPointer) noexcept {
 }
 
 template<bool isReadOperation>
+inline
 DataRegister8 getCachedTransactionWindow(uint8_t bank, DataRegister8 newPointer) noexcept {
     if constexpr (SupportOnChipCache) {
         auto& entry = find(bank, newPointer);
         auto offset = static_cast<uint8_t>(reinterpret_cast<uintptr_t>(newPointer) & CacheEntry::OffsetMask);
         if constexpr (!isReadOperation) {
+            // just implicitly mark the cache line as dirty
             entry.markDirty();
         } 
         return entry.data + offset;
     } else {
-        setBankIndex(bank);
+        if constexpr (MCUMustControlBankSwitching) {
+            setBankIndex(bank);
+        }
         return newPointer;
     }
 }
@@ -637,7 +642,10 @@ public:
         //
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
-        if ((reinterpret_cast<uintptr_t>(theWindow) & 0b10) == 0) [[gnu::likely]] {
+        
+
+        //if ((reinterpret_cast<uintptr_t>(theWindow) & 0b10) == 0) [[gnu::likely]] {
+        if (digitalRead<Pin::AlignmentCheck>() == LOW) {
             if constexpr (isReadOperation) {
                 DataRegister32 view32 = reinterpret_cast<DataRegister32>(theBytes);
                 dataLinesFull = view32[0];
@@ -875,12 +883,12 @@ public:
                 signalReady<true>();
                 auto k = dataLines[0];
                 auto l = dataLines[1];
-                    // lower must be valid since we are flowing into the
-                    // next 16-bit word
-                    theBytes[10] = k;
-                    if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
-                        theBytes[11] = l;
-                    }
+                // lower must be valid since we are flowing into the
+                // next 16-bit word
+                theBytes[10] = k;
+                if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
+                    theBytes[11] = l;
+                }
                 if (isBurstLast()) {
                     goto Done;
                 } 
@@ -1287,6 +1295,7 @@ setupPins() noexcept {
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
     pinMode(Pin::DirectionOutput, OUTPUT);
+    pinMode(Pin::AlignmentCheck, INPUT);
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);

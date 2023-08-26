@@ -74,7 +74,7 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
-constexpr bool DirectlyCapturePortUpperAddressLines = true;
+constexpr bool DirectlyCaptureAddressLines = false;
 constexpr bool PrintBanner = true;
 
 using DataRegister8 = volatile uint8_t*;
@@ -118,6 +118,7 @@ uint16_t
 computeTransactionWindow(uint16_t offset) noexcept {
     return sectionMask | (offset & offsetMask);
 }
+[[gnu::used]]
 FORCE_INLINE
 inline
 DataRegister8
@@ -125,10 +126,11 @@ getTransactionWindow() noexcept {
     if constexpr (MCUMustControlBankSwitching) {
         setBankIndex(getInputRegister<Port::BankCapture>());
     }
-    if constexpr (DirectlyCapturePortUpperAddressLines) {
-        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
+    if constexpr (DirectlyCaptureAddressLines) {
+        return memoryPointer<uint8_t>(makeWord(getInputRegister<Port::UpperAddressCapture>(), 
+                    getInputRegister<Port::LowerAddressCapture>()));
     } else {
-        return memoryPointer<uint8_t>(makeWord(getInputRegister<Port::UpperAddressCapture>(), addressLines[0]));
+        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
     }
 }
 
@@ -1235,7 +1237,8 @@ setupPins() noexcept {
     digitalWrite<Pin::INT0_960_, HIGH>();
     // setup the IBUS bank
     getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
-    getDirectionRegister<Port::UpperAddressCapture>() = 0;
+        getDirectionRegister<Port::UpperAddressCapture>() = 0;
+        getDirectionRegister<Port::LowerAddressCapture>() = 0;
     getOutputRegister<Port::IBUS_Bank>() = 0;
     pinMode(Pin::IsMemorySpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);

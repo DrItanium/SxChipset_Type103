@@ -104,6 +104,7 @@ enum class Port : byte {
     ExecutionState = D,
     BankCapture = K,
     UpperAddressCapture = H,
+    LowerAddressCapture = L,
 #endif
 #ifdef DIMM_WIDE
     A2_9 = A,

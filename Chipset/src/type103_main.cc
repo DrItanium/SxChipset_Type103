@@ -74,6 +74,7 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
+constexpr bool DirectlyCapturePortUpperAddressLines = true;
 constexpr bool PrintBanner = true;
 
 using DataRegister8 = volatile uint8_t*;
@@ -124,7 +125,11 @@ getTransactionWindow() noexcept {
     if constexpr (MCUMustControlBankSwitching) {
         setBankIndex(getInputRegister<Port::BankCapture>());
     }
-    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
+    if constexpr (DirectlyCapturePortUpperAddressLines) {
+        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
+    } else {
+        return memoryPointer<uint8_t>(makeWord(getInputRegister<Port::UpperAddressCapture>(), addressLines[0]));
+    }
 }
 
 
@@ -1230,6 +1235,7 @@ setupPins() noexcept {
     digitalWrite<Pin::INT0_960_, HIGH>();
     // setup the IBUS bank
     getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
+    getDirectionRegister<Port::UpperAddressCapture>() = 0;
     getOutputRegister<Port::IBUS_Bank>() = 0;
     pinMode(Pin::IsMemorySpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);

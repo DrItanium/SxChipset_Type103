@@ -1,0 +1,19 @@
+GAL16V8
+NarrowWideOperationDetect
+
+CLK A24 A25  A26   A27 A28 A29 A30 A31 GND
+OE  RAM SRAM FLASH IO  DEN WR  DIR SW  VCC
+
+/FLASH.R = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 * /A24 * /DEN
+/SRAM.R = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 *  A24 * /DEN
+/IO.R   =  A31 *  A30 *  A29 *  A28 *  A27 *  A26 *  A25 * /A24 * /DEN
+/RAM.R =  FLASH * IO * SRAM * /DEN
+
+SW = DIR * /WR + /DIR * WR
+
+
+
+DESCRIPTION
+
+Combines wide and narrow mode accelerators to provide data decoding support as
+well as space detection

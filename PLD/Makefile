@@ -14,8 +14,8 @@ all: Type103PLD.jed \
 	OperationDetect.jed \
 	BusDecoder32Bit.jed \
 	Flash32Decoder.jed \
-	SRAM32Decoder.jed 
-
+	SRAM32Decoder.jed \
+	NarrowWideAdapterDetect.jed
 
 
 
@@ -54,6 +54,9 @@ install_Flash32Decoder: Flash32Decoder.jed
 
 install_SRAM32Decoder: SRAM32Decoder.jed
 	minipro -p ATF16V8B --write SRAM32Decoder.jed 
+
+install_NarrowWideAdapterDetect: NarrowWideAdapterDetect.jed
+	minipro -p ATF16V8C --write NarrowWideAdapterDetect.jed 
 
 clean:
 	@echo -n "Cleaning..."

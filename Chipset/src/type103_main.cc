@@ -497,9 +497,7 @@ inline
 static
 void
 dispatch() noexcept {
-    Serial.print(F("Address: 0x"));
-    Serial.println(addressLinesValue32, HEX);
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
+    if (digitalRead<Pin::IsMemorySpaceOperation>() == HIGH) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
@@ -1083,9 +1081,7 @@ inline
 static
 void
 dispatch() noexcept {
-    Serial.print(F("Address: 0x"));
-    Serial.println(addressLinesValue32, HEX);
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
+    if (digitalRead<Pin::IsMemorySpaceOperation>() == HIGH) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full

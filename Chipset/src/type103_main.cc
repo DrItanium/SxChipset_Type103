@@ -74,7 +74,6 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
-constexpr bool DirectlyCaptureAddressLines = false;
 constexpr bool PrintBanner = true;
 
 using DataRegister8 = volatile uint8_t*;

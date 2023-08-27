@@ -126,12 +126,7 @@ getTransactionWindow() noexcept {
     if constexpr (MCUMustControlBankSwitching) {
         setBankIndex(getInputRegister<Port::BankCapture>());
     }
-    if constexpr (DirectlyCaptureAddressLines) {
-        return memoryPointer<uint8_t>(makeWord(getInputRegister<Port::UpperAddressCapture>(), 
-                    getInputRegister<Port::LowerAddressCapture>()));
-    } else {
-        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
-    }
+    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
 }
 
 
@@ -1237,8 +1232,6 @@ setupPins() noexcept {
     digitalWrite<Pin::INT0_960_, HIGH>();
     // setup the IBUS bank
     getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
-        getDirectionRegister<Port::UpperAddressCapture>() = 0;
-        getDirectionRegister<Port::LowerAddressCapture>() = 0;
     getOutputRegister<Port::IBUS_Bank>() = 0;
     pinMode(Pin::IsMemorySpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);

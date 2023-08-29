@@ -124,7 +124,7 @@ DataRegister8
 getTransactionWindow() noexcept {
     if constexpr (MCUMustControlBankSwitching) {
         setBankIndex(getInputRegister<Port::BankCapture>());
-    }
+    } 
     return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
 }
 

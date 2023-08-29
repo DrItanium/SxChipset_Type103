@@ -69,16 +69,18 @@ Count = NUM_DIGITAL_PINS,
     READY = PortF7,
 
 #ifdef TYPE103
+    EyeSpi_Pin_TCS = PortD2,
+    EyeSpi_Pin_Busy = PortD3,
     ChangeDirection = PortD4,
     IsMemorySpaceOperation = PortD5,
     DirectionOutput = PortD6,
-    EyeSpi_Pin_INT = PortE6,
+
     EyeSpi_Pin_MEMCS = PortE4,
     EyeSpi_Pin_TSCS = PortE5,
+    EyeSpi_Pin_INT = PortE6,
+
     EyeSpi_Pin_DC = PortG3,
     EyeSpi_Pin_RST = PortG4,
-    EyeSpi_Pin_TCS = PortD2,
-    EyeSpi_Pin_Busy = PortD3,
     AlignmentCheck = PortG5,
 #endif
 

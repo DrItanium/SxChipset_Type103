@@ -75,7 +75,7 @@ constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
 constexpr bool PrintBanner = true;
-constexpr bool SupportOldRAM = true;
+constexpr bool SupportNewRAMLayout = true;
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
@@ -107,30 +107,33 @@ setBankIndex(uint8_t value) {
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 [[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
 [[gnu::address(0x2200)]] volatile uint24_t addressLinesLower24;
+constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
+constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
-template<uint16_t sectionMask, uint16_t offsetMask>
+template<uint16_t sectionMask = MemoryWindowBaseAddress, uint16_t offsetMask = MemoryWindowMask>
 constexpr
 uint16_t
 computeTransactionWindow(uint16_t offset) noexcept {
     return sectionMask | (offset & offsetMask);
 }
+
 [[gnu::used]]
 FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
-    if constexpr (SupportOldRAM) {
+    if constexpr (SupportNewRAMLayout) {
         // new address setup
         setBankIndex(getInputRegister<Port::BankCapture>());
-        return memoryPointer<uint8_t>(computeTransactionWindow<0x8000, 0x7FFF>(addressLinesLowerHalf));
+        return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else {
         SplitWord32 split{addressLinesLower24};
         setBankIndex(split.getIBUSBankIndex());
-        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(split.halves[0]));
+        return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
     }
 }
 

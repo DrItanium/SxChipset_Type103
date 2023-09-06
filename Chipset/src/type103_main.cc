@@ -110,6 +110,8 @@ setBankIndex(uint8_t value) {
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
+static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
+
 template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
@@ -126,15 +128,18 @@ FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
+    uint16_t offset = 0;
+    uint8_t bankIndex = 0;
     if constexpr (SupportNewRAMLayout) {
-        // new address setup
-        setBankIndex(getInputRegister<Port::BankCapture>());
-        return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
+        bankIndex = getInputRegister<Port::BankCapture>();
+        offset = addressLinesLowerHalf;
     } else {
         SplitWord32 split{addressLinesLower24};
-        setBankIndex(split.getIBUSBankIndex());
-        return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
+        bankIndex = split.getIBUSBankIndex();
+        offset = split.halves[0];
     }
+    setBankIndex(bankIndex);
+    return memoryPointer<uint8_t>(computeTransactionWindow(offset));
 }
 
 

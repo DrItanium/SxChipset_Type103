@@ -75,6 +75,7 @@ constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool MCUMustControlBankSwitching = true;
 constexpr bool PrintBanner = true;
+constexpr bool SupportOldRAM = true;
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
@@ -122,10 +123,15 @@ FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
-    if constexpr (MCUMustControlBankSwitching) {
+    if constexpr (SupportOldRAM) {
+        // new address setup
         setBankIndex(getInputRegister<Port::BankCapture>());
-    } 
-    return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(addressLinesLowerHalf));
+        return memoryPointer<uint8_t>(computeTransactionWindow<0x8000, 0x7FFF>(addressLinesLowerHalf));
+    } else {
+        SplitWord32 split{addressLinesLower24};
+        setBankIndex(split.getIBUSBankIndex());
+        return memoryPointer<uint8_t>(computeTransactionWindow<0x4000, 0x3FFF>(split.halves[0]));
+    }
 }
 
 

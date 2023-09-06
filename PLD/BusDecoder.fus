@@ -1,8 +1,8 @@
 
 
-Pin 19 = XBUS         XOR = 0   AC1 = 0
-  0  -xx- ---- ---- ---- ---- ---- ---- --x-
-  1  x--x ---- ---- ---- ---- ---- ---- --x-
+Pin 19 = XEN          XOR = 0   AC1 = 0
+  0  -xx- ---- ---- ---- ---- ---- ---- x--x
+  1  x--x ---- ---- ---- ---- ---- ---- x--x
   2  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   3  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   4  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -10,9 +10,9 @@ Pin 19 = XBUS         XOR = 0   AC1 = 0
   6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 18 = IBUS         XOR = 0   AC1 = 0
-  8  -xx- ---- ---- ---- ---- ---- ---- x--x
-  9  x--x ---- ---- ---- ---- ---- ---- x--x
+Pin 18 = IEN          XOR = 0   AC1 = 0
+  8  -xx- ---- ---- ---- ---- ---- ---- --x-
+  9  x--x ---- ---- ---- ---- ---- ---- --x-
  10  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  11  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  12  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -31,8 +31,8 @@ Pin 17 = IOX          XOR = 0   AC1 = 0
  23  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 16 = EBI          XOR = 0   AC1 = 0
- 24  -xx- ---- ---- ---- ---- ---- ---- ----
- 25  x--x ---- ---- ---- ---- ---- ---- ----
+ 24  x--x ---- ---- ---- ---- ---- ---- ----
+ 25  -xx- ---- ---- ---- ---- ---- ---- ----
  26  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  27  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  28  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -40,7 +40,7 @@ Pin 16 = EBI          XOR = 0   AC1 = 0
  30  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  31  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 15 = SC0          XOR = 1   AC1 = 0
+Pin 15 = S0           XOR = 1   AC1 = 0
  32  -xx- ---- ---- ---- ---- ---- ---- -x-x
  33  x--x ---- ---- ---- ---- ---- ---- -x-x
  34  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -50,7 +50,7 @@ Pin 15 = SC0          XOR = 1   AC1 = 0
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 14 = SC1          XOR = 0   AC1 = 0
+Pin 14 = S1           XOR = 0   AC1 = 0
  40  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  41  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  42  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -60,7 +60,7 @@ Pin 14 = SC1          XOR = 0   AC1 = 0
  46  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  47  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 13 = SC2          XOR = 0   AC1 = 0
+Pin 13 = S2           XOR = 0   AC1 = 0
  48  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  49  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  50  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -70,7 +70,7 @@ Pin 13 = SC2          XOR = 0   AC1 = 0
  54  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  55  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 12 = SC3          XOR = 0   AC1 = 0
+Pin 12 = S3           XOR = 0   AC1 = 0
  56  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  57  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  58  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

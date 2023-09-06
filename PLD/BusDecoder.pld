@@ -1,20 +1,20 @@
 GAL16V8
 BusDecoder
 
-PG0 PG1 PC0 PC1 PC2 PC3 PC4 PC5  PC6  GND
-PC7 SC3 SC2 SC1 SC0 EBI IOX IBUS XBUS VCC
+IWR IRD IA8 IA9 IA10 IA11 IA12 IA13 IA14 GND
+PC7 S3  S2  S1  S0   EBI  IOX  IEN  XEN  VCC
 
-/EBI = PG0 * /PG1 + /PG0 * PG1
-/XBUS = PC7 * PG0 * /PG1 + PC7 * /PG0 * PG1
-/IBUS = /PC7 * PC6 * PG0 * /PG1 + /PC7 * PC6 * /PG0 * PG1
-SC0 = /PC7 * /PC6 * PG0 * /PG1 + /PC7 * /PC6 * /PG0 * PG1
-/IOX = PG0 * /PG0
+/EBI = /IWR * IRD + IWR * /IRD
+/IEN = PC7 * IWR * /IRD + PC7 * /IWR * IRD
+/XEN = /PC7 * IA14 * IWR * /IRD + /PC7 * IA14 * /IWR * IRD
+  S0 = /PC7 * /IA14 * IWR * /IRD + /PC7 * /IA14 * /IWR * IRD
+/IOX = IWR * /IWR
 
 DESCRIPTION
 
 PG0 ^ PG1 -> /EBI
-0b1xxxxxxx & /EBI -> /XBUS
-0b01xxxxxx & /EBI -> /IBUS
+0b1xxxxxxx & /EBI -> /IBUS
+0b01xxxxxx & /EBI -> /XBUS
 0b00xxxxxx & /EBI -> SC0 
 
 IOX no longer matched to anything

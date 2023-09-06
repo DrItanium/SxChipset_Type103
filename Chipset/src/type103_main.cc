@@ -1256,6 +1256,7 @@ setupPins() noexcept {
     pinMode(Pin::WR, INPUT);
     pinMode(Pin::DirectionOutput, OUTPUT);
     pinMode(Pin::AlignmentCheck, INPUT);
+    pinMode(Pin::A23_960, INPUT);
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);

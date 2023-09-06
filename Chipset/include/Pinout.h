@@ -74,6 +74,7 @@ Count = NUM_DIGITAL_PINS,
     ChangeDirection = PortD4,
     IsMemorySpaceOperation = PortD5,
     DirectionOutput = PortD6,
+    A23_960 = PortD7,
 
     EyeSpi_Pin_MEMCS = PortE4,
     EyeSpi_Pin_TSCS = PortE5,

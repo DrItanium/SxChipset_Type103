@@ -1237,7 +1237,7 @@ void
 setupPins() noexcept {
     // power down the ADC, TWI, and USART3
     // currently we can't use them
-    PRR0 = 0b1000'0001; // deactivate TWI and ADC
+    PRR0 = 0b0000'0001; // deactivate TWI and ADC
     PRR1 = 0b00000'100; // deactivate USART3
 
     // enable interrupt pin output

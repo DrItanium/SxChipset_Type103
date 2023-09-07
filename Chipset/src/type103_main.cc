@@ -1345,14 +1345,15 @@ getInstalledCPUKind() noexcept {
 
 void
 banner() {
+    constexpr uint32_t IORamMax = MemoryWindowBaseAddress * 256ul; // 256 banks *
+                                                                 // window size
     Serial.println(F("Features: "));
     Serial.println(F("Bank Switching Controlled By AVR"));
+    Serial.print(F("Base Address of IO RAM Window: 0x"));
+    Serial.println(MemoryWindowBaseAddress, HEX);
     Serial.print(F("Maximum IO RAM Available: "));
-    if constexpr (SupportNewRAMLayout) {
-        Serial.println(F("8 Megabytes"));
-    } else {
-        Serial.println(F("4 Megabytes"));
-    }
+    Serial.print(IORamMax, DEC);
+    Serial.println(F(" bytes"));
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:
             Serial.println(F("i960Sx CPU detected!"));

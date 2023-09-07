@@ -71,32 +71,4 @@ inline volatile T* adjustedMemoryPointer(size_t address) noexcept {
     return memoryPointer<T>(address + (getRAMEnd() + 1));
 }
 
-enum class BoardTarget : uint8_t {
-    Unknown,
-    Type103,
-    DimmWide,
-};
-
-constexpr BoardTarget getTargetBoard() noexcept {
-#ifdef TYPE103 
-    return BoardTarget::Type103;
-#elif defined(DIMM_WIDE)
-    return BoardTarget::DimmWide;
-#else
-    return BoardTarget::Unknown;
-#endif
-}
-constexpr bool isKnownBoardConfiguration() noexcept {
-    switch (getTargetBoard()) {
-        case BoardTarget::Type103:
-        case BoardTarget::DimmWide:
-            return true;
-        default:
-            return false;
-    }
-}
-
-static_assert(isKnownBoardConfiguration(), "Unknown or unimplemented configuration specified");
-
-
 #endif // end SXCHIPSET_TYPE103_DETECT_H__

@@ -68,7 +68,6 @@ Count = NUM_DIGITAL_PINS,
     WR = PortF6,
     READY = PortF7,
 
-#ifdef TYPE103
     EyeSpi_Pin_TCS = PortD2,
     EyeSpi_Pin_Busy = PortD3,
     ChangeDirection = PortD4,
@@ -83,17 +82,7 @@ Count = NUM_DIGITAL_PINS,
     EyeSpi_Pin_DC = PortG3,
     EyeSpi_Pin_RST = PortG4,
     AlignmentCheck = PortG5,
-#endif
 
-#ifdef DIMM_WIDE
-    XINT2_960_ = PortB4, // OC2A
-    XINT4_960_ = PortB6, // OC1B
-    XINT6_960_ = PortB7, // OC1C
-    IO_OPERATION = PortG0,
-    IO_EXP_ENABLE = PortG1,
-    DataDirection = PortG2,
-    TransactionEnable = PortG4,
-#endif
 };
 enum class Port : byte {
     // stop at mega2560 tier
@@ -102,20 +91,10 @@ enum class Port : byte {
 #undef X
     None,
     SignalCTL = F,
-#ifdef TYPE103
     IBUS_Bank = J,
     ExecutionState = D,
     BankCapture = K,
     CTL960 = L,
-#endif
-#ifdef DIMM_WIDE
-    A2_9 = A,
-    D0_7 = L,
-    D8_15 = C,
-    D16_23 = H,
-    D24_31 = K,
-    InterfaceControl = G,
-#endif
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

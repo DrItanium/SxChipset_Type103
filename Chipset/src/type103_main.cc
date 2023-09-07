@@ -1348,6 +1348,9 @@ getInstalledCPUKind() noexcept {
 
 void
 banner() {
+    Serial.println(F("i960 Chipset"));
+    Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
+    Serial.println(F("Variant: Type 103 Narrow Wide"));
     constexpr uint32_t IORamMax = MemoryWindowBaseAddress * 256ul; // 256 banks *
                                                                  // window size
     Serial.println(F("Features: "));
@@ -1363,35 +1366,37 @@ banner() {
     } else {
         Serial.println(F("IO RAM Section mapped throughout i960 Memory Space"));
     }
+    Serial.print(F("Detected i960 CPU Kind: "));
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:
-            Serial.println(F("i960Sx CPU detected!"));
+            Serial.println(F("Sx"));
             break;
         case CPUKind::Kx:
-            Serial.println(F("i960Kx CPU detected!"));
+            Serial.println(F("Kx"));
             break;
         case CPUKind::Jx:
-            Serial.println(F("i960Jx CPU detected!"));
+            Serial.println(F("Jx"));
             break;
         case CPUKind::Hx:
-            Serial.println(F("i960Hx CPU detected!"));
+            Serial.println(F("Hx"));
             break;
         case CPUKind::Cx:
-            Serial.println(F("i960Cx CPU detected!"));
+            Serial.println(F("Cx"));
             break;
         default:
-            Serial.println(F("Unknown i960 CPU detected!"));
+            Serial.println(F("Unknown"));
             break;
     }
+    Serial.print(F("Bus Width: "));
     switch (getBusWidth(getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
-            Serial.println(F("16-bit bus width detected"));
+            Serial.println(F("16-bit"));
             break;
         case NativeBusWidth::ThirtyTwo:
-            Serial.println(F("32-bit bus width detected"));
+            Serial.println(F("32-bit"));
             break;
         default:
-            Serial.println(F("Undefined bus width detected (fallback to 32-bit)"));
+            Serial.println(F("Unknown (fallback to 32-bit)"));
             break;
     }
 }

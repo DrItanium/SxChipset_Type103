@@ -73,9 +73,8 @@ constexpr bool XINT4DirectConnect = false;
 constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
-constexpr bool MCUMustControlBankSwitching = true;
 constexpr bool PrintBanner = true;
-constexpr bool SupportNewRAMLayout = true;
+constexpr bool SupportNewRAMLayout = false;
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
@@ -84,14 +83,11 @@ using DataRegister32 = volatile uint32_t*;
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }
-template<bool active = MCUMustControlBankSwitching>
 [[gnu::always_inline]]
 inline
 void 
 setBankIndex(uint8_t value) {
-    if constexpr (active) {
-        getOutputRegister<Port::IBUS_Bank>() = value;
-    }
+    getOutputRegister<Port::IBUS_Bank>() = value;
 }
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
@@ -128,18 +124,14 @@ FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
-    uint16_t offset = 0;
-    uint8_t bankIndex = 0;
     if constexpr (SupportNewRAMLayout) {
-        bankIndex = getInputRegister<Port::BankCapture>();
-        offset = addressLinesLowerHalf;
+        setBankIndex(getInputRegister<Port::BankCapture>());
+        return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else {
         SplitWord32 split{addressLinesLower24};
-        bankIndex = split.getIBUSBankIndex();
-        offset = split.halves[0];
+        setBankIndex(split.getIBUSBankIndex());
+        return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
     }
-    setBankIndex(bankIndex);
-    return memoryPointer<uint8_t>(computeTransactionWindow(offset));
 }
 
 
@@ -1128,12 +1120,7 @@ template<NativeBusWidth width>
 void 
 executionBody() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
-    setBankIndex<true>(0);
-    if constexpr (!MCUMustControlBankSwitching) {
-        // if we are letting the i960 control things then turn the IBUS_Bank
-        // direction register to input
-        getDirectionRegister<Port::IBUS_Bank>() = 0;
-    }
+    setBankIndex(0);
     // switch the XBUS bank mode to i960 instead of AVR
     // I want to use the upper four bits the XBUS address lines
     // while I can directly connect to the address lines, I want to test to
@@ -1221,7 +1208,7 @@ installMemoryImage() noexcept {
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
             // just modify the bank as we go along
-            setBankIndex<true>(view.getIBUSBankIndex());
+            setBankIndex(view.getIBUSBankIndex());
             auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress(AccessFromIBUS{}));
             theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
             Serial.print(F("."));
@@ -1264,10 +1251,8 @@ setupPins() noexcept {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();
     }
-    if constexpr (MCUMustControlBankSwitching) {
-        // setup bank capture to read in address lines
-        getDirectionRegister<Port::BankCapture>() = 0;
-    }
+    // setup bank capture to read in address lines
+    getDirectionRegister<Port::BankCapture>() = 0;
 }
 void
 setupDisplay() noexcept {
@@ -1361,22 +1346,12 @@ getInstalledCPUKind() noexcept {
 void
 banner() {
     Serial.println(F("Features: "));
-    Serial.print(F("Bank Switching Controlled By: "));
-    if constexpr (MCUMustControlBankSwitching) {
-        Serial.println(F("AVR"));
+    Serial.println(F("Bank Switching Controlled By AVR"));
+    Serial.print(F("Maximum IO RAM Available: "));
+    if constexpr (SupportNewRAMLayout) {
+        Serial.println(F("8 Megabytes"));
     } else {
-        Serial.println(F("i960"));
-    }
-}
-
-void
-setup() {
-    setupPins();
-    Serial.begin(115200);
-    // setup the IO Expanders
-    setupPlatform();
-    if constexpr (PrintBanner) {
-        banner();
+        Serial.println(F("4 Megabytes"));
     }
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:
@@ -1398,6 +1373,28 @@ setup() {
             Serial.println(F("Unknown i960 CPU detected!"));
             break;
     }
+    switch (getBusWidth(getInstalledCPUKind())) {
+        case NativeBusWidth::Sixteen:
+            Serial.println(F("16-bit bus width detected"));
+            break;
+        case NativeBusWidth::ThirtyTwo:
+            Serial.println(F("32-bit bus width detected"));
+            break;
+        default:
+            Serial.println(F("Undefined bus width detected (fallback to 32-bit)"));
+            break;
+    }
+}
+
+void
+setup() {
+    setupPins();
+    Serial.begin(115200);
+    // setup the IO Expanders
+    setupPlatform();
+    if constexpr (PrintBanner) {
+        banner();
+    }
     // find firmware.bin and install it into the 512k block of memory
     installMemoryImage();
     pullCPUOutOfReset();
@@ -1406,15 +1403,12 @@ void
 loop() {
     switch (getBusWidth(getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
-            Serial.println(F("16-bit bus width detected"));
             executionBody<NativeBusWidth::Sixteen>();
             break;
         case NativeBusWidth::ThirtyTwo:
-            Serial.println(F("32-bit bus width detected"));
             executionBody<NativeBusWidth::ThirtyTwo>();
             break;
         default:
-            Serial.println(F("Undefined bus width detected (fallback to 32-bit)"));
             executionBody<NativeBusWidth::Unknown>();
             break;
     }

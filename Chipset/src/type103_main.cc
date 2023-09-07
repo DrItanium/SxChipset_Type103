@@ -112,11 +112,10 @@ template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
     return value & 0b1100;
 }
-template<uint16_t sectionMask = MemoryWindowBaseAddress, uint16_t offsetMask = MemoryWindowMask>
 constexpr
 uint16_t
 computeTransactionWindow(uint16_t offset) noexcept {
-    return sectionMask | (offset & offsetMask);
+    return MemoryWindowBaseAddress | (offset & MemoryWindowMask);
 }
 
 [[gnu::used]]

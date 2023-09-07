@@ -509,8 +509,12 @@ dispatch() noexcept {
         // 32-bit space until we get to IO space)
         doCommunication();
     } else {
-        // io operation
-        doIO();
+        if (digitalRead<Pin::A23_960>()) {
+            doCommunication();
+        } else {
+            // io operation
+            doIO();
+        }
     }
 }
 };
@@ -1093,8 +1097,12 @@ dispatch() noexcept {
         // 32-bit space until we get to IO space)
         doCommunication();
     } else {
-        // io operation
-        doIO();
+        if (digitalRead<Pin::A23_960>()) {
+            doCommunication();
+        } else {
+            // io operation
+            doIO();
+        }
     }
 }
 };

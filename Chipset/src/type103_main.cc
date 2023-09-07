@@ -75,6 +75,7 @@ constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
 constexpr bool SupportNewRAMLayout = false;
+constexpr bool HybridWideMemorySupported = false;
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
@@ -1122,13 +1123,16 @@ ReadOperationStart:
     }
 ReadOperationBypass:
     // standard read operation so do the normal dispatch
-    //CommunicationKernel<true, width>::dispatch();
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        CommunicationKernel<true, width>::doCommunication();
+        if constexpr (HybridWideMemorySupported) {
+            idleTransaction();
+        } else {
+            CommunicationKernel<true, width>::doCommunication();
+        }
     } else {
         if (digitalRead<Pin::A23_960>()) {
             CommunicationKernel<true, width>::doCommunication();
@@ -1159,7 +1163,11 @@ WriteOperationBypass:
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        CommunicationKernel<false, width>::doCommunication();
+        if constexpr (HybridWideMemorySupported) {
+            idleTransaction();
+        } else {
+            CommunicationKernel<false, width>::doCommunication();
+        }
     } else {
         if (digitalRead<Pin::A23_960>()) {
             CommunicationKernel<false, width>::doCommunication();
@@ -1350,6 +1358,12 @@ banner() {
     Serial.print(F("Maximum IO RAM Available: "));
     Serial.print(IORamMax, DEC);
     Serial.println(F(" bytes"));
+    Serial.print(F("Memory Mapping Mode: "));
+    if constexpr (HybridWideMemorySupported) {
+        Serial.println(F("Directly Connected FLASH/SRAM/RAM + IO Space with Independent RAM Section"));
+    } else {
+        Serial.println(F("IO RAM Section mapped throughout i960 Memory Space"));
+    }
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:
             Serial.println(F("i960Sx CPU detected!"));

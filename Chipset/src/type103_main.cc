@@ -1398,8 +1398,10 @@ banner() {
 
 void
 setup() {
-    setupPins();
     Serial.begin(115200);
+    SPI.begin();
+    Wire.begin();
+    setupPins();
     // setup the IO Expanders
     setupPlatform();
     if constexpr (PrintBanner) {

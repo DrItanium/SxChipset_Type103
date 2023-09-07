@@ -497,26 +497,6 @@ static void doIO() noexcept {
         } 
         signalReady<true>(); 
 }
-FORCE_INLINE
-inline
-static
-void
-dispatch() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        doCommunication();
-    } else {
-        if (digitalRead<Pin::A23_960>()) {
-            doCommunication();
-        } else {
-            // io operation
-            doIO();
-        }
-    }
-}
 };
 
 template<bool isReadOperation>
@@ -1085,26 +1065,6 @@ static void doIO() noexcept {
         signalReady<true>(); 
 }
 #undef I960_Signal_Switch
-FORCE_INLINE
-inline
-static
-void
-dispatch() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        doCommunication();
-    } else {
-        if (digitalRead<Pin::A23_960>()) {
-            doCommunication();
-        } else {
-            // io operation
-            doIO();
-        }
-    }
-}
 };
 
 
@@ -1162,7 +1122,21 @@ ReadOperationStart:
     }
 ReadOperationBypass:
     // standard read operation so do the normal dispatch
-    CommunicationKernel<true, width>::dispatch();
+    //CommunicationKernel<true, width>::dispatch();
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        CommunicationKernel<true, width>::doCommunication();
+    } else {
+        if (digitalRead<Pin::A23_960>()) {
+            CommunicationKernel<true, width>::doCommunication();
+        } else {
+            // io operation
+            CommunicationKernel<true, width>::doIO();
+        }
+    }
     // start the read operation again
     goto ReadOperationStart;
 
@@ -1180,7 +1154,20 @@ WriteOperationStart:
     } 
 WriteOperationBypass:
     // standard write operation so do the normal dispatch for write operations
-    CommunicationKernel<false, width>::dispatch();
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        CommunicationKernel<false, width>::doCommunication();
+    } else {
+        if (digitalRead<Pin::A23_960>()) {
+            CommunicationKernel<false, width>::doCommunication();
+        } else {
+            // io operation
+            CommunicationKernel<false, width>::doIO();
+        }
+    }
     // restart the write loop
     goto WriteOperationStart;
     // we should never get here!
@@ -1194,9 +1181,11 @@ installMemoryImage() noexcept {
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
     SdFs SD;
     Serial.println(F("Looking for an SD Card!"));
-    while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
-        Serial.println(F("NO SD CARD!"));
-        delay(1000);
+    {
+        while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
+            Serial.println(F("NO SD CARD!"));
+            delay(1000);
+        }
     }
     Serial.println(F("SD CARD FOUND!"));
     // look for firmware.bin and open it readonly

@@ -35,31 +35,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 #include "Setup.h"
+
+using DataRegister8 = volatile uint8_t*;
+using DataRegister16 = volatile uint16_t*;
+using DataRegister32 = volatile uint32_t*;
+
 constexpr auto EYESPI_Pin_TFTCS = static_cast<int>(Pin::EyeSpi_Pin_TCS);
 constexpr auto EYESPI_Pin_TSCS = static_cast<int>(Pin::EyeSpi_Pin_TSCS);
 constexpr auto EYESPI_Pin_Reset = static_cast<int>(Pin::EyeSpi_Pin_RST);
 constexpr auto EYESPI_Pin_DC = static_cast<int>(Pin::EyeSpi_Pin_DC);
 constexpr auto EYESPI_Pin_BUSY = static_cast<int>(Pin::EyeSpi_Pin_Busy);
 constexpr auto EYESPI_Pin_MEMCS = static_cast<int>(Pin::EyeSpi_Pin_MEMCS);
-Adafruit_SSD1351 oled(
-        128,
-        128,
-        &SPI, 
-        EYESPI_Pin_TFTCS, 
-        EYESPI_Pin_DC, 
-        EYESPI_Pin_Reset);
 
-Adafruit_SSD1680 epaperDisplay213(
-        250, 
-        122,
-        EYESPI_Pin_DC, 
-        EYESPI_Pin_Reset,
-        EYESPI_Pin_TFTCS,
-        EYESPI_Pin_MEMCS,
-        EYESPI_Pin_BUSY,
-        &SPI);
-Adafruit_ILI9341 tft_ILI9341(&SPI, EYESPI_Pin_DC, EYESPI_Pin_TFTCS, EYESPI_Pin_Reset);
-Adafruit_FT6206 ts;
+
 enum class EnabledDisplays {
     SSD1351_OLED_128_x_128_1_5,
     SSD1680_EPaper_250_x_122_2_13,
@@ -83,19 +71,31 @@ constexpr bool HybridWideMemorySupported = false;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 
-using DataRegister8 = volatile uint8_t*;
-using DataRegister16 = volatile uint16_t*;
-using DataRegister32 = volatile uint32_t*;
-// allocate 1024 bytes total
-[[gnu::always_inline]] inline bool isBurstLast() noexcept { 
-    return digitalRead<Pin::BLAST>() == LOW; 
-}
-[[gnu::always_inline]]
-inline
-void 
-setBankIndex(uint8_t value) {
-    getOutputRegister<Port::IBUS_Bank>() = value;
-}
+constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
+constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
+
+static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
+
+Adafruit_SSD1351 oled(
+        128,
+        128,
+        &SPI, 
+        EyeSpi::Pins::TFTCS,
+        EyeSpi::Pins::DC,
+        EyeSpi::Pins::Reset);
+
+Adafruit_SSD1680 epaperDisplay213(
+        250, 
+        122,
+        EyeSpi::Pins::DC, 
+        EyeSpi::Pins::Reset,
+        EyeSpi::Pins::TFTCS,
+        EyeSpi::Pins::MEMCS,
+        EyeSpi::Pins::Busy,
+        &SPI);
+Adafruit_ILI9341 tft_ILI9341(&SPI, EyeSpi::Pins::DC, EyeSpi::Pins::TFTCS, EyeSpi::Pins::RST);
+Adafruit_FT6206 ts;
+
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
@@ -114,10 +114,16 @@ setBankIndex(uint8_t value) {
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 [[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
 [[gnu::address(0x2200)]] volatile uint24_t addressLinesLower24;
-constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
-constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
-
-static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
+// allocate 1024 bytes total
+[[gnu::always_inline]] inline bool isBurstLast() noexcept { 
+    return digitalRead<Pin::BLAST>() == LOW; 
+}
+[[gnu::always_inline]]
+inline
+void 
+setBankIndex(uint8_t value) {
+    getOutputRegister<Port::IBUS_Bank>() = value;
+}
 
 template<NativeBusWidth width>
 inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {

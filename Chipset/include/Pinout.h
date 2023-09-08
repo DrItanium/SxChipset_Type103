@@ -84,6 +84,19 @@ Count = NUM_DIGITAL_PINS,
     AlignmentCheck = PortG5,
 
 };
+namespace EyeSpi::Pins {
+#define X(title) constexpr auto title = static_cast<int>(Pin:: EyeSpi_Pin_ ## title )
+    X(TCS);
+    X(Busy);
+    X(MEMCS); 
+    X(TSCS);
+    X(INT);
+    X(DC);
+    X(RST);
+    constexpr auto TFTCS = TCS;
+    constexpr auto Reset = RST;
+#undef X
+} // end namespace EyeSpi
 enum class Port : byte {
     // stop at mega2560 tier
 #define X(name) name ,

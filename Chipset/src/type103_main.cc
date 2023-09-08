@@ -65,8 +65,7 @@ enum class EnabledDisplays {
     SSD1680_EPaper_250_x_122_2_13,
     ILI9341_TFT_240_x_320_2_8_Capacitive_TS,
 };
-//constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
-constexpr auto ActiveDisplay = EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS;
+constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
 constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
 constexpr auto EPAPER_COLOR_RED = EPD_RED;
 constexpr bool MCUHasDirectAccess = true;

@@ -40,18 +40,16 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 using DataRegister32 = volatile uint32_t*;
 
-constexpr auto EYESPI_Pin_TFTCS = static_cast<int>(Pin::EyeSpi_Pin_TCS);
-constexpr auto EYESPI_Pin_TSCS = static_cast<int>(Pin::EyeSpi_Pin_TSCS);
-constexpr auto EYESPI_Pin_Reset = static_cast<int>(Pin::EyeSpi_Pin_RST);
-constexpr auto EYESPI_Pin_DC = static_cast<int>(Pin::EyeSpi_Pin_DC);
-constexpr auto EYESPI_Pin_BUSY = static_cast<int>(Pin::EyeSpi_Pin_Busy);
-constexpr auto EYESPI_Pin_MEMCS = static_cast<int>(Pin::EyeSpi_Pin_MEMCS);
-
-
 enum class EnabledDisplays {
     SSD1351_OLED_128_x_128_1_5,
     SSD1680_EPaper_250_x_122_2_13,
     ILI9341_TFT_240_x_320_2_8_Capacitive_TS,
+};
+enum class DisplayKind {
+    Unknown,
+    TFT,
+    OLED,
+    EPaper,
 };
 constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
 constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
@@ -76,6 +74,28 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
 
+constexpr auto displayHasTouchScreen() noexcept {
+    switch (ActiveDisplay) {
+        case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:
+            return true;
+        default:
+            return false;
+    }
+}
+
+constexpr auto getDisplayTechnology() noexcept {
+    switch (ActiveDisplay) {
+        case EnabledDisplays::SSD1351_OLED_128_x_128_1_5:
+            return DisplayKind::OLED;
+        case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:
+            return DisplayKind::TFT;
+        case EnabledDisplays::SSD1680_EPaper_250_x_122_2_13:
+            return DisplayKind::EPaper,
+        default:
+            return DisplayKind::Unknown;
+    }
+}
+
 Adafruit_SSD1351 oled(
         128,
         128,
@@ -93,7 +113,10 @@ Adafruit_SSD1680 epaperDisplay213(
         EyeSpi::Pins::MEMCS,
         EyeSpi::Pins::Busy,
         &SPI);
-Adafruit_ILI9341 tft_ILI9341(&SPI, EyeSpi::Pins::DC, EyeSpi::Pins::TFTCS, EyeSpi::Pins::RST);
+Adafruit_ILI9341 tft_ILI9341(&SPI, 
+        EyeSpi::Pins::DC, 
+        EyeSpi::Pins::TFTCS, 
+        EyeSpi::Pins::RST);
 Adafruit_FT6206 ts;
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;

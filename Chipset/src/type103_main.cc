@@ -80,6 +80,8 @@ constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
 constexpr bool SupportNewRAMLayout = false;
 constexpr bool HybridWideMemorySupported = false;
+constexpr auto TransferBufferSize = 16384;
+constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
@@ -94,6 +96,10 @@ void
 setBankIndex(uint8_t value) {
     getOutputRegister<Port::IBUS_Bank>() = value;
 }
+[[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
+[[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
+[[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
+[[gnu::address(0x2218)]] inline volatile CH351 XBUSBankRegister;
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
@@ -1184,8 +1190,7 @@ WriteOperationBypass:
     goto WriteOperationStart;
     // we should never get here!
 }
-
-template<uint32_t maxFileSize = 1024ul * 1024ul, auto BufferSize = 16384>
+template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>
 [[gnu::noinline]]
 void
 installMemoryImage() noexcept {

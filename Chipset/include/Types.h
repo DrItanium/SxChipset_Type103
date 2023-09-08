@@ -119,9 +119,5 @@ union [[gnu::packed]] CH351 {
     } ctl;
 };
 
-[[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
-[[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
-[[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
-[[gnu::address(0x2218)]] inline volatile CH351 XBUSBankRegister;
 
 #endif //SXCHIPSET_TYPE103_TYPES_H__

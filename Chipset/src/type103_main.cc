@@ -65,7 +65,8 @@ enum class EnabledDisplays {
     SSD1680_EPaper_250_x_122_2_13,
     ILI9341_TFT_240_x_320_2_8_Capacitive_TS,
 };
-constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
+//constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
+constexpr auto ActiveDisplay = EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS;
 constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
 constexpr auto EPAPER_COLOR_RED = EPD_RED;
 constexpr bool MCUHasDirectAccess = true;
@@ -1262,6 +1263,21 @@ setupPins() noexcept {
     // setup bank capture to read in address lines
     getDirectionRegister<Port::BankCapture>() = 0;
 }
+template<typename T>
+void
+displayPrintln(T value) noexcept {
+    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
+        oled.println(value);
+        oled.enableDisplay(true);
+    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
+        epaperDisplay213.println(value);
+        epaperDisplay213.display();
+    } else if constexpr (ActiveDisplay == EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS) {
+        tft_ILI9341.println(value);
+    }
+}
+
+
 void
 setupDisplay() noexcept {
     if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
@@ -1270,8 +1286,6 @@ setupDisplay() noexcept {
         oled.fillScreen(0);
         oled.setTextColor(0xFFFF);
         oled.setTextSize(1);
-        oled.println(F("i960"));
-        oled.enableDisplay(true);
     } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
         epaperDisplay213.begin();
         epaperDisplay213.clearBuffer();
@@ -1279,16 +1293,15 @@ setupDisplay() noexcept {
         epaperDisplay213.setTextColor(EPAPER_COLOR_BLACK);
         epaperDisplay213.setTextWrap(true);
         epaperDisplay213.setTextSize(2);
-        epaperDisplay213.println(F("i960"));
-        epaperDisplay213.display();
     } else if constexpr (ActiveDisplay == EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS) {
         ts.begin();
         tft_ILI9341.begin();
         tft_ILI9341.fillScreen(ILI9341_BLACK);
         tft_ILI9341.setCursor(0, 0);
         tft_ILI9341.setTextColor(ILI9341_WHITE);  
-        tft_ILI9341.setTextSize(1);
+        tft_ILI9341.setTextSize(2);
     }
+    displayPrintln(F("i960"));
 }
 void 
 setupPlatform() noexcept {

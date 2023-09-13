@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h>
 #include <Adafruit_seesaw.h>
 #include <Adafruit_MCP9808.h>
+#include <Adafruit_AHTX0.h>
+#include <Adafruit_AS7341.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -125,36 +127,82 @@ Adafruit_ILI9341 tft_ILI9341(&SPI,
         EyeSpi::Pins::RST);
 Adafruit_FT6206 ts;
 
-RTC_PCF8523 rtc;
-volatile bool rtcFound = false;
-volatile bool rtcInitialized = false;
-
-Adafruit_SI5351 clockgen;
-volatile bool clockgenFound = false;
-
-Adafruit_CCS811 ccs;
-volatile bool ccsFound = false;
-
-SFE_MAX1704X lipo(MAX1704X_MAX17048); // Qwiic Fuel Gauge (SPARKX)
-volatile bool hasMAX17048 = false;
-volatile int max17048AlertThreshold = 20;
-
-void
-setupMAX17048() noexcept {
-    hasMAX17048 = lipo.begin();
-    if (hasMAX17048) {
-        lipo.quickStart();
-        lipo.setThreshold(max17048AlertThreshold); // set alert threshold to 20%
+template<typename T>
+struct OptionalDevice {
+    constexpr bool found() const noexcept { return _found; }
+    T& getDevice() noexcept { return _device; }
+    const T& getDevice() const noexcept { return _device; }
+    void begin() noexcept {
+        _found = _device.begin();
     }
-}
+    private:
+        T _device;
+        bool _found = false;
+};
 
-Adafruit_seesaw seesaw;
-volatile bool foundSeesaw = false;
+template<>
+struct OptionalDevice<RTC_PCF8523> {
+    constexpr bool found() const noexcept { return _found; }
+    constexpr bool initialized() const noexcept { return _initialized; }
+    RTC_PCF8523& getDevice() noexcept { return _device; }
+    const RTC_PCF8523& getDevice() const noexcept { return _device; }
+    void begin() noexcept {
+        _found = _device.begin();
+        if (_found) {
+            if (!_device.initialized() || _device.lostPower()) {
+                _device.adjust(DateTime(F(__DATE__), F(__TIME__)));
+                _initialized = false;
+            } else {
+                _initialized = true;
+            }
+            _device.start();
+            // compensate for rtc drifiting (taken from the example program)
+            float drift = 43;  // plus or minus over observation period - set to 0
+                               // to cancel previous calibration
+            float periodSeconds = (7 * 86400); // total observation period in
+                                               // sections
+            float deviationPPM = (drift / periodSeconds * 1'000'000); // deviation
+                                                                      // in parts
+                                                                      // per
+                                                                      // million
+            float driftUnit = 4.34; // use with offset mode PCF8523_TwoHours
 
-void
-setupSeesaw() noexcept {
-    foundSeesaw = seesaw.begin();
-}
+            int offset = round(deviationPPM / driftUnit); 
+            _device.calibrate(PCF8523_TwoHours, offset); // perform calibration once
+                                                         // drift (seconds) and
+                                                         // observation period (seconds)
+                                                         // are correct
+        }
+    }
+    private:
+        RTC_PCF8523 _device;
+        bool _found = false;
+        bool _initialized = false;
+};
+
+template<>
+struct OptionalDevice<SFE_MAX1704X> {
+    void setFound(bool found) noexcept { _found = found; }
+    constexpr bool found() const noexcept { return _found; }
+    SFE_MAX1704X& getDevice() noexcept { return _device; }
+    const SFE_MAX1704X& getDevice() const noexcept { return _device; }
+    OptionalDevice(decltype(MAX1704X_MAX17048) kind, int alertThreshold = 20) : _device(kind), _defaultAlertThreshold(alertThreshold) { }
+    auto getAlertThreshold() noexcept { return _device.getThreshold(); }
+    void setAlertThreshold(int value) noexcept { _device.setThreshold(value); }
+    void begin() noexcept {
+        _found = _device.begin();
+        if (_found) {
+            _device.quickStart();
+            _device.setThreshold(_defaultAlertThreshold);
+        }
+    }
+    private:
+        SFE_MAX1704X _device;
+        bool _found = false;
+        int _defaultAlertThreshold;
+};
+
+
 template<typename T>
 void
 displayPrintln(T value) noexcept {
@@ -195,66 +243,62 @@ setupDisplay() noexcept {
     }
     displayPrintln(F("i960"));
 }
-void
-setupRTC() noexcept {
-    rtcFound = rtc.begin();
-    if (rtcFound) {
-        if (!rtc.initialized() || rtc.lostPower()) {
-            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-            rtcInitialized = false;
-        } else {
-            rtcInitialized = true;
-        }
-        rtc.start();
-        // compensate for rtc drifiting (taken from the example program)
-        float drift = 43;  // plus or minus over observation period - set to 0
-                           // to cancel previous calibration
-        float periodSeconds = (7 * 86400); // total observation period in
-                                           // sections
-        float deviationPPM = (drift / periodSeconds * 1'000'000); // deviation
-                                                                  // in parts
-                                                                  // per
-                                                                  // million
-        float driftUnit = 4.34; // use with offset mode PCF8523_TwoHours
+template<>
+struct OptionalDevice<Adafruit_SI5351> {
+    using T = Adafruit_SI5351;
+    constexpr bool found() const noexcept { return _found; }
+    T& getDevice() noexcept { return _device; }
+    const T& getDevice() const noexcept { return _device; }
+    void begin() noexcept {
+        _found = (_device.begin() == ERROR_NONE);
+    }
+    private:
+        T _device;
+        bool _found = false;
+};
+OptionalDevice<RTC_PCF8523> rtc;
+OptionalDevice<Adafruit_SI5351> clockgen;
+OptionalDevice<Adafruit_CCS811> ccs;
+OptionalDevice<SFE_MAX1704X> lipo(MAX1704X_MAX17048); // Qwiic Fuel Gauge (SPARKX)
+OptionalDevice<Adafruit_seesaw> seesaw;
 
-        int offset = round(deviationPPM / driftUnit); 
-        rtc.calibrate(PCF8523_TwoHours, offset); // perform calibration once
-                                                 // drift (seconds) and
-                                                 // observation period (seconds)
-                                                 // are correct
+template<>
+struct OptionalDevice<Adafruit_MCP9808> {
+    using T = Adafruit_MCP9808;
+    constexpr bool found() const noexcept { return _found; }
+    constexpr auto getDeviceIndex() const noexcept { return _deviceIndex; }
+    constexpr auto getDefaultResolution() const noexcept { return _defaultResolution; }
+    T& getDevice() noexcept { return _device; }
+    const T& getDevice() const noexcept { return _device; }
+    OptionalDevice(int index = 0x18, int defaultResolution = 3) : _device(), _deviceIndex(index), _defaultResolution(defaultResolution) { }
+    void begin() noexcept {
+        _found = _device.begin(_deviceIndex);
+        if (_found) {
+            _device.setResolution(_defaultResolution);
+        }
     }
-}
-void
-setupClockGenerator() noexcept {
-    if (clockgen.begin() != ERROR_NONE) {
-        clockgenFound = false;
-    } else {
-        clockgenFound = true;
-    }
-}
-void
-setupGasSensor() noexcept {
-    ccsFound = ccs.begin();
-}
-Adafruit_MCP9808 tempSensor0;
-volatile bool tempSensor0_found = false;
-constexpr int tempSensor0_defaultResolution = 3;
-void
-setupTempSensor0() noexcept {
-    tempSensor0_found = tempSensor0.begin(0x18);
-    if (tempSensor0_found) {
-        tempSensor0.setResolution(tempSensor0_defaultResolution);
-    }
-}
+    private:
+        T _device;
+        int _deviceIndex;
+        int _defaultResolution;
+        bool _found = false;
+};
+
+OptionalDevice<Adafruit_MCP9808> tempSensor0(0x18, 3);
+
+OptionalDevice<Adafruit_AHTX0> aht;
+OptionalDevice<Adafruit_AS7341> as7341;
 void 
 setupDevices() noexcept {
     setupDisplay();
-    setupRTC();
-    setupClockGenerator();
-    setupGasSensor();
-    setupMAX17048();
-    setupSeesaw();
-    setupTempSensor0();
+    rtc.begin();
+    aht.begin();
+    as7341.begin();
+    lipo.begin();
+    seesaw.begin();
+    ccs.begin();
+    clockgen.begin();
+    tempSensor0.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1539,7 +1583,11 @@ loop() {
             break;
     }
 }
-
+template<typename T>
+void
+printlnBool(const T& value) noexcept {
+    printlnBool(value.found());
+}
 
 void
 banner() noexcept {
@@ -1595,38 +1643,42 @@ banner() noexcept {
             break;
     }
     Serial.print(F("Has RTC: "));
-    printlnBool(rtcFound);
-    if (rtcFound) {
-        if (rtcInitialized) {
+    printlnBool(rtc);
+    if (rtc.found()) {
+        if (rtc.initialized()) {
             Serial.println(F("\tRTC was already initialized"));
         } else {
             Serial.println(F("\tRTC needed to be initialized!"));
         }
     }
     Serial.print(F("Has Clock Generator (Si5351): "));
-    printlnBool(clockgenFound);
+    printlnBool(clockgen);
     Serial.print(F("Has CCS811: "));
-    printlnBool(ccsFound);
+    printlnBool(ccs);
     Serial.print(F("Has MAX17048: "));
-    printlnBool(hasMAX17048);
-    if (hasMAX17048) {
+    printlnBool(lipo);
+    if (lipo.found()) {
         Serial.print(F("\tAlert Threshold: "));
-        Serial.println(max17048AlertThreshold, DEC);
+        Serial.println(lipo.getAlertThreshold(), DEC);
     }
 
     Serial.print(F("Has seesaw: "));
-    printlnBool(foundSeesaw);
+    printlnBool(seesaw);
 
     Serial.print(F("Has MCP9808: "));
-    printlnBool(tempSensor0_found);
+    printlnBool(tempSensor0);
 
-    if (tempSensor0_found) {
+    if (tempSensor0.found()) {
         Serial.print(F("\tSensor Resolution: "));
-        Serial.println(tempSensor0.getResolution());
-        tempSensor0.wake();
+        Serial.println(tempSensor0.getDevice().getResolution());
+        tempSensor0.getDevice().wake();
         Serial.print(F("\tcurrent temperature: "));
-        float c = tempSensor0.readTempC();
+        float c = tempSensor0.getDevice().readTempC();
         Serial.print(c, 4); Serial.println(F("*C"));
-        tempSensor0.shutdown_wake(1);
+        tempSensor0.getDevice().shutdown_wake(1);
     }
+    Serial.print(F("Has AHTx0: "));
+    printlnBool(aht);
+    Serial.print(F("Has AS7341: "));
+    printlnBool(as7341);
 }

@@ -238,12 +238,12 @@ setupGasSensor() noexcept {
 }
 Adafruit_MCP9808 tempSensor0;
 volatile bool tempSensor0_found = false;
-volatile int tempSensor0_resolution = 3;
+constexpr int tempSensor0_defaultResolution = 3;
 void
 setupTempSensor0() noexcept {
     tempSensor0_found = tempSensor0.begin(0x18);
     if (tempSensor0_found) {
-        tempSensor0.setResolution(tempSensor0_resolution);
+        tempSensor0.setResolution(tempSensor0_defaultResolution);
     }
 }
 void 
@@ -1616,4 +1616,17 @@ banner() noexcept {
 
     Serial.print(F("Has seesaw: "));
     printlnBool(foundSeesaw);
+
+    Serial.print(F("Has MCP9808: "));
+    printlnBool(tempSensor0_found);
+
+    if (tempSensor0_found) {
+        Serial.print(F("\tSensor Resolution: "));
+        Serial.println(tempSensor0.getResolution());
+        tempSensor0.wake();
+        Serial.print(F("\tcurrent temperature: "));
+        float c = tempSensor0.readTempC();
+        Serial.print(c, 4); Serial.println(F("*C"));
+        tempSensor0.shutdown_wake(1);
+    }
 }

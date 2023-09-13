@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
+#include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1351.h>
 #include <Adafruit_EPD.h>
@@ -39,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_AHTX0.h>
 #include <Adafruit_AS7341.h>
 #include <hp_BH1750.h>
+#include <SparkFun_Alphanumeric_Display.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -331,6 +333,7 @@ OptionalDevice<Adafruit_MCP9808> tempSensor0(0x18, 3);
 OptionalDevice<Adafruit_AHTX0> aht;
 OptionalDevice<Adafruit_AS7341> as7341;
 OptionalDevice<hp_BH1750> bh1750;
+OptionalDevice<HT16K33> alpha7Display;
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -343,6 +346,7 @@ setupDevices() noexcept {
     clockgen.begin();
     tempSensor0.begin();
     bh1750.begin();
+    alpha7Display.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1697,6 +1701,30 @@ banner() noexcept {
     }
     Serial.print(F("Has Clock Generator (Si5351): "));
     printlnBool(clockgen);
+    if (clockgen) {
+        // taken from code example for Si5351
+        Serial.println(F("\tSetting PLLA to 900MHz"));
+        clockgen->setupPLLInt(SI5351_PLL_A, 36);
+        Serial.println(F("\tSet Output #0 to 112.5MHz"));
+        clockgen->setupMultisynthInt(0, SI5351_PLL_A, SI5351_MULTISYNTH_DIV_8);
+
+
+        // fractional mode display
+        // setup PLLB to 616.66667 MHz (XTAL * 24 + 2/3)
+        // setup multisynth 1 to 13.55311MHz (PLLB/45.5)
+        clockgen->setupPLL(SI5351_PLL_B, 24, 2, 3);
+        Serial.println(F("\tSet Output #1 to 13.553115MHz"));
+        clockgen->setupMultisynth(1, SI5351_PLL_B, 45, 1, 2);
+
+        Serial.println(F("\tSet Output #2 to 10.706 KHz"));
+        clockgen->setupMultisynth(2, SI5351_PLL_B, 900, 0, 1);
+        clockgen->setupRdiv(2, SI5351_R_DIV_64);
+
+        clockgen->enableOutputs(true);
+
+        delay(1000);
+        clockgen->enableOutputs(false);
+    }
     Serial.print(F("Has CCS811: "));
     printlnBool(ccs);
     if (ccs) {
@@ -1726,7 +1754,6 @@ banner() noexcept {
 
     Serial.print(F("Has MCP9808: "));
     printlnBool(tempSensor0);
-
     if (tempSensor0) {
         Serial.print(F("\tSensor Resolution: "));
         Serial.println(tempSensor0->getResolution());
@@ -1736,6 +1763,7 @@ banner() noexcept {
         Serial.print(c, 4); Serial.println(F("*C"));
         tempSensor0->shutdown_wake(1);
     }
+
     Serial.print(F("Has AHTx0: "));
     printlnBool(aht);
     if (aht) {
@@ -1751,14 +1779,14 @@ banner() noexcept {
     Serial.print(F("Has AS7341: "));
     printlnBool(as7341);
     if (as7341) {
-        Serial.println(F("4 mA LED blink"));
+        Serial.println(F("\t4 mA LED blink"));
         as7341->setLEDCurrent(4); // 4 mA
         as7341->enableLED(true);
         delay(100);
         as7341->enableLED(false);
         delay(500);
 
-        Serial.println(F("100 mA LED blink"));
+        Serial.println(F("\t100 mA LED blink"));
         as7341->setLEDCurrent(100); // 100mA
         as7341->enableLED(true);
         delay(100);
@@ -1771,5 +1799,14 @@ banner() noexcept {
         Serial.print(F("\tCurrent lux: "));
         bh1750->start();
         Serial.println(bh1750->getLux());
+    }
+    Serial.print(F("Has HT16K33: "));
+    printlnBool(alpha7Display);
+    if (alpha7Display) {
+        alpha7Display->printChar('i', 0);
+        alpha7Display->printChar('9', 1);
+        alpha7Display->printChar('6', 2);
+        alpha7Display->printChar('0', 3);
+        alpha7Display->updateDisplay();
     }
 }

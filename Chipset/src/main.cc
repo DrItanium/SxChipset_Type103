@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_SI5351.h>
 #include <Adafruit_CCS811.h>
 #include <RTClib.h>
+#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -131,6 +132,19 @@ volatile bool clockgenFound = false;
 
 Adafruit_CCS811 ccs;
 volatile bool ccsFound = false;
+
+SFE_MAX1704X lipo(MAX1704X_MAX17048); // Qwiic Fuel Gauge (SPARKX)
+volatile bool hasMAX17048 = false;
+volatile int max17048AlertThreshold = 20;
+
+void
+setupMAX17048() noexcept {
+    hasMAX17048 = lipo.begin();
+    if (hasMAX17048) {
+        lipo.quickStart();
+        lipo.setThreshold(max17048AlertThreshold); // set alert threshold to 20%
+    }
+}
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1454,6 +1468,7 @@ setupPlatform() noexcept {
     setupRTC();
     setupClockGenerator();
     setupGasSensor();
+    setupMAX17048();
 }
 
 CPUKind 
@@ -1534,6 +1549,12 @@ banner() {
     printlnBool(clockgenFound);
     Serial.print(F("Has CCS811: "));
     printlnBool(ccsFound);
+    Serial.print(F("Has MAX17048: "));
+    printlnBool(hasMAX17048);
+    if (hasMAX17048) {
+        Serial.print(F("\tAlert Threshold: "));
+        Serial.println(max17048AlertThreshold, DEC);
+    }
 }
 
 void

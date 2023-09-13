@@ -41,6 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_AS7341.h>
 #include <hp_BH1750.h>
 #include <SparkFun_Alphanumeric_Display.h>
+#include <Adafruit_PCF8591.h>
+
 
 #include "Detect.h"
 #include "Types.h"
@@ -324,6 +326,28 @@ struct OptionalDevice<hp_BH1750> {
         bool _found = false;
 };
 
+template<>
+struct OptionalDevice<Adafruit_PCF8591> {
+    using T = Adafruit_PCF8591;
+    T* operator->() noexcept { return &_device; }
+    const T* operator->() const noexcept { return &_device; }
+    T& operator*() noexcept { return getDevice(); }
+    const T& operator*() const noexcept { return getDevice(); }
+    explicit constexpr operator bool() const noexcept { return _found; }
+    constexpr bool found() const noexcept { return _found; }
+    T& getDevice() noexcept { return _device; }
+    const T& getDevice() const noexcept { return _device; }
+    void begin() noexcept {
+        _found = _device.begin();
+        if (_found) {
+            _device.enableDAC(true);
+        }
+    }
+    private:
+        T _device;
+        bool _found = false;
+};
+
 OptionalDevice<RTC_PCF8523> rtc;
 OptionalDevice<Adafruit_SI5351> clockgen;
 OptionalDevice<Adafruit_CCS811> ccs;
@@ -334,6 +358,7 @@ OptionalDevice<Adafruit_AHTX0> aht;
 OptionalDevice<Adafruit_AS7341> as7341;
 OptionalDevice<hp_BH1750> bh1750;
 OptionalDevice<HT16K33> alpha7Display;
+OptionalDevice<Adafruit_PCF8591> pcfADC_DAC;
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -347,6 +372,7 @@ setupDevices() noexcept {
     tempSensor0.begin();
     bh1750.begin();
     alpha7Display.begin();
+    pcfADC_DAC.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1809,4 +1835,6 @@ banner() noexcept {
         alpha7Display->printChar('0', 3);
         alpha7Display->updateDisplay();
     }
+    Serial.print(F("Has PCF8591: "));
+    printlnBool(pcfADC_DAC);
 }

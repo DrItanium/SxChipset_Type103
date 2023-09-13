@@ -30,6 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_EPD.h>
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_FT6206.h>
+#include <Adafruit_SI5351.h>
+#include <RTClib.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -90,7 +92,7 @@ constexpr auto getDisplayTechnology() noexcept {
         case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:
             return DisplayKind::TFT;
         case EnabledDisplays::SSD1680_EPaper_250_x_122_2_13:
-            return DisplayKind::EPaper,
+            return DisplayKind::EPaper;
         default:
             return DisplayKind::Unknown;
     }
@@ -118,6 +120,13 @@ Adafruit_ILI9341 tft_ILI9341(&SPI,
         EyeSpi::Pins::TFTCS, 
         EyeSpi::Pins::RST);
 Adafruit_FT6206 ts;
+
+RTC_PCF8523 rtc;
+volatile bool rtcFound = false;
+volatile bool rtcInitialized = false;
+
+Adafruit_SI5351 clockgen;
+volatile bool clockgenFound = false;
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1336,6 +1345,43 @@ setupDisplay() noexcept {
     }
     displayPrintln(F("i960"));
 }
+void
+setupRTC() noexcept {
+    rtcFound = rtc.begin();
+    if (rtcFound) {
+        if (!rtc.initialized() || rtc.lostPower()) {
+            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+            rtcInitialized = false;
+        } else {
+            rtcInitialized = true;
+        }
+        rtc.start();
+        // compensate for rtc drifiting (taken from the example program)
+        float drift = 43;  // plus or minus over observation period - set to 0
+                           // to cancel previous calibration
+        float periodSeconds = (7 * 86400); // total observation period in
+                                           // sections
+        float deviationPPM = (drift / periodSeconds * 1'000'000); // deviation
+                                                                  // in parts
+                                                                  // per
+                                                                  // million
+        float driftUnit = 4.34; // use with offset mode PCF8523_TwoHours
+
+        int offset = round(deviationPPM / driftUnit); 
+        rtc.calibrate(PCF8523_TwoHours, offset); // perform calibration once
+                                                 // drift (seconds) and
+                                                 // observation period (seconds)
+                                                 // are correct
+    }
+}
+void
+setupClockGenerator() noexcept {
+    if (clockgen.begin() != ERROR_NONE) {
+        clockgenFound = false;
+    } else {
+        clockgenFound = true;
+    }
+}
 void 
 setupPlatform() noexcept {
     static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
@@ -1397,6 +1443,8 @@ setupPlatform() noexcept {
     // select the CH351 bank chip to go over the xbus address lines
     ControlSignals.ctl.bankSelect = 0;
     setupDisplay();
+    setupRTC();
+    setupClockGenerator();
 }
 
 CPUKind 
@@ -1456,6 +1504,23 @@ banner() {
         default:
             Serial.println(F("Unknown (fallback to 32-bit)"));
             break;
+    }
+    Serial.print(F("Has RTC: "));
+    if (rtcFound) {
+        Serial.println(F("TRUE"));
+        if (rtcInitialized) {
+            Serial.println(F("RTC was already initialized"));
+        } else {
+            Serial.println(F("RTC needed to be initialized!"));
+        }
+    } else {
+        Serial.println(F("FALSE"));
+    }
+    Serial.print(F("Has Clock Generator (Si5351): "));
+    if (clockgenFound) {
+        Serial.println(F("TRUE"));
+    } else {
+        Serial.println(F("FALSE"));
     }
 }
 

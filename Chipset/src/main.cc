@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_CCS811.h>
 #include <RTClib.h>
 #include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h>
+#include <Adafruit_seesaw.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -144,6 +145,14 @@ setupMAX17048() noexcept {
         lipo.quickStart();
         lipo.setThreshold(max17048AlertThreshold); // set alert threshold to 20%
     }
+}
+
+Adafruit_seesaw seesaw;
+volatile bool foundSeesaw = false;
+
+void
+setupSeesaw() noexcept {
+    foundSeesaw = seesaw.begin();
 }
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
@@ -1469,6 +1478,7 @@ setupPlatform() noexcept {
     setupClockGenerator();
     setupGasSensor();
     setupMAX17048();
+    setupSeesaw();
 }
 
 CPUKind 
@@ -1483,8 +1493,41 @@ printlnBool(bool value) noexcept {
         Serial.println(F("FALSE"));
     }
 }
+void banner() noexcept;
+
 void
-banner() {
+setup() {
+    Serial.begin(115200);
+    SPI.begin();
+    Wire.begin();
+    setupPins();
+    // setup the IO Expanders
+    setupPlatform();
+    if constexpr (PrintBanner) {
+        banner();
+    }
+    // find firmware.bin and install it into the 512k block of memory
+    installMemoryImage();
+    pullCPUOutOfReset();
+}
+void 
+loop() {
+    switch (getBusWidth(getInstalledCPUKind())) {
+        case NativeBusWidth::Sixteen:
+            executionBody<NativeBusWidth::Sixteen>();
+            break;
+        case NativeBusWidth::ThirtyTwo:
+            executionBody<NativeBusWidth::ThirtyTwo>();
+            break;
+        default:
+            executionBody<NativeBusWidth::Unknown>();
+            break;
+    }
+}
+
+
+void
+banner() noexcept {
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
     Serial.println(F("Variant: Type 103 Narrow Wide"));
@@ -1555,35 +1598,7 @@ banner() {
         Serial.print(F("\tAlert Threshold: "));
         Serial.println(max17048AlertThreshold, DEC);
     }
-}
 
-void
-setup() {
-    Serial.begin(115200);
-    SPI.begin();
-    Wire.begin();
-    setupPins();
-    // setup the IO Expanders
-    setupPlatform();
-    if constexpr (PrintBanner) {
-        banner();
-    }
-    // find firmware.bin and install it into the 512k block of memory
-    installMemoryImage();
-    pullCPUOutOfReset();
+    Serial.print(F("Has seesaw: "));
+    printlnBool(foundSeesaw);
 }
-void 
-loop() {
-    switch (getBusWidth(getInstalledCPUKind())) {
-        case NativeBusWidth::Sixteen:
-            executionBody<NativeBusWidth::Sixteen>();
-            break;
-        case NativeBusWidth::ThirtyTwo:
-            executionBody<NativeBusWidth::ThirtyTwo>();
-            break;
-        default:
-            executionBody<NativeBusWidth::Unknown>();
-            break;
-    }
-}
-

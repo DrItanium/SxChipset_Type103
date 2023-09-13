@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_FT6206.h>
 #include <Adafruit_SI5351.h>
+#include <Adafruit_CCS811.h>
 #include <RTClib.h>
 
 #include "Detect.h"
@@ -127,6 +128,9 @@ volatile bool rtcInitialized = false;
 
 Adafruit_SI5351 clockgen;
 volatile bool clockgenFound = false;
+
+Adafruit_CCS811 ccs;
+volatile bool ccsFound = false;
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1382,6 +1386,10 @@ setupClockGenerator() noexcept {
         clockgenFound = true;
     }
 }
+void
+setupGasSensor() noexcept {
+    ccsFound = ccs.begin();
+}
 void 
 setupPlatform() noexcept {
     static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
@@ -1445,13 +1453,21 @@ setupPlatform() noexcept {
     setupDisplay();
     setupRTC();
     setupClockGenerator();
+    setupGasSensor();
 }
 
 CPUKind 
 getInstalledCPUKind() noexcept { 
     return static_cast<CPUKind>(ControlSignals.ctl.cfg); 
 }
-
+void
+printlnBool(bool value) noexcept {
+    if (value) {
+        Serial.println(F("TRUE"));
+    } else {
+        Serial.println(F("FALSE"));
+    }
+}
 void
 banner() {
     Serial.println(F("i960 Chipset"));
@@ -1506,22 +1522,18 @@ banner() {
             break;
     }
     Serial.print(F("Has RTC: "));
+    printlnBool(rtcFound);
     if (rtcFound) {
-        Serial.println(F("TRUE"));
         if (rtcInitialized) {
-            Serial.println(F("RTC was already initialized"));
+            Serial.println(F("\tRTC was already initialized"));
         } else {
-            Serial.println(F("RTC needed to be initialized!"));
+            Serial.println(F("\tRTC needed to be initialized!"));
         }
-    } else {
-        Serial.println(F("FALSE"));
     }
     Serial.print(F("Has Clock Generator (Si5351): "));
-    if (clockgenFound) {
-        Serial.println(F("TRUE"));
-    } else {
-        Serial.println(F("FALSE"));
-    }
+    printlnBool(clockgenFound);
+    Serial.print(F("Has CCS811: "));
+    printlnBool(ccsFound);
 }
 
 void

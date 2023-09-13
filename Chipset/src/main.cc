@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <RTClib.h>
 #include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h>
 #include <Adafruit_seesaw.h>
+#include <Adafruit_MCP9808.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -154,7 +155,107 @@ void
 setupSeesaw() noexcept {
     foundSeesaw = seesaw.begin();
 }
+template<typename T>
+void
+displayPrintln(T value) noexcept {
+    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
+        oled.println(value);
+        oled.enableDisplay(true);
+    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
+        epaperDisplay213.println(value);
+        epaperDisplay213.display();
+    } else if constexpr (ActiveDisplay == EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS) {
+        tft_ILI9341.println(value);
+    }
+}
 
+
+void
+setupDisplay() noexcept {
+    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
+        oled.begin();
+        oled.setFont();
+        oled.fillScreen(0);
+        oled.setTextColor(0xFFFF);
+        oled.setTextSize(1);
+    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
+        epaperDisplay213.begin();
+        epaperDisplay213.clearBuffer();
+        epaperDisplay213.setCursor(0, 0);
+        epaperDisplay213.setTextColor(EPAPER_COLOR_BLACK);
+        epaperDisplay213.setTextWrap(true);
+        epaperDisplay213.setTextSize(2);
+    } else if constexpr (ActiveDisplay == EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS) {
+        ts.begin();
+        tft_ILI9341.begin();
+        tft_ILI9341.fillScreen(ILI9341_BLACK);
+        tft_ILI9341.setCursor(0, 0);
+        tft_ILI9341.setTextColor(ILI9341_WHITE);  
+        tft_ILI9341.setTextSize(2);
+    }
+    displayPrintln(F("i960"));
+}
+void
+setupRTC() noexcept {
+    rtcFound = rtc.begin();
+    if (rtcFound) {
+        if (!rtc.initialized() || rtc.lostPower()) {
+            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+            rtcInitialized = false;
+        } else {
+            rtcInitialized = true;
+        }
+        rtc.start();
+        // compensate for rtc drifiting (taken from the example program)
+        float drift = 43;  // plus or minus over observation period - set to 0
+                           // to cancel previous calibration
+        float periodSeconds = (7 * 86400); // total observation period in
+                                           // sections
+        float deviationPPM = (drift / periodSeconds * 1'000'000); // deviation
+                                                                  // in parts
+                                                                  // per
+                                                                  // million
+        float driftUnit = 4.34; // use with offset mode PCF8523_TwoHours
+
+        int offset = round(deviationPPM / driftUnit); 
+        rtc.calibrate(PCF8523_TwoHours, offset); // perform calibration once
+                                                 // drift (seconds) and
+                                                 // observation period (seconds)
+                                                 // are correct
+    }
+}
+void
+setupClockGenerator() noexcept {
+    if (clockgen.begin() != ERROR_NONE) {
+        clockgenFound = false;
+    } else {
+        clockgenFound = true;
+    }
+}
+void
+setupGasSensor() noexcept {
+    ccsFound = ccs.begin();
+}
+Adafruit_MCP9808 tempSensor0;
+volatile bool tempSensor0_found = false;
+volatile int tempSensor0_resolution = 3;
+void
+setupTempSensor0() noexcept {
+    tempSensor0_found = tempSensor0.begin(0x18);
+    if (tempSensor0_found) {
+        tempSensor0.setResolution(tempSensor0_resolution);
+    }
+}
+void 
+setupDevices() noexcept {
+    setupDisplay();
+    setupRTC();
+    setupClockGenerator();
+    setupGasSensor();
+    setupMAX17048();
+    setupSeesaw();
+    setupTempSensor0();
+}
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
@@ -1332,87 +1433,6 @@ setupPins() noexcept {
     // setup bank capture to read in address lines
     getDirectionRegister<Port::BankCapture>() = 0;
 }
-template<typename T>
-void
-displayPrintln(T value) noexcept {
-    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
-        oled.println(value);
-        oled.enableDisplay(true);
-    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
-        epaperDisplay213.println(value);
-        epaperDisplay213.display();
-    } else if constexpr (ActiveDisplay == EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS) {
-        tft_ILI9341.println(value);
-    }
-}
-
-
-void
-setupDisplay() noexcept {
-    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
-        oled.begin();
-        oled.setFont();
-        oled.fillScreen(0);
-        oled.setTextColor(0xFFFF);
-        oled.setTextSize(1);
-    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
-        epaperDisplay213.begin();
-        epaperDisplay213.clearBuffer();
-        epaperDisplay213.setCursor(0, 0);
-        epaperDisplay213.setTextColor(EPAPER_COLOR_BLACK);
-        epaperDisplay213.setTextWrap(true);
-        epaperDisplay213.setTextSize(2);
-    } else if constexpr (ActiveDisplay == EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS) {
-        ts.begin();
-        tft_ILI9341.begin();
-        tft_ILI9341.fillScreen(ILI9341_BLACK);
-        tft_ILI9341.setCursor(0, 0);
-        tft_ILI9341.setTextColor(ILI9341_WHITE);  
-        tft_ILI9341.setTextSize(2);
-    }
-    displayPrintln(F("i960"));
-}
-void
-setupRTC() noexcept {
-    rtcFound = rtc.begin();
-    if (rtcFound) {
-        if (!rtc.initialized() || rtc.lostPower()) {
-            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-            rtcInitialized = false;
-        } else {
-            rtcInitialized = true;
-        }
-        rtc.start();
-        // compensate for rtc drifiting (taken from the example program)
-        float drift = 43;  // plus or minus over observation period - set to 0
-                           // to cancel previous calibration
-        float periodSeconds = (7 * 86400); // total observation period in
-                                           // sections
-        float deviationPPM = (drift / periodSeconds * 1'000'000); // deviation
-                                                                  // in parts
-                                                                  // per
-                                                                  // million
-        float driftUnit = 4.34; // use with offset mode PCF8523_TwoHours
-
-        int offset = round(deviationPPM / driftUnit); 
-        rtc.calibrate(PCF8523_TwoHours, offset); // perform calibration once
-                                                 // drift (seconds) and
-                                                 // observation period (seconds)
-                                                 // are correct
-    }
-}
-void
-setupClockGenerator() noexcept {
-    if (clockgen.begin() != ERROR_NONE) {
-        clockgenFound = false;
-    } else {
-        clockgenFound = true;
-    }
-}
-void
-setupGasSensor() noexcept {
-    ccsFound = ccs.begin();
-}
 void 
 setupPlatform() noexcept {
     static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
@@ -1473,12 +1493,7 @@ setupPlatform() noexcept {
     ControlSignals.ctl.xint7 = 1;
     // select the CH351 bank chip to go over the xbus address lines
     ControlSignals.ctl.bankSelect = 0;
-    setupDisplay();
-    setupRTC();
-    setupClockGenerator();
-    setupGasSensor();
-    setupMAX17048();
-    setupSeesaw();
+    setupDevices();
 }
 
 CPUKind 

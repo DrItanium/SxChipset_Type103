@@ -1716,18 +1716,17 @@ banner() noexcept {
             Serial.println(F("Unknown (fallback to 32-bit)"));
             break;
     }
-    Serial.print(F("Has RTC: "));
-    printlnBool(rtc);
+    Serial.println(F("Optional Devices List (i2c)"));
     if (rtc.found()) {
+        Serial.println(F("Found RTC (PCF8523)"));
         if (rtc.initialized()) {
             Serial.println(F("\tRTC was already initialized"));
         } else {
             Serial.println(F("\tRTC needed to be initialized!"));
         }
     }
-    Serial.print(F("Has Clock Generator (Si5351): "));
-    printlnBool(clockgen);
     if (clockgen) {
+        Serial.println(F("Found Si5351 Clock Generator"));
         // taken from code example for Si5351
         Serial.println(F("\tSetting PLLA to 900MHz"));
         clockgen->setupPLLInt(SI5351_PLL_A, 36);
@@ -1751,9 +1750,8 @@ banner() noexcept {
         delay(1000);
         clockgen->enableOutputs(false);
     }
-    Serial.print(F("Has CCS811: "));
-    printlnBool(ccs);
     if (ccs) {
+        Serial.println(F("Found CCS811"));
         if (ccs->available()) {
             if (!ccs->readData()) {
                  Serial.print(F("\tCO2: "));
@@ -1768,19 +1766,17 @@ banner() noexcept {
             Serial.println(F("\tCCS811 isn't available yet!"));
         }
     }
-    Serial.print(F("Has MAX17048: "));
-    printlnBool(lipo);
     if (lipo) {
+        Serial.println(F("Found MAX17048"));
         Serial.print(F("\tAlert Threshold: "));
         Serial.println(lipo->getThreshold(), DEC);
     }
+    if (seesaw) {
+        Serial.println(F("Found seesaw"));
+    }
 
-    Serial.print(F("Has seesaw: "));
-    printlnBool(seesaw);
-
-    Serial.print(F("Has MCP9808: "));
-    printlnBool(tempSensor0);
     if (tempSensor0) {
+        Serial.println(F("Found MCP9808"));
         Serial.print(F("\tSensor Resolution: "));
         Serial.println(tempSensor0->getResolution());
         tempSensor0->wake();
@@ -1790,9 +1786,8 @@ banner() noexcept {
         tempSensor0->shutdown_wake(1);
     }
 
-    Serial.print(F("Has AHTx0: "));
-    printlnBool(aht);
     if (aht) {
+        Serial.println(F("Found AHTx0"));
         sensors_event_t humidity, temperature;
         aht->getEvent(&humidity, &temperature);
         Serial.print(F("\tTemperature: "));
@@ -1802,9 +1797,8 @@ banner() noexcept {
         Serial.print(humidity.relative_humidity);
         Serial.println(F("% rH"));
     }
-    Serial.print(F("Has AS7341: "));
-    printlnBool(as7341);
     if (as7341) {
+        Serial.println(F("Found AS7341"));
         Serial.println(F("\t4 mA LED blink"));
         as7341->setLEDCurrent(4); // 4 mA
         as7341->enableLED(true);
@@ -1819,22 +1813,22 @@ banner() noexcept {
         as7341->enableLED(false);
         delay(500);
     }
-    Serial.print(F("Has BH1750: "));
-    printlnBool(bh1750);
     if (bh1750) {
+        Serial.println(F("Found BH1750"));
         Serial.print(F("\tCurrent lux: "));
         bh1750->start();
         Serial.println(bh1750->getLux());
     }
-    Serial.print(F("Has HT16K33: "));
-    printlnBool(alpha7Display);
     if (alpha7Display) {
+        Serial.println(F("Found HT16K33"));
         alpha7Display->printChar('i', 0);
         alpha7Display->printChar('9', 1);
         alpha7Display->printChar('6', 2);
         alpha7Display->printChar('0', 3);
         alpha7Display->updateDisplay();
     }
-    Serial.print(F("Has PCF8591: "));
-    printlnBool(pcfADC_DAC);
+    if (pcfADC_DAC) {
+        Serial.println(F("Found PCF8591"));
+        /// @todo implement demo version?
+    }
 }

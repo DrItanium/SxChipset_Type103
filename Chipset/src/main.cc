@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_MCP9808.h>
 #include <Adafruit_AHTX0.h>
 #include <Adafruit_AS7341.h>
+#include <hp_BH1750.h>
 
 #include "Detect.h"
 #include "Types.h"
@@ -256,11 +257,6 @@ struct OptionalDevice<Adafruit_SI5351> {
         T _device;
         bool _found = false;
 };
-OptionalDevice<RTC_PCF8523> rtc;
-OptionalDevice<Adafruit_SI5351> clockgen;
-OptionalDevice<Adafruit_CCS811> ccs;
-OptionalDevice<SFE_MAX1704X> lipo(MAX1704X_MAX17048); // Qwiic Fuel Gauge (SPARKX)
-OptionalDevice<Adafruit_seesaw> seesaw;
 
 template<>
 struct OptionalDevice<Adafruit_MCP9808> {
@@ -284,10 +280,29 @@ struct OptionalDevice<Adafruit_MCP9808> {
         bool _found = false;
 };
 
-OptionalDevice<Adafruit_MCP9808> tempSensor0(0x18, 3);
+template<>
+struct OptionalDevice<hp_BH1750> {
+    using T = hp_BH1750;
+    constexpr bool found() const noexcept { return _found; }
+    T& getDevice() noexcept { return _device; }
+    const T& getDevice() const noexcept { return _device; }
+    void begin() noexcept {
+        _found = _device.begin(BH1750_TO_GROUND);
+    }
+    private:
+        T _device;
+        bool _found = false;
+};
 
+OptionalDevice<RTC_PCF8523> rtc;
+OptionalDevice<Adafruit_SI5351> clockgen;
+OptionalDevice<Adafruit_CCS811> ccs;
+OptionalDevice<SFE_MAX1704X> lipo(MAX1704X_MAX17048); // Qwiic Fuel Gauge (SPARKX)
+OptionalDevice<Adafruit_seesaw> seesaw;
+OptionalDevice<Adafruit_MCP9808> tempSensor0(0x18, 3);
 OptionalDevice<Adafruit_AHTX0> aht;
 OptionalDevice<Adafruit_AS7341> as7341;
+OptionalDevice<hp_BH1750> bh1750;
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -299,6 +314,7 @@ setupDevices() noexcept {
     ccs.begin();
     clockgen.begin();
     tempSensor0.begin();
+    bh1750.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1681,4 +1697,12 @@ banner() noexcept {
     printlnBool(aht);
     Serial.print(F("Has AS7341: "));
     printlnBool(as7341);
+    Serial.print(F("Has BH1750: "));
+    printlnBool(bh1750);
+    if (bh1750.found()) {
+        Serial.print(F("\tCurrent lux: "));
+        bh1750.getDevice().start();
+        float lux = bh1750.getDevice().getLux();
+        Serial.println(lux);
+    }
 }

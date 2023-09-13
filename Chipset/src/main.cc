@@ -131,8 +131,13 @@ Adafruit_FT6206 ts;
 template<typename T>
 struct OptionalDevice {
     constexpr bool found() const noexcept { return _found; }
+    T* operator->() noexcept { return &_device; }
+    const T* operator->() const noexcept { return &_device; }
     T& getDevice() noexcept { return _device; }
     const T& getDevice() const noexcept { return _device; }
+    T& operator*() noexcept { return getDevice(); }
+    const T& operator*() const noexcept { return getDevice(); }
+    explicit constexpr operator bool() const noexcept { return _found; }
     void begin() noexcept {
         _found = _device.begin();
     }
@@ -143,6 +148,12 @@ struct OptionalDevice {
 
 template<>
 struct OptionalDevice<RTC_PCF8523> {
+    using T = RTC_PCF8523;
+    T* operator->() noexcept { return &_device; }
+    const T* operator->() const noexcept { return &_device; }
+    T& operator*() noexcept { return getDevice(); }
+    const T& operator*() const noexcept { return getDevice(); }
+    explicit constexpr operator bool() const noexcept { return _found; }
     constexpr bool found() const noexcept { return _found; }
     constexpr bool initialized() const noexcept { return _initialized; }
     RTC_PCF8523& getDevice() noexcept { return _device; }
@@ -183,13 +194,17 @@ struct OptionalDevice<RTC_PCF8523> {
 
 template<>
 struct OptionalDevice<SFE_MAX1704X> {
+    using T = SFE_MAX1704X;
+    T* operator->() noexcept { return &_device; }
+    const T* operator->() const noexcept { return &_device; }
+    T& operator*() noexcept { return getDevice(); }
+    const T& operator*() const noexcept { return getDevice(); }
+    constexpr operator bool() const noexcept { return _found; }
     void setFound(bool found) noexcept { _found = found; }
     constexpr bool found() const noexcept { return _found; }
     SFE_MAX1704X& getDevice() noexcept { return _device; }
     const SFE_MAX1704X& getDevice() const noexcept { return _device; }
     OptionalDevice(decltype(MAX1704X_MAX17048) kind, int alertThreshold = 20) : _device(kind), _defaultAlertThreshold(alertThreshold) { }
-    auto getAlertThreshold() noexcept { return _device.getThreshold(); }
-    void setAlertThreshold(int value) noexcept { _device.setThreshold(value); }
     void begin() noexcept {
         _found = _device.begin();
         if (_found) {
@@ -247,6 +262,9 @@ setupDisplay() noexcept {
 template<>
 struct OptionalDevice<Adafruit_SI5351> {
     using T = Adafruit_SI5351;
+    T* operator->() noexcept { return &_device; }
+    const T* operator->() const noexcept { return &_device; }
+    explicit constexpr operator bool() const noexcept { return _found; }
     constexpr bool found() const noexcept { return _found; }
     T& getDevice() noexcept { return _device; }
     const T& getDevice() const noexcept { return _device; }
@@ -261,6 +279,11 @@ struct OptionalDevice<Adafruit_SI5351> {
 template<>
 struct OptionalDevice<Adafruit_MCP9808> {
     using T = Adafruit_MCP9808;
+    T* operator->() noexcept { return &_device; }
+    const T* operator->() const noexcept { return &_device; }
+    T& operator*() noexcept { return getDevice(); }
+    const T& operator*() const noexcept { return getDevice(); }
+    explicit constexpr operator bool() const noexcept { return _found; }
     constexpr bool found() const noexcept { return _found; }
     constexpr auto getDeviceIndex() const noexcept { return _deviceIndex; }
     constexpr auto getDefaultResolution() const noexcept { return _defaultResolution; }
@@ -283,6 +306,11 @@ struct OptionalDevice<Adafruit_MCP9808> {
 template<>
 struct OptionalDevice<hp_BH1750> {
     using T = hp_BH1750;
+    T* operator->() noexcept { return &_device; }
+    const T* operator->() const noexcept { return &_device; }
+    T& operator*() noexcept { return getDevice(); }
+    const T& operator*() const noexcept { return getDevice(); }
+    explicit constexpr operator bool() const noexcept { return _found; }
     constexpr bool found() const noexcept { return _found; }
     T& getDevice() noexcept { return _device; }
     const T& getDevice() const noexcept { return _device; }
@@ -1599,9 +1627,9 @@ loop() {
             break;
     }
 }
+
 template<typename T>
-void
-printlnBool(const T& value) noexcept {
+void printlnBool(const T& value) noexcept {
     printlnBool(value.found());
 }
 
@@ -1671,11 +1699,26 @@ banner() noexcept {
     printlnBool(clockgen);
     Serial.print(F("Has CCS811: "));
     printlnBool(ccs);
+    if (ccs) {
+        if (ccs->available()) {
+            if (!ccs->readData()) {
+                 Serial.print(F("\tCO2: "));
+                 Serial.print(ccs->geteCO2());
+                 Serial.println(F("ppm"));
+                 Serial.print(F("\tTVOC: "));
+                 Serial.println(ccs->getTVOC());
+            } else {
+                Serial.println(F("\tERROR While attempting to read from CCS811"));
+            }
+        } else {
+            Serial.println(F("\tCCS811 isn't available yet!"));
+        }
+    }
     Serial.print(F("Has MAX17048: "));
     printlnBool(lipo);
-    if (lipo.found()) {
+    if (lipo) {
         Serial.print(F("\tAlert Threshold: "));
-        Serial.println(lipo.getAlertThreshold(), DEC);
+        Serial.println(lipo->getThreshold(), DEC);
     }
 
     Serial.print(F("Has seesaw: "));
@@ -1684,25 +1727,49 @@ banner() noexcept {
     Serial.print(F("Has MCP9808: "));
     printlnBool(tempSensor0);
 
-    if (tempSensor0.found()) {
+    if (tempSensor0) {
         Serial.print(F("\tSensor Resolution: "));
-        Serial.println(tempSensor0.getDevice().getResolution());
-        tempSensor0.getDevice().wake();
+        Serial.println(tempSensor0->getResolution());
+        tempSensor0->wake();
         Serial.print(F("\tcurrent temperature: "));
-        float c = tempSensor0.getDevice().readTempC();
+        float c = tempSensor0->readTempC();
         Serial.print(c, 4); Serial.println(F("*C"));
-        tempSensor0.getDevice().shutdown_wake(1);
+        tempSensor0->shutdown_wake(1);
     }
     Serial.print(F("Has AHTx0: "));
     printlnBool(aht);
+    if (aht) {
+        sensors_event_t humidity, temperature;
+        aht->getEvent(&humidity, &temperature);
+        Serial.print(F("\tTemperature: "));
+        Serial.print(temperature.temperature);
+        Serial.println(F(" degrees C"));
+        Serial.print(F("\tHumidity: "));
+        Serial.print(humidity.relative_humidity);
+        Serial.println(F("% rH"));
+    }
     Serial.print(F("Has AS7341: "));
     printlnBool(as7341);
+    if (as7341) {
+        Serial.println(F("4 mA LED blink"));
+        as7341->setLEDCurrent(4); // 4 mA
+        as7341->enableLED(true);
+        delay(100);
+        as7341->enableLED(false);
+        delay(500);
+
+        Serial.println(F("100 mA LED blink"));
+        as7341->setLEDCurrent(100); // 100mA
+        as7341->enableLED(true);
+        delay(100);
+        as7341->enableLED(false);
+        delay(500);
+    }
     Serial.print(F("Has BH1750: "));
     printlnBool(bh1750);
-    if (bh1750.found()) {
+    if (bh1750) {
         Serial.print(F("\tCurrent lux: "));
-        bh1750.getDevice().start();
-        float lux = bh1750.getDevice().getLux();
-        Serial.println(lux);
+        bh1750->start();
+        Serial.println(bh1750->getLux());
     }
 }

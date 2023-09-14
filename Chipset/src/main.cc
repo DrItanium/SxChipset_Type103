@@ -352,16 +352,42 @@ struct OptionalDevice<Adafruit_PCF8591> {
         T _device;
         bool _found = false;
 };
-template<typename C>
-class CaptiveOptionalDevice {
-    public:
-        using Child = C;
-        constexpr bool found() const noexcept { return static_cast<C*>(this)->wasFound(); }
-        explicit constexpr operator bool() const noexcept { return found(); }
-};
 class GamepadQT {
     public:
+        enum class Buttons {
+            X = 6,
+            Y = 2,
+            A = 5,
+            B = 1,
+            Select = 0,
+            Start = 16,
+        };
+        static constexpr uint32_t ButtonMask = 
+            (1UL << static_cast<uint32_t>(Buttons::X)) |
+            (1UL << static_cast<uint32_t>(Buttons::Y)) |
+            (1UL << static_cast<uint32_t>(Buttons::Start)) |
+            (1UL << static_cast<uint32_t>(Buttons::A)) |
+            (1UL << static_cast<uint32_t>(Buttons::B)) |
+            (1UL << static_cast<uint32_t>(Buttons::Select));
+    public:
+        GamepadQT(uint8_t index) : _index(index) { }
+        bool begin() noexcept {
+            if (!_device.begin(_index)) {
+                return false;
+            }
+            uint32_t version = (_device.getVersion() >> 16) & 0xFFFF;
+            if (version != 5743) {
+                return false;
+            }
+            _device.pinModeBulk(ButtonMask, INPUT_PULLUP);
+            _device.setGPIOInterrupts(ButtonMask, 1);
+            // optionally we can hook this up to an IRQ_PIN if desired
+        }
+        int getJoystickX() noexcept { return _device.analogRead(14); }
+        int getJoystickY() noexcept { return _device.analogRead(15); }
+        uint32_t getButtons() noexcept { return _device.digitalReadBulk(ButtonMask); }
     private:
+        uint8_t _index;
         Adafruit_seesaw _device;
 };
 

@@ -420,43 +420,36 @@ class GamepadQT : public SeesawDevice<GamepadQT> {
         [[nodiscard]] ButtonResults getButtons() noexcept { return ButtonResults{underlyingDevice().digitalReadBulk(ButtonMask) }; }
 };
 
-class NeoSlider {
+class NeoSlider : public SeesawDevice<NeoSlider> {
     public:
         static constexpr auto DefaultI2CAddress = 0x30;
         static constexpr auto AnalogIn = 18;
         static constexpr auto NeoPixelOut = 14;
         static constexpr auto NeoPixelCount = 4;
-        NeoSlider(uint8_t index = DefaultI2CAddress) noexcept : _address(index) { }
-        [[nodiscard]] constexpr auto getAddress() const noexcept { return _address; }
+        using Parent = SeesawDevice<NeoSlider>;
+        NeoSlider(uint8_t index = DefaultI2CAddress) noexcept : Parent(index) { }
         [[nodiscard]] constexpr auto getPID() const noexcept { return _pid; }
         [[nodiscard]] constexpr auto getYear() const noexcept { return _year; }
         [[nodiscard]] constexpr auto getMonth() const noexcept { return _mon; }
         [[nodiscard]] constexpr auto getDay() const noexcept { return _day; }
-        [[nodiscard]] auto readSliderValue() noexcept { return _device.analogRead(AnalogIn); }
-        [[nodiscard]] auto& getSliderObject() noexcept { return _device; }
-        [[nodiscard]] const auto& getSliderObject() const noexcept { return _device; }
-        [[nodiscard]] auto& getPixelObject() noexcept { return _pixels; }
-        [[nodiscard]] const auto& getPixelObject() const noexcept { return _pixels; }
+        [[nodiscard]] auto readSliderValue() noexcept { return underlyingDevice().analogRead(AnalogIn); }
+        [[nodiscard]] auto& pixelDevice() noexcept { return _pixels; }
+        [[nodiscard]] const auto& pixelDevice() const noexcept { return _pixels; }
         
-        bool begin() noexcept {
-            if (!_device.begin(_address)) {
-                return false;
-            }
-            _device.getProdDatecode(&_pid, &_year, &_mon, &_day);
+        [[nodiscard]] bool begin_impl() noexcept {
+            underlyingDevice().getProdDatecode(&_pid, &_year, &_mon, &_day);
             if (_pid != 5295) {
                 return false;
             }
-            if (!_pixels.begin(_address)) {
+            if (!_pixels.begin(getAddress())) {
                 return false;
             }
 
             return true;
         }
     private:
-        uint8_t _address;
         uint16_t _pid;
         uint8_t _year, _mon, _day;
-        Adafruit_seesaw _device;
         seesaw_NeoPixel _pixels{NeoPixelCount, NeoPixelOut, NEO_GRB + NEO_KHZ800};
 };
 

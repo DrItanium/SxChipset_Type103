@@ -90,6 +90,7 @@ constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 constexpr bool UseOldAuxHardwareBoard = true;
+constexpr bool SupportDirectControlSignalConnection = true;
 
 static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
 
@@ -1696,9 +1697,9 @@ installMemoryImage() noexcept {
 }
 void 
 setupPins() noexcept {
-    // power down the ADC, TWI, and USART3
+    // power down the ADC and USART3
     // currently we can't use them
-    PRR0 = 0b0000'0001; // deactivate TWI and ADC
+    PRR0 = 0b0000'0001; // deactivate ADC
     PRR1 = 0b00000'100; // deactivate USART3
 
     // enable interrupt pin output
@@ -1807,6 +1808,14 @@ void banner() noexcept;
 
 void
 setup() {
+    int32_t seed = 0;
+#define X(value) seed += analogRead(value) 
+    X(A0); X(A1); X(A2); X(A3);
+    X(A4); X(A5); X(A6); X(A7);
+    X(A8); X(A9); X(A10); X(A11);
+    X(A12); X(A13); X(A14); X(A15);
+#undef X
+    randomSeed(seed);
     Serial.begin(115200);
     SPI.begin();
     Wire.begin();

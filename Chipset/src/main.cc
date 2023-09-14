@@ -43,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SparkFun_Alphanumeric_Display.h>
 #include <Adafruit_PCF8591.h>
 #include <Adafruit_DS1841.h>
+#include <Adafruit_LTR390.h>
 
 
 #include "Detect.h"
@@ -349,6 +350,7 @@ struct OptionalDevice<Adafruit_PCF8591> {
         bool _found = false;
 };
 
+
 OptionalDevice<RTC_PCF8523> rtc;
 OptionalDevice<Adafruit_SI5351> clockgen;
 OptionalDevice<Adafruit_CCS811> ccs;
@@ -361,6 +363,7 @@ OptionalDevice<hp_BH1750> bh1750;
 OptionalDevice<HT16K33> alpha7Display;
 OptionalDevice<Adafruit_PCF8591> pcfADC_DAC;
 OptionalDevice<Adafruit_DS1841> ds;
+OptionalDevice<Adafruit_LTR390> ltr;
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -376,6 +379,7 @@ setupDevices() noexcept {
     alpha7Display.begin();
     pcfADC_DAC.begin();
     ds.begin();
+    ltr.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;

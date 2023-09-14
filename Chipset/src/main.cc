@@ -1841,6 +1841,7 @@ setup() {
     setupPins();
     // setup the IO Expanders
     setupPlatform();
+    putCPUInReset();
     if constexpr (PrintBanner) {
         banner();
     }

@@ -89,7 +89,7 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
-constexpr bool UseOldAuxHardwareBoard = true;
+constexpr bool UseOldAuxHardwareBoard = false;
 constexpr bool SupportDirectControlSignalConnection = true;
 
 static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");

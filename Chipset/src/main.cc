@@ -148,6 +148,8 @@ struct OptionalDevice {
     T& operator*() noexcept { return getDevice(); }
     const T& operator*() const noexcept { return getDevice(); }
     explicit constexpr operator bool() const noexcept { return _found; }
+    template<typename ... Args>
+    OptionalDevice(Args&& ... parameters) : _device(parameters...) { }
     void begin() noexcept {
         _found = _device.begin();
     }
@@ -467,6 +469,34 @@ OptionalDevice<Adafruit_LTR390> ltr;
 OptionalDevice<Adafruit_APDS9960> apds;
 OptionalDevice<Adafruit_EMC2101> fan0;
 OptionalDevice<Adafruit_Si7021> si7021;
+OptionalDevice<NeoSlider> sliders[16] { 
+#define X(offset) { 0x30 + offset }
+    X(0),
+    X(1),
+    X(2),
+    X(3),
+    X(4),
+    X(5),
+    X(6),
+    X(7),
+    X(8),
+    X(9),
+    X(10),
+    X(11),
+    X(12),
+    X(13),
+    X(14),
+    X(15),
+#undef X
+};
+OptionalDevice<GamepadQT> gamepads[4] {
+#define X(offset) { 0x50 + offset } 
+X(0),
+X(1),
+X(2),
+X(3),
+#undef X
+};
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -486,6 +516,12 @@ setupDevices() noexcept {
     apds.begin();
     fan0.begin();
     si7021.begin();
+    for (auto& a : sliders) {
+        a.begin();
+    }
+    for (auto& a : gamepads) {
+        a.begin();
+    }
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;

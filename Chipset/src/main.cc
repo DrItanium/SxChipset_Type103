@@ -467,7 +467,7 @@ class PCJoystickPort : public SeesawDevice<PCJoystickPort, 5753> {
             uint32_t _value;
         };
         using Parent = SeesawDevice<PCJoystickPort, 5753>;
-        PCJoystickPort(uint8_t index = DefaultI2CAddress) noexcept : Parent(index) { }
+        PCJoystickPort() noexcept : Parent(DefaultI2CAddress) { }
         [[nodiscard]] bool begin_impl() noexcept {
             pinModeBulk(ButtonMask, INPUT_PULLUP);
             setGPIOInterrupts(ButtonMask, 1);
@@ -514,6 +514,7 @@ X(2),
 X(3),
 #undef X
 };
+OptionalDevice<PCJoystickPort> joystick;
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -539,6 +540,7 @@ setupDevices() noexcept {
     for (auto& a : gamepads) {
         a.begin();
     }
+    joystick.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;

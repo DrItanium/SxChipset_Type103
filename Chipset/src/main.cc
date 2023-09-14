@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_DS1841.h>
 #include <Adafruit_LTR390.h>
 #include <Adafruit_APDS9960.h>
+#include <Adafruit_EMC2101.h>
 
 
 #include "Detect.h"
@@ -366,6 +367,7 @@ OptionalDevice<Adafruit_PCF8591> pcfADC_DAC;
 OptionalDevice<Adafruit_DS1841> ds;
 OptionalDevice<Adafruit_LTR390> ltr;
 OptionalDevice<Adafruit_APDS9960> apds;
+OptionalDevice<Adafruit_EMC2101> fan0;
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -383,6 +385,7 @@ setupDevices() noexcept {
     ds.begin();
     ltr.begin();
     apds.begin();
+    fan0.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1856,6 +1859,16 @@ banner() noexcept {
         delay(1000);
         ds->setWiper(0);
     }
-    /// @todo LTR390 display / test
-    /// @todo APDS9960 display / test
+    if (ltr) {
+        Serial.println(F("Found LTR390"));
+        /// @todo LTR390 display / test
+    }
+    if (apds) {
+        Serial.println(F("Found APDS9960"));
+        /// @todo APDS9960 display / test
+    }
+    if (fan0) {
+        Serial.println(F("Found EMC2101"));
+        /// @todo elaborate
+    }
 }

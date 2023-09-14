@@ -678,6 +678,17 @@ inline uint8_t getDataByte() noexcept {
         return 0;
     }
 }
+template<uint8_t value>
+[[gnu::always_inline]]
+inline 
+void 
+updateDataLinesDirection() noexcept {
+    dataLinesDirection_bytes[0] = value;
+    dataLinesDirection_bytes[1] = value;
+    dataLinesDirection_bytes[2] = value;
+    dataLinesDirection_bytes[3] = value;
+}
+
 /**
  * @brief Just go through the motions of a write operation but do not capture
  * anything being sent by the i960
@@ -1540,17 +1551,6 @@ static void doIO() noexcept {
 
 
 
-template<uint8_t value>
-[[gnu::always_inline]]
-inline 
-void 
-updateDataLinesDirection() noexcept {
-    dataLinesDirection_bytes[0] = value;
-    dataLinesDirection_bytes[1] = value;
-    dataLinesDirection_bytes[2] = value;
-    dataLinesDirection_bytes[3] = value;
-}
-
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -1737,6 +1737,9 @@ setupPins() noexcept {
         pinMode(Pin::CFG0, INPUT);
         pinMode(Pin::CFG1, INPUT);
         pinMode(Pin::CFG2, INPUT);
+
+        pinMode(Pin::BusQueryEnable, OUTPUT);
+        digitalWrite<Pin::BusQueryEnable, HIGH>();
     }
 }
 void

@@ -362,13 +362,29 @@ class GamepadQT {
             Select = 0,
             Start = 16,
         };
-        static constexpr uint32_t ButtonMask = 
-            (1UL << static_cast<uint32_t>(Buttons::X)) |
-            (1UL << static_cast<uint32_t>(Buttons::Y)) |
-            (1UL << static_cast<uint32_t>(Buttons::Start)) |
-            (1UL << static_cast<uint32_t>(Buttons::A)) |
-            (1UL << static_cast<uint32_t>(Buttons::B)) |
-            (1UL << static_cast<uint32_t>(Buttons::Select));
+#define X(value) static constexpr uint32_t Button ## value ## Mask = (1UL << static_cast<uint32_t>(Buttons:: value ))
+        X(A);
+        X(B);
+        X(X);
+        X(Y);
+        X(Select);
+        X(Start);
+#undef X
+        static constexpr uint32_t ButtonMask = ButtonAMask | ButtonBMask | ButtonXMask | ButtonYMask | ButtonStartMask | ButtonSelectMask;
+        struct ButtonResults {
+            constexpr ButtonResults(uint32_t raw) noexcept : _raw(raw) { }
+            [[nodiscard]] constexpr auto rawData() const noexcept { return _raw; }
+#define X(value) [[nodiscard]] constexpr bool buttonPressed_ ## value () const noexcept { return !(_raw & Button ## value ## Mask); } 
+            X(A);
+            X(B);
+            X(X);
+            X(Y);
+            X(Select);
+            X(Start);
+#undef X
+            private:
+            uint32_t _raw;
+        };
     public:
         GamepadQT(uint8_t index) : _index(index) { }
         bool begin() noexcept {
@@ -383,9 +399,10 @@ class GamepadQT {
             _device.setGPIOInterrupts(ButtonMask, 1);
             // optionally we can hook this up to an IRQ_PIN if desired
         }
-        int getJoystickX() noexcept { return _device.analogRead(14); }
-        int getJoystickY() noexcept { return _device.analogRead(15); }
-        uint32_t getButtons() noexcept { return _device.digitalReadBulk(ButtonMask); }
+        [[nodiscard]] int getJoystickX() noexcept { return _device.analogRead(14); }
+        [[nodiscard]] int getJoystickY() noexcept { return _device.analogRead(15); }
+        [[nodiscard]] ButtonResults getButtons() noexcept { return ButtonResults{_device.digitalReadBulk(ButtonMask) }; }
+        [[nodiscard]] constexpr auto getIndex() const noexcept { return _index; }
     private:
         uint8_t _index;
         Adafruit_seesaw _device;

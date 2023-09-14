@@ -352,6 +352,18 @@ struct OptionalDevice<Adafruit_PCF8591> {
         T _device;
         bool _found = false;
 };
+template<typename C>
+class CaptiveOptionalDevice {
+    public:
+        using Child = C;
+        constexpr bool found() const noexcept { return static_cast<C*>(this)->wasFound(); }
+        explicit constexpr operator bool() const noexcept { return found(); }
+};
+class GamepadQT {
+    public:
+    private:
+        Adafruit_seesaw _device;
+};
 
 
 OptionalDevice<RTC_PCF8523> rtc;

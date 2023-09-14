@@ -355,7 +355,7 @@ struct OptionalDevice<Adafruit_PCF8591> {
         T _device;
         bool _found = false;
 };
-template<typename T>
+template<typename T, uint16_t pid>
 class SeesawDevice {
     public:
     SeesawDevice(uint8_t address) : _address(address) { }
@@ -363,13 +363,17 @@ class SeesawDevice {
     [[nodiscard]] auto& underlyingDevice() noexcept { return _device; }
     [[nodiscard]] const auto& underlyingDevice() const noexcept { return _device; }
     [[nodiscard]] bool begin() noexcept {
-        return _device.begin(_address) && static_cast<T*>(this)->begin_impl();
+        return _device.begin(_address) 
+            && (static_cast<uint16_t>((_device.getVersion() >> 16) & 0xFFFF) == pid) 
+            && static_cast<T*>(this)->begin_impl();
     }
+    void pinModeBulk(uint32_t mask, auto kind) noexcept { _device.pinModeBulk(mask, kind); }
+    void setGPIOInterrupts(uint32_t mask, int value) noexcept { _device.setGPIOInterrupts(mask, value); }
     private:
         uint8_t _address;
         Adafruit_seesaw _device;
 };
-class GamepadQT : public SeesawDevice<GamepadQT> {
+class GamepadQT : public SeesawDevice<GamepadQT, 5743> {
     public:
         enum class Buttons {
             X = 6,
@@ -403,15 +407,11 @@ class GamepadQT : public SeesawDevice<GamepadQT> {
             uint32_t _raw;
         };
     public:
-        using Parent = SeesawDevice<GamepadQT>;
+        using Parent = SeesawDevice<GamepadQT, 5743>;
         GamepadQT(uint8_t index = 0x50) : Parent(index) { }
         bool begin_impl() noexcept {
-            uint32_t version = (underlyingDevice().getVersion() >> 16) & 0xFFFF;
-            if (version != 5743) {
-                return false;
-            }
-            underlyingDevice().pinModeBulk(ButtonMask, INPUT_PULLUP);
-            underlyingDevice().setGPIOInterrupts(ButtonMask, 1);
+            pinModeBulk(ButtonMask, INPUT_PULLUP);
+            setGPIOInterrupts(ButtonMask, 1);
             // optionally we can hook this up to an IRQ_PIN if desired
             return true;
         }
@@ -420,37 +420,62 @@ class GamepadQT : public SeesawDevice<GamepadQT> {
         [[nodiscard]] ButtonResults getButtons() noexcept { return ButtonResults{underlyingDevice().digitalReadBulk(ButtonMask) }; }
 };
 
-class NeoSlider : public SeesawDevice<NeoSlider> {
+class NeoSlider : public SeesawDevice<NeoSlider, 5295> {
     public:
         static constexpr auto DefaultI2CAddress = 0x30;
         static constexpr auto AnalogIn = 18;
         static constexpr auto NeoPixelOut = 14;
         static constexpr auto NeoPixelCount = 4;
-        using Parent = SeesawDevice<NeoSlider>;
+        using Parent = SeesawDevice<NeoSlider, 5295>;
         NeoSlider(uint8_t index = DefaultI2CAddress) noexcept : Parent(index) { }
-        [[nodiscard]] constexpr auto getPID() const noexcept { return _pid; }
-        [[nodiscard]] constexpr auto getYear() const noexcept { return _year; }
-        [[nodiscard]] constexpr auto getMonth() const noexcept { return _mon; }
-        [[nodiscard]] constexpr auto getDay() const noexcept { return _day; }
         [[nodiscard]] auto readSliderValue() noexcept { return underlyingDevice().analogRead(AnalogIn); }
         [[nodiscard]] auto& pixelDevice() noexcept { return _pixels; }
         [[nodiscard]] const auto& pixelDevice() const noexcept { return _pixels; }
         
         [[nodiscard]] bool begin_impl() noexcept {
-            underlyingDevice().getProdDatecode(&_pid, &_year, &_mon, &_day);
-            if (_pid != 5295) {
-                return false;
-            }
-            if (!_pixels.begin(getAddress())) {
-                return false;
-            }
-
-            return true;
+            return _pixels.begin(getAddress());
         }
     private:
-        uint16_t _pid;
-        uint8_t _year, _mon, _day;
         seesaw_NeoPixel _pixels{NeoPixelCount, NeoPixelOut, NEO_GRB + NEO_KHZ800};
+};
+
+class PCJoystickPort : public SeesawDevice<PCJoystickPort, 5753> {
+    public:
+        static constexpr auto Button1 = 3;
+        static constexpr auto Button2 = 13;
+        static constexpr auto Button3 = 2;
+        static constexpr auto Button4 = 14;
+        static constexpr uint32_t ButtonMask = (1UL << Button1) |
+                                               (1UL << Button2) |
+                                               (1UL << Button3) |
+                                               (1UL << Button4);
+        static constexpr auto JOY1_X = 1;
+        static constexpr auto JOY1_Y = 15;
+        static constexpr auto JOY2_X = 0;
+        static constexpr auto JOY2_Y = 16;
+        static constexpr auto DefaultI2CAddress = 0x49;
+        struct ButtonResult {
+            constexpr ButtonResult(uint32_t value) noexcept : _value(value) { }
+            constexpr auto getRawValue() const noexcept { return _value; }
+            constexpr auto button1Pressed() const noexcept { return !(_value & (1UL << Button1)); }
+            constexpr auto button2Pressed() const noexcept { return !(_value & (1UL << Button2)); }
+            constexpr auto button3Pressed() const noexcept { return !(_value & (1UL << Button3)); }
+            constexpr auto button4Pressed() const noexcept { return !(_value & (1UL << Button4)); }
+            private:
+            uint32_t _value;
+        };
+        using Parent = SeesawDevice<PCJoystickPort, 5753>;
+        PCJoystickPort(uint8_t index = DefaultI2CAddress) noexcept : Parent(index) { }
+        [[nodiscard]] bool begin_impl() noexcept {
+            pinModeBulk(ButtonMask, INPUT_PULLUP);
+            setGPIOInterrupts(ButtonMask, 1);
+            return true;
+        }
+        [[nodiscard]] auto readJoy1_X() noexcept { return underlyingDevice().analogRead(JOY1_X); }
+        [[nodiscard]] auto readJoy1_Y() noexcept { return underlyingDevice().analogRead(JOY1_Y); }
+        [[nodiscard]] auto readJoy2_X() noexcept { return underlyingDevice().analogRead(JOY2_X); }
+        [[nodiscard]] auto readJoy2_Y() noexcept { return underlyingDevice().analogRead(JOY2_Y); }
+        [[nodiscard]] ButtonResult readButtons() noexcept { return ButtonResult{underlyingDevice().digitalReadBulk(ButtonMask) }; }
 };
 
 

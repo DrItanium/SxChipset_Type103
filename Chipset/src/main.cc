@@ -73,8 +73,6 @@ enum class DisplayKind {
 constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
 constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
 constexpr auto EPAPER_COLOR_RED = EPD_RED;
-constexpr bool MCUHasDirectAccess = true;
-constexpr bool XINT0DirectConnect = true;
 constexpr bool XINT1DirectConnect = false;
 constexpr bool XINT2DirectConnect = false;
 constexpr bool XINT3DirectConnect = false;
@@ -1723,10 +1721,8 @@ setupPins() noexcept {
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);
-    if constexpr (MCUHasDirectAccess) {
-        pinMode(Pin::READY, OUTPUT);
-        digitalWrite<Pin::READY, HIGH>();
-    }
+    pinMode(Pin::READY, OUTPUT);
+    digitalWrite<Pin::READY, HIGH>();
     // setup bank capture to read in address lines
     getDirectionRegister<Port::BankCapture>() = 0;
 }
@@ -1748,12 +1744,8 @@ setupPlatform() noexcept {
     if constexpr (UseOldAuxHardwareBoard) {
         static constexpr uint32_t ControlSignalDirection = 0b10000000'11111111'00111000'00010001;
         ControlSignals.view32.direction = ControlSignalDirection;
-        if constexpr (MCUHasDirectAccess) {
-            ControlSignals.view8.direction[1] &= 0b11101111;
-        }
-        if constexpr (XINT0DirectConnect) {
-            ControlSignals.view8.direction[2] &= 0b11111110;
-        }
+        ControlSignals.view8.direction[1] &= 0b11101111;
+        ControlSignals.view8.direction[2] &= 0b11111110;
         if constexpr (XINT1DirectConnect) {
             ControlSignals.view8.direction[2] &= 0b11111101;
         }

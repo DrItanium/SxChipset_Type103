@@ -1594,6 +1594,11 @@ ReadOperationStart:
         goto WriteOperationBypass;
     }
 ReadOperationBypass:
+    if constexpr (false) {
+        Serial.println(F("Read Operation"));
+        Serial.println(addressLinesValue32, HEX);
+        Serial.println(addressLinesValue32, HEX);
+    }
     // standard read operation so do the normal dispatch
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is
@@ -1629,6 +1634,10 @@ WriteOperationStart:
         goto ReadOperationBypass;
     } 
 WriteOperationBypass:
+    if constexpr (false) {
+        Serial.println(F("Write Operation"));
+        Serial.println(addressLinesValue32, HEX);
+    }
     // standard write operation so do the normal dispatch for write operations
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is

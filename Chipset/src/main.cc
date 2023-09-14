@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_PCF8591.h>
 #include <Adafruit_DS1841.h>
 #include <Adafruit_LTR390.h>
-#include <Adafruit_APDS9960.h>
+//#include <Adafruit_APDS9960.h>
 #include <Adafruit_EMC2101.h>
 #include <Adafruit_Si7021.h>
 #include <seesaw_neopixel.h>
@@ -496,7 +496,7 @@ OptionalDevice<HT16K33> alpha7Display;
 OptionalDevice<Adafruit_PCF8591> pcfADC_DAC;
 OptionalDevice<Adafruit_DS1841> ds;
 OptionalDevice<Adafruit_LTR390> ltr;
-OptionalDevice<Adafruit_APDS9960> apds;
+//OptionalDevice<Adafruit_APDS9960> apds;
 OptionalDevice<Adafruit_EMC2101> fan0;
 OptionalDevice<Adafruit_Si7021> si7021;
 OptionalDevice<NeoSlider> sliders[16] { 
@@ -532,7 +532,7 @@ setupDevices() noexcept {
     pcfADC_DAC.begin();
     ds.begin();
     ltr.begin();
-    apds.begin();
+    //apds.begin();
     fan0.begin();
     si7021.begin();
     for (auto& a : sliders) {
@@ -2072,10 +2072,12 @@ banner() noexcept {
         Serial.println(F("Found LTR390"));
         /// @todo LTR390 display / test
     }
+#if 0
     if (apds) {
         Serial.println(F("Found APDS9960"));
         /// @todo APDS9960 display / test
     }
+#endif
     if (fan0) {
         Serial.println(F("Found EMC2101"));
         /// @todo elaborate

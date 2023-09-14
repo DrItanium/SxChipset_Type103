@@ -47,6 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_APDS9960.h>
 #include <Adafruit_EMC2101.h>
 #include <Adafruit_Si7021.h>
+#include <seesaw_neopixel.h>
 
 
 #include "Detect.h"
@@ -386,7 +387,7 @@ class GamepadQT {
             uint32_t _raw;
         };
     public:
-        GamepadQT(uint8_t index) : _index(index) { }
+        GamepadQT(uint8_t index = 0x50) : _index(index) { }
         bool begin() noexcept {
             if (!_device.begin(_index)) {
                 return false;
@@ -403,10 +404,50 @@ class GamepadQT {
         [[nodiscard]] int getJoystickX() noexcept { return _device.analogRead(14); }
         [[nodiscard]] int getJoystickY() noexcept { return _device.analogRead(15); }
         [[nodiscard]] ButtonResults getButtons() noexcept { return ButtonResults{_device.digitalReadBulk(ButtonMask) }; }
-        [[nodiscard]] constexpr auto getIndex() const noexcept { return _index; }
+        [[nodiscard]] constexpr auto getAddress() const noexcept { return _index; }
     private:
         uint8_t _index;
         Adafruit_seesaw _device;
+};
+
+class NeoSlider {
+    public:
+        static constexpr auto DefaultI2CAddress = 0x30;
+        static constexpr auto AnalogIn = 18;
+        static constexpr auto NeoPixelOut = 14;
+        static constexpr auto NeoPixelCount = 4;
+        NeoSlider(uint8_t index = DefaultI2CAddress) noexcept : _address(index) { }
+        [[nodiscard]] constexpr auto getAddress() const noexcept { return _address; }
+        [[nodiscard]] constexpr auto getPID() const noexcept { return _pid; }
+        [[nodiscard]] constexpr auto getYear() const noexcept { return _year; }
+        [[nodiscard]] constexpr auto getMonth() const noexcept { return _mon; }
+        [[nodiscard]] constexpr auto getDay() const noexcept { return _day; }
+        [[nodiscard]] auto readSliderValue() noexcept { return _slider.analogRead(AnalogIn); }
+        [[nodiscard]] auto& getSliderObject() noexcept { return _slider; }
+        [[nodiscard]] const auto& getSliderObject() const noexcept { return _slider; }
+        [[nodiscard]] auto& getPixelObject() noexcept { return _pixels; }
+        [[nodiscard]] const auto& getPixelObject() const noexcept { return _pixels; }
+        
+        bool begin() noexcept {
+            if (!_slider.begin(_address)) {
+                return false;
+            }
+            _slider.getProdDatecode(&_pid, &_year, &_mon, &_day);
+            if (_pid != 5295) {
+                return false;
+            }
+            if (!_pixels.begin(_address)) {
+                return false;
+            }
+
+            return true;
+        }
+    private:
+        uint8_t _address;
+        uint16_t _pid;
+        uint8_t _year, _mon, _day;
+        Adafruit_seesaw _slider;
+        seesaw_NeoPixel _pixels{NeoPixelCount, NeoPixelOut, NEO_GRB + NEO_KHZ800};
 };
 
 

@@ -1550,7 +1550,7 @@ static void doIO() noexcept {
 };
 
 
-
+constexpr bool DisplayAddressLinesRequested = false;
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -1594,7 +1594,7 @@ ReadOperationStart:
         goto WriteOperationBypass;
     }
 ReadOperationBypass:
-    if constexpr (false) {
+    if constexpr (DisplayAddressLinesRequested) {
         Serial.println(F("Read Operation"));
         Serial.println(addressLinesValue32, HEX);
         Serial.println(addressLinesValue32, HEX);
@@ -1634,7 +1634,7 @@ WriteOperationStart:
         goto ReadOperationBypass;
     } 
 WriteOperationBypass:
-    if constexpr (false) {
+    if constexpr (DisplayAddressLinesRequested) {
         Serial.println(F("Write Operation"));
         Serial.println(addressLinesValue32, HEX);
     }
@@ -1751,6 +1751,7 @@ setupPins() noexcept {
         digitalWrite<Pin::BusQueryEnable, HIGH>();
     }
 }
+constexpr auto RequireWaitStatesForCH351 = true;
 void
 setupExternalBus() noexcept {
     // setup the EBI
@@ -1762,7 +1763,7 @@ setupExternalBus() noexcept {
     // I am using an HC573 on the interface board so the single cycle delay
     // state is necessary! When I replace the interface chip with the
     // AHC573, I'll get rid of the single cycle delay from the lower sector
-    if constexpr (UseOldAuxHardwareBoard) {
+    if constexpr (RequireWaitStatesForCH351) {
         XMCRA=0b1'010'01'01;  
     } else {
         // remove wait states for accessing the io interface

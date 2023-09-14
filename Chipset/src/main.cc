@@ -1837,17 +1837,17 @@ banner() noexcept {
     if (ds) {
         Serial.println(F("Found DS1841"));
         Serial.println(F("\tSet Wiper to 10"));
-        ds.setWiper(10);
+        ds->setWiper(10);
         delay(1000);
         Serial.print(F("\tTemperature: ")); Serial.print(ds->getTemperature()); Serial.println(F(" degrees C"));
         Serial.print(F("\tWiper: ")); Serial.print(ds->getWiper()); Serial.println(F(" LSB"));
         Serial.println();
         Serial.println(F("\tSet Wiper to 120"));
-        ds.setWiper(120);
+        ds->setWiper(120);
         delay(1000);
         Serial.print(F("\tTemperature: ")); Serial.print(ds->getTemperature()); Serial.println(F(" degrees C"));
         Serial.print(F("\tWiper: ")); Serial.print(ds->getWiper()); Serial.println(F(" LSB"));
         delay(1000);
-        ds.setWiper(0);
+        ds->setWiper(0);
     }
 }

@@ -369,6 +369,8 @@ class SeesawDevice {
     }
     void pinModeBulk(uint32_t mask, auto kind) noexcept { _device.pinModeBulk(mask, kind); }
     void setGPIOInterrupts(uint32_t mask, int value) noexcept { _device.setGPIOInterrupts(mask, value); }
+    uint32_t digitalReadBulk(uint32_t mask) noexcept { return _device.digitalReadBulk(mask); }
+    decltype(auto) analogRead(auto index) noexcept { return _device.analogRead(index); }
     private:
         uint8_t _address;
         Adafruit_seesaw _device;
@@ -415,9 +417,9 @@ class GamepadQT : public SeesawDevice<GamepadQT, 5743> {
             // optionally we can hook this up to an IRQ_PIN if desired
             return true;
         }
-        [[nodiscard]] int getJoystickX() noexcept { return underlyingDevice().analogRead(14); }
-        [[nodiscard]] int getJoystickY() noexcept { return underlyingDevice().analogRead(15); }
-        [[nodiscard]] ButtonResults getButtons() noexcept { return ButtonResults{underlyingDevice().digitalReadBulk(ButtonMask) }; }
+        [[nodiscard]] int getJoystickX() noexcept { return analogRead(14); }
+        [[nodiscard]] int getJoystickY() noexcept { return analogRead(15); }
+        [[nodiscard]] ButtonResults readButtons() noexcept { return ButtonResults{digitalReadBulk(ButtonMask) }; }
 };
 
 class NeoSlider : public SeesawDevice<NeoSlider, 5295> {
@@ -428,7 +430,7 @@ class NeoSlider : public SeesawDevice<NeoSlider, 5295> {
         static constexpr auto NeoPixelCount = 4;
         using Parent = SeesawDevice<NeoSlider, 5295>;
         NeoSlider(uint8_t index = DefaultI2CAddress) noexcept : Parent(index) { }
-        [[nodiscard]] auto readSliderValue() noexcept { return underlyingDevice().analogRead(AnalogIn); }
+        [[nodiscard]] auto readSliderValue() noexcept { return analogRead(AnalogIn); }
         [[nodiscard]] auto& pixelDevice() noexcept { return _pixels; }
         [[nodiscard]] const auto& pixelDevice() const noexcept { return _pixels; }
         
@@ -471,11 +473,11 @@ class PCJoystickPort : public SeesawDevice<PCJoystickPort, 5753> {
             setGPIOInterrupts(ButtonMask, 1);
             return true;
         }
-        [[nodiscard]] auto readJoy1_X() noexcept { return underlyingDevice().analogRead(JOY1_X); }
-        [[nodiscard]] auto readJoy1_Y() noexcept { return underlyingDevice().analogRead(JOY1_Y); }
-        [[nodiscard]] auto readJoy2_X() noexcept { return underlyingDevice().analogRead(JOY2_X); }
-        [[nodiscard]] auto readJoy2_Y() noexcept { return underlyingDevice().analogRead(JOY2_Y); }
-        [[nodiscard]] ButtonResult readButtons() noexcept { return ButtonResult{underlyingDevice().digitalReadBulk(ButtonMask) }; }
+        [[nodiscard]] auto readJoy1_X() noexcept { return analogRead(JOY1_X); }
+        [[nodiscard]] auto readJoy1_Y() noexcept { return analogRead(JOY1_Y); }
+        [[nodiscard]] auto readJoy2_X() noexcept { return analogRead(JOY2_X); }
+        [[nodiscard]] auto readJoy2_Y() noexcept { return analogRead(JOY2_Y); }
+        [[nodiscard]] ButtonResult readButtons() noexcept { return ButtonResult{digitalReadBulk(ButtonMask) }; }
 };
 
 

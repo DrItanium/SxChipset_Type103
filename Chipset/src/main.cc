@@ -398,6 +398,7 @@ class GamepadQT {
             _device.pinModeBulk(ButtonMask, INPUT_PULLUP);
             _device.setGPIOInterrupts(ButtonMask, 1);
             // optionally we can hook this up to an IRQ_PIN if desired
+            return true;
         }
         [[nodiscard]] int getJoystickX() noexcept { return _device.analogRead(14); }
         [[nodiscard]] int getJoystickY() noexcept { return _device.analogRead(15); }

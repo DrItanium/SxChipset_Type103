@@ -46,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_LTR390.h>
 #include <Adafruit_APDS9960.h>
 #include <Adafruit_EMC2101.h>
+#include <Adafruit_Si7021.h>
 
 
 #include "Detect.h"
@@ -368,6 +369,7 @@ OptionalDevice<Adafruit_DS1841> ds;
 OptionalDevice<Adafruit_LTR390> ltr;
 OptionalDevice<Adafruit_APDS9960> apds;
 OptionalDevice<Adafruit_EMC2101> fan0;
+OptionalDevice<Adafruit_Si7021> si7021;
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -386,6 +388,7 @@ setupDevices() noexcept {
     ltr.begin();
     apds.begin();
     fan0.begin();
+    si7021.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1870,5 +1873,37 @@ banner() noexcept {
     if (fan0) {
         Serial.println(F("Found EMC2101"));
         /// @todo elaborate
+    }
+    if (si7021) {
+        Serial.println(F("Found SI70xx Series Chip"));
+        Serial.print(F("\tModel: "));
+        switch (si7021->getModel()) {
+            case SI_Engineering_Samples:
+                Serial.println(F("SI engineering samples"));
+                break;
+            case SI_7013:
+                Serial.println(F("Si7013"));
+                break;
+            case SI_7020:
+                Serial.println(F("Si7020"));
+                break;
+            case SI_7021:
+                Serial.println(F("Si7021"));
+                break;
+            case SI_UNKNOWN:
+            default:
+                Serial.println(F("UNKNOWN"));
+                break;
+        }
+        Serial.print(F("\tRevision: "));
+        Serial.println(si7021->getRevision());
+        Serial.print(F("\tSerial #: "));
+        Serial.print(si7021->sernum_a, HEX);
+        Serial.println(si7021->sernum_b, HEX);
+        Serial.print(F("\tHumidity: "));
+        Serial.println(si7021->readHumidity(), 2);
+        Serial.print(F("\tTemperature: "));
+        Serial.print(si7021->readTemperature(), 2);
+        Serial.println(F(" degrees C"));
     }
 }

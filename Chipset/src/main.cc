@@ -1762,7 +1762,12 @@ setupExternalBus() noexcept {
     // I am using an HC573 on the interface board so the single cycle delay
     // state is necessary! When I replace the interface chip with the
     // AHC573, I'll get rid of the single cycle delay from the lower sector
-    XMCRA=0b1'010'01'01;  
+    if constexpr (UseOldAuxHardwareBoard) {
+        XMCRA=0b1'010'01'01;  
+    } else {
+        // remove wait states for accessing the io interface
+        XMCRA=0b1'010'01'00;
+    }
     AddressLinesInterface.view32.direction = 0;
     DataLinesInterface.view32.direction = 0xFFFF'FFFF;
     DataLinesInterface.view32.data = 0;

@@ -1726,9 +1726,21 @@ setupPins() noexcept {
     digitalWrite<Pin::READY, HIGH>();
     // setup bank capture to read in address lines
     getDirectionRegister<Port::BankCapture>() = 0;
+    if constexpr (SupportDirectControlSignalConnection) {
+        pinMode(Pin::HOLD, OUTPUT);
+        digitalWrite<Pin::HOLD, LOW>();
+        pinMode(Pin::HLDA, INPUT);
+        pinMode(Pin::LOCK, INPUT);
+        pinMode(Pin::FAIL, INPUT);
+        pinMode(Pin::RESET, OUTPUT);
+        digitalWrite<Pin::RESET, HIGH>();
+        pinMode(Pin::CFG0, INPUT);
+        pinMode(Pin::CFG1, INPUT);
+        pinMode(Pin::CFG2, INPUT);
+    }
 }
-void 
-setupPlatform() noexcept {
+void
+setupExternalBus() noexcept {
     // setup the EBI
     XMCRB=0b1'0000'000;
     // use the upper and lower sector limits feature to accelerate IO space
@@ -1785,6 +1797,10 @@ setupPlatform() noexcept {
         // select the CH351 bank chip to go over the xbus address lines
         ControlSignals.ctl.bankSelect = 0;
     }
+}
+void 
+setupPlatform() noexcept {
+    setupExternalBus();
     setupDevices();
 }
 

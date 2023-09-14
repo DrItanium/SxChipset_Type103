@@ -42,6 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hp_BH1750.h>
 #include <SparkFun_Alphanumeric_Display.h>
 #include <Adafruit_PCF8591.h>
+#include <Adafruit_DS1841.h>
 
 
 #include "Detect.h"
@@ -359,6 +360,7 @@ OptionalDevice<Adafruit_AS7341> as7341;
 OptionalDevice<hp_BH1750> bh1750;
 OptionalDevice<HT16K33> alpha7Display;
 OptionalDevice<Adafruit_PCF8591> pcfADC_DAC;
+OptionalDevice<Adafruit_DS1841> ds;
 void 
 setupDevices() noexcept {
     setupDisplay();
@@ -373,6 +375,7 @@ setupDevices() noexcept {
     bh1750.begin();
     alpha7Display.begin();
     pcfADC_DAC.begin();
+    ds.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1830,5 +1833,21 @@ banner() noexcept {
     if (pcfADC_DAC) {
         Serial.println(F("Found PCF8591"));
         /// @todo implement demo version?
+    }
+    if (ds) {
+        Serial.println(F("Found DS1841"));
+        Serial.println(F("\tSet Wiper to 10"));
+        ds.setWiper(10);
+        delay(1000);
+        Serial.print(F("\tTemperature: ")); Serial.print(ds->getTemperature()); Serial.println(F(" degrees C"));
+        Serial.print(F("\tWiper: ")); Serial.print(ds->getWiper()); Serial.println(F(" LSB"));
+        Serial.println();
+        Serial.println(F("\tSet Wiper to 120"));
+        ds.setWiper(120);
+        delay(1000);
+        Serial.print(F("\tTemperature: ")); Serial.print(ds->getTemperature()); Serial.println(F(" degrees C"));
+        Serial.print(F("\tWiper: ")); Serial.print(ds->getWiper()); Serial.println(F(" LSB"));
+        delay(1000);
+        ds.setWiper(0);
     }
 }

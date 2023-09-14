@@ -59,6 +59,9 @@ install_SRAM32Decoder: SRAM32Decoder.jed
 install_NarrowWideAdapterDetect: NarrowWideAdapterDetect.jed
 	minipro -p ATF16V8B --write NarrowWideAdapterDetect.jed 
 
+install_WideAuxDecoder: WideAuxDecoder.jed 
+	minipro -p ATF16V8B --write WideAuxDecoder.jed 
+
 clean:
 	@echo -n "Cleaning..."
 	@rm -rf *.chp *.fus *.jed *.pin

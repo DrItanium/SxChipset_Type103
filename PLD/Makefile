@@ -15,7 +15,8 @@ all: Type103PLD.jed \
 	BusDecoder32Bit.jed \
 	Flash32Decoder.jed \
 	SRAM32Decoder.jed \
-	NarrowWideAdapterDetect.jed
+	NarrowWideAdapterDetect.jed \
+	WideAuxDecoder.jed
 
 
 

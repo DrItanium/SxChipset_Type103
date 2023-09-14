@@ -355,7 +355,21 @@ struct OptionalDevice<Adafruit_PCF8591> {
         T _device;
         bool _found = false;
 };
-class GamepadQT {
+template<typename T>
+class SeesawDevice {
+    public:
+    SeesawDevice(uint8_t address) : _address(address) { }
+    [[nodiscard]] constexpr auto getAddress() const noexcept { return _address; }
+    [[nodiscard]] auto& underlyingDevice() noexcept { return _device; }
+    [[nodiscard]] const auto& underlyingDevice() const noexcept { return _device; }
+    [[nodiscard]] bool begin() noexcept {
+        return _device.begin(_address) && static_cast<T*>(this)->begin_impl();
+    }
+    private:
+        uint8_t _address;
+        Adafruit_seesaw _device;
+};
+class GamepadQT : public SeesawDevice<GamepadQT> {
     public:
         enum class Buttons {
             X = 6,
@@ -389,27 +403,21 @@ class GamepadQT {
             uint32_t _raw;
         };
     public:
-        GamepadQT(uint8_t index = 0x50) : _index(index) { }
-        bool begin() noexcept {
-            if (!_device.begin(_index)) {
-                return false;
-            }
-            uint32_t version = (_device.getVersion() >> 16) & 0xFFFF;
+        using Parent = SeesawDevice<GamepadQT>;
+        GamepadQT(uint8_t index = 0x50) : Parent(index) { }
+        bool begin_impl() noexcept {
+            uint32_t version = (underlyingDevice().getVersion() >> 16) & 0xFFFF;
             if (version != 5743) {
                 return false;
             }
-            _device.pinModeBulk(ButtonMask, INPUT_PULLUP);
-            _device.setGPIOInterrupts(ButtonMask, 1);
+            underlyingDevice().pinModeBulk(ButtonMask, INPUT_PULLUP);
+            underlyingDevice().setGPIOInterrupts(ButtonMask, 1);
             // optionally we can hook this up to an IRQ_PIN if desired
             return true;
         }
-        [[nodiscard]] int getJoystickX() noexcept { return _device.analogRead(14); }
-        [[nodiscard]] int getJoystickY() noexcept { return _device.analogRead(15); }
-        [[nodiscard]] ButtonResults getButtons() noexcept { return ButtonResults{_device.digitalReadBulk(ButtonMask) }; }
-        [[nodiscard]] constexpr auto getAddress() const noexcept { return _index; }
-    private:
-        uint8_t _index;
-        Adafruit_seesaw _device;
+        [[nodiscard]] int getJoystickX() noexcept { return underlyingDevice().analogRead(14); }
+        [[nodiscard]] int getJoystickY() noexcept { return underlyingDevice().analogRead(15); }
+        [[nodiscard]] ButtonResults getButtons() noexcept { return ButtonResults{underlyingDevice().digitalReadBulk(ButtonMask) }; }
 };
 
 class NeoSlider {
@@ -424,17 +432,17 @@ class NeoSlider {
         [[nodiscard]] constexpr auto getYear() const noexcept { return _year; }
         [[nodiscard]] constexpr auto getMonth() const noexcept { return _mon; }
         [[nodiscard]] constexpr auto getDay() const noexcept { return _day; }
-        [[nodiscard]] auto readSliderValue() noexcept { return _slider.analogRead(AnalogIn); }
-        [[nodiscard]] auto& getSliderObject() noexcept { return _slider; }
-        [[nodiscard]] const auto& getSliderObject() const noexcept { return _slider; }
+        [[nodiscard]] auto readSliderValue() noexcept { return _device.analogRead(AnalogIn); }
+        [[nodiscard]] auto& getSliderObject() noexcept { return _device; }
+        [[nodiscard]] const auto& getSliderObject() const noexcept { return _device; }
         [[nodiscard]] auto& getPixelObject() noexcept { return _pixels; }
         [[nodiscard]] const auto& getPixelObject() const noexcept { return _pixels; }
         
         bool begin() noexcept {
-            if (!_slider.begin(_address)) {
+            if (!_device.begin(_address)) {
                 return false;
             }
-            _slider.getProdDatecode(&_pid, &_year, &_mon, &_day);
+            _device.getProdDatecode(&_pid, &_year, &_mon, &_day);
             if (_pid != 5295) {
                 return false;
             }
@@ -448,9 +456,10 @@ class NeoSlider {
         uint8_t _address;
         uint16_t _pid;
         uint8_t _year, _mon, _day;
-        Adafruit_seesaw _slider;
+        Adafruit_seesaw _device;
         seesaw_NeoPixel _pixels{NeoPixelCount, NeoPixelOut, NEO_GRB + NEO_KHZ800};
 };
+
 
 
 OptionalDevice<RTC_PCF8523> rtc;

@@ -82,7 +82,7 @@ constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
 constexpr bool SupportNewRAMLayout = false;
-constexpr bool HybridWideMemorySupported = false;
+constexpr bool HybridWideMemorySupported = true;
 constexpr auto TransferBufferSize = SupportNewRAMLayout ? 32768 : 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 

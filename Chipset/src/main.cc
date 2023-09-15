@@ -83,17 +83,17 @@ constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
 constexpr bool SupportNewRAMLayout = false;
 constexpr bool HybridWideMemorySupported = false;
-constexpr auto TransferBufferSize = 32768;
+constexpr auto TransferBufferSize = SupportNewRAMLayout ? 32768 : 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 constexpr bool SupportDirectControlSignalConnection = true;
+constexpr bool EnableHumanScaleTransactionTracking = true;
 
 static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
-
 constexpr auto displayHasTouchScreen() noexcept {
     switch (ActiveDisplay) {
         case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:
@@ -1601,7 +1601,6 @@ static void doIO() noexcept {
 };
 
 
-constexpr bool DisplayAddressLinesRequested = true;
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -1626,7 +1625,7 @@ executionBody() noexcept {
 ReadOperationStart:
     // wait until DEN goes low
     while (digitalRead<Pin::DEN>());
-    if constexpr (DisplayAddressLinesRequested) {
+    if constexpr (EnableHumanScaleTransactionTracking) {
         Serial.println(F("{"));
     }
     // check to see if we need to change directions
@@ -1635,14 +1634,14 @@ ReadOperationStart:
         updateDataLinesDirection<0>();
         // update the direction pin 
         toggle<Pin::DirectionOutput>();
-        if constexpr (DisplayAddressLinesRequested) {
+        if constexpr (EnableHumanScaleTransactionTracking) {
             Serial.println(F("Read -> Write"));
         }
         // then jump into the write loop
         goto WriteOperationBypass;
     }
 ReadOperationBypass:
-    if constexpr (DisplayAddressLinesRequested) {
+    if constexpr (EnableHumanScaleTransactionTracking) {
         delay(250);
         Serial.println(F("Read Operation"));
         Serial.println(addressLinesValue32, HEX);
@@ -1656,17 +1655,17 @@ ReadOperationBypass:
         if constexpr (HybridWideMemorySupported) {
             idleTransaction();
         } else {
-            CommunicationKernel<true, width, DisplayAddressLinesRequested>::doCommunication();
+            CommunicationKernel<true, width, EnableHumanScaleTransactionTracking>::doCommunication();
         }
     } else {
         if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<true, width, DisplayAddressLinesRequested>::doCommunication();
+            CommunicationKernel<true, width, EnableHumanScaleTransactionTracking>::doCommunication();
         } else {
             // io operation
-            CommunicationKernel<true, width, DisplayAddressLinesRequested>::doIO();
+            CommunicationKernel<true, width, EnableHumanScaleTransactionTracking>::doIO();
         }
     }
-    if constexpr (DisplayAddressLinesRequested) {
+    if constexpr (EnableHumanScaleTransactionTracking) {
         Serial.println(F("}"));
         Serial.flush();
     }
@@ -1676,7 +1675,7 @@ ReadOperationBypass:
 WriteOperationStart:
     // wait until DEN goes low
     while (digitalRead<Pin::DEN>());
-    if constexpr (DisplayAddressLinesRequested) {
+    if constexpr (EnableHumanScaleTransactionTracking) {
         Serial.println(F("{"));
     }
     // check to see if we need to change directions
@@ -1685,14 +1684,14 @@ WriteOperationStart:
         updateDataLinesDirection<0xFF>();
         // update the direction pin
         toggle<Pin::DirectionOutput>();
-        if constexpr (DisplayAddressLinesRequested) {
+        if constexpr (EnableHumanScaleTransactionTracking) {
             Serial.println(F("Write -> Read"));
         }
         // jump to the read loop
         goto ReadOperationBypass;
     } 
 WriteOperationBypass:
-    if constexpr (DisplayAddressLinesRequested) {
+    if constexpr (EnableHumanScaleTransactionTracking) {
         delay(250);
         Serial.println(F("Write Operation"));
         Serial.println(addressLinesValue32, HEX);
@@ -1706,17 +1705,17 @@ WriteOperationBypass:
         if constexpr (HybridWideMemorySupported) {
             idleTransaction();
         } else {
-            CommunicationKernel<false, width, DisplayAddressLinesRequested>::doCommunication();
+            CommunicationKernel<false, width, EnableHumanScaleTransactionTracking>::doCommunication();
         }
     } else {
         if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<false, width, DisplayAddressLinesRequested>::doCommunication();
+            CommunicationKernel<false, width, EnableHumanScaleTransactionTracking>::doCommunication();
         } else {
             // io operation
-            CommunicationKernel<false, width, DisplayAddressLinesRequested>::doIO();
+            CommunicationKernel<false, width, EnableHumanScaleTransactionTracking>::doIO();
         }
     }
-    if constexpr (DisplayAddressLinesRequested) {
+    if constexpr (EnableHumanScaleTransactionTracking) {
         Serial.println(F("}"));
         Serial.flush();
     }

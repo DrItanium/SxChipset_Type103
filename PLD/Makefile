@@ -64,7 +64,7 @@ install_WideAuxDecoder: WideAuxDecoder.jed
 	minipro -p ATF16V8B --write WideAuxDecoder.jed 
 
 install_RAM2DecoderChip: RAM2DecoderChip.jed
-	minipro -p ATF22V10C --write RAM2DecoderChip.jed 
+	minipro -p "ATF22V10CQ(UES)" --write RAM2DecoderChip.jed 
 
 
 clean:

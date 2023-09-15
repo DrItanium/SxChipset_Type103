@@ -543,8 +543,6 @@ setupDevices() noexcept {
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
-[[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
-[[gnu::address(0x2218)]] inline volatile CH351 XBUSBankRegister;
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];

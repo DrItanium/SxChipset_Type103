@@ -1,8 +1,8 @@
 
 
 Pin 19 = XEN          XOR = 0   AC1 = 0
-  0  -xx- ---- ---- ---- ---- ---- ---- --x-
-  1  x--x ---- ---- ---- ---- ---- ---- --x-
+  0  -xx- ---- ---- ---- ---- ---- ---- x--x
+  1  x--x ---- ---- ---- ---- ---- ---- x--x
   2  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   3  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   4  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -11,8 +11,8 @@ Pin 19 = XEN          XOR = 0   AC1 = 0
   7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 18 = IEN          XOR = 0   AC1 = 0
-  8  -xx- ---- ---- ---- ---- ---- ---- x--x
-  9  x--x ---- ---- ---- ---- ---- ---- x--x
+  8  -xx- ---- ---- ---- ---- ---- ---- --x-
+  9  x--x ---- ---- ---- ---- ---- ---- --x-
  10  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  11  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  12  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

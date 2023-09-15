@@ -81,9 +81,9 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
-constexpr bool SupportNewRAMLayout = false;
+constexpr bool SupportNewRAMLayout = true;
 constexpr bool HybridWideMemorySupported = false;
-constexpr auto TransferBufferSize = 16384;
+constexpr auto TransferBufferSize = 32768;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
@@ -1541,7 +1541,7 @@ static void doIO() noexcept {
 };
 
 
-constexpr bool DisplayAddressLinesRequested = false;
+constexpr bool DisplayAddressLinesRequested = true;
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -1738,20 +1738,14 @@ void
 setupExternalBus() noexcept {
     // setup the EBI
     XMCRB=0b1'0000'000;
-    // use the upper and lower sector limits feature to accelerate IO space
-    // 0x2200-0x3FFF is full speed, rest has a one cycle during read/write
-    // strobe delay since SRAM is 55ns
-    //
-    // I am using an HC573 on the interface board so the single cycle delay
-    // state is necessary! When I replace the interface chip with the
-    // AHC573, I'll get rid of the single cycle delay from the lower sector
-    XMCRA=0b1'010'01'01;  
-    // the single cycle wait state is still necessary with the AHC573, it has
-    // nothing to do with that apparently!
+    XMCRA=0b1'100'01'01;  
+    // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
+    // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0;
     DataLinesInterface.view32.direction = 0xFFFF'FFFF;
     DataLinesInterface.view32.data = 0;
 }
+
 void 
 setupPlatform() noexcept {
     setupExternalBus();

@@ -89,8 +89,6 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
-constexpr bool SupportDirectControlSignalConnection = true;
-constexpr bool EnableHumanScaleTransactionTracking = false;
 
 static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
@@ -697,9 +695,9 @@ idleTransaction() noexcept {
         signalReady<true>();
     }
 }
-template<bool isReadOperation, NativeBusWidth width, bool enableDebugging>
+template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
-    using Self = CommunicationKernel<isReadOperation, width, enableDebugging>;
+    using Self = CommunicationKernel<isReadOperation, width>;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
     CommunicationKernel(const Self&) = delete;
@@ -973,9 +971,9 @@ static void doIO() noexcept {
 }
 };
 
-template<bool isReadOperation, bool enableDebugging>
-struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen, enableDebugging> {
-    using Self = CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen, enableDebugging>;
+template<bool isReadOperation>
+struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
+    using Self = CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen>;
     static constexpr auto BusWidth = NativeBusWidth::Sixteen;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
@@ -1017,9 +1015,6 @@ public:
         //
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
-        if constexpr (enableDebugging) {
-            Serial.printf(F("theBytes = %x\n"), theBytes);
-        }
         if constexpr (isReadOperation) {
             auto a = theBytes[0];
             auto b = theBytes[1];
@@ -1127,9 +1122,6 @@ public:
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     auto w = dataLines[0];
                     auto x = dataLines[1];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[0]);
-                    }
                     if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
                         theBytes[0] = w;
                     } 
@@ -1139,9 +1131,6 @@ public:
                 } else {
                     auto w = dataLines[2];
                     auto x = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     if (digitalRead<Pin::BE2>() == LOW) [[gnu::likely]] {
                         theBytes[0] = w;
                     } 
@@ -1155,9 +1144,6 @@ public:
                     // defer writes as much as possible
                     auto w = dataLines[0];
                     auto x = dataLines[1];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[0]);
-                    }
                     if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
                         theBytes[0] = w;
                     } 
@@ -1168,9 +1154,6 @@ public:
                     signalReady<true>();
                     auto y = dataLines[2];
                     auto z = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     theBytes[2] = y;
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[3] = z;
@@ -1185,9 +1168,6 @@ public:
                     // can eliminate checking as many pins as possible
                     theBytes[4] = dataLines[0];
                     auto b = dataLines[1];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[0]);
-                    }
                     if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
                         theBytes[5] = b ;
                     }
@@ -1197,9 +1177,6 @@ public:
                     signalReady<true>();
                     theBytes[6] = dataLines[2];
                     auto d = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[7] = d;
                     }
@@ -1213,9 +1190,6 @@ public:
                     // can eliminate checking as many pins as possible
                     auto f = dataLines[1];
                     theBytes[8] = dataLines[0];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[0]);
-                    }
                     if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
                         theBytes[9] = f;
                     }
@@ -1225,9 +1199,6 @@ public:
                     signalReady<true>();
                     theBytes[10] = dataLines[2];
                     auto h = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[11] = h;
                     }
@@ -1239,9 +1210,6 @@ public:
                     signalReady<true>();
                     theBytes[12] = dataLines[0];
                     auto j = dataLines[1];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[0]);
-                    }
                     if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
                         theBytes[13] = j;
                     }
@@ -1253,9 +1221,6 @@ public:
                     signalReady<true>();
                     theBytes[14] = dataLines[2];
                     auto l = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[15] = l;
                     }
@@ -1263,9 +1228,6 @@ public:
                 } else {
                     auto a = dataLines[2];
                     auto b = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     if (digitalRead<Pin::BE2>() == LOW) [[gnu::likely]] {
                         theBytes[0] = a;
                     }
@@ -1275,9 +1237,6 @@ public:
                     signalReady<true>();
                     auto c = dataLines[0];
                     auto d = dataLines[1];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[0]);
-                    }
                     // lower must be valid since we are flowing into the
                     // next 16-bit word
                     theBytes[2] = c;
@@ -1294,9 +1253,6 @@ public:
                     // can eliminate checking as many pins as possible
                     auto e = dataLines[2];
                     auto f = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     theBytes[4] = e;
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[5] = f;
@@ -1307,9 +1263,6 @@ public:
                     signalReady<true>();
                     auto g = dataLines[0];
                     auto h = dataLines[1];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[0]);
-                    }
                     // lower must be valid since we are flowing into the
                     // next 16-bit word
                     theBytes[6] = g;
@@ -1324,9 +1277,6 @@ public:
                     // can eliminate checking as many pins as possible
                     auto i = dataLines[2];
                     auto j = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     theBytes[8] = i;
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[9] = j;
@@ -1337,9 +1287,6 @@ public:
                     signalReady<true>();
                     auto k = dataLines[0];
                     auto l = dataLines[1];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[0]);
-                    }
                     // lower must be valid since we are flowing into the
                     // next 16-bit word
                     theBytes[10] = k;
@@ -1356,9 +1303,6 @@ public:
                     // can eliminate checking as many pins as possible
                     auto m = dataLines[2];
                     auto n = dataLines[3];
-                    if constexpr (enableDebugging) {
-                        Serial.printf("0x%x\n", dataLinesHalves[1]);
-                    }
                     theBytes[12] = m;
                     if (digitalRead<Pin::BE3>() == LOW) {
                         theBytes[13] = n;
@@ -1369,12 +1313,6 @@ public:
         }
 Done:
         signalReady<true>();
-        if constexpr (enableDebugging) {
-            DataRegister32 wordView = reinterpret_cast<DataRegister32>(theBytes);
-            for (int i = 0; i < 4; ++i) {
-                Serial.printf(F("%x: 0x%lx\n"), reinterpret_cast<uintptr_t>(wordView + i), wordView[i]);
-            }
-        }
     }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
@@ -1625,27 +1563,16 @@ executionBody() noexcept {
 ReadOperationStart:
     // wait until DEN goes low
     while (digitalRead<Pin::DEN>());
-    if constexpr (EnableHumanScaleTransactionTracking) {
-        Serial.println(F("{"));
-    }
     // check to see if we need to change directions
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
         updateDataLinesDirection<0>();
         // update the direction pin 
         toggle<Pin::DirectionOutput>();
-        if constexpr (EnableHumanScaleTransactionTracking) {
-            Serial.println(F("Read -> Write"));
-        }
         // then jump into the write loop
         goto WriteOperationBypass;
     }
 ReadOperationBypass:
-    if constexpr (EnableHumanScaleTransactionTracking) {
-        delay(250);
-        Serial.println(F("Read Operation"));
-        Serial.println(addressLinesValue32, HEX);
-    }
     // standard read operation so do the normal dispatch
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is
@@ -1655,19 +1582,15 @@ ReadOperationBypass:
         if constexpr (HybridWideMemorySupported) {
             idleTransaction();
         } else {
-            CommunicationKernel<true, width, EnableHumanScaleTransactionTracking>::doCommunication();
+            CommunicationKernel<true, width>::doCommunication();
         }
     } else {
         if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<true, width, EnableHumanScaleTransactionTracking>::doCommunication();
+            CommunicationKernel<true, width>::doCommunication();
         } else {
             // io operation
-            CommunicationKernel<true, width, EnableHumanScaleTransactionTracking>::doIO();
+            CommunicationKernel<true, width>::doIO();
         }
-    }
-    if constexpr (EnableHumanScaleTransactionTracking) {
-        Serial.println(F("}"));
-        Serial.flush();
     }
     // start the read operation again
     goto ReadOperationStart;
@@ -1675,27 +1598,16 @@ ReadOperationBypass:
 WriteOperationStart:
     // wait until DEN goes low
     while (digitalRead<Pin::DEN>());
-    if constexpr (EnableHumanScaleTransactionTracking) {
-        Serial.println(F("{"));
-    }
     // check to see if we need to change directions
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change data lines to be output since we are doing write -> read
         updateDataLinesDirection<0xFF>();
         // update the direction pin
         toggle<Pin::DirectionOutput>();
-        if constexpr (EnableHumanScaleTransactionTracking) {
-            Serial.println(F("Write -> Read"));
-        }
         // jump to the read loop
         goto ReadOperationBypass;
     } 
 WriteOperationBypass:
-    if constexpr (EnableHumanScaleTransactionTracking) {
-        delay(250);
-        Serial.println(F("Write Operation"));
-        Serial.println(addressLinesValue32, HEX);
-    }
     // standard write operation so do the normal dispatch for write operations
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is
@@ -1705,19 +1617,15 @@ WriteOperationBypass:
         if constexpr (HybridWideMemorySupported) {
             idleTransaction();
         } else {
-            CommunicationKernel<false, width, EnableHumanScaleTransactionTracking>::doCommunication();
+            CommunicationKernel<false, width>::doCommunication();
         }
     } else {
         if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<false, width, EnableHumanScaleTransactionTracking>::doCommunication();
+            CommunicationKernel<false, width>::doCommunication();
         } else {
             // io operation
-            CommunicationKernel<false, width, EnableHumanScaleTransactionTracking>::doIO();
+            CommunicationKernel<false, width>::doIO();
         }
-    }
-    if constexpr (EnableHumanScaleTransactionTracking) {
-        Serial.println(F("}"));
-        Serial.flush();
     }
     // restart the write loop
     goto WriteOperationStart;
@@ -1797,27 +1705,25 @@ setupPins() noexcept {
     digitalWrite<Pin::READY, HIGH>();
     // setup bank capture to read in address lines
     getDirectionRegister<Port::BankCapture>() = 0;
-    if constexpr (SupportDirectControlSignalConnection) {
-        pinMode(Pin::HOLD, OUTPUT);
-        digitalWrite<Pin::HOLD, LOW>();
-        pinMode(Pin::HLDA, INPUT);
-        pinMode(Pin::LOCK, INPUT);
-        pinMode(Pin::FAIL, INPUT);
-        pinMode(Pin::RESET, OUTPUT);
-        digitalWrite<Pin::RESET, HIGH>();
-        pinMode(Pin::CFG0, INPUT);
-        pinMode(Pin::CFG1, INPUT);
-        pinMode(Pin::CFG2, INPUT);
+    pinMode(Pin::HOLD, OUTPUT);
+    digitalWrite<Pin::HOLD, LOW>();
+    pinMode(Pin::HLDA, INPUT);
+    pinMode(Pin::LOCK, INPUT);
+    pinMode(Pin::FAIL, INPUT);
+    pinMode(Pin::RESET, OUTPUT);
+    digitalWrite<Pin::RESET, HIGH>();
+    pinMode(Pin::CFG0, INPUT);
+    pinMode(Pin::CFG1, INPUT);
+    pinMode(Pin::CFG2, INPUT);
 
-        pinMode(Pin::BusQueryEnable, OUTPUT);
-        digitalWrite<Pin::BusQueryEnable, HIGH>();
-    }
+    pinMode(Pin::BusQueryEnable, OUTPUT);
+    digitalWrite<Pin::BusQueryEnable, HIGH>();
 }
 void
 setupExternalBus() noexcept {
     // setup the EBI
     XMCRB=0b1'0000'000;
-    XMCRA=0b1'100'01'01;  
+    XMCRA=0b1'010'01'01;  
     // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0;

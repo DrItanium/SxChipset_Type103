@@ -16,7 +16,8 @@ all: Type103PLD.jed \
 	Flash32Decoder.jed \
 	SRAM32Decoder.jed \
 	NarrowWideAdapterDetect.jed \
-	WideAuxDecoder.jed
+	WideAuxDecoder.jed \
+	RAM2DecoderChip.jed
 
 
 
@@ -61,6 +62,10 @@ install_NarrowWideAdapterDetect: NarrowWideAdapterDetect.jed
 
 install_WideAuxDecoder: WideAuxDecoder.jed 
 	minipro -p ATF16V8B --write WideAuxDecoder.jed 
+
+install_RAM2DecoderChip: RAM2DecoderChip.jed
+	minipro -p ATF22V10C --write RAM2DecoderChip.jed 
+
 
 clean:
 	@echo -n "Cleaning..."

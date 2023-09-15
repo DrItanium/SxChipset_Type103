@@ -7,7 +7,7 @@ OE  D1 D0 DE DD G16 G17 G18 G19 VCC
 /D0 = /A3 * /A4 * /A5 * /A6 * /A7 * SEN
 /D1 = A3 * /A4 * /A5 * /A6 * /A7 * SEN
 DD = PD6
-/DE = /IO
+/DE = IO + /IO
 
 
 DESCRIPTION

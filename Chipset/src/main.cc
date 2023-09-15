@@ -1316,13 +1316,13 @@ public:
             }
         }
 Done:
+        signalReady<true>();
         if constexpr (enableDebugging) {
             DataRegister32 wordView = reinterpret_cast<DataRegister32>(theBytes);
             for (int i = 0; i < 4; ++i) {
                 Serial.printf(F("%x: 0x%lx\n"), reinterpret_cast<uintptr_t>(wordView + i), wordView[i]);
             }
         }
-        signalReady<true>();
     }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
@@ -1588,8 +1588,10 @@ ReadOperationStart:
     }
 ReadOperationBypass:
     if constexpr (DisplayAddressLinesRequested) {
+        delay(500);
         Serial.println(F("Read Operation"));
         Serial.println(addressLinesValue32, HEX);
+        Serial.flush();
     }
     // standard read operation so do the normal dispatch
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
@@ -1630,9 +1632,10 @@ WriteOperationStart:
     } 
 WriteOperationBypass:
     if constexpr (DisplayAddressLinesRequested) {
+        delay(500);
         Serial.println(F("Write Operation"));
         Serial.println(addressLinesValue32, HEX);
-        Serial.println(addressLinesValue32, HEX);
+        Serial.flush();
     }
     // standard write operation so do the normal dispatch for write operations
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {

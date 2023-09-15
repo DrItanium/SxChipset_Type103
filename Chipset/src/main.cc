@@ -90,7 +90,7 @@ constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 constexpr bool SupportDirectControlSignalConnection = true;
-constexpr bool EnableHumanScaleTransactionTracking = true;
+constexpr bool EnableHumanScaleTransactionTracking = false;
 
 static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;

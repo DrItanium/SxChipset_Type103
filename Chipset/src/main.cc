@@ -1126,6 +1126,9 @@ public:
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     auto w = dataLines[0];
                     auto x = dataLines[1];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[1], dataLines[0]);
+                    }
                     if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
                         theBytes[0] = w;
                     } 
@@ -1135,6 +1138,9 @@ public:
                 } else {
                     auto w = dataLines[2];
                     auto x = dataLines[3];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[3], dataLines[2]);
+                    }
                     if (digitalRead<Pin::BE2>() == LOW) [[gnu::likely]] {
                         theBytes[0] = w;
                     } 
@@ -1148,6 +1154,9 @@ public:
                     // defer writes as much as possible
                     auto w = dataLines[0];
                     auto x = dataLines[1];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[1], dataLines[0]);
+                    }
                     if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
                         theBytes[0] = w;
                     } 
@@ -1158,6 +1167,9 @@ public:
                     signalReady<true>();
                     auto y = dataLines[2];
                     auto z = dataLines[3];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[3], dataLines[2]);
+                    }
                     theBytes[2] = y;
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[3] = z;
@@ -1172,6 +1184,9 @@ public:
                     // can eliminate checking as many pins as possible
                     theBytes[4] = dataLines[0];
                     auto b = dataLines[1];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[1], dataLines[0]);
+                    }
                     if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
                         theBytes[5] = b ;
                     }
@@ -1181,6 +1196,9 @@ public:
                     signalReady<true>();
                     theBytes[6] = dataLines[2];
                     auto d = dataLines[3];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[3], dataLines[2]);
+                    }
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[7] = d;
                     }
@@ -1194,6 +1212,9 @@ public:
                     // can eliminate checking as many pins as possible
                     auto f = dataLines[1];
                     theBytes[8] = dataLines[0];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[1], dataLines[0]);
+                    }
                     if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
                         theBytes[9] = f;
                     }
@@ -1203,6 +1224,9 @@ public:
                     signalReady<true>();
                     theBytes[10] = dataLines[2];
                     auto h = dataLines[3];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[3], dataLines[2]);
+                    }
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[11] = h;
                     }
@@ -1214,6 +1238,9 @@ public:
                     signalReady<true>();
                     theBytes[12] = dataLines[0];
                     auto j = dataLines[1];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[1], dataLines[0]);
+                    }
                     if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
                         theBytes[13] = j;
                     }
@@ -1225,6 +1252,9 @@ public:
                     signalReady<true>();
                     theBytes[14] = dataLines[2];
                     auto l = dataLines[3];
+                    if constexpr (enableDebugging) {
+                        Serial.printf("%x%x\n", dataLines[3], dataLines[2]);
+                    }
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[15] = l;
                     }

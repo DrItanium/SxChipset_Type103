@@ -1541,7 +1541,7 @@ static void doIO() noexcept {
 };
 
 
-constexpr bool DisplayAddressLinesRequested = true;
+constexpr bool DisplayAddressLinesRequested = false;
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]

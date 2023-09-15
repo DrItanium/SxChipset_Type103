@@ -82,9 +82,10 @@ constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
 constexpr bool SupportNewRAMLayout = false;
-constexpr bool HybridWideMemorySupported = true;
+constexpr bool HybridWideMemorySupported = false;
 constexpr auto TransferBufferSize = SupportNewRAMLayout ? 32768 : 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
+constexpr bool DisplayReadWriteOperationStarts = false;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
@@ -1571,6 +1572,10 @@ ReadOperationStart:
         goto WriteOperationBypass;
     }
 ReadOperationBypass:
+    if constexpr (DisplayReadWriteOperationStarts) {
+        Serial.println(F("Read Operation"));
+        Serial.println(addressLinesValue32, HEX);
+    }
     // standard read operation so do the normal dispatch
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is
@@ -1606,6 +1611,10 @@ WriteOperationStart:
         goto ReadOperationBypass;
     } 
 WriteOperationBypass:
+    if constexpr (DisplayReadWriteOperationStarts) {
+        Serial.println(F("Write Operation"));
+        Serial.println(addressLinesValue32, HEX);
+    }
     // standard write operation so do the normal dispatch for write operations
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
         // the IBUS is the window into the 32-bit bus that the i960 is

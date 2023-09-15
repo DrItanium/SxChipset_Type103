@@ -1020,11 +1020,14 @@ public:
             Serial.printf(F("theBytes = %x\n"), theBytes);
         }
         if constexpr (isReadOperation) {
+            if constexpr (enableDebugging) {
+                DataRegister32 wordView = reinterpret_cast<DataRegister32>(theBytes);
+                for (int i = 0; i < 4; ++i) {
+                    Serial.printf(F("%x: 0x%x\n"), reinterpret_cast<uintptr_t>(wordView) + i, wordView[i]);
+                }
+            }
             auto a = theBytes[0];
             auto b = theBytes[1];
-            if constexpr (enableDebugging) {
-                Serial.printf(F("a = %d, b = %d\n"), a, b);
-            }
             if (isBurstLast()) {
                 uint8_t baseIndex = 0;
                 if (digitalRead<Pin::AlignmentCheck>() != LOW) {
@@ -1036,9 +1039,6 @@ public:
             } else {
                 auto c = theBytes[2];
                 auto d = theBytes[3];
-                if constexpr (enableDebugging) {
-                    Serial.printf(F("c = %d, d = %d\n"), c, d);
-                }
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     dataLines[0] = a;
                     dataLines[1] = b;
@@ -1050,9 +1050,6 @@ public:
                     }
                     auto e = theBytes[4];
                     auto f = theBytes[5];
-                    if constexpr (enableDebugging) {
-                        Serial.printf(F("e = %d, f = %d\n"), e, f);
-                    }
                     signalReady<true>();
                     dataLines[0] = e;
                     dataLines[1] = f;
@@ -1061,9 +1058,6 @@ public:
                     }
                     auto g = theBytes[6];
                     auto h = theBytes[7];
-                    if constexpr (enableDebugging) {
-                        Serial.printf(F("g = %d, h = %d\n"), g, h);
-                    }
                     signalReady<true>();
                     dataLines[2] = g;
                     dataLines[3] = h;
@@ -1072,9 +1066,6 @@ public:
                     }
                     auto i = theBytes[8];
                     auto j = theBytes[9];
-                    if constexpr (enableDebugging) {
-                        Serial.printf(F("i = %d, j = %d\n"), i, j);
-                    }
                     signalReady<true>();
                     dataLines[0] = i;
                     dataLines[1] = j;
@@ -1083,9 +1074,6 @@ public:
                     }
                     auto k = theBytes[10];
                     auto l = theBytes[11];
-                    if constexpr (enableDebugging) {
-                        Serial.printf(F("k = %d, l = %d\n"), k, l);
-                    }
                     signalReady<true>();
                     dataLines[2] = k;
                     dataLines[3] = l;
@@ -1094,9 +1082,6 @@ public:
                     }
                     auto m = theBytes[12];
                     auto n = theBytes[13];
-                    if constexpr (enableDebugging) {
-                        Serial.printf(F("m = %d, n = %d\n"), m, n);
-                    }
                     signalReady<true>();
                     dataLines[0] = m;
                     dataLines[1] = n;
@@ -1105,9 +1090,6 @@ public:
                     }
                     auto o = theBytes[14];
                     auto p = theBytes[15];
-                    if constexpr (enableDebugging) {
-                        Serial.printf(F("o = %d, p = %d\n"), o, p);
-                    }
                     signalReady<true>();
                     dataLines[2] = o;
                     dataLines[3] = p;
@@ -1567,7 +1549,7 @@ static void doIO() noexcept {
 };
 
 
-constexpr bool DisplayAddressLinesRequested = false;
+constexpr bool DisplayAddressLinesRequested = true;
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]

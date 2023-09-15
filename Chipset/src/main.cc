@@ -81,7 +81,7 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
-constexpr bool SupportNewRAMLayout = true;
+constexpr bool SupportNewRAMLayout = false;
 constexpr bool HybridWideMemorySupported = false;
 constexpr auto TransferBufferSize = 32768;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
@@ -92,6 +92,7 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 constexpr bool SupportDirectControlSignalConnection = true;
 
 static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
+using BusKind = AccessFromIBUS;
 
 constexpr auto displayHasTouchScreen() noexcept {
     switch (ActiveDisplay) {
@@ -591,7 +592,7 @@ getTransactionWindow() noexcept {
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else {
         SplitWord32 split{addressLinesLower24};
-        setBankIndex(split.getIBUSBankIndex());
+        setBankIndex(split.getBankIndex(BusKind{}));
         return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
     }
 }
@@ -1600,7 +1601,7 @@ static void doIO() noexcept {
 };
 
 
-constexpr bool DisplayAddressLinesRequested = false;
+constexpr bool DisplayAddressLinesRequested = true;
 template<NativeBusWidth width> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -1754,8 +1755,8 @@ installMemoryImage() noexcept {
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
             // just modify the bank as we go along
-            setBankIndex(view.getIBUSBankIndex());
-            auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress(AccessFromIBUS{}));
+            setBankIndex(view.getBankIndex(BusKind{}));
+            auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress(BusKind{}));
             theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
             Serial.print(F("."));
         }
@@ -1813,7 +1814,6 @@ setupPins() noexcept {
         digitalWrite<Pin::BusQueryEnable, HIGH>();
     }
 }
-constexpr auto RequireWaitStatesForCH351 = true;
 void
 setupExternalBus() noexcept {
     // setup the EBI

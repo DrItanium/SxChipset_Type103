@@ -1020,12 +1020,6 @@ public:
             Serial.printf(F("theBytes = %x\n"), theBytes);
         }
         if constexpr (isReadOperation) {
-            if constexpr (enableDebugging) {
-                DataRegister32 wordView = reinterpret_cast<DataRegister32>(theBytes);
-                for (int i = 0; i < 4; ++i) {
-                    Serial.printf(F("%x: 0x%x\n"), reinterpret_cast<uintptr_t>(wordView) + i, wordView[i]);
-                }
-            }
             auto a = theBytes[0];
             auto b = theBytes[1];
             if (isBurstLast()) {
@@ -1322,6 +1316,12 @@ public:
             }
         }
 Done:
+        if constexpr (enableDebugging) {
+            DataRegister32 wordView = reinterpret_cast<DataRegister32>(theBytes);
+            for (int i = 0; i < 4; ++i) {
+                Serial.printf(F("%x: 0x%lx\n"), reinterpret_cast<uintptr_t>(wordView + i), wordView[i]);
+            }
+        }
         signalReady<true>();
     }
 #define I960_Signal_Switch \
@@ -1580,6 +1580,9 @@ ReadOperationStart:
         updateDataLinesDirection<0>();
         // update the direction pin 
         toggle<Pin::DirectionOutput>();
+        if constexpr (DisplayAddressLinesRequested) {
+            Serial.println(F("Read -> Write"));
+        }
         // then jump into the write loop
         goto WriteOperationBypass;
     }
@@ -1619,12 +1622,16 @@ WriteOperationStart:
         updateDataLinesDirection<0xFF>();
         // update the direction pin
         toggle<Pin::DirectionOutput>();
+        if constexpr (DisplayAddressLinesRequested) {
+            Serial.println(F("Write -> Read"));
+        }
         // jump to the read loop
         goto ReadOperationBypass;
     } 
 WriteOperationBypass:
     if constexpr (DisplayAddressLinesRequested) {
         Serial.println(F("Write Operation"));
+        Serial.println(addressLinesValue32, HEX);
         Serial.println(addressLinesValue32, HEX);
     }
     // standard write operation so do the normal dispatch for write operations

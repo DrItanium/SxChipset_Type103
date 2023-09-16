@@ -1585,8 +1585,7 @@ ReadOperationStart:
     }
 ReadOperationBypass:
     if constexpr (DisplayReadWriteOperationStarts) {
-        Serial.println(F("Read Operation"));
-        Serial.println(addressLinesValue32, HEX);
+        Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
     }
     // standard read operation so do the normal dispatch
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
@@ -1624,8 +1623,7 @@ WriteOperationStart:
     } 
 WriteOperationBypass:
     if constexpr (DisplayReadWriteOperationStarts) {
-        Serial.println(F("Write Operation"));
-        Serial.println(addressLinesValue32, HEX);
+        Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
     }
     // standard write operation so do the normal dispatch for write operations
     if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {

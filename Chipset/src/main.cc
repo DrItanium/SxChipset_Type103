@@ -92,7 +92,7 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
-using BusKind = AccessFromNewIBUS;
+using BusKind = AccessFromIBUS;
 constexpr auto displayHasTouchScreen() noexcept {
     switch (ActiveDisplay) {
         case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:

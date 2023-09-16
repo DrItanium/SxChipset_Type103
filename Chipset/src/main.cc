@@ -83,7 +83,7 @@ constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
 constexpr bool SupportNewRAMLayout = false;
 constexpr bool HybridWideMemorySupported = false;
-constexpr auto TransferBufferSize = SupportNewRAMLayout ? 32768 : 16384;
+constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool DisplayReadWriteOperationStarts = false;
 
@@ -91,8 +91,8 @@ constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 
-static_assert((MemoryWindowMask == 0x7FFF || MemoryWindowMask == 0x3FFF), "MemoryWindowMask is not right");
-using BusKind = AccessFromIBUS;
+static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
+using BusKind = AccessFromNewIBUS;
 constexpr auto displayHasTouchScreen() noexcept {
     switch (ActiveDisplay) {
         case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:
@@ -585,7 +585,11 @@ inline
 DataRegister8
 getTransactionWindow() noexcept {
     if constexpr (SupportNewRAMLayout) {
-        setBankIndex(getInputRegister<Port::BankCapture>());
+        auto result = getInputRegister<Port::BankCapture>();
+        if constexpr (DisplayReadWriteOperationStarts) {
+            Serial.printf(F("Bank Index: 0x%x\n"), result);
+        }
+        setBankIndex(result);
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else {
         SplitWord32 split{addressLinesLower24};
@@ -1312,6 +1316,14 @@ public:
         }
 Done:
         signalReady<true>();
+        if constexpr (DisplayReadWriteOperationStarts) {
+            if constexpr (isReadOperation) {
+                DataRegister32 regs = reinterpret_cast<DataRegister32>(theBytes);
+                for (int i = 0; i < 4; ++i) {
+                    Serial.printf(F("0x%x: 0x%lx\n"), reinterpret_cast<uintptr_t>(regs + i), regs[i]);
+                }
+            }
+        }
     }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
@@ -1730,7 +1742,11 @@ void
 setupExternalBus() noexcept {
     // setup the EBI
     XMCRB=0b1'0000'000;
-    XMCRA=0b1'010'01'01;  
+    if constexpr (SupportNewRAMLayout) {
+        XMCRA=0b1'100'01'01;  
+    } else {
+        XMCRA=0b1'010'01'01;  
+    }
     // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0;

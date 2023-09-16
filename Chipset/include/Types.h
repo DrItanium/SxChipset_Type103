@@ -61,7 +61,7 @@ union SplitWord32 {
 #ifndef __BUILTIN_AVR_INSERT_BITS
         uint8_t lower = static_cast<uint8_t>(bytes[1] >> 7) & 0b1;
         uint8_t upper = static_cast<uint8_t>(bytes[2] << 1) & 0b1111'1110;
-        return lower + upper;
+        return lower | upper;
 #else
         return __builtin_avr_insert_bits(0xfffffff7, bytes[1], 
                 __builtin_avr_insert_bits(0x6543210f, bytes[2], 0));
@@ -75,7 +75,7 @@ union SplitWord32 {
 #ifndef __BUILTIN_AVR_INSERT_BITS
         uint8_t lower = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
         uint8_t upper = static_cast<uint8_t>(bytes[2] << 2) & 0b1111'1100;
-        return lower + upper;
+        return lower | upper;
 #else
         return __builtin_avr_insert_bits(0xffffff76, bytes[1], 
                 __builtin_avr_insert_bits(0x543210ff, bytes[2], 0));

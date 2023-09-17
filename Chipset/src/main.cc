@@ -1750,11 +1750,12 @@ ReadOperationStart:
         }
         do {
             if (isBurstLast()) {
-                signalReady<true>();
-                goto ReadOperationStart;
+                break;
             }
             signalReady<true>();
         } while (true);
+        signalReady<true>();
+        goto ReadOperationStart;
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
             // change direction to input since we are doing read -> write
@@ -1789,11 +1790,12 @@ WriteOperationStart:
         }
         do {
             if (isBurstLast()) {
-                signalReady<true>();
-                goto WriteOperationStart;
+                break;
             }
             signalReady<true>();
         } while (true);
+        signalReady<true>();
+        goto WriteOperationStart;
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
             // change direction to input since we are doing read -> write

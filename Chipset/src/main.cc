@@ -85,7 +85,7 @@ constexpr bool SupportNewRAMLayout = false;
 constexpr bool HybridWideMemorySupported = true;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
-constexpr bool DisplayReadWriteOperationStarts = true;
+constexpr bool DisplayReadWriteOperationStarts = false;
 constexpr bool PerformMemoryImageInstallation = false;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
@@ -695,9 +695,7 @@ idleTransaction() noexcept {
         if (isBurstLast()) {
             goto done;
         }
-        signalReady<false>();
-        insertCustomNopCount<8>();
-        //signalReady<true>();
+        signalReady<true>();
     }
 done:
     signalReady<true>();

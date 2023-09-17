@@ -1721,6 +1721,17 @@ hybridMemoryTransaction() noexcept {
     } while (true);
 }
 
+template<bool isReadOperation, NativeBusWidth width>
+FORCE_INLINE
+inline
+void
+doIOOperation() noexcept {
+    if (digitalRead<Pin::A23_960>()) {
+        CommunicationKernel<isReadOperation, width>::doCommunication();
+    } else {
+        CommunicationKernel<isReadOperation, width>::doIO();
+    }
+}
 template<NativeBusWidth width>
 [[gnu::noinline]]
 [[noreturn]]
@@ -1748,14 +1759,7 @@ ReadOperationStart:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("External Transaction (0x%lx)\n"), addressLinesValue32);
         }
-        do {
-            if (isBurstLast()) {
-                break;
-            }
-            signalReady<true>();
-        } while (true);
-        signalReady<true>();
-        goto ReadOperationStart;
+        idleTransaction();
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
             // change direction to input since we are doing read -> write
@@ -1772,12 +1776,7 @@ ReadOperationBypass:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
         }
-        if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<true, width>::doCommunication();
-        } else {
-            // io operation
-            CommunicationKernel<true, width>::doIO();
-        }
+        doIOOperation<true, width>();
     }
     goto ReadOperationStart;
 WriteOperationStart:
@@ -1788,14 +1787,7 @@ WriteOperationStart:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("External Transaction (0x%lx)\n"), addressLinesValue32);
         }
-        do {
-            if (isBurstLast()) {
-                break;
-            }
-            signalReady<true>();
-        } while (true);
-        signalReady<true>();
-        goto WriteOperationStart;
+        idleTransaction();
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
             // change direction to input since we are doing read -> write
@@ -1809,16 +1801,8 @@ WriteOperationBypass:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
         }
-
-        if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<false, width>::doCommunication();
-        } else {
-            // io operation
-            CommunicationKernel<false, width>::doIO();
-        }
-
+        doIOOperation<false, width>();
     }
-    
     goto WriteOperationStart;
 }
 

@@ -1635,7 +1635,27 @@ WriteOperationBypass:
     goto WriteOperationStart;
     // we should never get here!
 }
-
+template<bool isReadOperation, NativeBusWidth width>
+FORCE_INLINE
+inline
+void
+doTransaction() {
+    // standard read/write operation so do the normal dispatch
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        idleTransaction();
+    } else {
+        if (digitalRead<Pin::A23_960>()) {
+            CommunicationKernel<isReadOperation, width>::doCommunication();
+        } else {
+            // io operation
+            CommunicationKernel<isReadOperation, width>::doIO();
+        }
+    }
+}
 template<NativeBusWidth width>
 [[gnu::noinline]]
 [[noreturn]]
@@ -1669,41 +1689,13 @@ hybridMemoryTransaction() noexcept {
                 if constexpr (DisplayReadWriteOperationStarts) {
                     Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
                 }
-                // standard write operation so do the normal dispatch for write operations
-                if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    idleTransaction();
-                } else {
-                    if (digitalRead<Pin::A23_960>()) {
-                        CommunicationKernel<false, width>::doCommunication();
-                    } else {
-                        // io operation
-                        CommunicationKernel<false, width>::doIO();
-                    }
-                }
+                doTransaction<false, width>();
                 break;
             }
             if constexpr (DisplayReadWriteOperationStarts) {
                 Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
             }
-            // standard read operation so do the normal dispatch
-            if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
-                // the IBUS is the window into the 32-bit bus that the i960 is
-                // accessing from. Right now, it supports up to 4 megabytes of
-                // space (repeating these 4 megabytes throughout the full
-                // 32-bit space until we get to IO space)
-                idleTransaction();
-            } else {
-                if (digitalRead<Pin::A23_960>()) {
-                    CommunicationKernel<true, width>::doCommunication();
-                } else {
-                    // io operation
-                    CommunicationKernel<true, width>::doIO();
-                }
-            }
+            doTransaction<true, width>();
         } while (true);
         // write operation
         do {
@@ -1719,42 +1711,14 @@ hybridMemoryTransaction() noexcept {
                 if constexpr (DisplayReadWriteOperationStarts) {
                     Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
                 }
-                // standard read operation so do the normal dispatch
-                if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
-                    // the IBUS is the window into the 32-bit bus that the i960 is
-                    // accessing from. Right now, it supports up to 4 megabytes of
-                    // space (repeating these 4 megabytes throughout the full
-                    // 32-bit space until we get to IO space)
-                    idleTransaction();
-                } else {
-                    if (digitalRead<Pin::A23_960>()) {
-                        CommunicationKernel<true, width>::doCommunication();
-                    } else {
-                        // io operation
-                        CommunicationKernel<true, width>::doIO();
-                    }
-                }
+                doTransaction<true, width>();
                 // start the read operation again
                 break;
             } 
             if constexpr (DisplayReadWriteOperationStarts) {
                 Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
             }
-            // standard write operation so do the normal dispatch for write operations
-            if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
-                // the IBUS is the window into the 32-bit bus that the i960 is
-                // accessing from. Right now, it supports up to 4 megabytes of
-                // space (repeating these 4 megabytes throughout the full
-                // 32-bit space until we get to IO space)
-                idleTransaction();
-            } else {
-                if (digitalRead<Pin::A23_960>()) {
-                    CommunicationKernel<false, width>::doCommunication();
-                } else {
-                    // io operation
-                    CommunicationKernel<false, width>::doIO();
-                }
-            }
+            doTransaction<false, width>();
         } while (true);
     } while (true);
 }

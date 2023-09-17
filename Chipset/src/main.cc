@@ -1766,24 +1766,17 @@ hybridMemoryTransaction_v2() noexcept {
                     if constexpr (DisplayReadWriteOperationStarts) {
                         Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
                     }
-                    if (digitalRead<Pin::A23_960>()) {
-                        CommunicationKernel<false, width>::doCommunication();
-                    } else {
-                        // io operation
-                        CommunicationKernel<false, width>::doIO();
-                    }
-                    break;
+                    goto WriteOperationBypass;
+                } 
+ReadOperationBypass:
+                if constexpr (DisplayReadWriteOperationStarts) {
+                    Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
+                }
+                if (digitalRead<Pin::A23_960>()) {
+                    CommunicationKernel<true, width>::doCommunication();
                 } else {
-                    if constexpr (DisplayReadWriteOperationStarts) {
-                        Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
-                    }
-                    if (digitalRead<Pin::A23_960>()) {
-                        CommunicationKernel<true, width>::doCommunication();
-                    } else {
-                        // io operation
-                        CommunicationKernel<true, width>::doIO();
-                    }
-
+                    // io operation
+                    CommunicationKernel<true, width>::doIO();
                 }
             }
         } while (true);
@@ -1807,28 +1800,20 @@ hybridMemoryTransaction_v2() noexcept {
                     // update the direction pin 
                     toggle<Pin::DirectionOutput>();
                     // then jump into the write loop
-                    if constexpr (DisplayReadWriteOperationStarts) {
-                        Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
-                    }
-                    if (digitalRead<Pin::A23_960>()) {
-                        CommunicationKernel<true, width>::doCommunication();
-                    } else {
-                        // io operation
-                        CommunicationKernel<true, width>::doIO();
-                    }
-                    break;
-                } else {
-                    if constexpr (DisplayReadWriteOperationStarts) {
-                        Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
-                    }
-                    if (digitalRead<Pin::A23_960>()) {
-                        CommunicationKernel<false, width>::doCommunication();
-                    } else {
-                        // io operation
-                        CommunicationKernel<false, width>::doIO();
-                    }
-
+                    goto ReadOperationBypass;
+                } 
+WriteOperationBypass:
+                if constexpr (DisplayReadWriteOperationStarts) {
+                    Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
                 }
+
+                if (digitalRead<Pin::A23_960>()) {
+                    CommunicationKernel<false, width>::doCommunication();
+                } else {
+                    // io operation
+                    CommunicationKernel<false, width>::doIO();
+                }
+
             }
         } while (true);
     } while (true);

@@ -580,7 +580,6 @@ computeTransactionWindow(uint16_t offset) noexcept {
     return MemoryWindowBaseAddress | (offset & MemoryWindowMask);
 }
 
-[[gnu::used]]
 FORCE_INLINE
 inline
 DataRegister8
@@ -693,12 +692,11 @@ idleTransaction() noexcept {
     // just keep going until we are done
     while (true) {
         if (isBurstLast()) {
-            goto done;
+            signalReady<true>();
+            return;
         }
         signalReady<true>();
     }
-done:
-    signalReady<true>();
 }
 template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
@@ -1754,6 +1752,7 @@ ReadOperationStart:
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
+
         idleTransaction();
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
@@ -1826,7 +1825,7 @@ executionBody() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex(0);
     if constexpr (HybridWideMemorySupported) {
-        hybridMemoryTransaction_v2<width>();
+        hybridMemoryTransaction<width>();
     } else {
         nonHybridMemoryTransaction<width>();
     }

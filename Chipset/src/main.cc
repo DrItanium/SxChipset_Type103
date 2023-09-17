@@ -1319,11 +1319,9 @@ public:
 Done:
         signalReady<true>();
         if constexpr (DisplayReadWriteOperationStarts) {
-            if constexpr (isReadOperation) {
-                DataRegister32 regs = reinterpret_cast<DataRegister32>(theBytes);
-                for (int i = 0; i < 4; ++i) {
-                    Serial.printf(F("0x%x: 0x%lx\n"), reinterpret_cast<uintptr_t>(regs + i), regs[i]);
-                }
+            DataRegister32 regs = reinterpret_cast<DataRegister32>(theBytes);
+            for (int i = 0; i < 4; ++i) {
+                Serial.printf(F("0x%x: 0x%lx\n"), reinterpret_cast<uintptr_t>(regs + i), regs[i]);
             }
         }
     }

@@ -86,7 +86,7 @@ constexpr bool HybridWideMemorySupported = true;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool DisplayReadWriteOperationStarts = false;
-constexpr bool PerformMemoryImageInstallation = false;
+constexpr bool PerformMemoryImageInstallation = true;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
@@ -1666,9 +1666,10 @@ installMemoryImage() noexcept {
         }
     }
     Serial.println(F("SD CARD FOUND!"));
+    static constexpr auto filePath = "data.bin";
     // look for firmware.bin and open it readonly
-    if (auto theFirmware = SD.open("firmware.bin", FILE_READ); !theFirmware) {
-        Serial.println(F("Could not open firmware.bin for reading!"));
+    if (auto theFirmware = SD.open(filePath, FILE_READ); !theFirmware) {
+        Serial.printf(F("Could not open %s for reading!"), filePath);
         while (true) {
             delay(1000);
         }

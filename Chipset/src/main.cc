@@ -85,7 +85,8 @@ constexpr bool SupportNewRAMLayout = false;
 constexpr bool HybridWideMemorySupported = true;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
-constexpr bool DisplayReadWriteOperationStarts = false;
+constexpr bool DisplayReadWriteOperationStarts = true;
+constexpr bool PerformMemoryImageInstallation = false;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
@@ -686,17 +687,20 @@ updateDataLinesDirection() noexcept {
  * @brief Just go through the motions of a write operation but do not capture
  * anything being sent by the i960
  */
-FORCE_INLINE
+//FORCE_INLINE
 inline void 
 idleTransaction() noexcept {
     // just keep going until we are done
     while (true) {
         if (isBurstLast()) {
-            signalReady<true>();
-            return;
+            goto done;
         }
-        signalReady<true>();
+        signalReady<false>();
+        insertCustomNopCount<8>();
+        //signalReady<true>();
     }
+done:
+    signalReady<true>();
 }
 template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
@@ -1648,6 +1652,7 @@ WriteOperationBypass:
     goto WriteOperationStart;
     // we should never get here!
 }
+
 template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>
 [[gnu::noinline]]
 void
@@ -1793,7 +1798,11 @@ setup() {
         banner();
     }
     // find firmware.bin and install it into the 512k block of memory
-    installMemoryImage();
+    if constexpr (PerformMemoryImageInstallation) {
+        installMemoryImage();
+    } else {
+        delay(1000);
+    }
     pullCPUOutOfReset();
 }
 void 

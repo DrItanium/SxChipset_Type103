@@ -1748,12 +1748,13 @@ ReadOperationStart:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("External Transaction (0x%lx)\n"), addressLinesValue32);
         }
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-
-        idleTransaction();
+        do {
+            if (isBurstLast()) {
+                signalReady<true>();
+                goto ReadOperationStart;
+            }
+            signalReady<true>();
+        } while (true);
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
             // change direction to input since we are doing read -> write
@@ -1786,11 +1787,13 @@ WriteOperationStart:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("External Transaction (0x%lx)\n"), addressLinesValue32);
         }
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        idleTransaction();
+        do {
+            if (isBurstLast()) {
+                signalReady<true>();
+                goto WriteOperationStart;
+            }
+            signalReady<true>();
+        } while (true);
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
             // change direction to input since we are doing read -> write
@@ -1813,6 +1816,7 @@ WriteOperationBypass:
         }
 
     }
+    
     goto WriteOperationStart;
 }
 
@@ -1825,7 +1829,7 @@ executionBody() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex(0);
     if constexpr (HybridWideMemorySupported) {
-        hybridMemoryTransaction<width>();
+        hybridMemoryTransaction_v2<width>();
     } else {
         nonHybridMemoryTransaction<width>();
     }

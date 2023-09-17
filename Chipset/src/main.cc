@@ -1548,16 +1548,10 @@ static void doIO() noexcept {
 }
 #undef I960_Signal_Switch
 };
-
-
-template<NativeBusWidth width> 
-//[[gnu::optimize("no-reorder-blocks")]]
+template<NativeBusWidth width>
 [[gnu::noinline]]
-[[noreturn]] 
-void 
-executionBody() noexcept {
-    digitalWrite<Pin::DirectionOutput, HIGH>();
-    setBankIndex(0);
+void
+nonHybridMemoryTransaction() noexcept {
     // at this point, we are setup to be in output mode (or read) and that is the
     // expected state for _all_ i960 processors, it will load some amount of
     // data from main memory to start the execution process. 
@@ -1593,11 +1587,7 @@ ReadOperationBypass:
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        if constexpr (HybridWideMemorySupported) {
-            idleTransaction();
-        } else {
-            CommunicationKernel<true, width>::doCommunication();
-        }
+        CommunicationKernel<true, width>::doCommunication();
     } else {
         if (digitalRead<Pin::A23_960>()) {
             CommunicationKernel<true, width>::doCommunication();
@@ -1631,11 +1621,7 @@ WriteOperationBypass:
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        if constexpr (HybridWideMemorySupported) {
-            idleTransaction();
-        } else {
-            CommunicationKernel<false, width>::doCommunication();
-        }
+        CommunicationKernel<false, width>::doCommunication();
     } else {
         if (digitalRead<Pin::A23_960>()) {
             CommunicationKernel<false, width>::doCommunication();
@@ -1647,6 +1633,108 @@ WriteOperationBypass:
     // restart the write loop
     goto WriteOperationStart;
     // we should never get here!
+}
+
+template<NativeBusWidth width>
+[[gnu::noinline]]
+void
+hybridMemoryTransaction() noexcept {
+    // at this point, we are setup to be in output mode (or read) and that is the
+    // expected state for _all_ i960 processors, it will load some amount of
+    // data from main memory to start the execution process. 
+    //
+    // After this point, we will never need to actually keep track of the
+    // contents of the DirectionOutput pin. We will always be properly
+    // synchronized overall!
+    //
+    // It is not lost on me that this is goto nightmare bingo, however in this
+    // case I need the extra control of the goto statement. Allowing the
+    // compiler to try and do this instead leads to implicit jumping issues
+    // where the compiler has way too much fun with its hands. It will over
+    // optimize things and create problems!
+ReadOperationStart:
+    // wait until DEN goes low
+    while (digitalRead<Pin::DEN>());
+    // check to see if we need to change directions
+    if (!digitalRead<Pin::ChangeDirection>()) {
+        // change direction to input since we are doing read -> write
+        updateDataLinesDirection<0>();
+        // update the direction pin 
+        toggle<Pin::DirectionOutput>();
+        // then jump into the write loop
+        goto WriteOperationBypass;
+    }
+ReadOperationBypass:
+    if constexpr (DisplayReadWriteOperationStarts) {
+        Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
+    }
+    // standard read operation so do the normal dispatch
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        idleTransaction();
+    } else {
+        if (digitalRead<Pin::A23_960>()) {
+            CommunicationKernel<true, width>::doCommunication();
+        } else {
+            // io operation
+            CommunicationKernel<true, width>::doIO();
+        }
+    }
+    // start the read operation again
+    goto ReadOperationStart;
+
+WriteOperationStart:
+    // wait until DEN goes low
+    while (digitalRead<Pin::DEN>());
+    // check to see if we need to change directions
+    if (!digitalRead<Pin::ChangeDirection>()) {
+        // change data lines to be output since we are doing write -> read
+        updateDataLinesDirection<0xFF>();
+        // update the direction pin
+        toggle<Pin::DirectionOutput>();
+        // jump to the read loop
+        goto ReadOperationBypass;
+    } 
+WriteOperationBypass:
+    if constexpr (DisplayReadWriteOperationStarts) {
+        Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
+    }
+    // standard write operation so do the normal dispatch for write operations
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) [[gnu::likely]] {
+        // the IBUS is the window into the 32-bit bus that the i960 is
+        // accessing from. Right now, it supports up to 4 megabytes of
+        // space (repeating these 4 megabytes throughout the full
+        // 32-bit space until we get to IO space)
+        idleTransaction();
+    } else {
+        if (digitalRead<Pin::A23_960>()) {
+            CommunicationKernel<false, width>::doCommunication();
+        } else {
+            // io operation
+            CommunicationKernel<false, width>::doIO();
+        }
+    }
+    // restart the write loop
+    goto WriteOperationStart;
+    // we should never get here!
+}
+
+template<NativeBusWidth width> 
+//[[gnu::optimize("no-reorder-blocks")]]
+[[gnu::noinline]]
+[[noreturn]] 
+void 
+executionBody() noexcept {
+    digitalWrite<Pin::DirectionOutput, HIGH>();
+    setBankIndex(0);
+    if constexpr (HybridWideMemorySupported) {
+        hybridMemoryTransaction<width>();
+    } else {
+        nonHybridMemoryTransaction<width>();
+    }
 }
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>

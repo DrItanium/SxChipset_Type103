@@ -1104,11 +1104,11 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
                 if (!isBurstLast()) {
                     signalReady<true>();
                     auto g = dataLines[higher];
-                    auto h = dataLines[highest];
                     theBytes[6] = g;
-                    if (digitalRead<pinHighest>() == LOW) {
-                        theBytes[7] = h;
+                    if (digitalRead<pinHighest>() == HIGH) {
+                        goto Done;
                     }
+                    theBytes[7] = dataLines[highest];
                     if (!isBurstLast()) {
                         signalReady<true>();
                         auto i = dataLines[lowest];

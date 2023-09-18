@@ -1061,27 +1061,27 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesHalves[2] = theHalves[2];
+                dataLinesHalves[0] = theHalves[2];
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesHalves[3] = theHalves[3];
+                dataLinesHalves[1] = theHalves[3];
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesHalves[4] = theHalves[4];
+                dataLinesHalves[0] = theHalves[4];
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesHalves[5] = theHalves[5];
+                dataLinesHalves[1] = theHalves[5];
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesHalves[6] = theHalves[6];
+                dataLinesHalves[0] = theHalves[6];
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesHalves[7] = theHalves[7];
+                dataLinesHalves[0] = theHalves[7];
                 goto Done;
             } else {
                 dataLinesHalves[1] = theHalves[0];

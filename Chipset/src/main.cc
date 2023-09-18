@@ -991,13 +991,10 @@ public:
 FORCE_INLINE
 inline
 static void idleTransaction() noexcept {
-    do {
-        if (isBurstLast()) {
-            signalReady<true>();
-            break;
-        }
+    while (!isBurstLast()) {
         signalReady<true>();
-    } while (true);
+    }
+    signalReady<true>();
 }
 
 template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>

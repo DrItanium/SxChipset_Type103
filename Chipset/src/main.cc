@@ -1051,61 +1051,60 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         if constexpr (isReadOperation) {
-            static constexpr bool IntroduceDelayForAlignedReads = true;
             if (digitalRead<Pin::AlignmentCheck>() == LOW) {
-                if (genericOperation16<0, 1, 0, 1, IntroduceDelayForAlignedReads>(theBytes)) {
+                DataRegister32 theWords = reinterpret_cast<DataRegister32>(theBytes);
+                dataLinesFull = theWords[0];
+                if (signalNext<true>()) {
                     return;
                 }
-                if (genericOperation16<2, 3, 2, 3, IntroduceDelayForAlignedReads>(theBytes)) {
+                if (signalNext<false>()) {
                     return;
                 }
-                if (genericOperation16<4, 5, 0, 1, IntroduceDelayForAlignedReads>(theBytes)) {
+                dataLinesFull = theWords[1];
+                if (signalNext<true>()) {
                     return;
                 }
-                if (genericOperation16<6, 7, 2, 3, IntroduceDelayForAlignedReads>(theBytes)) {
+                if (signalNext<false>()) {
                     return;
                 }
-                if (genericOperation16<8, 9, 0, 1, IntroduceDelayForAlignedReads>(theBytes)) {
+                dataLinesFull = theWords[2];
+                if (signalNext<true>()) {
                     return;
                 }
-                if (genericOperation16<10, 11, 2, 3, IntroduceDelayForAlignedReads>(theBytes)) {
+                if (signalNext<false>()) {
                     return;
                 }
-                if (genericOperation16<12, 13, 0, 1, IntroduceDelayForAlignedReads>(theBytes)) {
+                dataLinesFull = theWords[3];
+                if (signalNext<true>()) {
                     return;
                 }
-                (void)genericOperation16<14, 15, 2, 3, IntroduceDelayForAlignedReads, false>(theBytes);
                 goto Done;
             } else {
                 setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
+                if (signalNext<true>()) {
+                    return;
                 }
-                signalReady<false>();
+                if (signalNext<false>()) {
+                    return;
+                }
                 setDataByte(theBytes[6], theBytes[7], theBytes[4], theBytes[5]);
-                if (isBurstLast()) {
-                    goto Done; 
+                if (signalNext<true>()) {
+                    return;
                 }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
+                if (signalNext<false>()) {
+                    return;
                 }
-                signalReady<false>();
                 setDataByte(theBytes[10], theBytes[11], theBytes[8], theBytes[9]);
-                if (isBurstLast()) {
-                    goto Done; 
+                if (signalNext<true>()) {
+                    return;
                 }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done; 
+                if (signalNext<false>()) {
+                    return;
                 }
-                signalReady<false>();
                 setDataByte(theBytes[14], theBytes[15], theBytes[12], theBytes[13]);
-                if (isBurstLast()) {
-                    goto Done; 
+                if (signalNext<true>()) {
+                    return;
                 }
-                signalReady<true>();
                 goto Done;
             }
         } else {

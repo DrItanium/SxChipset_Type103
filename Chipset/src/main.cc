@@ -1082,26 +1082,25 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
         if (digitalRead<pinLower>() == HIGH) {
             // if the upper pin of the two is high then we should just signal
             // ready and return
-            signalReady<true>();
-            return;
+            goto Done;
         } 
         theBytes[1] = dataLines[lower];
         if (!isBurstLast()) {
             signalReady<true>();
             auto c = dataLines[higher];
-            auto d = dataLines[highest];
             theBytes[2] = c;
-            if (digitalRead<pinHighest>() == LOW) {
-                theBytes[3] = d;
+            if (digitalRead<pinHighest>() == HIGH) {
+                goto Done;
             }
+            theBytes[3] = dataLines[highest];
             if (!isBurstLast()) {
                 signalReady<true>();
                 auto e = dataLines[lowest];
-                auto f = dataLines[lower];
                 theBytes[4] = e;
-                if (digitalRead<pinLower>() == LOW) {
-                    theBytes[5] = f;
+                if (digitalRead<pinLower>() == HIGH) {
+                    goto Done;
                 }
+                theBytes[5] = dataLines[lower];
                 if (!isBurstLast()) {
                     signalReady<true>();
                     auto g = dataLines[higher];
@@ -1149,6 +1148,7 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
                 }
             }
         }
+Done:
         signalReady<true>();
     }
 }

@@ -993,33 +993,6 @@ static void idleTransaction() noexcept {
     } while (true);
 }
 
-template<bool introduceArtificialDelay>
-FORCE_INLINE
-inline
-static bool signalNext() noexcept {
-    auto terminate = isBurstLast();
-    signalReady<introduceArtificialDelay>();
-    return terminate;
-}
-
-template<int src0, int src1, int dest0, int dest1, bool delay, bool invokeSignalNext = true>
-FORCE_INLINE
-inline
-static bool genericOperation16(DataRegister8 theBytes) noexcept {
-    if constexpr (isReadOperation) {
-        dataLines[dest0] = theBytes[src0];
-        dataLines[dest1] = theBytes[src1];
-    } else {
-        theBytes[dest0] = dataLines[src0];
-        theBytes[dest1] = dataLines[src1];
-    }
-    if constexpr (invokeSignalNext) {
-        return signalNext<delay>();
-    } else {
-        return false;
-    }
-}
-
 template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
 //[[gnu::used]]
 static
@@ -1149,6 +1122,18 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
         signalReady<true>();
     }
 }
+template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
+//[[gnu::used]]
+[[gnu::optimize("no-reorder-blocks")]]
+static inline 
+void
+genericOperation16(DataRegister8 theBytes) noexcept {
+    if constexpr (isReadOperation) {
+        genericReadOperation8<lowest, lower, higher, highest, pinLowest, pinLower, pinHigher, pinHighest>(theBytes);
+    } else {
+        genericWriteOperation16<lowest, lower, higher, highest, pinLowest, pinLower, pinHigher, pinHighest>(theBytes);
+    }
+}
     FORCE_INLINE
     inline
     static void
@@ -1180,18 +1165,10 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
         //
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
-        if constexpr (isReadOperation) {
-            if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
-                genericReadOperation8<2, 3, 0, 1, Pin::BE2, Pin::BE3, Pin::BE0, Pin::BE1>(theBytes);
-            } else {
-                genericReadOperation8<0, 1, 2, 3, Pin::BE0, Pin::BE1, Pin::BE2, Pin::BE3>(theBytes);
-            }
+        if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
+            genericOperation16<2, 3, 0, 1, Pin::BE2, Pin::BE3, Pin::BE0, Pin::BE1>(theBytes);
         } else {
-            if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
-                genericWriteOperation16<2, 3, 0, 1, Pin::BE2, Pin::BE3, Pin::BE0, Pin::BE1>(theBytes);
-            } else {
-                genericWriteOperation16<0, 1, 2, 3, Pin::BE0, Pin::BE1, Pin::BE2, Pin::BE3>(theBytes);
-            }
+            genericOperation16<0, 1, 2, 3, Pin::BE0, Pin::BE1, Pin::BE2, Pin::BE3>(theBytes);
         }
         if constexpr (DisplayReadWriteOperationStarts) {
             DataRegister32 regs = reinterpret_cast<DataRegister32>(theBytes);

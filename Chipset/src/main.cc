@@ -599,7 +599,7 @@ getTransactionWindow() noexcept {
 }
 
 
-template<bool waitForReady = false>
+template<bool waitForReady, int NC = 4>
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
@@ -608,7 +608,7 @@ signalReady() noexcept {
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
-        insertCustomNopCount<4>();
+        insertCustomNopCount<NC>();
     }
 }
 using Register8 = volatile uint8_t&;
@@ -682,22 +682,6 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 
-/**
- * @brief Just go through the motions of a write operation but do not capture
- * anything being sent by the i960
- */
-//FORCE_INLINE
-inline void 
-idleTransaction() noexcept {
-    // just keep going until we are done
-    while (true) {
-        if (isBurstLast()) {
-            signalReady<true>();
-            return;
-        }
-        signalReady<true>();
-    }
-}
 template<bool isReadOperation, NativeBusWidth width>
 struct CommunicationKernel {
     using Self = CommunicationKernel<isReadOperation, width>;
@@ -708,6 +692,16 @@ struct CommunicationKernel {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 
+static void idleTransaction() noexcept {
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+Done:
+    signalReady<true>();
+}
 FORCE_INLINE
 inline
 static void
@@ -986,6 +980,24 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     Self& operator=(Self&&) = delete;
 
 public:
+static void idleTransaction() noexcept {
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+    if (isBurstLast()) goto Done;
+    signalReady<true>();
+Done:
+    signalReady<true>();
+}
     //[[gnu::optimize("no-reorder-blocks")]]
     FORCE_INLINE
     inline
@@ -1644,7 +1656,7 @@ doTransaction() {
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        idleTransaction();
+        CommunicationKernel<isReadOperation, width>::idleTransaction();
     } else {
         if (digitalRead<Pin::A23_960>()) {
             CommunicationKernel<isReadOperation, width>::doCommunication();
@@ -1759,7 +1771,8 @@ ReadOperationStart:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("External Transaction (0x%lx)\n"), addressLinesValue32);
         }
-        idleTransaction();
+
+        CommunicationKernel<true, width>::idleTransaction();
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
             // change direction to input since we are doing read -> write
@@ -1787,7 +1800,7 @@ WriteOperationStart:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("External Transaction (0x%lx)\n"), addressLinesValue32);
         }
-        idleTransaction();
+        CommunicationKernel<false, width>::idleTransaction();
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {
             // change direction to input since we are doing read -> write

@@ -1038,7 +1038,7 @@ static void idleTransaction() noexcept {
             } else {
                 auto c = theBytes[2];
                 auto d = theBytes[3];
-                static constexpr bool IntroduceDelayForAlignedReads = false;
+                static constexpr bool IntroduceDelayForAlignedReads = true;
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     dataLines[0] = a;
                     dataLines[1] = b;

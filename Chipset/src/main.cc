@@ -1051,40 +1051,44 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         if constexpr (isReadOperation) {
+            DataRegister16 theHalves = reinterpret_cast<DataRegister16>(theBytes);
             if (digitalRead<Pin::AlignmentCheck>() == LOW) {
-                DataRegister32 theWords = reinterpret_cast<DataRegister32>(theBytes);
-                dataLinesFull = theWords[0];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
+                dataLinesHalves[0] = theHalves[0];
                 if (isBurstLast()) {
                     goto Done;
                 }
                 signalReady<false>();
-                dataLinesFull = theWords[1];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
+                dataLinesHalves[1] = theHalves[1];
                 if (isBurstLast()) {
                     goto Done;
                 }
                 signalReady<false>();
-                dataLinesFull = theWords[2];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
+                dataLinesHalves[0] = theHalves[2];
                 if (isBurstLast()) {
                     goto Done;
                 }
                 signalReady<false>();
-                dataLinesFull = theWords[3];
+                dataLinesHalves[1] = theHalves[3];
                 if (isBurstLast()) {
                     goto Done;
                 }
-                signalReady<true>();
+                signalReady<false>();
+                dataLinesHalves[0] = theHalves[4];
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                signalReady<false>();
+                dataLinesHalves[1] = theHalves[5];
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                signalReady<false>();
+                dataLinesHalves[0] = theHalves[6];
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                signalReady<false>();
+                dataLinesHalves[1] = theHalves[7];
                 goto Done;
             } else {
                 setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);

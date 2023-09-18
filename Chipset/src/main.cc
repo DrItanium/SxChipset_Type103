@@ -1153,18 +1153,16 @@ static void idleTransaction() noexcept {
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     // defer writes as much as possible
                     auto w = dataLines[0];
-                    auto x = dataLines[1];
                     if (digitalRead<Pin::BE0>() == LOW) [[gnu::likely]] {
                         theBytes[0] = w;
                     } 
-                    theBytes[1] = x;
+                    theBytes[1] = dataLines[1];
                     // we only need to check to see if BE0 is enabled
                     // BE1 must be enabled since we are going to flow into
                     // the next byte
                     signalReady<true>();
-                    auto y = dataLines[2];
+                    theBytes[2] = dataLines[2];
                     auto z = dataLines[3];
-                    theBytes[2] = y;
                     if (digitalRead<Pin::BE3>() == LOW) [[gnu::likely]] {
                         theBytes[3] = z;
                     }
@@ -1198,8 +1196,8 @@ static void idleTransaction() noexcept {
                     signalReady<true>();
                     // since this is a flow in from previous values we actually
                     // can eliminate checking as many pins as possible
-                    auto f = dataLines[1];
                     theBytes[8] = dataLines[0];
+                    auto f = dataLines[1];
                     if (digitalRead<Pin::BE1>() == LOW) [[gnu::likely]] {
                         theBytes[9] = f;
                     }

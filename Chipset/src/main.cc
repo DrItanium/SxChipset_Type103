@@ -992,6 +992,33 @@ static void idleTransaction() noexcept {
         signalReady<true>();
     } while (true);
 }
+
+template<bool introduceArtificialDelay>
+FORCE_INLINE
+inline
+static bool signalNext() noexcept {
+    auto terminate = isBurstLast();
+    signalReady<introduceArtificialDelay>();
+    return terminate;
+}
+
+template<int src0, int src1, int dest0, int dest1, bool delay, bool invokeSignalNext = true>
+FORCE_INLINE
+inline
+static bool genericOperation16(DataRegister8 theBytes) noexcept {
+    if constexpr (isReadOperation) {
+        dataLines[dest0] = theBytes[src0];
+        dataLines[dest1] = theBytes[src1];
+    } else {
+        theBytes[dest0] = dataLines[src0];
+        theBytes[dest1] = dataLines[src1];
+    }
+    if constexpr (invokeSignalNext) {
+        return signalNext<delay>();
+    } else {
+        return false;
+    }
+}
     FORCE_INLINE
     inline
     static void
@@ -1024,107 +1051,62 @@ static void idleTransaction() noexcept {
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         if constexpr (isReadOperation) {
-            auto a = theBytes[0];
-            auto b = theBytes[1];
-            if (isBurstLast()) {
-                uint8_t baseIndex = 0;
-                if (digitalRead<Pin::AlignmentCheck>() != LOW) {
-                    baseIndex = 2;
+            static constexpr bool IntroduceDelayForAlignedReads = true;
+            if (digitalRead<Pin::AlignmentCheck>() == LOW) {
+                if (genericOperation16<0, 1, 0, 1, IntroduceDelayForAlignedReads>(theBytes)) {
+                    return;
                 }
-                dataLines[baseIndex] = a;
-                dataLines[baseIndex+1] = b;
+                if (genericOperation16<2, 3, 2, 3, IntroduceDelayForAlignedReads>(theBytes)) {
+                    return;
+                }
+                if (genericOperation16<4, 5, 0, 1, IntroduceDelayForAlignedReads>(theBytes)) {
+                    return;
+                }
+                if (genericOperation16<6, 7, 2, 3, IntroduceDelayForAlignedReads>(theBytes)) {
+                    return;
+                }
+                if (genericOperation16<8, 9, 0, 1, IntroduceDelayForAlignedReads>(theBytes)) {
+                    return;
+                }
+                if (genericOperation16<10, 11, 2, 3, IntroduceDelayForAlignedReads>(theBytes)) {
+                    return;
+                }
+                if (genericOperation16<12, 13, 0, 1, IntroduceDelayForAlignedReads>(theBytes)) {
+                    return;
+                }
+                (void)genericOperation16<14, 15, 2, 3, IntroduceDelayForAlignedReads, false>(theBytes);
                 goto Done;
             } else {
-                auto c = theBytes[2];
-                auto d = theBytes[3];
-                static constexpr bool IntroduceDelayForAlignedReads = true;
-                if (digitalRead<Pin::AlignmentCheck>() == LOW) {
-                    dataLines[0] = a;
-                    dataLines[1] = b;
-                    signalReady<IntroduceDelayForAlignedReads>();
-                    dataLines[2] = c;
-                    dataLines[3] = d;
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    auto e = theBytes[4];
-                    auto f = theBytes[5];
-                    signalReady<IntroduceDelayForAlignedReads>();
-                    dataLines[0] = e;
-                    dataLines[1] = f;
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    auto g = theBytes[6];
-                    auto h = theBytes[7];
-                    signalReady<IntroduceDelayForAlignedReads>();
-                    dataLines[2] = g;
-                    dataLines[3] = h;
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    auto i = theBytes[8];
-                    auto j = theBytes[9];
-                    signalReady<IntroduceDelayForAlignedReads>();
-                    dataLines[0] = i;
-                    dataLines[1] = j;
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    auto k = theBytes[10];
-                    auto l = theBytes[11];
-                    signalReady<IntroduceDelayForAlignedReads>();
-                    dataLines[2] = k;
-                    dataLines[3] = l;
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    auto m = theBytes[12];
-                    auto n = theBytes[13];
-                    signalReady<IntroduceDelayForAlignedReads>();
-                    dataLines[0] = m;
-                    dataLines[1] = n;
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    auto o = theBytes[14];
-                    auto p = theBytes[15];
-                    signalReady<IntroduceDelayForAlignedReads>();
-                    dataLines[2] = o;
-                    dataLines[3] = p;
-                    goto Done;
-                } else {
-                    setDataByte(c, d, a, b);
-                    signalReady<true>();
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    signalReady<false>();
-                    setDataByte(theBytes[6], theBytes[7], theBytes[4], theBytes[5]);
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    signalReady<true>();
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    signalReady<false>();
-                    setDataByte(theBytes[10], theBytes[11], theBytes[8], theBytes[9]);
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    signalReady<true>();
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    signalReady<false>();
-                    setDataByte(theBytes[14], theBytes[15], theBytes[12], theBytes[13]);
-                    if (isBurstLast()) {
-                        goto Done; 
-                    }
-                    signalReady<true>();
-                    goto Done;
+                setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);
+                signalReady<true>();
+                if (isBurstLast()) {
+                    goto Done; 
                 }
+                signalReady<false>();
+                setDataByte(theBytes[6], theBytes[7], theBytes[4], theBytes[5]);
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<false>();
+                setDataByte(theBytes[10], theBytes[11], theBytes[8], theBytes[9]);
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<false>();
+                setDataByte(theBytes[14], theBytes[15], theBytes[12], theBytes[13]);
+                if (isBurstLast()) {
+                    goto Done; 
+                }
+                signalReady<true>();
+                goto Done;
             }
         } else {
             if (isBurstLast()) {

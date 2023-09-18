@@ -1344,8 +1344,10 @@ static void doIO() noexcept {
                             dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);
                         } 
                         I960_Signal_Switch;
+#if 0
                     } 
             case 2: { 
+#endif
                         if constexpr (isReadOperation) { 
                             dataLinesHalves[1] = static_cast<uint16_t>((F_CPU) >> 16);
                         } 
@@ -1356,8 +1358,10 @@ static void doIO() noexcept {
                             dataLinesHalves[0] = static_cast<uint16_t>(F_CPU / 2);
                         } 
                         I960_Signal_Switch;
+#if 0
                     } 
             case 6: { 
+#endif
                         if constexpr (isReadOperation) { 
                             dataLinesHalves[1] = static_cast<uint16_t>((F_CPU / 2) >> 16);
                         } 
@@ -1373,8 +1377,10 @@ static void doIO() noexcept {
                             Serial.write(static_cast<uint8_t>(getDataByte<0>()));
                         } 
                         I960_Signal_Switch;
+#if 0
                     } 
             case 10: {
+#endif
                          if constexpr (isReadOperation) { 
                              dataLinesHalves[1] = 0;
                          } 
@@ -1387,8 +1393,10 @@ static void doIO() noexcept {
                              Serial.flush();
                          }
                          I960_Signal_Switch;
+#if 0
                      }
             case 14: {
+#endif
                         /* nothing to do on writes but do update the data port
                          * on reads */ 
                          if constexpr (isReadOperation) { 

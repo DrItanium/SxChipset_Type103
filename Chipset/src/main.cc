@@ -1057,7 +1057,6 @@ genericReadOperation8(DataRegister8 theBytes) noexcept {
                                     signalReady<false>();
                                     dataLines[higher] = theBytes[14];
                                     dataLines[highest] = theBytes[15];
-                                    signalReady<true>();
                                 }
                             }
                         }
@@ -1065,6 +1064,7 @@ genericReadOperation8(DataRegister8 theBytes) noexcept {
                 }
             }
         }
+        signalReady<true>();
     }
 }
 
@@ -1142,7 +1142,6 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
                                     if (digitalRead<pinHighest>() == LOW) {
                                         theBytes[15] = p;
                                     }
-                                    signalReady<true>();
                                 }
                             }
                         }
@@ -1150,6 +1149,7 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
                 }
             }
         }
+        signalReady<true>();
     }
 }
     FORCE_INLINE

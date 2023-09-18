@@ -1025,10 +1025,8 @@ inline
 void 
 genericReadOperation16(DataRegister16 theHalves) noexcept {
     if constexpr (isReadOperation) {
-        if (isBurstLast()) {
-            dataLinesHalves[lower] = theHalves[0];
-        } else {
-            dataLinesHalves[lower] = theHalves[0];
+        dataLinesHalves[lower] = theHalves[0];
+        if (!isBurstLast()) {
             dataLinesHalves[upper] = theHalves[1];
             signalReady<true>();
             if (isBurstLast()) {

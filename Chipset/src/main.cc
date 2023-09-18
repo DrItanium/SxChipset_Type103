@@ -1052,79 +1052,49 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
         // creative. The base offsets have been modified
         if constexpr (isReadOperation) {
             DataRegister16 theHalves = reinterpret_cast<DataRegister16>(theBytes);
-            if (digitalRead<Pin::AlignmentCheck>() == LOW) {
-                dataLinesHalves[0] = theHalves[0];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[1] = theHalves[1];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[0] = theHalves[2];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[1] = theHalves[3];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[0] = theHalves[4];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[1] = theHalves[5];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[0] = theHalves[6];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[1] = theHalves[7];
-                goto Done;
-            } else {
-                setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                setDataByte(theBytes[6], theBytes[7], theBytes[4], theBytes[5]);
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                setDataByte(theBytes[10], theBytes[11], theBytes[8], theBytes[9]);
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                setDataByte(theBytes[14], theBytes[15], theBytes[12], theBytes[13]);
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<true>();
+            int lower = 0;
+            int upper = 1;
+            if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
+                lower = 1;
+                upper = 0;
+            }
+            dataLinesHalves[lower] = theHalves[0];
+            if (isBurstLast()) {
                 goto Done;
             }
+            signalReady<false>();
+            dataLinesHalves[upper] = theHalves[1];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<false>();
+            dataLinesHalves[lower] = theHalves[2];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<false>();
+            dataLinesHalves[upper] = theHalves[3];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<false>();
+            dataLinesHalves[lower] = theHalves[4];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<false>();
+            dataLinesHalves[upper] = theHalves[5];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<false>();
+            dataLinesHalves[lower] = theHalves[6];
+            if (isBurstLast()) {
+                goto Done;
+            }
+            signalReady<false>();
+            dataLinesHalves[upper] = theHalves[7];
+            goto Done;
         } else {
             if (isBurstLast()) {
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {

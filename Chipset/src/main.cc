@@ -1057,6 +1057,7 @@ genericReadOperation8(DataRegister8 theBytes) noexcept {
                                     signalReady<false>();
                                     dataLines[higher] = theBytes[14];
                                     dataLines[highest] = theBytes[15];
+                                    signalReady<true>();
                                 }
                             }
                         }
@@ -1075,13 +1076,16 @@ void
 genericWriteOperation16(DataRegister8 theBytes) noexcept {
     if constexpr (!isReadOperation) {
         auto a = dataLines[lowest];
-        auto b = dataLines[lower];
         if (digitalRead<pinLowest>() == LOW) {
             theBytes[0] = a;
         }
-        if (digitalRead<pinLower>() == LOW) {
-            theBytes[1] = b;
-        }
+        if (digitalRead<pinLower>() == HIGH) {
+            // if the upper pin of the two is high then we should just signal
+            // ready and return
+            signalReady<true>();
+            return;
+        } 
+        theBytes[1] = dataLines[lower];
         if (!isBurstLast()) {
             signalReady<true>();
             auto c = dataLines[higher];
@@ -1138,6 +1142,7 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
                                     if (digitalRead<pinHighest>() == LOW) {
                                         theBytes[15] = p;
                                     }
+                                    signalReady<true>();
                                 }
                             }
                         }
@@ -1191,7 +1196,6 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
                 genericWriteOperation16<0, 1, 2, 3, Pin::BE0, Pin::BE1, Pin::BE2, Pin::BE3>(theBytes);
             }
         }
-        signalReady<true>();
         if constexpr (DisplayReadWriteOperationStarts) {
             DataRegister32 regs = reinterpret_cast<DataRegister32>(theBytes);
             for (int i = 0; i < 4; ++i) {

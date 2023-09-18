@@ -969,6 +969,13 @@ static void doIO() noexcept {
 }
 };
 
+template<int index>
+constexpr auto ByteEnablePinDetect = Pin::Count;
+template<> constexpr auto ByteEnablePinDetect<0> = Pin::BE0;
+template<> constexpr auto ByteEnablePinDetect<1> = Pin::BE1;
+template<> constexpr auto ByteEnablePinDetect<2> = Pin::BE2;
+template<> constexpr auto ByteEnablePinDetect<3> = Pin::BE3;
+
 template<bool isReadOperation>
 struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     using Self = CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen>;
@@ -1122,12 +1129,23 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
         signalReady<true>();
     }
 }
-template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
+template<int lowest, int lower, int higher, int highest>
 //[[gnu::used]]
 [[gnu::optimize("no-reorder-blocks")]]
 static inline 
 void
 genericOperation16(DataRegister8 theBytes) noexcept {
+    static_assert((lowest != lower) && (lowest != higher) && (lowest != highest), "the lowest pin matches with another pin");
+    static_assert((lower != higher) && (lower != highest), "the lower pin matches with another pin");
+    static_assert((higher != highest), "the higher pin matches with the highest pin!");
+    static constexpr auto pinLowest = ByteEnablePinDetect<lowest>;
+    static constexpr auto pinLower = ByteEnablePinDetect<lower>;
+    static constexpr auto pinHigher = ByteEnablePinDetect<higher>;
+    static constexpr auto pinHighest = ByteEnablePinDetect<highest>;
+    static_assert(pinLowest != Pin::Count, "Illegal index for BE0");
+    static_assert(pinLower != Pin::Count, "Illegal index for BE1");
+    static_assert(pinHigher != Pin::Count, "Illegal index for BE2");
+    static_assert(pinHighest != Pin::Count, "Illegal index for BE3");
     if constexpr (isReadOperation) {
         genericReadOperation8<lowest, lower, higher, highest, pinLowest, pinLower, pinHigher, pinHighest>(theBytes);
     } else {
@@ -1166,9 +1184,9 @@ genericOperation16(DataRegister8 theBytes) noexcept {
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
-            genericOperation16<2, 3, 0, 1, Pin::BE2, Pin::BE3, Pin::BE0, Pin::BE1>(theBytes);
+            genericOperation16<2, 3, 0, 1>(theBytes);
         } else {
-            genericOperation16<0, 1, 2, 3, Pin::BE0, Pin::BE1, Pin::BE2, Pin::BE3>(theBytes);
+            genericOperation16<0, 1, 2, 3>(theBytes);
         }
         if constexpr (DisplayReadWriteOperationStarts) {
             DataRegister32 regs = reinterpret_cast<DataRegister32>(theBytes);

@@ -1051,60 +1051,68 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
         // since we are using the pointer directly we have to be a little more
         // creative. The base offsets have been modified
         if constexpr (isReadOperation) {
+            DataRegister16 theHalves = reinterpret_cast<DataRegister16>(theBytes);
             if (digitalRead<Pin::AlignmentCheck>() == LOW) {
-                DataRegister32 theWords = reinterpret_cast<DataRegister32>(theBytes);
-                dataLinesFull = theWords[0];
-                if (signalNext<true>()) {
-                    return;
-                }
+                dataLinesHalves[0] = theHalves[0];
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesFull = theWords[1];
-                if (signalNext<true>()) {
-                    return;
-                }
+                dataLinesHalves[1] = theHalves[1];
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesFull = theWords[2];
-                if (signalNext<true>()) {
-                    return;
-                }
+                dataLinesHalves[2] = theHalves[2];
                 if (signalNext<false>()) {
                     return;
                 }
-                dataLinesFull = theWords[3];
-                if (signalNext<true>()) {
+                dataLinesHalves[3] = theHalves[3];
+                if (signalNext<false>()) {
                     return;
                 }
+                dataLinesHalves[4] = theHalves[4];
+                if (signalNext<false>()) {
+                    return;
+                }
+                dataLinesHalves[5] = theHalves[5];
+                if (signalNext<false>()) {
+                    return;
+                }
+                dataLinesHalves[6] = theHalves[6];
+                if (signalNext<false>()) {
+                    return;
+                }
+                dataLinesHalves[7] = theHalves[7];
                 goto Done;
             } else {
-                setDataByte(theBytes[2], theBytes[3], theBytes[0], theBytes[1]);
-                if (signalNext<true>()) {
-                    return;
-                }
+                dataLinesHalves[1] = theHalves[0];
                 if (signalNext<false>()) {
                     return;
                 }
-                setDataByte(theBytes[6], theBytes[7], theBytes[4], theBytes[5]);
-                if (signalNext<true>()) {
-                    return;
-                }
+                dataLinesHalves[0] = theHalves[1];
                 if (signalNext<false>()) {
                     return;
                 }
-                setDataByte(theBytes[10], theBytes[11], theBytes[8], theBytes[9]);
-                if (signalNext<true>()) {
-                    return;
-                }
+                dataLinesHalves[1] = theHalves[2];
                 if (signalNext<false>()) {
                     return;
                 }
-                setDataByte(theBytes[14], theBytes[15], theBytes[12], theBytes[13]);
-                if (signalNext<true>()) {
+                dataLinesHalves[0] = theHalves[3];
+                if (signalNext<false>()) {
                     return;
                 }
+                dataLinesHalves[1] = theHalves[4];
+                if (signalNext<false>()) {
+                    return;
+                }
+                dataLinesHalves[0] = theHalves[5];
+                if (signalNext<false>()) {
+                    return;
+                }
+                dataLinesHalves[1] = theHalves[6];
+                if (signalNext<false>()) {
+                    return;
+                }
+                dataLinesHalves[0] = theHalves[7];
                 goto Done;
             }
         } else {

@@ -1027,38 +1027,32 @@ genericReadOperation16(DataRegister16 theHalves) noexcept {
     if constexpr (isReadOperation) {
         dataLinesHalves[lower] = theHalves[0];
         if (!isBurstLast()) {
+            signalReady<false>();
             dataLinesHalves[upper] = theHalves[1];
-            signalReady<true>();
-            if (isBurstLast()) {
-                return;
+            if (!isBurstLast()) {
+                signalReady<false>();
+                dataLinesHalves[lower] = theHalves[2];
+                if (!isBurstLast()) {
+                    signalReady<false>();
+                    dataLinesHalves[upper] = theHalves[3];
+                    if (!isBurstLast()) {
+                        signalReady<false>();
+                        dataLinesHalves[lower] = theHalves[4];
+                        if (!isBurstLast()) {
+                            signalReady<false>();
+                            dataLinesHalves[upper] = theHalves[5];
+                            if (!isBurstLast()) {
+                                signalReady<false>();
+                                dataLinesHalves[lower] = theHalves[6];
+                                if (!isBurstLast()) {
+                                    signalReady<false>();
+                                    dataLinesHalves[upper] = theHalves[7];
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            signalReady<false>();
-            dataLinesHalves[lower] = theHalves[2];
-            if (isBurstLast()) {
-                return;
-            }
-            signalReady<false>();
-            dataLinesHalves[upper] = theHalves[3];
-            if (isBurstLast()) {
-                return;
-            }
-            signalReady<false>();
-            dataLinesHalves[lower] = theHalves[4];
-            if (isBurstLast()) {
-                return;
-            }
-            signalReady<false>();
-            dataLinesHalves[upper] = theHalves[5];
-            if (isBurstLast()) {
-                return;
-            }
-            signalReady<false>();
-            dataLinesHalves[lower] = theHalves[6];
-            if (isBurstLast()) {
-                return;
-            }
-            signalReady<false>();
-            dataLinesHalves[upper] = theHalves[7];
         }
     }
 }

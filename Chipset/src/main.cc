@@ -1812,7 +1812,7 @@ WriteOperationBypass:
     goto WriteOperationStart;
 }
 
-template<NativeBusWidth width, int version = 2> 
+template<NativeBusWidth width, int version = 1> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
 [[noreturn]] 

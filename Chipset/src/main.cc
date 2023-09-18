@@ -1076,39 +1076,37 @@ void
 genericWriteOperation16(DataRegister8 theBytes) noexcept {
     if constexpr (!isReadOperation) {
         auto a = dataLines[lowest];
+        auto b = dataLines[lower];
         if (digitalRead<pinLowest>() == LOW) {
             theBytes[0] = a;
         }
-        if (digitalRead<pinLower>() == HIGH) {
-            // if the upper pin of the two is high then we should just signal
-            // ready and return
-            goto Done;
+        if (digitalRead<pinLower>() == LOW) {
+            theBytes[1] = b;
         } 
-        theBytes[1] = dataLines[lower];
         if (!isBurstLast()) {
             signalReady<true>();
             auto c = dataLines[higher];
+            auto d = dataLines[highest];
             theBytes[2] = c;
-            if (digitalRead<pinHighest>() == HIGH) {
-                goto Done;
+            if (digitalRead<pinHighest>() == LOW) {
+                theBytes[3] = d;
             }
-            theBytes[3] = dataLines[highest];
             if (!isBurstLast()) {
                 signalReady<true>();
                 auto e = dataLines[lowest];
+                auto f = dataLines[lower];
                 theBytes[4] = e;
-                if (digitalRead<pinLower>() == HIGH) {
-                    goto Done;
+                if (digitalRead<pinLower>() == LOW) {
+                    theBytes[5] = f;
                 }
-                theBytes[5] = dataLines[lower];
                 if (!isBurstLast()) {
                     signalReady<true>();
                     auto g = dataLines[higher];
+                    auto h = dataLines[highest];
                     theBytes[6] = g;
-                    if (digitalRead<pinHighest>() == HIGH) {
-                        goto Done;
+                    if (digitalRead<pinHighest>() == LOW) {
+                        theBytes[7] = h;
                     }
-                    theBytes[7] = dataLines[highest];
                     if (!isBurstLast()) {
                         signalReady<true>();
                         auto i = dataLines[lowest];
@@ -1148,7 +1146,6 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
                 }
             }
         }
-Done:
         signalReady<true>();
     }
 }

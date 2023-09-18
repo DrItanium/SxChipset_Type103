@@ -1038,10 +1038,11 @@ static void idleTransaction() noexcept {
             } else {
                 auto c = theBytes[2];
                 auto d = theBytes[3];
+                static constexpr bool IntroduceDelayForAlignedReads = false;
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     dataLines[0] = a;
                     dataLines[1] = b;
-                    signalReady<true>();
+                    signalReady<IntroduceDelayForAlignedReads>();
                     dataLines[2] = c;
                     dataLines[3] = d;
                     if (isBurstLast()) {
@@ -1049,7 +1050,7 @@ static void idleTransaction() noexcept {
                     }
                     auto e = theBytes[4];
                     auto f = theBytes[5];
-                    signalReady<true>();
+                    signalReady<IntroduceDelayForAlignedReads>();
                     dataLines[0] = e;
                     dataLines[1] = f;
                     if (isBurstLast()) {
@@ -1057,7 +1058,7 @@ static void idleTransaction() noexcept {
                     }
                     auto g = theBytes[6];
                     auto h = theBytes[7];
-                    signalReady<true>();
+                    signalReady<IntroduceDelayForAlignedReads>();
                     dataLines[2] = g;
                     dataLines[3] = h;
                     if (isBurstLast()) {
@@ -1065,7 +1066,7 @@ static void idleTransaction() noexcept {
                     }
                     auto i = theBytes[8];
                     auto j = theBytes[9];
-                    signalReady<true>();
+                    signalReady<IntroduceDelayForAlignedReads>();
                     dataLines[0] = i;
                     dataLines[1] = j;
                     if (isBurstLast()) {
@@ -1073,7 +1074,7 @@ static void idleTransaction() noexcept {
                     }
                     auto k = theBytes[10];
                     auto l = theBytes[11];
-                    signalReady<true>();
+                    signalReady<IntroduceDelayForAlignedReads>();
                     dataLines[2] = k;
                     dataLines[3] = l;
                     if (isBurstLast()) {
@@ -1081,7 +1082,7 @@ static void idleTransaction() noexcept {
                     }
                     auto m = theBytes[12];
                     auto n = theBytes[13];
-                    signalReady<true>();
+                    signalReady<IntroduceDelayForAlignedReads>();
                     dataLines[0] = m;
                     dataLines[1] = n;
                     if (isBurstLast()) {
@@ -1089,7 +1090,7 @@ static void idleTransaction() noexcept {
                     }
                     auto o = theBytes[14];
                     auto p = theBytes[15];
-                    signalReady<true>();
+                    signalReady<IntroduceDelayForAlignedReads>();
                     dataLines[2] = o;
                     dataLines[3] = p;
                     goto Done;

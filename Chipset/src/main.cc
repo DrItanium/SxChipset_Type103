@@ -1020,6 +1020,7 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
     }
 }
 template<int lower, int upper>
+[[gnu::used]]
 static
 inline
 void 
@@ -1096,89 +1097,6 @@ genericReadOperation16(DataRegister16 theHalves) noexcept {
                 genericReadOperation16<0, 1>(theHalves);
                 goto Done;
             }
-#if 0
-            if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
-                static constexpr auto lower = 1;
-                static constexpr auto upper = 0;
-                dataLinesHalves[lower] = theHalves[0];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[upper] = theHalves[1];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[lower] = theHalves[2];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[upper] = theHalves[3];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[lower] = theHalves[4];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[upper] = theHalves[5];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[lower] = theHalves[6];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[upper] = theHalves[7];
-                goto Done;
-            } else {
-                static constexpr auto lower = 0;
-                static constexpr auto upper = 1;
-                dataLinesHalves[lower] = theHalves[0];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[upper] = theHalves[1];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[lower] = theHalves[2];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[upper] = theHalves[3];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[lower] = theHalves[4];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[upper] = theHalves[5];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[lower] = theHalves[6];
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                signalReady<false>();
-                dataLinesHalves[upper] = theHalves[7];
-                goto Done;
-            }
-#endif
         } else {
             if (isBurstLast()) {
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {

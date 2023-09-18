@@ -695,14 +695,13 @@ struct CommunicationKernel {
 FORCE_INLINE
 inline
 static void idleTransaction() noexcept {
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-Done:
-    signalReady<true>();
+    do {
+        if (isBurstLast()) {
+            signalReady<true>();
+            break;
+        }
+        signalReady<true>();
+    } while (true);
 }
 FORCE_INLINE
 inline
@@ -985,22 +984,13 @@ public:
 FORCE_INLINE
 inline
 static void idleTransaction() noexcept {
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-    if (isBurstLast()) goto Done;
-    signalReady<true>();
-Done:
-    signalReady<true>();
+    do {
+        if (isBurstLast()) {
+            signalReady<true>();
+            break;
+        }
+        signalReady<true>();
+    } while (true);
 }
     //[[gnu::optimize("no-reorder-blocks")]]
     FORCE_INLINE

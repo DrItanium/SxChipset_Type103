@@ -1060,6 +1060,7 @@ genericReadOperation16(DataRegister16 theHalves) noexcept {
 
 template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
 [[gnu::used]]
+[[gnu::optimize("no-reorder-blocks")]]
 static inline 
 void
 genericWriteOperation16(DataRegister8 theBytes) noexcept {
@@ -1172,12 +1173,16 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
             DataRegister16 theHalves = reinterpret_cast<DataRegister16>(theBytes);
             if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
                 genericReadOperation16<1, 0>(theHalves);
-                goto Done;
             } else {
                 genericReadOperation16<0, 1>(theHalves);
-                goto Done;
             }
         } else {
+            if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
+                genericWriteOperation16<2, 3, 0, 1, Pin::BE2, Pin::BE3, Pin::BE0, Pin::BE1>(theBytes);
+            } else {
+                genericWriteOperation16<0, 1, 2, 3, Pin::BE0, Pin::BE1, Pin::BE2, Pin::BE3>(theBytes);
+            }
+#if 0
             if (isBurstLast()) {
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                     auto w = dataLines[0];
@@ -1368,7 +1373,9 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
                     goto Done;
                 }
             }
+#endif
         }
+
 Done:
         signalReady<true>();
         if constexpr (DisplayReadWriteOperationStarts) {

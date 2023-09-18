@@ -1019,6 +1019,50 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
         return false;
     }
 }
+template<int lower, int upper>
+static
+inline
+void 
+genericReadOperation16(DataRegister16 theHalves) noexcept {
+    if constexpr (isReadOperation) {
+    dataLinesHalves[lower] = theHalves[0];
+    if (isBurstLast()) {
+        return;
+    }
+    signalReady<false>();
+    dataLinesHalves[upper] = theHalves[1];
+    if (isBurstLast()) {
+        return;
+    }
+    signalReady<false>();
+    dataLinesHalves[lower] = theHalves[2];
+    if (isBurstLast()) {
+        return;
+    }
+    signalReady<false>();
+    dataLinesHalves[upper] = theHalves[3];
+    if (isBurstLast()) {
+        return;
+    }
+    signalReady<false>();
+    dataLinesHalves[lower] = theHalves[4];
+    if (isBurstLast()) {
+        return;
+    }
+    signalReady<false>();
+    dataLinesHalves[upper] = theHalves[5];
+    if (isBurstLast()) {
+        return;
+    }
+    signalReady<false>();
+    dataLinesHalves[lower] = theHalves[6];
+    if (isBurstLast()) {
+        return;
+    }
+    signalReady<false>();
+    dataLinesHalves[upper] = theHalves[7];
+    }
+}
     FORCE_INLINE
     inline
     static void
@@ -1052,6 +1096,14 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
         // creative. The base offsets have been modified
         if constexpr (isReadOperation) {
             DataRegister16 theHalves = reinterpret_cast<DataRegister16>(theBytes);
+            if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
+                genericReadOperation16<1, 0>(theHalves);
+                goto Done;
+            } else {
+                genericReadOperation16<0, 1>(theHalves);
+                goto Done;
+            }
+#if 0
             if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
                 static constexpr auto lower = 1;
                 static constexpr auto upper = 0;
@@ -1133,6 +1185,7 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
                 dataLinesHalves[upper] = theHalves[7];
                 goto Done;
             }
+#endif
         } else {
             if (isBurstLast()) {
                 if (digitalRead<Pin::AlignmentCheck>() == LOW) {

@@ -692,6 +692,8 @@ struct CommunicationKernel {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 
+FORCE_INLINE
+inline
 static void idleTransaction() noexcept {
     if (isBurstLast()) goto Done;
     signalReady<true>();
@@ -980,6 +982,8 @@ struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen> {
     Self& operator=(Self&&) = delete;
 
 public:
+FORCE_INLINE
+inline
 static void idleTransaction() noexcept {
     if (isBurstLast()) goto Done;
     signalReady<true>();
@@ -1771,7 +1775,6 @@ ReadOperationStart:
         if constexpr (DisplayReadWriteOperationStarts) {
             Serial.printf(F("External Transaction (0x%lx)\n"), addressLinesValue32);
         }
-
         CommunicationKernel<true, width>::idleTransaction();
     } else {
         if (!digitalRead<Pin::ChangeDirection>()) {

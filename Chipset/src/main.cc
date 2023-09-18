@@ -1021,7 +1021,7 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
 }
 
 template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
-[[gnu::used]]
+//[[gnu::used]]
 static
 inline
 void 

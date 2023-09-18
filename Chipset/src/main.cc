@@ -1812,7 +1812,7 @@ WriteOperationBypass:
     goto WriteOperationStart;
 }
 
-template<NativeBusWidth width> 
+template<NativeBusWidth width, int version = 2> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
 [[noreturn]] 
@@ -1821,7 +1821,11 @@ executionBody() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex(0);
     if constexpr (HybridWideMemorySupported) {
-        hybridMemoryTransaction_v2<width>();
+        if constexpr (version == 2) {
+            hybridMemoryTransaction_v2<width>();
+        } else {
+            hybridMemoryTransaction<width>();
+        }
     } else {
         nonHybridMemoryTransaction<width>();
     }

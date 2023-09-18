@@ -1057,6 +1057,86 @@ genericReadOperation16(DataRegister16 theHalves) noexcept {
         }
     }
 }
+
+template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
+[[gnu::used]]
+static inline 
+void
+genericWriteOperation16(DataRegister8 theBytes) noexcept {
+    if constexpr (!isReadOperation) {
+        auto a = dataLines[lowest];
+        auto b = dataLines[lower];
+        if (digitalRead<pinLowest>() == LOW) {
+            theBytes[0] = a;
+        }
+        if (digitalRead<pinLower>() == LOW) {
+            theBytes[1] = b;
+        }
+        if (!isBurstLast()) {
+            signalReady<true>();
+            auto c = dataLines[higher];
+            auto d = dataLines[highest];
+            theBytes[2] = c;
+            if (digitalRead<pinHighest>() == LOW) {
+                theBytes[3] = d;
+            }
+            if (!isBurstLast()) {
+                signalReady<true>();
+                auto e = dataLines[lowest];
+                auto f = dataLines[lower];
+                theBytes[4] = e;
+                if (digitalRead<pinLower>() == LOW) {
+                    theBytes[5] = f;
+                }
+                if (!isBurstLast()) {
+                    signalReady<true>();
+                    auto g = dataLines[higher];
+                    auto h = dataLines[highest];
+                    theBytes[6] = g;
+                    if (digitalRead<pinHighest>() == LOW) {
+                        theBytes[7] = h;
+                    }
+                    if (!isBurstLast()) {
+                        signalReady<true>();
+                        auto i = dataLines[lowest];
+                        auto j = dataLines[lower];
+                        theBytes[8] = i;
+                        if (digitalRead<pinLower>() == LOW) {
+                            theBytes[9] = j;
+                        }
+                        if (!isBurstLast()) {
+                            signalReady<true>();
+                            auto k = dataLines[higher];
+                            auto l = dataLines[highest];
+                            theBytes[10] = k;
+                            if (digitalRead<pinHighest>() == LOW) {
+                                theBytes[11] = l;
+                            }
+                            if (!isBurstLast()) {
+                                signalReady<true>();
+                                auto m = dataLines[lowest];
+                                auto n = dataLines[lower];
+                                theBytes[12] = m;
+                                if (digitalRead<pinLower>() == LOW) {
+                                    theBytes[13] = n;
+                                }
+                                if (!isBurstLast()) {
+                                    signalReady<true>();
+                                    auto o = dataLines[higher];
+                                    auto p = dataLines[highest];
+                                    theBytes[14] = o;
+                                    if (digitalRead<pinHighest>() == LOW) {
+                                        theBytes[15] = p;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
     FORCE_INLINE
     inline
     static void

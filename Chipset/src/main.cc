@@ -1341,67 +1341,39 @@ static void doIO() noexcept {
         switch (addressLines[0]) { 
             case 0: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);
+                            dataLinesFull = F_CPU;
                         } 
                         I960_Signal_Switch;
-#if 0
-                    } 
-            case 2: { 
-#endif
-                        if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = static_cast<uint16_t>((F_CPU) >> 16);
-                        } 
                         I960_Signal_Switch;
                     } 
             case 4: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = static_cast<uint16_t>(F_CPU / 2);
+                            dataLinesFull = F_CPU / 2;
                         } 
                         I960_Signal_Switch;
-#if 0
-                    } 
-            case 6: { 
-#endif
-                        if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = static_cast<uint16_t>((F_CPU / 2) >> 16);
-                        } 
                         I960_Signal_Switch;
                     } 
             case 8: { 
                         /* Serial RW connection */
                         if constexpr (isReadOperation) { 
                             dataLinesHalves[0] = Serial.read();
+                            dataLinesHalves[1] = 0;
                         } else { 
                             // no need to check this out just ignore the byte
                             // enable lines
                             Serial.write(static_cast<uint8_t>(getDataByte<0>()));
                         } 
                         I960_Signal_Switch;
-#if 0
-                    } 
-            case 10: {
-#endif
-                         if constexpr (isReadOperation) { 
-                             dataLinesHalves[1] = 0;
-                         } 
                         I960_Signal_Switch;
                      } 
             case 12: { 
                          if constexpr (isReadOperation) { 
-                             dataLinesHalves[0] = 0; 
+                             dataLinesFull = 0;
                          } else { 
+                             // only do a flush when it is a write operation
                              Serial.flush();
                          }
                          I960_Signal_Switch;
-#if 0
-                     }
-            case 14: {
-#endif
-                        /* nothing to do on writes but do update the data port
-                         * on reads */ 
-                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = 0; 
-                         } 
                      }
                      break;
 #define X(obj, offset) \

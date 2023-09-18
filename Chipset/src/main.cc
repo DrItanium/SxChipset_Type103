@@ -992,7 +992,7 @@ static void idleTransaction() noexcept {
         signalReady<true>();
     } while (true);
 }
-    //[[gnu::optimize("no-reorder-blocks")]]
+    [[gnu::optimize("no-reorder-blocks")]]
     FORCE_INLINE
     inline
     static void

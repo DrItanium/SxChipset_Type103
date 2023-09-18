@@ -1054,62 +1054,62 @@ static bool genericOperation16(DataRegister8 theBytes) noexcept {
             DataRegister16 theHalves = reinterpret_cast<DataRegister16>(theBytes);
             if (digitalRead<Pin::AlignmentCheck>() == LOW) {
                 dataLinesHalves[0] = theHalves[0];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[1] = theHalves[1];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[0] = theHalves[2];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[1] = theHalves[3];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[0] = theHalves[4];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[1] = theHalves[5];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[0] = theHalves[6];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
-                dataLinesHalves[0] = theHalves[7];
+                dataLinesHalves[1] = theHalves[7];
                 goto Done;
             } else {
                 dataLinesHalves[1] = theHalves[0];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[0] = theHalves[1];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[1] = theHalves[2];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[0] = theHalves[3];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[1] = theHalves[4];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[0] = theHalves[5];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[1] = theHalves[6];
-                if (signalNext<false>()) {
+                if (signalNext<true>()) {
                     return;
                 }
                 dataLinesHalves[0] = theHalves[7];

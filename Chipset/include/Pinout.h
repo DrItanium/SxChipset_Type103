@@ -58,7 +58,9 @@ Count = NUM_DIGITAL_PINS,
 #endif
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
-                         
+    EN2560 = PortB6,
+    READY2 = PortB7,
+
     BE0 = PortF0,
     BE1 = PortF1,
     BE2 = PortF2,
@@ -75,6 +77,7 @@ Count = NUM_DIGITAL_PINS,
     DirectionOutput = PortD6,
     A23_960 = PortD7,
 
+    BusQueryEnable = PortE2,
     EyeSpi_Pin_MEMCS = PortE4,
     EyeSpi_Pin_TSCS = PortE5,
     EyeSpi_Pin_INT = PortE6,
@@ -82,6 +85,7 @@ Count = NUM_DIGITAL_PINS,
     EyeSpi_Pin_DC = PortG3,
     EyeSpi_Pin_RST = PortG4,
     AlignmentCheck = PortG5,
+
     HOLD = PortL0,
     HLDA = PortL1,
     LOCK = PortL2,
@@ -92,7 +96,6 @@ Count = NUM_DIGITAL_PINS,
     CFG2 = PortL7,
 
 
-    BusQueryEnable = PortE2,
 };
 namespace EyeSpi::Pins {
 #define X(title) constexpr auto title = static_cast<int>(Pin:: EyeSpi_Pin_ ## title )

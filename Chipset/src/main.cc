@@ -90,7 +90,11 @@ constexpr bool PerformMemoryImageInstallation = true;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
-
+constexpr auto ReadySignalPin = Pin::READY;
+constexpr auto ReadySignalManagedExternally = (ReadySignalPin != Pin::READY);
+constexpr bool ReadySignalIsToggle = true;
+constexpr bool DataCycleDetectPin = Pin::DEN;
+constexpr bool DataCycleDetectIsManagedExternally = (DataCycleDetectPin != Pin::DEN);
 
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
@@ -599,16 +603,19 @@ getTransactionWindow() noexcept {
 }
 
 
-template<bool waitForReady, int NC = 4>
+template<bool waitForReady, Pin targetPin = ReadySignalPin>
 [[gnu::always_inline]] 
 inline void 
 signalReady() noexcept {
-    //pulse<Pin::READY>();
-    toggle<Pin::READY>();
+    if constexpr (ReadySignalIsToggle) {
+        toggle<targetPin>();
+    } else {
+        pulse<targetPin>();
+    }
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
-        insertCustomNopCount<NC>();
+        insertCustomNopCount<4>();
     }
 }
 using Register8 = volatile uint8_t&;
@@ -1435,7 +1442,7 @@ nonHybridMemoryTransaction() noexcept {
     // optimize things and create problems!
 ReadOperationStart:
     // wait until DEN goes low
-    while (digitalRead<Pin::DEN>());
+    while (digitalRead<Pin::DataCycleDetectPin>());
     // check to see if we need to change directions
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1469,7 +1476,7 @@ ReadOperationBypass:
 
 WriteOperationStart:
     // wait until DEN goes low
-    while (digitalRead<Pin::DEN>());
+    while (digitalRead<Pin::DataCycleDetectPin>());
     // check to see if we need to change directions
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change data lines to be output since we are doing write -> read
@@ -1765,8 +1772,15 @@ setupPins() noexcept {
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);
-    pinMode(Pin::READY, OUTPUT);
-    digitalWrite<Pin::READY, HIGH>();
+    pinMode(ReadySignalPin, OUTPUT);
+    digitalWrite<ReadySignalPin, HIGH>();
+    if constexpr (ReadySignalManagedExternally) {
+        // we need to make READY
+        pinMode(Pin::READY, INPUT);
+    } else {
+        pinMode(Pin::READY2, INPUT);
+    }
+    pinMode(Pin::EN2560, INPUT);
     // setup bank capture to read in address lines
     getDirectionRegister<Port::BankCapture>() = 0;
     pinMode(Pin::HOLD, OUTPUT);

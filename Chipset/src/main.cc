@@ -609,7 +609,7 @@ signalReady() noexcept {
         toggle<targetPin>();
     } else {
         pulse<targetPin>();
-    }
+    } 
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960

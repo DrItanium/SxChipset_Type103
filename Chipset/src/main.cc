@@ -1690,6 +1690,66 @@ WriteOperationBypass:
     goto WriteOperationStart;
 }
 
+template<NativeBusWidth width>
+[[gnu::noinline]]
+void
+pureIODeviceHandler() noexcept {
+    static constexpr auto WaitPin = Pin::EN2560;
+    // at this point, we are setup to be in output mode (or read) and that is the
+    // expected state for _all_ i960 processors, it will load some amount of
+    // data from main memory to start the execution process. 
+    //
+    // After this point, we will never need to actually keep track of the
+    // contents of the DirectionOutput pin. We will always be properly
+    // synchronized overall!
+    //
+    // It is not lost on me that this is goto nightmare bingo, however in this
+    // case I need the extra control of the goto statement. Allowing the
+    // compiler to try and do this instead leads to implicit jumping issues
+    // where the compiler has way too much fun with its hands. It will over
+    // optimize things and create problems!
+ReadOperationStart:
+    // read operation
+    // wait until DEN goes low
+    while (digitalRead<WaitPin>());
+    // standard read/write operation so do the normal dispatch
+    if (!digitalRead<Pin::ChangeDirection>()) {
+        // change direction to input since we are doing read -> write
+        updateDataLinesDirection<0>();
+        // update the direction pin 
+        toggle<Pin::DirectionOutput>();
+        // then jump into the write loop
+        if constexpr (DisplayReadWriteOperationStarts) {
+            Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
+        }
+        goto WriteOperationBypass;
+    } 
+ReadOperationBypass:
+    if constexpr (DisplayReadWriteOperationStarts) {
+        Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
+    }
+    doIOOperation<true, width>();
+    goto ReadOperationStart;
+WriteOperationStart:
+    // wait until DEN goes low
+    while (digitalRead<WaitPin>());
+    // standard read/write operation so do the normal dispatch
+    if (!digitalRead<Pin::ChangeDirection>()) {
+        // change direction to input since we are doing read -> write
+        updateDataLinesDirection<0xFF>();
+        // update the direction pin 
+        toggle<Pin::DirectionOutput>();
+        // then jump into the write loop
+        goto ReadOperationBypass;
+    } 
+WriteOperationBypass:
+    if constexpr (DisplayReadWriteOperationStarts) {
+        Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
+    }
+    doIOOperation<false, width>();
+    goto WriteOperationStart;
+}
+
 template<NativeBusWidth width, int version = 1> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -1707,7 +1767,7 @@ executionBody() noexcept {
                 hybridMemoryTransaction<width>();
             }
         } else {
-
+            pureIODeviceHandler<width>();
         }
     } else {
         nonHybridMemoryTransaction<width>();

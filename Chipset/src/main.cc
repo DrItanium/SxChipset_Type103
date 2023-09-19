@@ -91,7 +91,7 @@ constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 constexpr auto ReadySignalPin = Pin::READY;
-constexpr bool ReadySignalIsToggle = true;
+constexpr bool ReadySignalIsToggle = false;
 constexpr auto DataCycleDetectPin = Pin::DEN;
 
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");

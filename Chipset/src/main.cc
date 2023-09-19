@@ -1772,6 +1772,12 @@ setupPins() noexcept {
     pinMode(Pin::ChangeDirection, INPUT);
     pinMode(ReadySignalPin, OUTPUT);
     digitalWrite<ReadySignalPin, HIGH>();
+    if constexpr (ReadySignalPin != Pin::READY) {
+        // okay so we've changed over to READY2 so make READY an input
+        pinMode(Pin::READY, INPUT);
+    } else {
+        pinMode(Pin::READY2, INPUT);
+    }
     // setup bank capture to read in address lines
     getDirectionRegister<Port::BankCapture>() = 0;
     pinMode(Pin::HOLD, OUTPUT);
@@ -1789,7 +1795,6 @@ setupPins() noexcept {
     digitalWrite<Pin::BusQueryEnable, HIGH>();
 
     // set these up ahead of time
-    pinMode(Pin::READY2, INPUT);
     pinMode(Pin::EN2560, INPUT);
 }
 void

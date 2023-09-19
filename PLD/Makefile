@@ -17,7 +17,8 @@ all: Type103PLD.jed \
 	SRAM32Decoder.jed \
 	NarrowWideAdapterDetect.jed \
 	WideAuxDecoder.jed \
-	RAM2DecoderChip.jed
+	RAM2DecoderChip.jed \
+	ReadySynch.jed
 
 
 
@@ -66,6 +67,8 @@ install_WideAuxDecoder: WideAuxDecoder.jed
 install_RAM2DecoderChip: RAM2DecoderChip.jed
 	minipro -p "ATF22V10CQ(UES)" --write RAM2DecoderChip.jed 
 
+install_ReadySynch: ReadySynch.jed
+	minipro -p "ATF22V10CQ(UES)" --write ReadySynch.jed 
 
 clean:
 	@echo -n "Cleaning..."

@@ -44,8 +44,8 @@ Pin 21 = NC           S0 = 0   S1 = 0
 
 Pin 20 = Q0           S0 = 1   S1 = 0
  34  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 35  ---- -x-- ---- ---- ---- ---- ---- x--- -x-- x--- ----
- 36  ---- -x-- ---- --x- ---- ---- ---- -x-- -x-- ---- ----
+ 35  ---- -x-- ---- --x- ---- ---- ---- ---- -x-- ---- ----
+ 36  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  37  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -61,9 +61,9 @@ Pin 20 = Q0           S0 = 1   S1 = 0
 
 Pin 19 = Q1           S0 = 1   S1 = 0
  49  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 50  ---- -x-- ---- ---- ---- ---- ---- x--- -x-- ---- x---
- 51  ---- -x-- ---- ---x --x- ---- ---- -x-- -x-- ---- ----
- 52  ---- -x-- ---- --x- ---x ---- ---- -x-- -x-- ---- ----
+ 50  ---- -x-- ---- ---x --x- ---- ---- ---- -x-- ---- ----
+ 51  ---- -x-- ---- --x- ---x ---- ---- ---- -x-- ---- ----
+ 52  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  53  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  54  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  55  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -80,10 +80,10 @@ Pin 19 = Q1           S0 = 1   S1 = 0
 
 Pin 18 = Q2           S0 = 1   S1 = 0
  66  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 67  ---- -x-- ---- ---- ---- ---- ---- x--- -x-- ---- --x-
- 68  ---- -x-- ---- ---- --x- ---x ---- -x-- -x-- ---- ----
- 69  ---- -x-- ---- --x- ---- ---x ---- -x-- -x-- ---- ----
- 70  ---- -x-- ---- ---x ---x --x- ---- -x-- -x-- ---- ----
+ 67  ---- -x-- ---- ---- --x- ---x ---- ---- -x-- ---- ----
+ 68  ---- -x-- ---- --x- ---- ---x ---- ---- -x-- ---- ----
+ 69  ---- -x-- ---- ---x ---x --x- ---- ---- -x-- ---- ----
+ 70  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  71  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  72  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  73  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -99,11 +99,11 @@ Pin 18 = Q2           S0 = 1   S1 = 0
 
 Pin 17 = Q3           S0 = 1   S1 = 0
  83  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 84  ---- -x-- ---- ---- ---- ---- ---- x--- -x-- --x- ----
- 85  ---- -x-- ---- ---- ---- --x- ---x -x-- -x-- ---- ----
- 86  ---- -x-- ---- ---- --x- ---- ---x -x-- -x-- ---- ----
- 87  ---- -x-- ---- --x- ---- ---- ---x -x-- -x-- ---- ----
- 88  ---- -x-- ---- ---x ---x ---x --x- -x-- -x-- ---- ----
+ 84  ---- -x-- ---- ---- ---- --x- ---x ---- -x-- ---- ----
+ 85  ---- -x-- ---- ---- --x- ---- ---x ---- -x-- ---- ----
+ 86  ---- -x-- ---- --x- ---- ---- ---x ---- -x-- ---- ----
+ 87  ---- -x-- ---- ---x ---x ---x --x- ---- -x-- ---- ----
+ 88  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  89  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  90  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  91  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -142,7 +142,7 @@ Pin 15 = RDY          S0 = 0   S1 = 0
 120  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 121  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 14 = D3           S0 = 0   S1 = 1
+Pin 14 = NC           S0 = 0   S1 = 0
 122  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 123  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 124  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

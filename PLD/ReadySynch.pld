@@ -1,16 +1,18 @@
 GAL22V10
 ReadySynchronizer
 
-CLK DEN FLASH SRAM   RAM IO RDY2560 Set Clear D0 D1 GND
-D2  D3  RDY   EN2560 Q3  Q2 Q1      Q0  NC    NC NC VCC
+CLK DEN FLASH SRAM   RAM IO RDY2560 NC  Clear NC NC GND
+NC  NC  RDY   EN2560 Q3  Q2 Q1      Q0  NC    NC NC VCC
 
 /EN2560.R = /IO * /DEN
 /RDY.R = /IO * /DEN * /RDY2560 + /Q1 * /DEN * /FLASH + /Q1 * /DEN * /SRAM + /Q2 * /DEN * /RAM
-Q0.R =  /DEN * /Clear *  Set *  D0 + /DEN * /Clear * /Set * /Q0
-Q1.R =  /DEN * /Clear *  Set *  D1 + /DEN * /Clear * /Set * /Q1 *  Q0 + /DEN * /Clear * /Set *  Q1 * /Q0
-Q2.R =  /DEN * /Clear *  Set *  D2 + /DEN * /Clear * /Set *  Q2 * /Q1 + /DEN * /Clear * /Set *  Q2 * /Q0 + /DEN * /Clear * /Set * /Q2 *  Q1 *  Q0
-Q3.R =  /DEN * /Clear *  Set *  D3 + /DEN * /Clear * /Set *  Q3 * /Q2 + /DEN * /Clear * /Set *  Q3 * /Q1 + /DEN * /Clear * /Set *  Q3 * /Q0 + /DEN * /Clear * /Set * /Q3 *  Q2 *  Q1 *  Q0
+Q0.R =  /DEN * /Clear * /Q0
+Q1.R =  /DEN * /Clear * /Q1 *  Q0 + /DEN * /Clear * Q1 * /Q0
+Q2.R =  /DEN * /Clear *  Q2 * /Q1 + /DEN * /Clear * Q2 * /Q0 + /DEN * /Clear * /Q2 *  Q1 *  Q0
+Q3.R =  /DEN * /Clear *  Q3 * /Q2 + /DEN * /Clear * Q3 * /Q1 + /DEN * /Clear *  Q3 * /Q0 + /DEN * /Clear * /Q3 *  Q2 *  Q1 *  Q0
 
 DESCRIPTION
 Allows multiple ready sources to be generated!
+
+What we do is allow multiple 
 

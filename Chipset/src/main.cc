@@ -90,9 +90,8 @@ constexpr bool PerformMemoryImageInstallation = true;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
-constexpr auto ReadySignalPin = Pin::READY;
 constexpr bool ReadySignalIsToggle = false;
-constexpr auto DataCycleDetectPin = Pin::DEN;
+constexpr auto MCUResponsibleForEntireSystemReadySignal = true;
 
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
@@ -601,10 +600,10 @@ getTransactionWindow() noexcept {
 }
 
 
-template<bool waitForReady, Pin targetPin = ReadySignalPin>
+template<bool waitForReady, Pin targetPin>
 [[gnu::always_inline]] 
 inline void 
-signalReady() noexcept {
+signalReadyRaw() noexcept {
     if constexpr (ReadySignalIsToggle) {
         toggle<targetPin>();
     } else {
@@ -614,6 +613,17 @@ signalReady() noexcept {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
         insertCustomNopCount<4>();
+    }
+}
+
+template<bool waitForReady>
+[[gnu::always_inline]]
+inline void
+signalReady() noexcept {
+    if constexpr (MCUResponsibleForEntireSystemReadySignal) {
+        signalReadyRaw<waitForReady, Pin::READY>();
+    } else {
+        signalReadyRaw<waitForReady, Pin::READY2>();
     }
 }
 using Register8 = volatile uint8_t&;
@@ -1440,7 +1450,7 @@ nonHybridMemoryTransaction() noexcept {
     // optimize things and create problems!
 ReadOperationStart:
     // wait until DEN goes low
-    while (digitalRead<DataCycleDetectPin>());
+    while (digitalRead<Pin::DEN>());
     // check to see if we need to change directions
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1474,7 +1484,7 @@ ReadOperationBypass:
 
 WriteOperationStart:
     // wait until DEN goes low
-    while (digitalRead<DataCycleDetectPin>());
+    while (digitalRead<Pin::DEN>());
     // check to see if we need to change directions
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change data lines to be output since we are doing write -> read
@@ -1689,10 +1699,15 @@ executionBody() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex(0);
     if constexpr (HybridWideMemorySupported) {
-        if constexpr (version == 2) {
-            hybridMemoryTransaction_v2<width>();
+        if constexpr (MCUResponsibleForEntireSystemReadySignal) {
+
+            if constexpr (version == 2) {
+                hybridMemoryTransaction_v2<width>();
+            } else {
+                hybridMemoryTransaction<width>();
+            }
         } else {
-            hybridMemoryTransaction<width>();
+
         }
     } else {
         nonHybridMemoryTransaction<width>();
@@ -1770,13 +1785,14 @@ setupPins() noexcept {
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);
-    pinMode(ReadySignalPin, OUTPUT);
-    digitalWrite<ReadySignalPin, HIGH>();
-    if constexpr (ReadySignalPin != Pin::READY) {
-        // okay so we've changed over to READY2 so make READY an input
-        pinMode(Pin::READY, INPUT);
-    } else {
+    if constexpr (MCUResponsibleForEntireSystemReadySignal) {
+        pinMode(Pin::READY, OUTPUT);
+        digitalWrite<Pin::READY, HIGH>();
         pinMode(Pin::READY2, INPUT);
+    } else {
+        pinMode(Pin::READY2, OUTPUT);
+        digitalWrite<Pin::READY2, HIGH>();
+        pinMode(Pin::READY, INPUT);
     }
     // setup bank capture to read in address lines
     getDirectionRegister<Port::BankCapture>() = 0;

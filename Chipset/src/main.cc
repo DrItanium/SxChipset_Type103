@@ -1695,19 +1695,40 @@ template<NativeBusWidth width>
 void
 pureIODeviceHandler() noexcept {
     static constexpr auto WaitPin = Pin::EN2560;
-    // at this point, we are setup to be in output mode (or read) and that is the
-    // expected state for _all_ i960 processors, it will load some amount of
-    // data from main memory to start the execution process. 
+    // this microcontroller is not responsible for signalling ready manually
+    // in this method. Instead, an external piece of hardware known as "Timing
+    // Circuit" in the Intel manuals handles all external timing. It is drawn
+    // as a box which takes in the different enable signals and generates the
+    // ready signal sent to the i960 based off of the inputs provided. It has
+    // eluded me for a very long time. I finally realized what it acutually is,
+    // a counter that is configured around delay times for non intelligent
+    // devices (flash, sram, dram, etc) and a multiplexer to allow intelligent
+    // devices to control the ready signal as well.
     //
-    // After this point, we will never need to actually keep track of the
-    // contents of the DirectionOutput pin. We will always be properly
-    // synchronized overall!
+    // In my design, this mysterious circuit is a GAL22V10 which takes in a
+    // 10MHz clock signal and provides a 4-bit counter and multiplexer to
+    // accelerate ready signal propagation and also tell the mega 2560 when to
+    // respond to the i960. The ready signal is rerouted from direct connection
+    // of the i960 to the GAL22V10. Right now, I have to waste an extra pin on
+    // the 2560 for this but my plan is to connect this directly to the 22V10
+    // instead. 
     //
-    // It is not lost on me that this is goto nightmare bingo, however in this
-    // case I need the extra control of the goto statement. Allowing the
-    // compiler to try and do this instead leads to implicit jumping issues
-    // where the compiler has way too much fun with its hands. It will over
-    // optimize things and create problems!
+    // I also have connected the DEN and space detect pins to this 22V10 to
+    // complete the package. I am not using the least significant counter bit
+    // and instead the next bit up to allow for proper delays. The IO pin is
+    // used to activate the mega2560 instead of the DEN pin directly. This is
+    // currently a separate pin. In the future, I will be making this
+    // infinitely more flexible by rerouting the DEN and READY pins into
+    // external hardware that allows me to directly control the design again if
+    // I so desire. 
+    //
+    // This change can also allow me to use more than one microcontroller for
+    // IO devices if I so desire :D. 
+    //
+    // This version of the handler method assumes that you are within the
+    // 16-megabyte window in the i960's memory space where this microcontroller
+    // lives. So we wait for the GAL22V10 to tell me it is good to go to
+    // continue!
 ReadOperationStart:
     // read operation
     // wait until DEN goes low

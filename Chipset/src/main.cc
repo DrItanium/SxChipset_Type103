@@ -600,7 +600,7 @@ getTransactionWindow() noexcept {
 }
 
 
-template<bool waitForReady, Pin targetPin>
+template<bool waitForReady, Pin targetPin, int delayAmount>
 [[gnu::always_inline]] 
 inline void 
 signalReadyRaw() noexcept {
@@ -612,7 +612,7 @@ signalReadyRaw() noexcept {
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
-        insertCustomNopCount<4>();
+        insertCustomNopCount<delayAmount>();
     }
 }
 
@@ -621,9 +621,9 @@ template<bool waitForReady, bool fullResponsibility>
 inline void
 signalReady() noexcept {
     if constexpr (fullResponsibility) {
-        signalReadyRaw<waitForReady, Pin::READY>();
+        signalReadyRaw<waitForReady, Pin::READY, 4>();
     } else {
-        signalReadyRaw<waitForReady, Pin::READY2>();
+        signalReadyRaw<waitForReady, Pin::READY2, 8>();
     }
 }
 using Register8 = volatile uint8_t&;

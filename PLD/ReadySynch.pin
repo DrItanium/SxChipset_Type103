@@ -16,14 +16,14 @@
   12   | GND      | GND
   13   | NC       | Input
   14   | NC       | NC
-  15   | RDY      | Output
-  16   | EN2560   | Output
+  15   | NC       | NC
+  16   | NC       | NC
   17   | Q3       | Output
   18   | Q2       | Output
   19   | Q1       | Output
   20   | Q0       | Output
   21   | NC       | NC
-  22   | NC       | NC
-  23   | NC       | NC
+  22   | EN2560   | Output
+  23   | RDY      | Output
   24   | VCC      | VCC
 

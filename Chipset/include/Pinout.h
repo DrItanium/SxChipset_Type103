@@ -57,6 +57,7 @@ Count = NUM_DIGITAL_PINS,
     SPI_MISO = PIN_SPI_MISO,
 #endif
     SD_EN = PortB0,
+    DesignSelect = PortB4,
     INT0_960_ = PortB5, // OC1A
     EN2560 = PortB6,
     READY2 = PortB7,

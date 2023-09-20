@@ -91,6 +91,7 @@ constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 constexpr bool ReadySignalIsToggle = false;
+constexpr bool UseInterruptsForDetectingRequests = false;
 
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
@@ -1626,8 +1627,11 @@ doIOOperation() noexcept {
         CommunicationKernel<isReadOperation, width, fullResponsibility>::doIO();
     }
 }
-
-template<NativeBusWidth width, bool fullResponsibility>
+volatile bool newIOTransaction = false;
+ISR(INT4_vect) {
+    newIOTransaction = true;
+}
+template<NativeBusWidth width, bool fullResponsibility, bool useInterrupts = UseInterruptsForDetectingRequests>
 [[gnu::noinline]]
 [[noreturn]]
 void
@@ -1670,7 +1674,12 @@ pureIODeviceHandler() noexcept {
 ReadOperationStart:
     // read operation
     // wait until DEN goes low
-    while (digitalRead<WaitPin>());
+    if constexpr (useInterrupts) {
+        while (!newIOTransaction);
+        newIOTransaction = false;
+    } else {
+        while (digitalRead<WaitPin>());
+    }
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1691,7 +1700,12 @@ ReadOperationBypass:
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
-    while (digitalRead<WaitPin>());
+    if constexpr (useInterrupts) {
+        while (!newIOTransaction);
+        newIOTransaction = false;
+    } else {
+        while (digitalRead<WaitPin>());
+    }
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1800,6 +1814,22 @@ setupPins() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);
     pinMode(Pin::DesignSelect, INPUT_PULLUP);
+    getDirectionRegister<Port::BankCapture>() = 0;
+    pinMode(Pin::HOLD, OUTPUT);
+    digitalWrite<Pin::HOLD, LOW>();
+    pinMode(Pin::HLDA, INPUT);
+    pinMode(Pin::LOCK, INPUT);
+    pinMode(Pin::FAIL, INPUT);
+    pinMode(Pin::RESET, OUTPUT);
+    digitalWrite<Pin::RESET, LOW>();
+    pinMode(Pin::CFG0, INPUT);
+    pinMode(Pin::CFG1, INPUT);
+    pinMode(Pin::CFG2, INPUT);
+
+    pinMode(Pin::BusQueryEnable, OUTPUT);
+    digitalWrite<Pin::BusQueryEnable, HIGH>();
+    // set these up ahead of time
+    pinMode(Pin::EN2560, INPUT);
     if (digitalRead<Pin::DesignSelect>() == HIGH) {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();
@@ -1808,25 +1838,15 @@ setupPins() noexcept {
         pinMode(Pin::READY2, OUTPUT);
         digitalWrite<Pin::READY2, HIGH>();
         pinMode(Pin::READY, INPUT);
+        if constexpr (UseInterruptsForDetectingRequests) {
+            // enable interrupts
+            bitSet(EICRB, ISC41);
+            bitClear(EICRB, ISC40);
+            bitSet(EIMSK, INT4);
+        }
     }
     // setup bank capture to read in address lines
-    getDirectionRegister<Port::BankCapture>() = 0;
-    pinMode(Pin::HOLD, OUTPUT);
-    digitalWrite<Pin::HOLD, LOW>();
-    pinMode(Pin::HLDA, INPUT);
-    pinMode(Pin::LOCK, INPUT);
-    pinMode(Pin::FAIL, INPUT);
-    pinMode(Pin::RESET, OUTPUT);
-    digitalWrite<Pin::RESET, HIGH>();
-    pinMode(Pin::CFG0, INPUT);
-    pinMode(Pin::CFG1, INPUT);
-    pinMode(Pin::CFG2, INPUT);
 
-    pinMode(Pin::BusQueryEnable, OUTPUT);
-    digitalWrite<Pin::BusQueryEnable, HIGH>();
-
-    // set these up ahead of time
-    pinMode(Pin::EN2560, INPUT);
 }
 void
 setupExternalBus() noexcept {
@@ -2154,3 +2174,4 @@ banner() noexcept {
         Serial.println(F(" degrees C"));
     }
 }
+

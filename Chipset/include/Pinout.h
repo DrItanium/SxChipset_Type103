@@ -59,7 +59,7 @@ Count = NUM_DIGITAL_PINS,
     SD_EN = PortB0,
     DesignSelect = PortB4,
     INT0_960_ = PortB5, // OC1A
-    EN2560 = PortB6,
+    EN2560 = PortE4,
     READY2 = PortB7,
 
     BE0 = PortF0,
@@ -79,7 +79,7 @@ Count = NUM_DIGITAL_PINS,
     A23_960 = PortD7,
 
     BusQueryEnable = PortE2,
-    EyeSpi_Pin_MEMCS = PortE4,
+    EyeSpi_Pin_MEMCS = PortB6,
     EyeSpi_Pin_TSCS = PortE5,
     EyeSpi_Pin_INT = PortE6,
 

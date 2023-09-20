@@ -91,7 +91,6 @@ constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 constexpr bool ReadySignalIsToggle = false;
-constexpr auto MCUResponsibleForEntireSystemReadySignal = true;
 
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
@@ -1800,7 +1799,8 @@ setupPins() noexcept {
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);
-    if constexpr (MCUResponsibleForEntireSystemReadySignal) {
+    pinMode(Pin::DesignSelect, INPUT_PULLUP);
+    if (digitalRead<Pin::DesignSelect>() == HIGH) {
         pinMode(Pin::READY, OUTPUT);
         digitalWrite<Pin::READY, HIGH>();
         pinMode(Pin::READY2, INPUT);
@@ -1827,7 +1827,6 @@ setupPins() noexcept {
 
     // set these up ahead of time
     pinMode(Pin::EN2560, INPUT);
-    pinMode(Pin::DesignSelect, INPUT_PULLUP);
 }
 void
 setupExternalBus() noexcept {

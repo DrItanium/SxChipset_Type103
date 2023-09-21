@@ -9,7 +9,7 @@
    5   | RAM      | Input
    6   | IO       | Input
    7   | RDY2560  | Input
-   8   | EN       | Input
+   8   | ACTIVATE | Input
    9   | NC       | Input
   10   | NC       | Input
   11   | NC       | Input

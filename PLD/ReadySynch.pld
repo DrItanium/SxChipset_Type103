@@ -1,15 +1,15 @@
 GAL22V10
 ReadySynchronizer
 
-CLK DEN FLASH SRAM   RAM IO RDY2560 NC  NC NC     NC GND
+CLK DEN FLASH SRAM   RAM IO RDY2560 RDYIN NC NC     NC GND
 NC  NC  NC    NC     Q3  Q2 Q1      Q0  NC EN2560 RDY VCC
 
 /EN2560.R = /IO * /DEN * FLASH * SRAM * RAM
 /RDY = /IO * /DEN * /RDY2560 * FLASH * SRAM * RAM + /Q2 * /DEN * /FLASH * SRAM * RAM * IO + /Q2 * /DEN * /SRAM  * FLASH * RAM * IO + /Q2 * /DEN * /RAM * FLASH * SRAM * IO 
-Q0.R =  /DEN * /Q0
-Q1.R =  /DEN * /Q1 *  Q0 + /DEN *  Q1 * /Q0
-Q2.R =  /DEN *  Q2 * /Q1 + /DEN *  Q2 * /Q0 + /DEN * /Q2 *  Q1 *  Q0
-Q3.R =  /DEN *  Q3 * /Q2 + /DEN *  Q3 * /Q1 + /DEN *  Q3 * /Q0 + /DEN * /Q3 *  Q2 *  Q1 *  Q0
+Q0.R =  /DEN * RDYIN * /Q0
+Q1.R =  /DEN * RDYIN * /Q1 *  Q0 + /DEN * RDYIN *  Q1 * /Q0
+Q2.R =  /DEN * RDYIN *  Q2 * /Q1 + /DEN * RDYIN *  Q2 * /Q0 + /DEN * RDYIN * /Q2 *  Q1 *  Q0
+Q3.R =  /DEN * RDYIN *  Q3 * /Q2 + /DEN * RDYIN *  Q3 * /Q1 + /DEN * RDYIN *  Q3 * /Q0 + /DEN * RDYIN * /Q3 *  Q2 *  Q1 *  Q0
 
 DESCRIPTION
 Allows multiple ready sources to be generated!

@@ -6,9 +6,9 @@ AR
 Pin 23 = RDY          S0 = 0   S1 = 1
   1  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
   2  ---- -x-- x--- x--- x--- -x-- -x-- ---- ---- ---- ----
-  3  ---- -x-- -x-- x--- x--- x-x- ---- ---- ---- ---- ----
-  4  ---- -x-- x--- -x-- x--- x-x- ---- ---- ---- ---- ----
-  5  ---- -x-- x--- x--- -x-- x-x- ---- ---- ---- ---- ----
+  3  ---- -x-- -x-- x--x x--x x-x- ---- ---- ---- ---- ----
+  4  ---- -x-- x--- -x-x x--x x-x- ---- ---- ---- ---- ----
+  5  ---- -x-- x--- x--x -x-x x-x- ---- ---- ---- ---- ----
   6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   8  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

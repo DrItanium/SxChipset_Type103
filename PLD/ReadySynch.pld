@@ -5,7 +5,7 @@ CLK DEN FLASH SRAM   RAM IO RDY2560 NC  NC NC     NC GND
 NC  NC  NC    NC     Q3  Q2 Q1      Q0  NC EN2560 RDY VCC
 
 /EN2560.R = /IO * /DEN * FLASH * SRAM * RAM
-/RDY = /IO * /DEN * /RDY2560 * FLASH * SRAM * RAM + /Q2 * /DEN * /FLASH * SRAM * RAM * IO + /Q2 * /DEN * /SRAM  * FLASH * RAM * IO + /Q2 * /DEN * /RAM * FLASH * SRAM * IO 
+/RDY = /IO * /DEN * /RDY2560 * FLASH * SRAM * RAM + /Q2 * Q1 * Q0 * /DEN * /FLASH * SRAM * RAM * IO + /Q2 * Q1 * Q0 * /DEN * /SRAM  * FLASH * RAM * IO + /Q2 * Q1 * Q0 * /DEN * /RAM * FLASH * SRAM * IO 
 Q0.R =  /DEN * /Q0
 Q1.R =  /DEN * /Q1 *  Q0 + /DEN *  Q1 * /Q0
 Q2.R =  /DEN *  Q2 * /Q1 + /DEN *  Q2 * /Q0 + /DEN * /Q2 *  Q1 *  Q0

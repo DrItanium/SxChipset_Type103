@@ -6,10 +6,10 @@ BLAST  L3  L2    L1     L0  Q3 Q2      Q1    Q0 EN2560 RDY VCC
 
 /EN2560.R = /IO * /DEN * FLASH * SRAM * RAM
 /RDY.R = /EN2560 * /RDY2560 + Q1 * Q0 * /DEN * /FLASH * SRAM * RAM * IO + Q1 * Q0 * /DEN * /SRAM  * FLASH * RAM * IO + Q1 * Q0 * /DEN * /RAM * FLASH * SRAM * IO 
-Q0.R =  /DEN * RDY * /Q0 + /DEN * /RDY * D0
-Q1.R =  /DEN * RDY * /Q1 *  Q0 + /DEN * RDY * Q1 * /Q0 + /DEN * /RDY * D1
-Q2.R =  /DEN * RDY *  Q2 * /Q1 + /DEN * RDY * Q2 * /Q0 + /DEN * RDY * /Q2 *  Q1 *  Q0 + /DEN * /RDY * D2
-Q3.R =  /DEN * RDY *  Q3 * /Q2 + /DEN * RDY * Q3 * /Q1 + /DEN * RDY *  Q3 * /Q0 + /DEN * RDY * /Q3 *  Q2 *  Q1 *  Q0 + /DEN * /RDY * D3
+Q0.R =  /DEN * /RDY * /Q0 + /DEN * RDY * D0
+Q1.R =  /DEN * /RDY * /Q1 *  Q0 + /DEN * /RDY * Q1 * /Q0 + /DEN * RDY * D1
+Q2.R =  /DEN * /RDY *  Q2 * /Q1 + /DEN * /RDY * Q2 * /Q0 + /DEN * /RDY * /Q2 *  Q1 *  Q0 + /DEN * RDY * D2
+Q3.R =  /DEN * /RDY *  Q3 * /Q2 + /DEN * /RDY * Q3 * /Q1 + /DEN * /RDY *  Q3 * /Q0 + /DEN * /RDY * /Q3 *  Q2 *  Q1 *  Q0 + /DEN * RDY * D3
 
 DESCRIPTION
 Allows multiple ready sources to be generated!

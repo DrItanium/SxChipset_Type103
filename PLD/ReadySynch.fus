@@ -29,8 +29,8 @@ Pin 22 = EN2560       S0 = 0   S1 = 0
 
 Pin 21 = Q0           S0 = 1   S1 = 0
  21  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 22  ---x -x-- --x- ---- ---- ---- ---- ---- ---- ---- ----
- 23  --x- -x-- ---- ---- ---- ---- ---- x--- ---- ---- ----
+ 22  --x- -x-- --x- ---- ---- ---- ---- ---- ---- ---- ----
+ 23  ---x -x-- ---- ---- ---- ---- ---- x--- ---- ---- ----
  24  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  25  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  26  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -44,9 +44,9 @@ Pin 21 = Q0           S0 = 1   S1 = 0
 
 Pin 20 = Q1           S0 = 1   S1 = 0
  34  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 35  ---x -x-- ---x --x- ---- ---- ---- ---- ---- ---- ----
- 36  ---x -x-- --x- ---x ---- ---- ---- ---- ---- ---- ----
- 37  --x- -x-- ---- ---- ---- ---- ---- ---- x--- ---- ----
+ 35  --x- -x-- ---x --x- ---- ---- ---- ---- ---- ---- ----
+ 36  --x- -x-- --x- ---x ---- ---- ---- ---- ---- ---- ----
+ 37  ---x -x-- ---- ---- ---- ---- ---- ---- x--- ---- ----
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  40  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -61,10 +61,10 @@ Pin 20 = Q1           S0 = 1   S1 = 0
 
 Pin 19 = Q2           S0 = 1   S1 = 0
  49  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 50  ---x -x-- ---- --x- ---x ---- ---- ---- ---- ---- ----
- 51  ---x -x-- --x- ---- ---x ---- ---- ---- ---- ---- ----
- 52  ---x -x-- ---x ---x --x- ---- ---- ---- ---- ---- ----
- 53  --x- -x-- ---- ---- ---- ---- ---- ---- ---- x--- ----
+ 50  --x- -x-- ---- --x- ---x ---- ---- ---- ---- ---- ----
+ 51  --x- -x-- --x- ---- ---x ---- ---- ---- ---- ---- ----
+ 52  --x- -x-- ---x ---x --x- ---- ---- ---- ---- ---- ----
+ 53  ---x -x-- ---- ---- ---- ---- ---- ---- ---- x--- ----
  54  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  55  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  56  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -80,11 +80,11 @@ Pin 19 = Q2           S0 = 1   S1 = 0
 
 Pin 18 = Q3           S0 = 1   S1 = 0
  66  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 67  ---x -x-- ---- ---- --x- ---x ---- ---- ---- ---- ----
- 68  ---x -x-- ---- --x- ---- ---x ---- ---- ---- ---- ----
- 69  ---x -x-- --x- ---- ---- ---x ---- ---- ---- ---- ----
- 70  ---x -x-- ---x ---x ---x --x- ---- ---- ---- ---- ----
- 71  --x- -x-- ---- ---- ---- ---- ---- ---- ---- ---- x---
+ 67  --x- -x-- ---- ---- --x- ---x ---- ---- ---- ---- ----
+ 68  --x- -x-- ---- --x- ---- ---x ---- ---- ---- ---- ----
+ 69  --x- -x-- --x- ---- ---- ---x ---- ---- ---- ---- ----
+ 70  --x- -x-- ---x ---x ---x --x- ---- ---- ---- ---- ----
+ 71  ---x -x-- ---- ---- ---- ---- ---- ---- ---- ---- x---
  72  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  73  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  74  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

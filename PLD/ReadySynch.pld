@@ -1,20 +1,16 @@
 GAL22V10
 ReadySynchronizer
 
-CLK    DEN FLASH SRAM   RAM IO RDY2560 D0    D1 D2     D3  GND
-BLAST  L3  L2    L1     L0  Q3 Q2      Q1    Q0 EN2560 RDY VCC
+CLK DEN FLASH SRAM   RAM IO RDY2560 D0    D1 D2     D3  GND
+NC  NC  NC    NC     NC  Q3 Q2      Q1    Q0 EN2560 RDY VCC
 
 /EN2560 = /IO * /DEN * FLASH * SRAM * RAM
-/RDY.R = /EN2560 * /RDY2560 + Q1 * Q0 * /DEN * /FLASH * SRAM * RAM * IO + Q1 * Q0 * /DEN * /SRAM  * FLASH * RAM * IO + Q1 * Q0 * /DEN * /RAM * FLASH * SRAM * IO + L1 * L0 * /DEN * /FLASH * SRAM * RAM * IO + L1 * L0 * /DEN * /SRAM  * FLASH * RAM * IO + L1 * L0 * /DEN * /RAM * FLASH * SRAM * IO 
-Q0.R =  BLAST * /DEN * /RDY * /Q0 + /DEN * RDY * D0
-Q1.R =  BLAST * /DEN * /RDY * /Q1 * BLAST *  Q0 + /DEN * BLAST * /RDY * Q1 * /Q0 + /DEN * RDY * D1
-Q2.R =  BLAST * /DEN * /RDY *  Q2 * BLAST * /Q1 + /DEN * BLAST * /RDY * Q2 * /Q0 + /DEN * BLAST * /RDY * /Q2 *  Q1 *  Q0 + /DEN * RDY * D2
-Q3.R =  BLAST * /DEN * /RDY *  Q3 * BLAST * /Q2 + /DEN * BLAST * /RDY * Q3 * /Q1 + /DEN * BLAST * /RDY *  Q3 * /Q0 + /DEN * BLAST * /RDY * /Q3 *  Q2 *  Q1 *  Q0 + /DEN * RDY * D3
+/RDY.R = /EN2560 * /RDY2560 + Q1 * Q0 * /DEN * /FLASH * SRAM * RAM * IO + Q1 * Q0 * /DEN * /SRAM  * FLASH * RAM * IO + Q1 * Q0 * /DEN * /RAM * FLASH * SRAM * IO 
+Q0.R =   /DEN * /RDY * /Q0 + /DEN * RDY * D0
+Q1.R =   /DEN * /RDY * /Q1 *   Q0 + /DEN *  /RDY * Q1 * /Q0 + /DEN * RDY * D1
+Q2.R =   /DEN * /RDY *  Q2 *  /Q1 + /DEN *  /RDY * Q2 * /Q0 + /DEN *  /RDY * /Q2 *  Q1 *  Q0 + /DEN * RDY * D2
+Q3.R =   /DEN * /RDY *  Q3 *  /Q2 + /DEN *  /RDY * Q3 * /Q1 + /DEN *  /RDY *  Q3 * /Q0 + /DEN *  /RDY * /Q3 *  Q2 *  Q1 *  Q0 + /DEN * RDY * D3
 
-L0.R =  /BLAST * /DEN * /RDY * /L0 + /DEN * RDY * D0
-L1.R =  /BLAST * /DEN * /RDY * /L1 * /BLAST *  L0 + /DEN * /BLAST * /RDY * L1 * /L0 + /DEN * RDY * D1
-L2.R =  /BLAST * /DEN * /RDY *  L2 * /BLAST * /L1 + /DEN * /BLAST * /RDY * L2 * /L0 + /DEN * /BLAST * /RDY * /L2 *  L1 *  L0 + /DEN * RDY * D2
-L3.R =  /BLAST * /DEN * /RDY *  L3 * /BLAST * /L2 + /DEN * /BLAST * /RDY * L3 * /L1 + /DEN * /BLAST * /RDY *  L3 * /L0 + /DEN * /BLAST * /RDY * /L3 *  L2 *  L1 *  L0 + /DEN * RDY * D3
 
 
 DESCRIPTION

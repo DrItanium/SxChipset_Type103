@@ -14,11 +14,11 @@
   10   | D2       | Input
   11   | D3       | Input
   12   | GND      | GND
-  13   | BLAST    | Input
-  14   | L3       | Output
-  15   | L2       | Output
-  16   | L1       | Output
-  17   | L0       | Output
+  13   | NC       | Input
+  14   | NC       | NC
+  15   | NC       | NC
+  16   | NC       | NC
+  17   | NC       | NC
   18   | Q3       | Output
   19   | Q2       | Output
   20   | Q1       | Output

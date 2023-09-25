@@ -21,6 +21,9 @@ The following is used for falling edge detection
 The following is used for rising edge detection
 /RSYNC = /Z1 * Z0
 
+To act as a pass through do this:
+RSYNC = RDY
+
 Provide ready signal and synchronization work to the i960Sx chip
 
 The ready signal synchronized to be an either edge detector (by default)

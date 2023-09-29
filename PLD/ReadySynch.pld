@@ -2,9 +2,12 @@ GAL22V10
 ReadySynchronizer
 
 CLK    DEN FLASH SRAM   RAM IO RDY2560 D0    NC NC     NC  GND
-NC     NC  NC    NC     NC  Q3 Q2      Q1    Q0 EN2560 RDY VCC
+NC     NC  Z0    Z1     RSYNC  Q3 Q2      Q1    Q0 EN2560 RDY VCC
 
 /EN2560 = /IO * /DEN * FLASH * SRAM * RAM
+Z0.R = RDY2560
+Z1.R = Z0
+/RSYNC = Z1 * /Z0
 /RDY.R = /EN2560 * /RDY2560 + Q1 * Q0 * /DEN * /FLASH * SRAM * RAM * IO + Q1 * Q0 * /DEN * /SRAM  * FLASH * RAM * IO + Q1 * Q0 * /DEN * /RAM * FLASH * SRAM * IO 
 Q0.R =  /DEN * /RDY * /Q0 + /DEN * RDY * D0
 Q1.R =  /DEN * /RDY * /Q1 *  Q0 + /DEN * /RDY * Q1 * /Q0 + /DEN * RDY * D0

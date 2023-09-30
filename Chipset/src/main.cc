@@ -1813,7 +1813,6 @@ setupPins() noexcept {
     // we start with 0xFF for the direction output so reflect it here
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);
-    pinMode(Pin::DesignSelect, INPUT_PULLUP);
     getDirectionRegister<Port::BankCapture>() = 0;
     pinMode(Pin::HOLD, OUTPUT);
     digitalWrite<Pin::HOLD, LOW>();
@@ -1830,20 +1829,14 @@ setupPins() noexcept {
     digitalWrite<Pin::BusQueryEnable, HIGH>();
     // set these up ahead of time
     pinMode(Pin::EN2560, INPUT);
-    if (digitalRead<Pin::DesignSelect>() == HIGH) {
-        pinMode(Pin::READY, OUTPUT);
-        digitalWrite<Pin::READY, HIGH>();
-        pinMode(Pin::READY2, INPUT);
-    } else {
-        pinMode(Pin::READY2, OUTPUT);
-        digitalWrite<Pin::READY2, HIGH>();
-        pinMode(Pin::READY, INPUT);
-        if constexpr (UseInterruptsForDetectingRequests) {
-            // enable interrupts
-            bitSet(EICRB, ISC41);
-            bitClear(EICRB, ISC40);
-            bitSet(EIMSK, INT4);
-        }
+    pinMode(Pin::READY2, OUTPUT);
+    digitalWrite<Pin::READY2, HIGH>();
+    pinMode(Pin::READY, INPUT);
+    if constexpr (UseInterruptsForDetectingRequests) {
+        // enable interrupts
+        bitSet(EICRB, ISC41);
+        bitClear(EICRB, ISC40);
+        bitSet(EIMSK, INT4);
     }
     // setup bank capture to read in address lines
 
@@ -1931,11 +1924,7 @@ detectAndDispatch() {
 
 void 
 loop() {
-    if (digitalRead<Pin::DesignSelect>() == LOW) {
-        detectAndDispatch<false>();
-    } else {
-        detectAndDispatch<true>();
-    }
+    detectAndDispatch<false>();
 }
 
 template<typename T>

@@ -1020,6 +1020,7 @@ static void idleTransaction() noexcept {
 }
 
 template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
+FORCE_INLINE
 //[[gnu::used]]
 static
 inline
@@ -1069,6 +1070,7 @@ genericReadOperation8(DataRegister8 theBytes) noexcept {
 
 template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
 //[[gnu::used]]
+FORCE_INLINE
 [[gnu::optimize("no-reorder-blocks")]]
 static inline 
 void
@@ -1150,6 +1152,7 @@ genericWriteOperation16(DataRegister8 theBytes) noexcept {
 }
 template<int lowest, int lower, int higher, int highest>
 //[[gnu::used]]
+FORCE_INLINE
 [[gnu::optimize("no-reorder-blocks")]]
 static inline 
 void

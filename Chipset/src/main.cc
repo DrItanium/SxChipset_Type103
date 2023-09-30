@@ -616,15 +616,11 @@ signalReadyRaw() noexcept {
     }
 }
 
-template<bool waitForReady, bool fullResponsibility>
+template<bool waitForReady, bool fullResponsibility, int delayAmount = 4>
 [[gnu::always_inline]]
 inline void
 signalReady() noexcept {
-    if constexpr (fullResponsibility) {
-        signalReadyRaw<waitForReady, Pin::READY, 4>();
-    } else {
-        signalReadyRaw<waitForReady, Pin::READY2, 4>();
-    }
+    signalReadyRaw<waitForReady, fullResponsibility ? Pin::READY : Pin::READY2, delayAmount>();
 }
 using Register8 = volatile uint8_t&;
 using Register16 = volatile uint16_t&;

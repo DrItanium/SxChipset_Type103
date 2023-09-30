@@ -623,7 +623,7 @@ signalReady() noexcept {
     if constexpr (fullResponsibility) {
         signalReadyRaw<waitForReady, Pin::READY, 4>();
     } else {
-        signalReadyRaw<waitForReady, Pin::READY2, 8>();
+        signalReadyRaw<waitForReady, Pin::READY2, 4>();
     }
 }
 using Register8 = volatile uint8_t&;

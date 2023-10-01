@@ -90,8 +90,6 @@ constexpr bool PerformMemoryImageInstallation = true;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
-constexpr bool ReadySignalIsToggle = false;
-constexpr bool UseInterruptsForDetectingRequests = false;
 
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
@@ -581,13 +579,14 @@ computeTransactionWindow(uint16_t offset) noexcept {
     return MemoryWindowBaseAddress | (offset & MemoryWindowMask);
 }
 
+template<bool enableDebug>
 FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
     if constexpr (SupportNewRAMLayout) {
         auto result = getInputRegister<Port::BankCapture>();
-        if constexpr (DisplayReadWriteOperationStarts) {
+        if constexpr (enableDebug) {
             Serial.printf(F("Bank Index: 0x%x\n"), result);
         }
         setBankIndex(result);
@@ -604,11 +603,7 @@ template<bool waitForReady, Pin targetPin, int delayAmount>
 [[gnu::always_inline]] 
 inline void 
 signalReadyRaw() noexcept {
-    if constexpr (ReadySignalIsToggle) {
-        toggle<targetPin>();
-    } else {
-        pulse<targetPin>();
-    } 
+    pulse<targetPin>();
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
@@ -693,9 +688,9 @@ updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[3] = value;
 }
 
-template<bool isReadOperation, NativeBusWidth width, bool hasFullResponsibility>
+template<bool isReadOperation, NativeBusWidth width, bool hasFullResponsibility, bool enableDebug>
 struct CommunicationKernel {
-    using Self = CommunicationKernel<isReadOperation, width, hasFullResponsibility>;
+    using Self = CommunicationKernel<isReadOperation, width, hasFullResponsibility, enableDebug>;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
     CommunicationKernel(const Self&) = delete;
@@ -723,7 +718,7 @@ FORCE_INLINE
 inline
 static void
 doCommunication() noexcept {
-        auto theBytes = getTransactionWindow(); 
+        auto theBytes = getTransactionWindow<enableDebug>(); 
         if constexpr (isReadOperation) {
             DataRegister32 view32 = reinterpret_cast<DataRegister32>(theBytes);
             dataLinesFull = view32[0];
@@ -992,9 +987,9 @@ template<> constexpr auto ByteEnablePinDetect<1> = Pin::BE1;
 template<> constexpr auto ByteEnablePinDetect<2> = Pin::BE2;
 template<> constexpr auto ByteEnablePinDetect<3> = Pin::BE3;
 
-template<bool isReadOperation, bool hasFullResponsibility>
-struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen, hasFullResponsibility> {
-    using Self = CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen, hasFullResponsibility>;
+template<bool isReadOperation, bool hasFullResponsibility, bool enableDebug>
+struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen, hasFullResponsibility, enableDebug> {
+    using Self = CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen, hasFullResponsibility, enableDebug>;
     static constexpr auto BusWidth = NativeBusWidth::Sixteen;
     CommunicationKernel() = delete;
     ~CommunicationKernel() = delete;
@@ -1178,7 +1173,7 @@ genericOperation16(DataRegister8 theBytes) noexcept {
     inline
     static void
     doCommunication() noexcept {
-        auto theBytes = getTransactionWindow(); 
+        auto theBytes = getTransactionWindow<enableDebug>(); 
         // figure out which word we are currently looking at
         // if we are aligned to 32-bit word boundaries then just assume we
         // are at the start of the 16-byte block (the processor will stop
@@ -1210,7 +1205,7 @@ genericOperation16(DataRegister8 theBytes) noexcept {
         } else {
             genericOperation16<0, 1, 2, 3>(theBytes);
         }
-        if constexpr (DisplayReadWriteOperationStarts) {
+        if constexpr (enableDebug) {
             DataRegister32 regs = reinterpret_cast<DataRegister32>(theBytes);
             for (int i = 0; i < 4; ++i) {
                 Serial.printf(F("0x%x: 0x%lx\n"), reinterpret_cast<uintptr_t>(regs + i), regs[i]);
@@ -1440,7 +1435,7 @@ static void doIO() noexcept {
 }
 #undef I960_Signal_Switch
 };
-template<NativeBusWidth width, bool fullResponsibility>
+template<NativeBusWidth width, bool fullResponsibility, bool enableDebug>
 [[noreturn]]
 [[gnu::noinline]]
 void
@@ -1471,7 +1466,7 @@ ReadOperationStart:
         goto WriteOperationBypass;
     }
 ReadOperationBypass:
-    if constexpr (DisplayReadWriteOperationStarts) {
+    if constexpr (enableDebug) {
         Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
     }
     // standard read operation so do the normal dispatch
@@ -1480,13 +1475,13 @@ ReadOperationBypass:
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        CommunicationKernel<true, width, fullResponsibility>::doCommunication();
+        CommunicationKernel<true, width, fullResponsibility, enableDebug>::doCommunication();
     } else {
         if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<true, width, fullResponsibility>::doCommunication();
+            CommunicationKernel<true, width, fullResponsibility, enableDebug>::doCommunication();
         } else {
             // io operation
-            CommunicationKernel<true, width, fullResponsibility>::doIO();
+            CommunicationKernel<true, width, fullResponsibility, enableDebug>::doIO();
         }
     }
     // start the read operation again
@@ -1505,7 +1500,7 @@ WriteOperationStart:
         goto ReadOperationBypass;
     } 
 WriteOperationBypass:
-    if constexpr (DisplayReadWriteOperationStarts) {
+    if constexpr (enableDebug) {
         Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
     }
     // standard write operation so do the normal dispatch for write operations
@@ -1514,20 +1509,20 @@ WriteOperationBypass:
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        CommunicationKernel<false, width, fullResponsibility>::doCommunication();
+        CommunicationKernel<false, width, fullResponsibility, enableDebug>::doCommunication();
     } else {
         if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<false, width, fullResponsibility>::doCommunication();
+            CommunicationKernel<false, width, fullResponsibility, enableDebug>::doCommunication();
         } else {
             // io operation
-            CommunicationKernel<false, width, fullResponsibility>::doIO();
+            CommunicationKernel<false, width, fullResponsibility, enableDebug>::doIO();
         }
     }
     // restart the write loop
     goto WriteOperationStart;
     // we should never get here!
 }
-template<bool isReadOperation, NativeBusWidth width, bool fullResponsibility>
+template<bool isReadOperation, NativeBusWidth width, bool fullResponsibility, bool enableDebug>
 FORCE_INLINE
 inline
 void
@@ -1538,17 +1533,17 @@ doTransaction() {
         // accessing from. Right now, it supports up to 4 megabytes of
         // space (repeating these 4 megabytes throughout the full
         // 32-bit space until we get to IO space)
-        CommunicationKernel<isReadOperation, width, fullResponsibility>::idleTransaction();
+        CommunicationKernel<isReadOperation, width, fullResponsibility, enableDebug>::idleTransaction();
     } else {
         if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<isReadOperation, width, fullResponsibility>::doCommunication();
+            CommunicationKernel<isReadOperation, width, fullResponsibility, enableDebug>::doCommunication();
         } else {
             // io operation
-            CommunicationKernel<isReadOperation, width, fullResponsibility>::doIO();
+            CommunicationKernel<isReadOperation, width, fullResponsibility, enableDebug>::doIO();
         }
     }
 }
-template<NativeBusWidth width, bool fullResponsibility>
+template<NativeBusWidth width, bool fullResponsibility, bool enableDebug>
 [[gnu::noinline]]
 [[noreturn]]
 void
@@ -1578,13 +1573,13 @@ hybridMemoryTransaction() noexcept {
                 // update the direction pin 
                 toggle<Pin::DirectionOutput>();
                 // then jump into the write loop
-                if constexpr (DisplayReadWriteOperationStarts) {
+                if constexpr (enableDebug) {
                     Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
                 }
                 doTransaction<false, width, fullResponsibility>();
                 break;
             }
-            if constexpr (DisplayReadWriteOperationStarts) {
+            if constexpr (enableDebug) {
                 Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
             }
             doTransaction<true, width, fullResponsibility>();
@@ -1600,14 +1595,14 @@ hybridMemoryTransaction() noexcept {
                 // update the direction pin
                 toggle<Pin::DirectionOutput>();
                 // jump to the read loop
-                if constexpr (DisplayReadWriteOperationStarts) {
+                if constexpr (enableDebug) {
                     Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
                 }
                 doTransaction<true, width, fullResponsibility>();
                 // start the read operation again
                 break;
             } 
-            if constexpr (DisplayReadWriteOperationStarts) {
+            if constexpr (enableDebug) {
                 Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
             }
             doTransaction<false, width, fullResponsibility>();
@@ -1615,22 +1610,18 @@ hybridMemoryTransaction() noexcept {
     } while (true);
 }
 
-template<bool isReadOperation, NativeBusWidth width, bool fullResponsibility>
+template<bool isReadOperation, NativeBusWidth width, bool fullResponsibility, bool enableDebug>
 FORCE_INLINE
 inline
 void
 doIOOperation() noexcept {
     if (digitalRead<Pin::A23_960>()) {
-        CommunicationKernel<isReadOperation, width, fullResponsibility>::doCommunication();
+        CommunicationKernel<isReadOperation, width, fullResponsibility, enableDebug>::doCommunication();
     } else {
-        CommunicationKernel<isReadOperation, width, fullResponsibility>::doIO();
+        CommunicationKernel<isReadOperation, width, fullResponsibility, enableDebug>::doIO();
     }
 }
-volatile bool newIOTransaction = false;
-ISR(INT4_vect) {
-    newIOTransaction = true;
-}
-template<NativeBusWidth width, bool fullResponsibility, bool useInterrupts = UseInterruptsForDetectingRequests>
+template<NativeBusWidth width, bool fullResponsibility, bool enableDebug>
 [[gnu::noinline]]
 [[noreturn]]
 void
@@ -1673,12 +1664,7 @@ pureIODeviceHandler() noexcept {
 ReadOperationStart:
     // read operation
     // wait until DEN goes low
-    if constexpr (useInterrupts) {
-        while (!newIOTransaction);
-        newIOTransaction = false;
-    } else {
-        while (digitalRead<WaitPin>());
-    }
+    while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1686,25 +1672,20 @@ ReadOperationStart:
         // update the direction pin 
         toggle<Pin::DirectionOutput>();
         // then jump into the write loop
-        if constexpr (DisplayReadWriteOperationStarts) {
+        if constexpr (enableDebug) {
             Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
         }
         goto WriteOperationBypass;
     } 
 ReadOperationBypass:
-    if constexpr (DisplayReadWriteOperationStarts) {
+    if constexpr (enableDebug) {
         Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
     }
-    doIOOperation<true, width, fullResponsibility>();
+    doIOOperation<true, width, fullResponsibility, enableDebug>();
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
-    if constexpr (useInterrupts) {
-        while (!newIOTransaction);
-        newIOTransaction = false;
-    } else {
-        while (digitalRead<WaitPin>());
-    }
+    while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1715,14 +1696,14 @@ WriteOperationStart:
         goto ReadOperationBypass;
     } 
 WriteOperationBypass:
-    if constexpr (DisplayReadWriteOperationStarts) {
+    if constexpr (enableDebug) {
         Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
     }
-    doIOOperation<false, width, fullResponsibility>();
+    doIOOperation<false, width, fullResponsibility, enableDebug>();
     goto WriteOperationStart;
 }
 
-template<NativeBusWidth width, bool fullResponsibility> 
+template<NativeBusWidth width, bool fullResponsibility, bool enableDebug> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
 [[noreturn]] 
@@ -1732,12 +1713,12 @@ executionBody() noexcept {
     setBankIndex(0);
     if constexpr (HybridWideMemorySupported) {
         if constexpr (fullResponsibility) {
-            hybridMemoryTransaction<width, fullResponsibility>();
+            hybridMemoryTransaction<width, fullResponsibility, enableDebug>();
         } else {
-            pureIODeviceHandler<width, fullResponsibility>();
+            pureIODeviceHandler<width, fullResponsibility, enableDebug>();
         }
     } else {
-        nonHybridMemoryTransaction<width, fullResponsibility>();
+        nonHybridMemoryTransaction<width, fullResponsibility, enableDebug>();
     }
 }
 
@@ -1831,12 +1812,6 @@ setupPins() noexcept {
     pinMode(Pin::READY2, OUTPUT);
     digitalWrite<Pin::READY2, HIGH>();
     pinMode(Pin::READY, INPUT);
-    if constexpr (UseInterruptsForDetectingRequests) {
-        // enable interrupts
-        bitSet(EICRB, ISC41);
-        bitClear(EICRB, ISC40);
-        bitSet(EIMSK, INT4);
-    }
     // setup bank capture to read in address lines
 
 }
@@ -1904,26 +1879,26 @@ setup() {
     }
     pullCPUOutOfReset();
 }
-template<bool fullResponsibility>
+template<bool fullResponsibility, bool enableDebug>
 [[noreturn]]
 void
 detectAndDispatch() {
     switch (getBusWidth(getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
-            executionBody<NativeBusWidth::Sixteen, fullResponsibility>();
+            executionBody<NativeBusWidth::Sixteen, fullResponsibility, enableDebug>();
             break;
         case NativeBusWidth::ThirtyTwo:
-            executionBody<NativeBusWidth::ThirtyTwo, fullResponsibility>();
+            executionBody<NativeBusWidth::ThirtyTwo, fullResponsibility, enableDebug>();
             break;
         default:
-            executionBody<NativeBusWidth::Unknown, fullResponsibility>();
+            executionBody<NativeBusWidth::Unknown, fullResponsibility, enableDebug>();
             break;
     }
 }
 
 void 
 loop() {
-    detectAndDispatch<false>();
+    detectAndDispatch<false, DisplayReadWriteOperationStarts>();
 }
 
 template<typename T>

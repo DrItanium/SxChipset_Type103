@@ -85,7 +85,6 @@ constexpr bool SupportNewRAMLayout = false;
 constexpr bool HybridWideMemorySupported = true;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
-constexpr bool DisplayReadWriteOperationStarts = false;
 constexpr bool PerformMemoryImageInstallation = true;
 
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
@@ -1813,6 +1812,7 @@ setupPins() noexcept {
     digitalWrite<Pin::READY2, HIGH>();
     pinMode(Pin::READY, INPUT);
     // setup bank capture to read in address lines
+    pinMode(Pin::DebugEnable, INPUT_PULLUP);
 
 }
 void
@@ -1898,7 +1898,11 @@ detectAndDispatch() {
 
 void 
 loop() {
-    detectAndDispatch<false, DisplayReadWriteOperationStarts>();
+    if (digitalRead<Pin::DebugEnable>() == HIGH) {
+        detectAndDispatch<false, false>();
+    } else {
+        detectAndDispatch<false, true>();
+    }
 }
 
 template<typename T>

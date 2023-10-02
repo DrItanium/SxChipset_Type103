@@ -1435,93 +1435,6 @@ static void doIO() noexcept {
 }
 #undef I960_Signal_Switch
 };
-template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
-FORCE_INLINE
-inline
-void
-doTransaction() {
-    // standard read/write operation so do the normal dispatch
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-        // the IBUS is the window into the 32-bit bus that the i960 is
-        // accessing from. Right now, it supports up to 4 megabytes of
-        // space (repeating these 4 megabytes throughout the full
-        // 32-bit space until we get to IO space)
-        CommunicationKernel<isReadOperation, width, enableDebug>::idleTransaction();
-    } else {
-        if (digitalRead<Pin::A23_960>()) {
-            CommunicationKernel<isReadOperation, width, enableDebug>::doCommunication();
-        } else {
-            // io operation
-            CommunicationKernel<isReadOperation, width, enableDebug>::doIO();
-        }
-    }
-}
-template<NativeBusWidth width, bool enableDebug>
-[[gnu::noinline]]
-[[noreturn]]
-void
-hybridMemoryTransaction() noexcept {
-    // at this point, we are setup to be in output mode (or read) and that is the
-    // expected state for _all_ i960 processors, it will load some amount of
-    // data from main memory to start the execution process. 
-    //
-    // After this point, we will never need to actually keep track of the
-    // contents of the DirectionOutput pin. We will always be properly
-    // synchronized overall!
-    //
-    // It is not lost on me that this is goto nightmare bingo, however in this
-    // case I need the extra control of the goto statement. Allowing the
-    // compiler to try and do this instead leads to implicit jumping issues
-    // where the compiler has way too much fun with its hands. It will over
-    // optimize things and create problems!
-    do {
-        // read operation
-        do {
-            // wait until DEN goes low
-            while (digitalRead<Pin::DEN>());
-            // check to see if we need to change directions
-            if (!digitalRead<Pin::ChangeDirection>()) {
-                // change direction to input since we are doing read -> write
-                updateDataLinesDirection<0>();
-                // update the direction pin 
-                toggle<Pin::DirectionOutput>();
-                // then jump into the write loop
-                if constexpr (enableDebug) {
-                    Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
-                }
-                doTransaction<false, width>();
-                break;
-            }
-            if constexpr (enableDebug) {
-                Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
-            }
-            doTransaction<true, width>();
-        } while (true);
-        // write operation
-        do {
-            // wait until DEN goes low
-            while (digitalRead<Pin::DEN>());
-            // check to see if we need to change directions
-            if (!digitalRead<Pin::ChangeDirection>()) {
-                // change data lines to be output since we are doing write -> read
-                updateDataLinesDirection<0xFF>();
-                // update the direction pin
-                toggle<Pin::DirectionOutput>();
-                // jump to the read loop
-                if constexpr (enableDebug) {
-                    Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
-                }
-                doTransaction<true, width>();
-                // start the read operation again
-                break;
-            } 
-            if constexpr (enableDebug) {
-                Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
-            }
-            doTransaction<false, width>();
-        } while (true);
-    } while (true);
-}
 
 template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
 FORCE_INLINE
@@ -1534,6 +1447,7 @@ doIOOperation() noexcept {
         CommunicationKernel<isReadOperation, width, enableDebug>::doIO();
     }
 }
+
 template<NativeBusWidth width, bool enableDebug>
 [[gnu::noinline]]
 [[noreturn]]

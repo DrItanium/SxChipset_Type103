@@ -1503,7 +1503,7 @@ ReadOperationStart:
     } 
 ReadOperationBypass:
     if constexpr (enableDebug) {
-        Serial.printf(F("Read Operation (0x%lx)\n"), addressLinesValue32);
+        Serial.printf(F("R (0x%lx)\n"), addressLinesValue32);
     }
     doIOOperation<true, width, enableDebug>();
     goto ReadOperationStart;
@@ -1521,7 +1521,7 @@ WriteOperationStart:
     } 
 WriteOperationBypass:
     if constexpr (enableDebug) {
-        Serial.printf(F("Write Operation (0x%lx)\n"), addressLinesValue32);
+        Serial.printf(F("W (0x%lx)\n"), addressLinesValue32);
     }
     doIOOperation<false, width, enableDebug>();
     goto WriteOperationStart;
@@ -1776,6 +1776,8 @@ banner() noexcept {
             Serial.println(F("Unknown (fallback to 32-bit)"));
             break;
     }
+    Serial.print(F("MCU Debug: "));
+    printlnBool(digitalRead<Pin::DebugEnable>() == LOW);
     Serial.println(F("Optional Devices List (i2c)"));
     if (rtc.found()) {
         Serial.println(F("Found RTC (PCF8523)"));

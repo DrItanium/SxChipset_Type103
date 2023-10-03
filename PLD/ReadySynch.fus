@@ -145,7 +145,7 @@ Pin 15 = Z0           S0 = 1   S1 = 0
 Pin 14 = RDY          S0 = 0   S1 = 0
 122  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
 123  ---- -x-- -x-x x--- x--- x--- ---- ---- ---- ---- ----
-124  ---- -x-- x--x -x-x x--- x--- ---- ---- ---- ---- ----
+124  ---- -x-- x--x -x-- x--- x--- ---- ---- ---- ---- ----
 125  ---- -x-- x--x x--x -x-- x--- ---- ---- ---- ---- ----
 126  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 127  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

@@ -9,10 +9,11 @@ NC NC  NC  OE  RD  WR3 WR2 WR1 WR0  VCC
 /WR2 = WR * /BE2 * /EQ0 * /EQ1 * /EQ2 * /SRAM
 /WR3 = WR * /BE3 * /EQ0 * /EQ1 * /EQ2 * /SRAM
 /RD = /WR * /EQ0 * /EQ1 * /EQ2 * /SRAM
-/OE = /EQ0 * /EQ1 * /EQ2 * /SRAM
+/OE = SRAM + /SRAM
 
 DESCRIPTION
 
 SRAM Decoder Logic
 
 EQ0:2 come from an AHC86 (XOR) chip so no need for equality checks
+/OE = /EQ0 * /EQ1 * /EQ2 * /SRAM

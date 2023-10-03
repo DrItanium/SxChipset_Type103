@@ -51,8 +51,8 @@ Pin 15 = RD           XOR = 0   AC1 = 0
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 14 = OE           XOR = 0   AC1 = 0
- 40  ---- ---- ---- ---- -x-- -x-- -x-- -x--
- 41  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+ 40  ---- ---- ---- ---- ---- ---- ---- x---
+ 41  ---- ---- ---- ---- ---- ---- ---- -x--
  42  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  43  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  44  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

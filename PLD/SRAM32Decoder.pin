@@ -15,7 +15,7 @@
   11   | NC       | Input
   12   | NC       | NC
   13   | NC       | NC
-  14   | OE       | Output
+  14   | EN       | Output
   15   | RD       | Output
   16   | WR3      | Output
   17   | WR2      | Output

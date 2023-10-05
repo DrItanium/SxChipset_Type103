@@ -50,7 +50,7 @@ Pin 15 = RD           XOR = 0   AC1 = 0
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 14 = EN           XOR = 0   AC1 = 0
+Pin 14 = CE           XOR = 0   AC1 = 0
  40  ---- ---- ---- ---- -x-- -x-- -x-- -x--
  41  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  42  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

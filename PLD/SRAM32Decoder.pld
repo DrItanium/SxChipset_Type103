@@ -4,11 +4,11 @@ SRAMDecode32
 WR BE0 BE1 BE2 BE3 EQ0 EQ1 EQ2 SRAM GND
 NC NC  NC  CE  RD  WR3 WR2 WR1 WR0  VCC
 
-/WR0 = WR * /BE0 * /SRAM
-/WR1 = WR * /BE1 * /SRAM
-/WR2 = WR * /BE2 * /SRAM
-/WR3 = WR * /BE3 * /SRAM
-/RD = /WR * /SRAM
+/WR0 = WR * /EQ0 * /EQ1 * /EQ2 * /BE0 * /SRAM
+/WR1 = WR * /EQ0 * /EQ1 * /EQ2 * /BE1 * /SRAM
+/WR2 = WR * /EQ0 * /EQ1 * /EQ2 * /BE2 * /SRAM
+/WR3 = WR * /EQ0 * /EQ1 * /EQ2 * /BE3 * /SRAM
+/RD = /WR * /EQ0 * /EQ1 * /EQ2 * /SRAM
 /CE = /EQ0 * /EQ1 * /EQ2 * /SRAM
 
 DESCRIPTION

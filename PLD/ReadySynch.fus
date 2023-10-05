@@ -147,7 +147,7 @@ Pin 14 = RDY          S0 = 0   S1 = 0
 123  ---- -x-- -x-x x--- x--- x--- ---- ---- ---- ---- ----
 124  ---- -x-- x--x -x-- x--- x--- ---- ---- ---- ---- ----
 125  ---- -x-- x--x x--x -x-- x--- ---- ---- ---- ---- ----
-126  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+126  ---- -x-- x--x x--x x--- x--- ---- ---- ---- ---- ----
 127  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 128  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 129  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

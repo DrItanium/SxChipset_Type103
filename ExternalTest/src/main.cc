@@ -13,7 +13,10 @@ void setup() {
 }
 
 void loop() {
-    while (Serial1.available()) {
+    if (Serial.available()) {
+        Serial1.write(Serial.read());
+    }
+    if (Serial1.available()) {
         Serial.write(Serial1.read());
     }
 }

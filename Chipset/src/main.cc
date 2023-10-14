@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_EPD.h>
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_FT6206.h>
-#include <RTClib.h>
 
 
 #include "Detect.h"
@@ -140,52 +139,6 @@ struct OptionalDevice {
         bool _found = false;
 };
 
-template<>
-struct OptionalDevice<RTC_PCF8523> {
-    using T = RTC_PCF8523;
-    T* operator->() noexcept { return &_device; }
-    const T* operator->() const noexcept { return &_device; }
-    T& operator*() noexcept { return getDevice(); }
-    const T& operator*() const noexcept { return getDevice(); }
-    explicit constexpr operator bool() const noexcept { return _found; }
-    constexpr bool found() const noexcept { return _found; }
-    constexpr bool initialized() const noexcept { return _initialized; }
-    RTC_PCF8523& getDevice() noexcept { return _device; }
-    const RTC_PCF8523& getDevice() const noexcept { return _device; }
-    void begin() noexcept {
-        _found = _device.begin();
-        if (_found) {
-            if (!_device.initialized() || _device.lostPower()) {
-                _device.adjust(DateTime(F(__DATE__), F(__TIME__)));
-                _initialized = false;
-            } else {
-                _initialized = true;
-            }
-            _device.start();
-            // compensate for rtc drifiting (taken from the example program)
-            float drift = 43;  // plus or minus over observation period - set to 0
-                               // to cancel previous calibration
-            float periodSeconds = (7 * 86400); // total observation period in
-                                               // sections
-            float deviationPPM = (drift / periodSeconds * 1'000'000); // deviation
-                                                                      // in parts
-                                                                      // per
-                                                                      // million
-            float driftUnit = 4.34; // use with offset mode PCF8523_TwoHours
-
-            int offset = round(deviationPPM / driftUnit); 
-            _device.calibrate(PCF8523_TwoHours, offset); // perform calibration once
-                                                         // drift (seconds) and
-                                                         // observation period (seconds)
-                                                         // are correct
-        }
-    }
-    private:
-        RTC_PCF8523 _device;
-        bool _found = false;
-        bool _initialized = false;
-};
-
 
 
 template<typename T>
@@ -231,11 +184,9 @@ setupDisplay() noexcept {
 
 
 
-OptionalDevice<RTC_PCF8523> rtc;
 void 
 setupDevices() noexcept {
     setupDisplay();
-    rtc.begin();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -1475,14 +1426,5 @@ banner() noexcept {
     }
     Serial.print(F("MCU Debug: "));
     printlnBool(digitalRead<Pin::DebugEnable>() == LOW);
-    Serial.println(F("Optional Devices List (i2c)"));
-    if (rtc.found()) {
-        Serial.println(F("Found RTC (PCF8523)"));
-        if (rtc.initialized()) {
-            Serial.println(F("\tRTC was already initialized"));
-        } else {
-            Serial.println(F("\tRTC needed to be initialized!"));
-        }
-    }
 }
 

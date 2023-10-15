@@ -1145,9 +1145,9 @@ pureIODeviceHandler() noexcept {
 ReadOperationStart:
     // read operation
     // wait until DEN goes low
-    while (digitalRead<WaitPin>()) {
+    do {
         serial2PacketEncoder.update();
-    }
+    } while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1162,13 +1162,12 @@ ReadOperationBypass:
         Serial.printf(F("R (0x%lx)\n"), addressLinesValue32);
     }
     doIOOperation<true, width, enableDebug>();
-    serial2PacketEncoder.update();
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
-    while (digitalRead<WaitPin>()) {
+    do {
         serial2PacketEncoder.update();
-    }
+    } while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1183,7 +1182,6 @@ WriteOperationBypass:
         Serial.printf(F("W (0x%lx)\n"), addressLinesValue32);
     }
     doIOOperation<false, width, enableDebug>();
-    serial2PacketEncoder.update();
     goto WriteOperationStart;
 }
 

@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_EPD.h>
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_FT6206.h>
+#include <PacketSerial.h>
 
 
 #include "Detect.h"
@@ -296,6 +297,7 @@ pullCPUOutOfReset() noexcept {
     digitalWrite<Pin::RESET, HIGH>();
 }
 
+PacketSerial serial2PacketEncoder;
 
 
 template<uint8_t index>
@@ -1084,6 +1086,10 @@ static void doIO() noexcept {
 #undef I960_Signal_Switch
 };
 
+void processPacketFromSender_Serial2(const PacketSerial& sender, const uint8_t* buffer, size_t size) {
+    /// @todo implement
+}
+
 template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
 FORCE_INLINE
 inline
@@ -1139,7 +1145,9 @@ pureIODeviceHandler() noexcept {
 ReadOperationStart:
     // read operation
     // wait until DEN goes low
-    while (digitalRead<WaitPin>());
+    while (digitalRead<WaitPin>()) {
+        serial2PacketEncoder.update();
+    }
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1154,10 +1162,13 @@ ReadOperationBypass:
         Serial.printf(F("R (0x%lx)\n"), addressLinesValue32);
     }
     doIOOperation<true, width, enableDebug>();
+    serial2PacketEncoder.update();
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
-    while (digitalRead<WaitPin>());
+    while (digitalRead<WaitPin>()) {
+        serial2PacketEncoder.update();
+    }
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1172,6 +1183,7 @@ WriteOperationBypass:
         Serial.printf(F("W (0x%lx)\n"), addressLinesValue32);
     }
     doIOOperation<false, width, enableDebug>();
+    serial2PacketEncoder.update();
     goto WriteOperationStart;
 }
 
@@ -1327,6 +1339,9 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(115200);
+    Serial2.begin(115200);
+    serial2PacketEncoder.setStream(&Serial2);
+    serial2PacketEncoder.setPacketHandler([](const uint8_t* buffer, size_t size) { processPacketFromSender_Serial2(serial2PacketEncoder, buffer, size); });
     SPI.begin();
     Wire.begin();
     setupPins();

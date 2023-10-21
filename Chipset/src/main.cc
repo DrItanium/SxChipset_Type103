@@ -689,48 +689,80 @@ static void idleTransaction() noexcept {
         if constexpr (isReadOperation) {
             setDataByte<0>(theBytes[0]);
             setDataByte<1>(theBytes[1]);
+            if constexpr (enableDebug) {
+                Serial.println(theBytes[0], HEX);
+                Serial.println(theBytes[1], HEX);
+            }
             if (isBurstLast()) { 
                 goto ReadDone; 
             } 
             signalReady<true>();
             setDataByte<0>(theBytes[2]);
             setDataByte<1>(theBytes[3]);
+            if constexpr (enableDebug) {
+                Serial.println(theBytes[2], HEX);
+                Serial.println(theBytes[3], HEX);
+            }
             if (isBurstLast()) { 
                 goto ReadDone; 
             } 
             signalReady<true>();
             setDataByte<0>(theBytes[4]);
             setDataByte<1>(theBytes[5]);
+            if constexpr (enableDebug) {
+                Serial.println(theBytes[4], HEX);
+                Serial.println(theBytes[5], HEX);
+            }
             if (isBurstLast()) { 
                 goto ReadDone; 
             } 
             signalReady<true>();
             setDataByte<0>(theBytes[6]);
             setDataByte<1>(theBytes[7]);
+            if constexpr (enableDebug) {
+                Serial.println(theBytes[6], HEX);
+                Serial.println(theBytes[7], HEX);
+            }
             if (isBurstLast()) { 
                 goto ReadDone; 
             } 
             signalReady<true>();
             setDataByte<0>(theBytes[8]);
             setDataByte<1>(theBytes[9]);
+            if constexpr (enableDebug) {
+                Serial.println(theBytes[8], HEX);
+                Serial.println(theBytes[9], HEX);
+            }
             if (isBurstLast()) { 
                 goto ReadDone; 
             } 
             signalReady<true>();
             setDataByte<0>(theBytes[10]);
             setDataByte<1>(theBytes[11]);
+            if constexpr (enableDebug) {
+                Serial.println(theBytes[10], HEX);
+                Serial.println(theBytes[11], HEX);
+            }
             if (isBurstLast()) { 
                 goto ReadDone; 
             } 
             signalReady<true>();
             setDataByte<0>(theBytes[12]);
             setDataByte<1>(theBytes[13]);
+            if constexpr (enableDebug) {
+                Serial.println(theBytes[12], HEX);
+                Serial.println(theBytes[13], HEX);
+            }
             if (isBurstLast()) { 
                 goto ReadDone; 
             } 
             signalReady<true>();
             setDataByte<0>(theBytes[14]);
             setDataByte<1>(theBytes[15]);
+            if constexpr (enableDebug) {
+                Serial.println(theBytes[14], HEX);
+                Serial.println(theBytes[15], HEX);
+            }
 ReadDone:
             signalReady<true>();
         } else {

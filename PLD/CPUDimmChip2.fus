@@ -1,8 +1,8 @@
 
 
-Pin 19 = ENL          XOR = 0   AC1 = 1
+Pin 19 = ENL          XOR = 1   AC1 = 1
   0  ---- ---- ---- ---- ---- ---- ---- ----
-  1  -x-- ---- ---- -x-- ---- ---- ---- ----
+  1  x--- ---- ---- ---- ---- ---- ---- ----
   2  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   3  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   4  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -10,10 +10,10 @@ Pin 19 = ENL          XOR = 0   AC1 = 1
   6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 18 = ENU          XOR = 0   AC1 = 1
+Pin 18 = ENU          XOR = 1   AC1 = 1
   8  ---- ---- ---- ---- ---- ---- ---- ----
-  9  -x-- ---- ---- x--- ---- ---- ---- ----
- 10  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+  9  -x-- ---- ---- ---- ---- ---- ---- ----
+ 10  x--- ---- ---- ---- ---- ---- ---- ----
  11  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  12  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  13  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -40,9 +40,9 @@ Pin 16 = OBE2         XOR = 1   AC1 = 1
  30  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  31  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 15 = OBE1         XOR = 0   AC1 = 1
- 32  -x-- ---- ---- ---- ---- ---- ---- ----
- 33  -x-- -x-- ---- -x-- ---- ---- ---- ----
+Pin 15 = OBE1         XOR = 1   AC1 = 1
+ 32  ---- ---- ---- ---- ---- ---- ---- ----
+ 33  ---- x--- ---- ---- ---- ---- ---- ----
  34  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  35  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  36  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -50,9 +50,9 @@ Pin 15 = OBE1         XOR = 0   AC1 = 1
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 14 = OBE0         XOR = 0   AC1 = 1
- 40  -x-- ---- ---- ---- ---- ---- ---- ----
- 41  -x-- ---- -x-- -x-- ---- ---- ---- ----
+Pin 14 = OBE0         XOR = 1   AC1 = 1
+ 40  ---- ---- ---- ---- ---- ---- ---- ----
+ 41  ---- ---- x--- ---- ---- ---- ---- ----
  42  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  43  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  44  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

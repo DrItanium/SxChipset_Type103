@@ -662,205 +662,142 @@ static void idleTransaction() noexcept {
     signalReady<true>();
 }
 
-template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
-FORCE_INLINE
-//[[gnu::used]]
-static
-inline
-void 
-genericReadOperation8(DataRegister8 theBytes) noexcept {
-    if constexpr (isReadOperation) {
-        dataLines[lowest] = theBytes[0];
-        dataLines[lower] = theBytes[1];
-        if (!isBurstLast()) {
-            signalReady<false>();
-            dataLines[higher] = theBytes[2];
-            dataLines[highest] = theBytes[3];
-            if (!isBurstLast()) {
-                signalReady<false>();
-                dataLines[lowest] = theBytes[4];
-                dataLines[lower] = theBytes[5];
-                if (!isBurstLast()) {
-                    signalReady<false>();
-                    dataLines[higher] = theBytes[6];
-                    dataLines[highest] = theBytes[7];
-                    if (!isBurstLast()) {
-                        signalReady<false>();
-                        dataLines[lowest] = theBytes[8];
-                        dataLines[lower] = theBytes[9];
-                        if (!isBurstLast()) {
-                            signalReady<false>();
-                            dataLines[higher] = theBytes[10];
-                            dataLines[highest] = theBytes[11];
-                            if (!isBurstLast()) {
-                                signalReady<false>();
-                                dataLines[lowest] = theBytes[12];
-                                dataLines[lower] = theBytes[13];
-                                if (!isBurstLast()) {
-                                    signalReady<false>();
-                                    dataLines[higher] = theBytes[14];
-                                    dataLines[highest] = theBytes[15];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        signalReady<true>();
-    }
-}
-
-template<int lowest, int lower, int higher, int highest, Pin pinLowest, Pin pinLower, Pin pinHigher, Pin pinHighest>
-//[[gnu::used]]
-FORCE_INLINE
-[[gnu::optimize("no-reorder-blocks")]]
-static inline 
-void
-genericWriteOperation16(DataRegister8 theBytes) noexcept {
-    if constexpr (!isReadOperation) {
-        auto a = dataLines[lowest];
-        auto b = dataLines[lower];
-        if (digitalRead<pinLowest>() == LOW) {
-            theBytes[0] = a;
-        }
-        if (digitalRead<pinLower>() == LOW) {
-            theBytes[1] = b;
-        } 
-        if (!isBurstLast()) {
-            signalReady<true>();
-            auto c = dataLines[higher];
-            auto d = dataLines[highest];
-            theBytes[2] = c;
-            if (digitalRead<pinHighest>() == LOW) {
-                theBytes[3] = d;
-            }
-            if (!isBurstLast()) {
-                signalReady<true>();
-                auto e = dataLines[lowest];
-                auto f = dataLines[lower];
-                theBytes[4] = e;
-                if (digitalRead<pinLower>() == LOW) {
-                    theBytes[5] = f;
-                }
-                if (!isBurstLast()) {
-                    signalReady<true>();
-                    auto g = dataLines[higher];
-                    auto h = dataLines[highest];
-                    theBytes[6] = g;
-                    if (digitalRead<pinHighest>() == LOW) {
-                        theBytes[7] = h;
-                    }
-                    if (!isBurstLast()) {
-                        signalReady<true>();
-                        auto i = dataLines[lowest];
-                        auto j = dataLines[lower];
-                        theBytes[8] = i;
-                        if (digitalRead<pinLower>() == LOW) {
-                            theBytes[9] = j;
-                        }
-                        if (!isBurstLast()) {
-                            signalReady<true>();
-                            auto k = dataLines[higher];
-                            auto l = dataLines[highest];
-                            theBytes[10] = k;
-                            if (digitalRead<pinHighest>() == LOW) {
-                                theBytes[11] = l;
-                            }
-                            if (!isBurstLast()) {
-                                signalReady<true>();
-                                auto m = dataLines[lowest];
-                                auto n = dataLines[lower];
-                                theBytes[12] = m;
-                                if (digitalRead<pinLower>() == LOW) {
-                                    theBytes[13] = n;
-                                }
-                                if (!isBurstLast()) {
-                                    signalReady<true>();
-                                    auto o = dataLines[higher];
-                                    auto p = dataLines[highest];
-                                    theBytes[14] = o;
-                                    if (digitalRead<pinHighest>() == LOW) {
-                                        theBytes[15] = p;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        signalReady<true>();
-    }
-}
-template<int lowest, int lower, int higher, int highest>
-//[[gnu::used]]
-FORCE_INLINE
-[[gnu::optimize("no-reorder-blocks")]]
-static inline 
-void
-genericOperation16(DataRegister8 theBytes) noexcept {
-    static_assert((lowest != lower) && (lowest != higher) && (lowest != highest), "the lowest pin matches with another pin");
-    static_assert((lower != higher) && (lower != highest), "the lower pin matches with another pin");
-    static_assert((higher != highest), "the higher pin matches with the highest pin!");
-    static constexpr auto pinLowest = ByteEnablePinDetect<lowest>;
-    static constexpr auto pinLower = ByteEnablePinDetect<lower>;
-    static constexpr auto pinHigher = ByteEnablePinDetect<higher>;
-    static constexpr auto pinHighest = ByteEnablePinDetect<highest>;
-    static_assert(pinLowest != Pin::Count, "Illegal index for BE0");
-    static_assert(pinLower != Pin::Count, "Illegal index for BE1");
-    static_assert(pinHigher != Pin::Count, "Illegal index for BE2");
-    static_assert(pinHighest != Pin::Count, "Illegal index for BE3");
-    if constexpr (isReadOperation) {
-        genericReadOperation8<lowest, lower, higher, highest, pinLowest, pinLower, pinHigher, pinHighest>(theBytes);
-    } else {
-        genericWriteOperation16<lowest, lower, higher, highest, pinLowest, pinLower, pinHigher, pinHighest>(theBytes);
-    }
-}
     FORCE_INLINE
     inline
     static void
     doCommunication() noexcept {
         auto theBytes = getTransactionWindow<enableDebug>(); 
-        // figure out which word we are currently looking at
-        // if we are aligned to 32-bit word boundaries then just assume we
-        // are at the start of the 16-byte block (the processor will stop
-        // when it doesn't need data anymore). If we are not then skip over
-        // this first two bytes and start at the upper two bytes of the
-        // current word.
-        //
-        // I am also exploiting the fact that the processor can only ever
-        // accept up to 16-bytes at a time if it is aligned to 16-byte
-        // boundaries. If it is unaligned then the operation is broken up
-        // into multiple transactions within the i960 itself. So yes, this
-        // code will go out of bounds but it doesn't matter because the
-        // processor will never go out of bounds.
-
-
-        // The later field is used to denote if the given part of the
-        // transaction is later on in burst. If it is then we will
-        // terminate early without evaluating BLAST if the upper byte
-        // enable is high. This is because if we hit 0b1001 this would be
-        // broken up into two 16-bit values (0b1101 and 0b1011) which is
-        // fine but in all cases the first 1 we encounter after finding the
-        // first zero in the byte enable bits we are going to terminate
-        // anyway. So don't waste time evaluating BLAST at all!
-        //
-        // since we are using the pointer directly we have to be a little more
-        // creative. The base offsets have been modified
-        if (digitalRead<Pin::AlignmentCheck>() == HIGH) {
-            genericOperation16<2, 3, 0, 1>(theBytes);
+        // we don't need to worry about the upper 16-bits of the bus like we
+        // used to. In this improved design, there is no need to keep track of
+        // where we are starting. Instead, we can easily just do the check as
+        // needed
+        if constexpr (isReadOperation) {
+            setDataByte<0>(theBytes[0]);
+            setDataByte<1>(theBytes[1]);
+            if (isBurstLast()) { 
+                goto ReadDone; 
+            } 
+            signalReady<true>();
+            setDataByte<0>(theBytes[2]);
+            setDataByte<1>(theBytes[3]);
+            if (isBurstLast()) { 
+                goto ReadDone; 
+            } 
+            signalReady<true>();
+            setDataByte<0>(theBytes[4]);
+            setDataByte<1>(theBytes[5]);
+            if (isBurstLast()) { 
+                goto ReadDone; 
+            } 
+            signalReady<true>();
+            setDataByte<0>(theBytes[6]);
+            setDataByte<1>(theBytes[7]);
+            if (isBurstLast()) { 
+                goto ReadDone; 
+            } 
+            signalReady<true>();
+            setDataByte<0>(theBytes[8]);
+            setDataByte<1>(theBytes[9]);
+            if (isBurstLast()) { 
+                goto ReadDone; 
+            } 
+            signalReady<true>();
+            setDataByte<0>(theBytes[10]);
+            setDataByte<1>(theBytes[11]);
+            if (isBurstLast()) { 
+                goto ReadDone; 
+            } 
+            signalReady<true>();
+            setDataByte<0>(theBytes[12]);
+            setDataByte<1>(theBytes[13]);
+            if (isBurstLast()) { 
+                goto ReadDone; 
+            } 
+            signalReady<true>();
+            setDataByte<0>(theBytes[14]);
+            setDataByte<1>(theBytes[15]);
+ReadDone:
+            signalReady<true>();
         } else {
-            genericOperation16<0, 1, 2, 3>(theBytes);
-        }
-#if 0
-        if constexpr (enableDebug) {
-            DataRegister32 regs = reinterpret_cast<DataRegister32>(theBytes);
-            for (int i = 0; i < 4; ++i) {
-                Serial.printf(F("0x%x: 0x%lx\n"), reinterpret_cast<uintptr_t>(regs + i), regs[i]);
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[0] = getDataByte<0>();
             }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[1] = getDataByte<1>();
+            }
+            if (isBurstLast()) {
+                goto WriteDone;
+            }
+            signalReady<true>();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[2] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[3] = getDataByte<1>();
+            }
+            if (isBurstLast()) {
+                goto WriteDone;
+            }
+            signalReady<true>();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[4] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[5] = getDataByte<1>();
+            }
+            if (isBurstLast()) {
+                goto WriteDone;
+            }
+            signalReady<true>();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[6] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[7] = getDataByte<1>();
+            }
+            if (isBurstLast()) {
+                goto WriteDone;
+            }
+            signalReady<true>();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[8] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[9] = getDataByte<1>();
+            }
+            if (isBurstLast()) {
+                goto WriteDone;
+            }
+            signalReady<true>();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[10] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[11] = getDataByte<1>();
+            }
+            if (isBurstLast()) {
+                goto WriteDone;
+            }
+            signalReady<true>();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[12] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[13] = getDataByte<1>();
+            }
+            if (isBurstLast()) {
+                goto WriteDone;
+            }
+            signalReady<true>();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[14] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[15] = getDataByte<1>();
+            }
+WriteDone:
+            signalReady<true>();
         }
-#endif
     }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
@@ -880,7 +817,7 @@ static void doIO() noexcept {
                     } 
             case 2: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = static_cast<uint16_t>((F_CPU) >> 16);
+                            dataLinesHalves[0] = static_cast<uint16_t>((F_CPU) >> 16);
                         } 
                         I960_Signal_Switch;
                     } 
@@ -892,7 +829,7 @@ static void doIO() noexcept {
                     } 
             case 6: { 
                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = static_cast<uint16_t>((F_CPU / 2) >> 16);
+                            dataLinesHalves[0] = static_cast<uint16_t>((F_CPU / 2) >> 16);
                         } 
                         I960_Signal_Switch;
                     } 
@@ -909,7 +846,7 @@ static void doIO() noexcept {
                     } 
             case 10: {
                          if constexpr (isReadOperation) { 
-                             dataLinesHalves[1] = 0;
+                             dataLinesHalves[0] = 0;
                          } 
                         I960_Signal_Switch;
                      } 
@@ -925,7 +862,7 @@ static void doIO() noexcept {
                         /* nothing to do on writes but do update the data port
                          * on reads */ 
                          if constexpr (isReadOperation) { 
-                            dataLinesHalves[1] = 0; 
+                            dataLinesHalves[0] = 0; 
                          } 
                      }
                      break;
@@ -948,11 +885,11 @@ static void doIO() noexcept {
             case offset + 2: { \
                         /* TCCRnC and Reserved (ignore that) */ \
                         if constexpr (isReadOperation) { \
-                            setDataByte<2>(obj.TCCRxC);\
-                            setDataByte<3>(0); \
+                            setDataByte<0>(obj.TCCRxC);\
+                            setDataByte<1>(0); \
                         } else { \
-                            if (digitalRead<Pin::BE2>() == LOW) { \
-                                obj.TCCRxC = getDataByte<2>();\
+                            if (digitalRead<Pin::BE0>() == LOW) { \
+                                obj.TCCRxC = getDataByte<0>();\
                             } \
                         } \
                         I960_Signal_Switch;\
@@ -985,11 +922,11 @@ static void doIO() noexcept {
                             noInterrupts(); \
                             auto tmp = obj.ICRx;\
                             interrupts(); \
-                            dataLinesHalves[1] = tmp; \
+                            dataLinesHalves[0] = tmp; \
                         } else { \
-                            if (digitalRead<Pin::BE2>() == LOW &&  \
-                                    digitalRead<Pin::BE3>() == LOW) { \
-                                auto value = dataLinesHalves[1]; \
+                            if (digitalRead<Pin::BE0>() == LOW &&  \
+                                    digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
                                 noInterrupts(); \
                                 obj.ICRx = value;\
                                 interrupts(); \
@@ -1021,11 +958,11 @@ static void doIO() noexcept {
                              noInterrupts(); \
                              auto tmp = obj.OCRxB;\
                              interrupts(); \
-                             dataLinesHalves[1] = tmp; \
+                             dataLinesHalves[0] = tmp; \
                          } else { \
-                             if (digitalRead<Pin::BE2>() == LOW &&  \
-                                     digitalRead<Pin::BE3>() == LOW) { \
-                                auto value = dataLinesHalves[1]; \
+                             if (digitalRead<Pin::BE0>() == LOW &&  \
+                                     digitalRead<Pin::BE1>() == LOW) { \
+                                auto value = dataLinesHalves[0]; \
                                 noInterrupts(); \
                                 obj.OCRxB = value; \
                                 interrupts(); \
@@ -1055,7 +992,7 @@ static void doIO() noexcept {
                         /* nothing to do on writes but do update the data port
                          * on reads */ \
                          if constexpr (isReadOperation) { \
-                            dataLinesHalves[1] = 0; \
+                            dataLinesHalves[0] = 0; \
                          } \
                          break;\
                      }  

@@ -682,7 +682,7 @@ static void idleTransaction() noexcept {
     }
     signalReady<true>();
 }
-
+    
     FORCE_INLINE
     inline
     static void
@@ -826,9 +826,11 @@ ReadDone:
                 }
                 signalReady<true>();
             }
-            theBytes[14] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[15] = getDataByte<1>();
+            {
+                theBytes[14] = getDataByte<0>();
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[15] = getDataByte<1>();
+                }
             }
 WriteDone:
             signalReady<true>();

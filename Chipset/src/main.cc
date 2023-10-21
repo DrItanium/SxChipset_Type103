@@ -767,9 +767,7 @@ ReadDone:
                 signalReady<true>();
             }
             {
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[2] = getDataByte<0>();
-                }
+                theBytes[2] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[3] = getDataByte<1>();
                 }
@@ -779,9 +777,7 @@ ReadDone:
                 signalReady<true>();
             }
             {
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[4] = getDataByte<0>();
-                }
+                theBytes[4] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[5] = getDataByte<1>();
                 }
@@ -791,9 +787,7 @@ ReadDone:
                 signalReady<true>();
             }
             {
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[6] = getDataByte<0>();
-                }
+                theBytes[6] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[7] = getDataByte<1>();
                 }
@@ -803,9 +797,7 @@ ReadDone:
                 signalReady<true>();
             }
             {
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[8] = getDataByte<0>();
-                }
+                theBytes[8] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[9] = getDataByte<1>();
                 }
@@ -815,9 +807,7 @@ ReadDone:
                 signalReady<true>();
             }
             {
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[10] = getDataByte<0>();
-                }
+                theBytes[10] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[11] = getDataByte<1>();
                 }
@@ -827,9 +817,7 @@ ReadDone:
                 signalReady<true>();
             }
             {
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    theBytes[12] = getDataByte<0>();
-                }
+                theBytes[12] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[13] = getDataByte<1>();
                 }
@@ -838,9 +826,7 @@ ReadDone:
                 }
                 signalReady<true>();
             }
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[14] = getDataByte<0>();
-            }
+            theBytes[14] = getDataByte<0>();
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[15] = getDataByte<1>();
             }

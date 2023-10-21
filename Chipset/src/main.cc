@@ -345,10 +345,8 @@ void
 updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[0] = value;
     dataLinesDirection_bytes[1] = value;
-    if constexpr (width != NativeBusWidth::Sixteen) {
-        dataLinesDirection_bytes[2] = value;
-        dataLinesDirection_bytes[3] = value;
-    }
+    dataLinesDirection_bytes[2] = value;
+    dataLinesDirection_bytes[3] = value;
 }
 
 template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
@@ -1131,7 +1129,7 @@ ReadOperationStart:
     // read operation
     // wait until DEN goes low
     do {
-        //serial2PacketEncoder.update();
+        digitalWrite<Pin::LED>(digitalRead<Pin::FAIL>() == LOW ? HIGH : LOW);
     } while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
@@ -1152,6 +1150,7 @@ WriteOperationStart:
     // wait until DEN goes low
     do {
         //serial2PacketEncoder.update();
+        digitalWrite<Pin::LED>(digitalRead<Pin::FAIL>() == LOW ? HIGH : LOW);
     } while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
@@ -1272,7 +1271,8 @@ setupPins() noexcept {
     digitalWrite<Pin::READY, HIGH>();
     // setup bank capture to read in address lines
     pinMode(Pin::DebugEnable, INPUT_PULLUP);
-
+    pinMode(Pin::LED, OUTPUT);
+    digitalWrite<Pin::LED, LOW>();
 }
 void
 setupExternalBus() noexcept {

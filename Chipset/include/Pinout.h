@@ -56,6 +56,9 @@ Count = NUM_DIGITAL_PINS,
 #ifdef PIN_SPI_MISO
     SPI_MISO = PIN_SPI_MISO,
 #endif
+#ifdef LED_BUILTIN
+    LED = LED_BUILTIN,
+#endif
     SD_EN = PortB0,
     DebugEnable = PortB4,
     INT0_960_ = PortB5, // OC1A

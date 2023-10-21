@@ -20,20 +20,20 @@ Pin 18 = ENU          XOR = 0   AC1 = 1
  14  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  15  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 17 = OBE3         XOR = 0   AC1 = 1
- 16  -x-- ---- ---- ---- ---- ---- ---- ----
- 17  -x-- -x-- ---- x--- ---- ---- ---- ----
- 18  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+Pin 17 = OBE3         XOR = 1   AC1 = 1
+ 16  ---- ---- ---- ---- ---- ---- ---- ----
+ 17  -x-- ---- ---- ---- ---- ---- ---- ----
+ 18  x--- ---- ---- ---- ---- ---- ---- ----
  19  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  20  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  21  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  22  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  23  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 16 = OBE2         XOR = 0   AC1 = 1
- 24  -x-- ---- ---- ---- ---- ---- ---- ----
- 25  -x-- ---- -x-- x--- ---- ---- ---- ----
- 26  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+Pin 16 = OBE2         XOR = 1   AC1 = 1
+ 24  ---- ---- ---- ---- ---- ---- ---- ----
+ 25  -x-- ---- ---- ---- ---- ---- ---- ----
+ 26  x--- ---- ---- ---- ---- ---- ---- ----
  27  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  28  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  29  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

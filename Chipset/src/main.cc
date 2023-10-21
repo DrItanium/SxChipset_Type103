@@ -692,149 +692,127 @@ static void idleTransaction() noexcept {
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
         // needed
-        if constexpr (isReadOperation) {
-            {
+        {
+            if constexpr (isReadOperation) {
                 setDataByte<0>(theBytes[0]);
                 setDataByte<1>(theBytes[1]);
-                if (isBurstLast()) { 
-                    goto ReadDone; 
-                } 
-                signalReady<true>();
-            }
-            {
-                setDataByte<0>(theBytes[2]);
-                setDataByte<1>(theBytes[3]);
-                if (isBurstLast()) { 
-                    goto ReadDone; 
-                } 
-                signalReady<true>();
-            }
-            {
-                setDataByte<0>(theBytes[4]);
-                setDataByte<1>(theBytes[5]);
-                if (isBurstLast()) { 
-                    goto ReadDone; 
-                } 
-                signalReady<true>();
-            }
-            {
-                setDataByte<0>(theBytes[6]);
-                setDataByte<1>(theBytes[7]);
-                if (isBurstLast()) { 
-                    goto ReadDone; 
-                } 
-                signalReady<true>();
-            }
-            {
-                setDataByte<0>(theBytes[8]);
-                setDataByte<1>(theBytes[9]);
-                if (isBurstLast()) { 
-                    goto ReadDone; 
-                } 
-                signalReady<true>();
-            }
-            {
-                setDataByte<0>(theBytes[10]);
-                setDataByte<1>(theBytes[11]);
-                if (isBurstLast()) { 
-                    goto ReadDone; 
-                } 
-                signalReady<true>();
-            }
-            {
-                setDataByte<0>(theBytes[12]);
-                setDataByte<1>(theBytes[13]);
-                if (isBurstLast()) { 
-                    goto ReadDone; 
-                } 
-                signalReady<true>();
-            }
-            setDataByte<0>(theBytes[14]);
-            setDataByte<1>(theBytes[15]);
-ReadDone:
-            signalReady<true>();
-        } else {
-            {
+            } else {
                 if (digitalRead<Pin::BE0>() == LOW) {
                     theBytes[0] = getDataByte<0>();
                 }
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[1] = getDataByte<1>();
                 }
-                if (isBurstLast()) {
-                    goto WriteDone;
-                }
-                signalReady<true>();
             }
-            {
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<true>();
+        }
+        {
+            if constexpr (isReadOperation) {
+                setDataByte<0>(theBytes[2]);
+                setDataByte<1>(theBytes[3]);
+            } else {
                 theBytes[2] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[3] = getDataByte<1>();
                 }
-                if (isBurstLast()) {
-                    goto WriteDone;
-                }
-                signalReady<true>();
+
             }
-            {
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<true>();
+        }
+        {
+            if constexpr (isReadOperation) {
+                setDataByte<0>(theBytes[4]);
+                setDataByte<1>(theBytes[5]);
+            } else {
                 theBytes[4] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[5] = getDataByte<1>();
                 }
-                if (isBurstLast()) {
-                    goto WriteDone;
-                }
-                signalReady<true>();
             }
-            {
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<true>();
+        }
+        {
+            if constexpr (isReadOperation) {
+                setDataByte<0>(theBytes[6]);
+                setDataByte<1>(theBytes[7]);
+            } else {
                 theBytes[6] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[7] = getDataByte<1>();
                 }
-                if (isBurstLast()) {
-                    goto WriteDone;
-                }
-                signalReady<true>();
             }
-            {
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<true>();
+        }
+        {
+            if constexpr (isReadOperation) {
+                setDataByte<0>(theBytes[8]);
+                setDataByte<1>(theBytes[9]);
+            } else {
                 theBytes[8] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[9] = getDataByte<1>();
                 }
-                if (isBurstLast()) {
-                    goto WriteDone;
-                }
-                signalReady<true>();
             }
-            {
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<true>();
+        }
+        {
+            if constexpr (isReadOperation) {
+                setDataByte<0>(theBytes[10]);
+                setDataByte<1>(theBytes[11]);
+            } else {
                 theBytes[10] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[11] = getDataByte<1>();
                 }
-                if (isBurstLast()) {
-                    goto WriteDone;
-                }
-                signalReady<true>();
+
             }
-            {
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<true>();
+        }
+        {
+            if constexpr (isReadOperation) {
+                setDataByte<0>(theBytes[12]);
+                setDataByte<1>(theBytes[13]);
+            } else {
                 theBytes[12] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
                     theBytes[13] = getDataByte<1>();
                 }
-                if (isBurstLast()) {
-                    goto WriteDone;
-                }
-                signalReady<true>();
+
             }
-            {
-                theBytes[14] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    theBytes[15] = getDataByte<1>();
-                }
-            }
-WriteDone:
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
             signalReady<true>();
         }
+        if constexpr (isReadOperation) {
+            setDataByte<0>(theBytes[14]);
+            setDataByte<1>(theBytes[15]);
+        } else {
+            theBytes[14] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[15] = getDataByte<1>();
+            }
+        }
+Done:
+        signalReady<true>();
     }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \

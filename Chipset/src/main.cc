@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Adafruit_EPD.h>
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_FT6206.h>
-#include <PacketSerial.h>
+//#include <PacketSerial.h>
 
 
 #include "Detect.h"
@@ -275,7 +275,7 @@ template<bool waitForReady, int delayAmount = 4>
 [[gnu::always_inline]]
 inline void
 signalReady() noexcept {
-    signalReadyRaw<waitForReady, Pin::READY2, delayAmount>(ReadySignalStyle{});
+    signalReadyRaw<waitForReady, Pin::READY, delayAmount>(ReadySignalStyle{});
 }
 using Register8 = volatile uint8_t&;
 using Register16 = volatile uint16_t&;
@@ -310,7 +310,7 @@ pullCPUOutOfReset() noexcept {
     digitalWrite<Pin::RESET, HIGH>();
 }
 
-PacketSerial serial2PacketEncoder;
+//PacketSerial serial2PacketEncoder;
 
 
 template<uint8_t index>
@@ -338,15 +338,17 @@ inline uint8_t getDataByte() noexcept {
         return 0;
     }
 }
-template<uint8_t value>
+template<uint8_t value, NativeBusWidth width>
 [[gnu::always_inline]]
 inline 
 void 
 updateDataLinesDirection() noexcept {
     dataLinesDirection_bytes[0] = value;
     dataLinesDirection_bytes[1] = value;
-    dataLinesDirection_bytes[2] = value;
-    dataLinesDirection_bytes[3] = value;
+    if constexpr (width != NativeBusWidth::Sixteen) {
+        dataLinesDirection_bytes[2] = value;
+        dataLinesDirection_bytes[3] = value;
+    }
 }
 
 template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
@@ -1035,17 +1037,18 @@ static void doIO() noexcept {
 }
 #undef I960_Signal_Switch
 };
-
+/*
 void processPacketFromSender_Serial2(const PacketSerial& sender, const uint8_t* buffer, size_t size) {
     /// @todo implement
 }
+*/
 
 template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
 FORCE_INLINE
 inline
 void
 doIOOperation() noexcept {
-    if (digitalRead<Pin::A23_960>()) {
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
         CommunicationKernel<isReadOperation, width, enableDebug>::doCommunication();
     } else {
         CommunicationKernel<isReadOperation, width, enableDebug>::doIO();
@@ -1057,7 +1060,7 @@ template<NativeBusWidth width, bool enableDebug>
 [[noreturn]]
 void
 pureIODeviceHandler() noexcept {
-    static constexpr auto WaitPin = Pin::EN2560;
+    static constexpr auto WaitPin = Pin::DEN;
     // this microcontroller is not responsible for signalling ready manually
     // in this method. Instead, an external piece of hardware known as "Timing
     // Circuit" in the Intel manuals handles all external timing. It is drawn
@@ -1096,12 +1099,12 @@ ReadOperationStart:
     // read operation
     // wait until DEN goes low
     do {
-        serial2PacketEncoder.update();
+        //serial2PacketEncoder.update();
     } while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
-        updateDataLinesDirection<0>();
+        updateDataLinesDirection<0, width>();
         // update the direction pin 
         toggle<Pin::DirectionOutput>();
         // then jump into the write loop
@@ -1116,12 +1119,12 @@ ReadOperationBypass:
 WriteOperationStart:
     // wait until DEN goes low
     do {
-        serial2PacketEncoder.update();
+        //serial2PacketEncoder.update();
     } while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
-        updateDataLinesDirection<0xFF>();
+        updateDataLinesDirection<0xFF, width>();
         // update the direction pin 
         toggle<Pin::DirectionOutput>();
         // then jump into the write loop
@@ -1161,7 +1164,7 @@ installMemoryImage() noexcept {
         }
     }
     Serial.println(F("SD CARD FOUND!"));
-    static constexpr auto filePath = "data.bin";
+    static constexpr auto filePath = "prog.bin";
     // look for firmware.bin and open it readonly
     if (auto theFirmware = SD.open(filePath, FILE_READ); !theFirmware) {
         Serial.printf(F("Could not open %s for reading!"), filePath);
@@ -1232,10 +1235,9 @@ setupPins() noexcept {
     pinMode(Pin::BusQueryEnable, OUTPUT);
     digitalWrite<Pin::BusQueryEnable, HIGH>();
     // set these up ahead of time
-    pinMode(Pin::EN2560, INPUT);
-    pinMode(Pin::READY2, OUTPUT);
-    digitalWrite<Pin::READY2, HIGH>();
-    pinMode(Pin::READY, INPUT);
+    //pinMode(Pin::EN2560, INPUT);
+    pinMode(Pin::READY, OUTPUT);
+    digitalWrite<Pin::READY, HIGH>();
     // setup bank capture to read in address lines
     pinMode(Pin::DebugEnable, INPUT_PULLUP);
 
@@ -1287,9 +1289,9 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(115200);
-    Serial2.begin(115200);
-    serial2PacketEncoder.setStream(&Serial2);
-    serial2PacketEncoder.setPacketHandler([](const uint8_t* buffer, size_t size) { processPacketFromSender_Serial2(serial2PacketEncoder, buffer, size); });
+    //Serial2.begin(115200);
+    //serial2PacketEncoder.setStream(&Serial2);
+    //serial2PacketEncoder.setPacketHandler([](const uint8_t* buffer, size_t size) { processPacketFromSender_Serial2(serial2PacketEncoder, buffer, size); });
     SPI.begin();
     Wire.begin();
     setupPins();

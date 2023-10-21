@@ -244,13 +244,26 @@ getTransactionWindow() noexcept {
         return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
     }
 }
-
+struct PulseReadySignal final { };
+struct ToggleReadySignal final { };
+using ReadySignalStyle = PulseReadySignal;
+template<bool waitForReady, Pin targetPin, int delayAmount>
+[[gnu::always_inline]] 
+inline void 
+signalReadyRaw(PulseReadySignal) noexcept {
+    pulse<targetPin>();
+    if constexpr (waitForReady) {
+        // wait four cycles after to make sure that the ready signal has been
+        // propagated to the i960
+        insertCustomNopCount<delayAmount>();
+    }
+}
 
 template<bool waitForReady, Pin targetPin, int delayAmount>
 [[gnu::always_inline]] 
 inline void 
-signalReadyRaw() noexcept {
-    pulse<targetPin>();
+signalReadyRaw(ToggleReadySignal) noexcept {
+    toggle<targetPin>();
     if constexpr (waitForReady) {
         // wait four cycles after to make sure that the ready signal has been
         // propagated to the i960
@@ -262,7 +275,7 @@ template<bool waitForReady, int delayAmount = 4>
 [[gnu::always_inline]]
 inline void
 signalReady() noexcept {
-    signalReadyRaw<waitForReady, Pin::READY2, delayAmount>();
+    signalReadyRaw<waitForReady, Pin::READY2, delayAmount>(ReadySignalStyle{});
 }
 using Register8 = volatile uint8_t&;
 using Register16 = volatile uint16_t&;

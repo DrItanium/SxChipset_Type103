@@ -52,7 +52,7 @@ Pin 15 = DD           XOR = 1   AC1 = 0
 
 Pin 14 = DE           XOR = 0   AC1 = 0
  40  ---- ---- ---- ---- ---- ---- ---- -x--
- 41  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+ 41  ---- ---- ---- ---- ---- ---- ---- x---
  42  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  43  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  44  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

@@ -343,10 +343,18 @@ template<uint8_t value, NativeBusWidth width>
 inline 
 void 
 updateDataLinesDirection() noexcept {
-    dataLinesDirection_bytes[0] = value;
-    dataLinesDirection_bytes[1] = value;
-    dataLinesDirection_bytes[2] = value;
-    dataLinesDirection_bytes[3] = value;
+    switch (width) {
+        case NativeBusWidth::Sixteen:
+            dataLinesDirection_bytes[0] = value;
+            dataLinesDirection_bytes[1] = value;
+            break;
+        default:
+            dataLinesDirection_bytes[0] = value;
+            dataLinesDirection_bytes[1] = value;
+            dataLinesDirection_bytes[2] = value;
+            dataLinesDirection_bytes[3] = value;
+            break;
+    }
 }
 
 template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
@@ -685,155 +693,151 @@ static void idleTransaction() noexcept {
         // where we are starting. Instead, we can easily just do the check as
         // needed
         if constexpr (isReadOperation) {
-            setDataByte<0>(theBytes[0]);
-            setDataByte<1>(theBytes[1]);
-            if constexpr (enableDebug) {
-                Serial.println(theBytes[0], HEX);
-                Serial.println(theBytes[1], HEX);
+            {
+                setDataByte<0>(theBytes[0]);
+                setDataByte<1>(theBytes[1]);
+                if (isBurstLast()) { 
+                    goto ReadDone; 
+                } 
+                signalReady<true>();
             }
-            if (isBurstLast()) { 
-                goto ReadDone; 
-            } 
-            signalReady<true>();
-            setDataByte<0>(theBytes[2]);
-            setDataByte<1>(theBytes[3]);
-            if constexpr (enableDebug) {
-                Serial.println(theBytes[2], HEX);
-                Serial.println(theBytes[3], HEX);
+            {
+                setDataByte<0>(theBytes[2]);
+                setDataByte<1>(theBytes[3]);
+                if (isBurstLast()) { 
+                    goto ReadDone; 
+                } 
+                signalReady<true>();
             }
-            if (isBurstLast()) { 
-                goto ReadDone; 
-            } 
-            signalReady<true>();
-            setDataByte<0>(theBytes[4]);
-            setDataByte<1>(theBytes[5]);
-            if constexpr (enableDebug) {
-                Serial.println(theBytes[4], HEX);
-                Serial.println(theBytes[5], HEX);
+            {
+                setDataByte<0>(theBytes[4]);
+                setDataByte<1>(theBytes[5]);
+                if (isBurstLast()) { 
+                    goto ReadDone; 
+                } 
+                signalReady<true>();
             }
-            if (isBurstLast()) { 
-                goto ReadDone; 
-            } 
-            signalReady<true>();
-            setDataByte<0>(theBytes[6]);
-            setDataByte<1>(theBytes[7]);
-            if constexpr (enableDebug) {
-                Serial.println(theBytes[6], HEX);
-                Serial.println(theBytes[7], HEX);
+            {
+                setDataByte<0>(theBytes[6]);
+                setDataByte<1>(theBytes[7]);
+                if (isBurstLast()) { 
+                    goto ReadDone; 
+                } 
+                signalReady<true>();
             }
-            if (isBurstLast()) { 
-                goto ReadDone; 
-            } 
-            signalReady<true>();
-            setDataByte<0>(theBytes[8]);
-            setDataByte<1>(theBytes[9]);
-            if constexpr (enableDebug) {
-                Serial.println(theBytes[8], HEX);
-                Serial.println(theBytes[9], HEX);
+            {
+                setDataByte<0>(theBytes[8]);
+                setDataByte<1>(theBytes[9]);
+                if (isBurstLast()) { 
+                    goto ReadDone; 
+                } 
+                signalReady<true>();
             }
-            if (isBurstLast()) { 
-                goto ReadDone; 
-            } 
-            signalReady<true>();
-            setDataByte<0>(theBytes[10]);
-            setDataByte<1>(theBytes[11]);
-            if constexpr (enableDebug) {
-                Serial.println(theBytes[10], HEX);
-                Serial.println(theBytes[11], HEX);
+            {
+                setDataByte<0>(theBytes[10]);
+                setDataByte<1>(theBytes[11]);
+                if (isBurstLast()) { 
+                    goto ReadDone; 
+                } 
+                signalReady<true>();
             }
-            if (isBurstLast()) { 
-                goto ReadDone; 
-            } 
-            signalReady<true>();
-            setDataByte<0>(theBytes[12]);
-            setDataByte<1>(theBytes[13]);
-            if constexpr (enableDebug) {
-                Serial.println(theBytes[12], HEX);
-                Serial.println(theBytes[13], HEX);
+            {
+                setDataByte<0>(theBytes[12]);
+                setDataByte<1>(theBytes[13]);
+                if (isBurstLast()) { 
+                    goto ReadDone; 
+                } 
+                signalReady<true>();
             }
-            if (isBurstLast()) { 
-                goto ReadDone; 
-            } 
-            signalReady<true>();
             setDataByte<0>(theBytes[14]);
             setDataByte<1>(theBytes[15]);
-            if constexpr (enableDebug) {
-                Serial.println(theBytes[14], HEX);
-                Serial.println(theBytes[15], HEX);
-            }
 ReadDone:
             signalReady<true>();
         } else {
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = getDataByte<0>();
+            {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[0] = getDataByte<0>();
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[1] = getDataByte<1>();
+                }
+                if (isBurstLast()) {
+                    goto WriteDone;
+                }
+                signalReady<true>();
             }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = getDataByte<1>();
+            {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[2] = getDataByte<0>();
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[3] = getDataByte<1>();
+                }
+                if (isBurstLast()) {
+                    goto WriteDone;
+                }
+                signalReady<true>();
             }
-            if (isBurstLast()) {
-                goto WriteDone;
+            {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[4] = getDataByte<0>();
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[5] = getDataByte<1>();
+                }
+                if (isBurstLast()) {
+                    goto WriteDone;
+                }
+                signalReady<true>();
             }
-            signalReady<true>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[2] = getDataByte<0>();
+            {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[6] = getDataByte<0>();
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[7] = getDataByte<1>();
+                }
+                if (isBurstLast()) {
+                    goto WriteDone;
+                }
+                signalReady<true>();
             }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[3] = getDataByte<1>();
+            {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[8] = getDataByte<0>();
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[9] = getDataByte<1>();
+                }
+                if (isBurstLast()) {
+                    goto WriteDone;
+                }
+                signalReady<true>();
             }
-            if (isBurstLast()) {
-                goto WriteDone;
+            {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[10] = getDataByte<0>();
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[11] = getDataByte<1>();
+                }
+                if (isBurstLast()) {
+                    goto WriteDone;
+                }
+                signalReady<true>();
             }
-            signalReady<true>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[4] = getDataByte<0>();
+            {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[12] = getDataByte<0>();
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[13] = getDataByte<1>();
+                }
+                if (isBurstLast()) {
+                    goto WriteDone;
+                }
+                signalReady<true>();
             }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[5] = getDataByte<1>();
-            }
-            if (isBurstLast()) {
-                goto WriteDone;
-            }
-            signalReady<true>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[6] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[7] = getDataByte<1>();
-            }
-            if (isBurstLast()) {
-                goto WriteDone;
-            }
-            signalReady<true>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[8] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[9] = getDataByte<1>();
-            }
-            if (isBurstLast()) {
-                goto WriteDone;
-            }
-            signalReady<true>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[10] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[11] = getDataByte<1>();
-            }
-            if (isBurstLast()) {
-                goto WriteDone;
-            }
-            signalReady<true>();
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[12] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[13] = getDataByte<1>();
-            }
-            if (isBurstLast()) {
-                goto WriteDone;
-            }
-            signalReady<true>();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[14] = getDataByte<0>();
             }
@@ -1128,9 +1132,7 @@ pureIODeviceHandler() noexcept {
 ReadOperationStart:
     // read operation
     // wait until DEN goes low
-    do {
-        digitalWrite<Pin::LED>(digitalRead<Pin::FAIL>() == LOW ? HIGH : LOW);
-    } while (digitalRead<WaitPin>());
+    while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -1148,10 +1150,7 @@ ReadOperationBypass:
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
-    do {
-        //serial2PacketEncoder.update();
-        digitalWrite<Pin::LED>(digitalRead<Pin::FAIL>() == LOW ? HIGH : LOW);
-    } while (digitalRead<WaitPin>());
+    while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write

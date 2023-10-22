@@ -75,6 +75,7 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
+//using BusKind = AccessFromNewIBUS;
 constexpr auto displayHasTouchScreen() noexcept {
     switch (ActiveDisplay) {
         case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:
@@ -105,20 +106,6 @@ Adafruit_SSD1351 oled(
         EyeSpi::Pins::DC,
         EyeSpi::Pins::Reset);
 
-Adafruit_SSD1680 epaperDisplay213(
-        250, 
-        122,
-        EyeSpi::Pins::DC, 
-        EyeSpi::Pins::Reset,
-        EyeSpi::Pins::TFTCS,
-        EyeSpi::Pins::MEMCS,
-        EyeSpi::Pins::Busy,
-        &SPI);
-Adafruit_ILI9341 tft_ILI9341(&SPI, 
-        EyeSpi::Pins::DC, 
-        EyeSpi::Pins::TFTCS, 
-        EyeSpi::Pins::RST);
-Adafruit_FT6206 ts;
 
 template<typename T>
 struct OptionalDevice {
@@ -142,45 +129,15 @@ struct OptionalDevice {
 
 
 
-template<typename T>
-void
-displayPrintln(T value) noexcept {
-    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
-        oled.println(value);
-        oled.enableDisplay(true);
-    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
-        epaperDisplay213.println(value);
-        epaperDisplay213.display();
-    } else if constexpr (ActiveDisplay == EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS) {
-        tft_ILI9341.println(value);
-    }
-}
-
-
 void
 setupDisplay() noexcept {
-    if constexpr (ActiveDisplay == EnabledDisplays::SSD1351_OLED_128_x_128_1_5) {
-        oled.begin();
-        oled.setFont();
-        oled.fillScreen(0);
-        oled.setTextColor(0xFFFF);
-        oled.setTextSize(1);
-    } else if constexpr (ActiveDisplay == EnabledDisplays::SSD1680_EPaper_250_x_122_2_13) {
-        epaperDisplay213.begin();
-        epaperDisplay213.clearBuffer();
-        epaperDisplay213.setCursor(0, 0);
-        epaperDisplay213.setTextColor(EPAPER_COLOR_BLACK);
-        epaperDisplay213.setTextWrap(true);
-        epaperDisplay213.setTextSize(2);
-    } else if constexpr (ActiveDisplay == EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS) {
-        ts.begin();
-        tft_ILI9341.begin();
-        tft_ILI9341.fillScreen(ILI9341_BLACK);
-        tft_ILI9341.setCursor(0, 0);
-        tft_ILI9341.setTextColor(ILI9341_WHITE);  
-        tft_ILI9341.setTextSize(2);
-    }
-    displayPrintln(F("i960"));
+    oled.begin();
+    oled.setFont();
+    oled.fillScreen(0);
+    oled.setTextColor(0xFFFF);
+    oled.setTextSize(1);
+    oled.println(F("i960"));
+    oled.enableDisplay(true);
 }
 
 

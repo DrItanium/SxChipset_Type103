@@ -28,10 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1351.h>
-#include <Adafruit_EPD.h>
-#include <Adafruit_ILI9341.h>
-#include <Adafruit_FT6206.h>
-//#include <PacketSerial.h>
 
 
 #include "Detect.h"
@@ -43,18 +39,6 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 using DataRegister32 = volatile uint32_t*;
 
-enum class EnabledDisplays {
-    SSD1351_OLED_128_x_128_1_5,
-    SSD1680_EPaper_250_x_122_2_13,
-    ILI9341_TFT_240_x_320_2_8_Capacitive_TS,
-};
-enum class DisplayKind {
-    Unknown,
-    TFT,
-    OLED,
-    EPaper,
-};
-constexpr auto ActiveDisplay = EnabledDisplays::SSD1351_OLED_128_x_128_1_5;
 constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
 constexpr auto EPAPER_COLOR_RED = EPD_RED;
 constexpr bool XINT1DirectConnect = false;
@@ -76,27 +60,7 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
 //using BusKind = AccessFromNewIBUS;
-constexpr auto displayHasTouchScreen() noexcept {
-    switch (ActiveDisplay) {
-        case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:
-            return true;
-        default:
-            return false;
-    }
-}
 
-constexpr auto getDisplayTechnology() noexcept {
-    switch (ActiveDisplay) {
-        case EnabledDisplays::SSD1351_OLED_128_x_128_1_5:
-            return DisplayKind::OLED;
-        case EnabledDisplays::ILI9341_TFT_240_x_320_2_8_Capacitive_TS:
-            return DisplayKind::TFT;
-        case EnabledDisplays::SSD1680_EPaper_250_x_122_2_13:
-            return DisplayKind::EPaper;
-        default:
-            return DisplayKind::Unknown;
-    }
-}
 
 Adafruit_SSD1351 oled(
         128,
@@ -267,7 +231,6 @@ pullCPUOutOfReset() noexcept {
     digitalWrite<Pin::RESET, HIGH>();
 }
 
-//PacketSerial serial2PacketEncoder;
 
 
 template<uint8_t index>

@@ -246,7 +246,7 @@ getTransactionWindow() noexcept {
 }
 struct PulseReadySignal final { };
 struct ToggleReadySignal final { };
-using ReadySignalStyle = PulseReadySignal;
+using ReadySignalStyle = ToggleReadySignal;
 template<bool waitForReady, Pin targetPin, int delayAmount>
 [[gnu::always_inline]] 
 inline void 

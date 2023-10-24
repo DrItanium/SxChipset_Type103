@@ -1048,9 +1048,9 @@ template<NativeBusWidth width, bool enableDebug>
 [[noreturn]] 
 void 
 executionBody() noexcept {
-        digitalWrite<Pin::DirectionOutput, HIGH>();
-        setBankIndex(0);
-        pureIODeviceHandler<width, enableDebug>();
+    digitalWrite<Pin::DirectionOutput, HIGH>();
+    setBankIndex(0);
+    pureIODeviceHandler<width, enableDebug>();
 }
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>

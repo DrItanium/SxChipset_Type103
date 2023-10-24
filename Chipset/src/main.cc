@@ -662,20 +662,20 @@ Done:
     doWriteCommunication() noexcept {
         if constexpr (!isReadOperation) {
             auto theBytes = getTransactionWindow<enableDebug>(); 
-            if (digitalRead<Pin::BE1>() == HIGH) {
-                // implicitly going to be BE0 and BLAST being LOW since BE1
-                // must be low to continue a burst transaction
-                theBytes[0] = getDataByte<0>();
+            if (isBurstLast()) {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[0] = getDataByte<0>();
+                }
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[1] = getDataByte<1>();
+                }
                 goto SignalDone;
-            } 
+            }
             // compared to others this is inverted
-            theBytes[1] = getDataByte<1>();
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
             }
-            if (isBurstLast()) { 
-                goto SignalDone; 
-            } 
+            theBytes[1] = getDataByte<1>();
             signalReady<true>();
             theBytes += 2;
             { // 2, 3

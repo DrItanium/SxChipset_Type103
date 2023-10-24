@@ -667,23 +667,25 @@ static void idleTransaction() noexcept {
             signalReady<true>();
 #define X(a, b) \
             theBytes[a] = getDataByte<0>(); \
-            if (digitalRead<Pin::BE1>() == LOW) { \
-                theBytes[b] = getDataByte<1>(); \
-            } \
-            if constexpr (a != 14 && b != 15) { \
-                if (isBurstLast()) { \
-                    goto Done;  \
+            if (isBurstLast()) { \
+                if (digitalRead<Pin::BE1>() == LOW) { \
+                    theBytes[b] = getDataByte<1>(); \
                 } \
-                signalReady<true>(); \
-            }
+                goto Done; \
+            } \
+            theBytes[b] = getDataByte<1>(); \
+            signalReady<true>() 
             X(2,3);
             X(4,5);
             X(6,7);
             X(8,9);
             X(10, 11);
             X(12, 13);
-            X(14, 15);
 #undef X
+            theBytes[14] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[15] = getDataByte<1>();
+            }
         }
 Done:
         signalReady<true>();

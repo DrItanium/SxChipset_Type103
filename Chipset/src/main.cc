@@ -604,59 +604,63 @@ static void idleTransaction() noexcept {
     inline
     static void
     doReadCommunication() noexcept {
-        auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
-        auto next = theWords[0];
-        if (isBurstLast()) { 
-            goto Done; 
-        } 
-        dataLinesHalves[0] = next;
-        signalReady<false>();
-        next = theWords[1];
-        if (isBurstLast()) { 
-            goto Done; 
-        } 
-        dataLinesHalves[0] = next;
-        signalReady<false>();
-        next = theWords[2];
-        if (isBurstLast()) { 
-            goto Done; 
-        } 
-        dataLinesHalves[0] = next;
-        signalReady<false>();
-        next = theWords[3];
-        if (isBurstLast()) { 
-            goto Done; 
-        } 
-        dataLinesHalves[0] = next;
-        signalReady<false>();
-        next = theWords[4];
-        if (isBurstLast()) { 
-            goto Done; 
-        } 
-        dataLinesHalves[0] = next;
-        signalReady<false>();
-        next = theWords[5];
-        if (isBurstLast()) { 
-            goto Done; 
-        } 
-        dataLinesHalves[0] = next;
-        signalReady<false>();
-        next = theWords[6];
-        if (isBurstLast()) { 
-            goto Done; 
-        } 
-        dataLinesHalves[0] = next;
-        signalReady<false>();
-        next = theWords[7];
+        if constexpr (isReadOperation) {
+            auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
+            auto next = theWords[0];
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[1];
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[2];
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[3];
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[4];
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[5];
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[6];
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[7];
 Done:
-        dataLinesHalves[0] = next;
-        signalReady<true>();
+            dataLinesHalves[0] = next;
+            signalReady<true>();
+        }
 
     }
+[[gnu::optimize("no-reorder-blocks")]]
     FORCE_INLINE
     inline
     static void
     doWriteCommunication() noexcept {
+        if constexpr (!isReadOperation) {
             auto theBytes = getTransactionWindow<enableDebug>(); 
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
@@ -730,6 +734,7 @@ Done:
             }
 SignalDone:
             signalReady<true>();
+        }
     }
     FORCE_INLINE
     inline

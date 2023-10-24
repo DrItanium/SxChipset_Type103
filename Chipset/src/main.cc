@@ -662,77 +662,80 @@ Done:
     doWriteCommunication() noexcept {
         if constexpr (!isReadOperation) {
             auto theBytes = getTransactionWindow<enableDebug>(); 
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = getDataByte<1>();
-            }
             if (isBurstLast()) {
-                goto SignalDone;
-            }
-            signalReady<true>();
-            theBytes += 2;
-            { // 2, 3
-                if (isBurstLast()) {
-                    goto Done;
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[0] = getDataByte<0>();
                 }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 4, 5
-                if (isBurstLast()) {
-                    goto Done;
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[1] = getDataByte<1>();
                 }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 6, 7
-                if (isBurstLast()) {
-                    goto Done;
+            } else {
+                if (digitalRead<Pin::BE0>() == LOW) {
+                    theBytes[0] = getDataByte<0>();
                 }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 8, 9
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 10, 11
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 12, 13
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-Done:
-            theBytes[0] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[1] = getDataByte<1>();
+                signalReady<true>();
+                theBytes += 2;
+                { // 2, 3
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    theBytes[0] = getDataByte<0>(); 
+                    theBytes[1] = getDataByte<1>(); 
+                    signalReady<true>();
+                    theBytes += 2;
+                }
+                { // 4, 5
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    theBytes[0] = getDataByte<0>(); 
+                    theBytes[1] = getDataByte<1>(); 
+                    signalReady<true>();
+                    theBytes += 2;
+                }
+                { // 6, 7
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    theBytes[0] = getDataByte<0>(); 
+                    theBytes[1] = getDataByte<1>(); 
+                    signalReady<true>();
+                    theBytes += 2;
+                }
+                { // 8, 9
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    theBytes[0] = getDataByte<0>(); 
+                    theBytes[1] = getDataByte<1>(); 
+                    signalReady<true>();
+                    theBytes += 2;
+                }
+                { // 10, 11
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    theBytes[0] = getDataByte<0>(); 
+                    theBytes[1] = getDataByte<1>(); 
+                    signalReady<true>();
+                    theBytes += 2;
+                }
+                { // 12, 13
+                    if (isBurstLast()) {
+                        goto Done;
+                    }
+                    theBytes[0] = getDataByte<0>(); 
+                    theBytes[1] = getDataByte<1>(); 
+                    signalReady<true>();
+                    theBytes += 2;
+                }
+Done:
+                theBytes[0] = getDataByte<0>();
+                if (digitalRead<Pin::BE1>() == LOW) {
+                    theBytes[1] = getDataByte<1>();
+                }
             }
-SignalDone:
             signalReady<true>();
         }
     }

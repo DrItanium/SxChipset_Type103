@@ -39,8 +39,6 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 using DataRegister32 = volatile uint32_t*;
 
-constexpr auto EPAPER_COLOR_BLACK = EPD_BLACK;
-constexpr auto EPAPER_COLOR_RED = EPD_RED;
 constexpr bool XINT1DirectConnect = false;
 constexpr bool XINT2DirectConnect = false;
 constexpr bool XINT3DirectConnect = false;

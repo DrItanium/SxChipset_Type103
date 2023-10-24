@@ -651,7 +651,7 @@ static void idleTransaction() noexcept {
             next = theWords[7];
 Done:
             dataLinesHalves[0] = next;
-            signalReady<false>();
+            signalReady<true>();
         }
 
     }

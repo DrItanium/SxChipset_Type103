@@ -1048,9 +1048,9 @@ template<NativeBusWidth width, bool enableDebug>
 [[noreturn]] 
 void 
 executionBody() noexcept {
-    digitalWrite<Pin::DirectionOutput, HIGH>();
-    setBankIndex(0);
-    pureIODeviceHandler<width, enableDebug>();
+        digitalWrite<Pin::DirectionOutput, HIGH>();
+        setBankIndex(0);
+        pureIODeviceHandler<width, enableDebug>();
 }
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>
@@ -1222,11 +1222,9 @@ detectAndDispatch() {
         case NativeBusWidth::Sixteen:
             executionBody<NativeBusWidth::Sixteen, enableDebug>();
             break;
-        case NativeBusWidth::ThirtyTwo:
-            executionBody<NativeBusWidth::ThirtyTwo, enableDebug>();
-            break;
         default:
-            executionBody<NativeBusWidth::Unknown, enableDebug>();
+            Serial.println(F("Target CPU is not supported by this firmware!"));
+            while(true);
             break;
     }
 }

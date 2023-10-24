@@ -662,20 +662,15 @@ Done:
     doWriteCommunication() noexcept {
         if constexpr (!isReadOperation) {
             auto theBytes = getTransactionWindow<enableDebug>(); 
-            if (isBurstLast()) {
-                if (digitalRead<Pin::BE0>() == LOW) {
-                    goto Done;
-                }
-                // if BE0 is not active then we know that BE1 must be low
-                // otherwise this is an illegal action!
-                theBytes[1] = getDataByte<1>();
-                goto SignalDone;
-            }
-            // compared to others this is inverted
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
             }
-            theBytes[1] = getDataByte<1>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[1] = getDataByte<1>();
+            }
+            if (isBurstLast()) {
+                goto SignalDone;
+            }
             signalReady<true>();
             theBytes += 2;
             { // 2, 3

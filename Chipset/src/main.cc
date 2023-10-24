@@ -658,67 +658,32 @@ static void idleTransaction() noexcept {
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
             }
-            if (digitalRead<Pin::BE1>() == HIGH) {
-                goto Done;
-            }
-            theBytes[1] = getDataByte<1>();
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<true>();
-            theBytes[2] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == HIGH) {
-                goto Done;
-            }
-            theBytes[3] = getDataByte<1>();
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<true>();
-            theBytes[4] = getDataByte<0>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[5] = getDataByte<1>();
+                theBytes[1] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
-            theBytes[6] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[7] = getDataByte<1>();
+#define X(a, b) \
+            theBytes[a] = getDataByte<0>(); \
+            if (digitalRead<Pin::BE1>() == LOW) { \
+                theBytes[b] = getDataByte<1>(); \
+            } \
+            if constexpr (a != 14 && b != 15) { \
+                if (isBurstLast()) { \
+                    goto Done;  \
+                } \
+                signalReady<true>(); \
             }
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<true>();
-            theBytes[8] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[9] = getDataByte<1>();
-            }
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<true>();
-            theBytes[10] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[11] = getDataByte<1>();
-            }
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<true>();
-            theBytes[12] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[13] = getDataByte<1>();
-            }
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<true>();
-            theBytes[14] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[15] = getDataByte<1>();
-            }
+            X(2,3);
+            X(4,5);
+            X(6,7);
+            X(8,9);
+            X(10, 11);
+            X(12, 13);
+            X(14, 15);
+#undef X
         }
 Done:
         signalReady<true>();

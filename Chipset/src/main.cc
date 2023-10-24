@@ -158,11 +158,9 @@ getTransactionWindow() noexcept {
         setBankIndex(result);
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else {
-        uint16_t lowerHalf = addressLinesLowerHalf;
-        auto bank = __builtin_avr_insert_bits(0xFFFF'FFF6, static_cast<uint8_t>(lowerHalf >> 8), 
-                __builtin_avr_insert_bits(0x6543'210F, getInputRegister<Port::BankCapture>(), 0));
-        setBankIndex(bank);
-        return memoryPointer<uint8_t>(computeTransactionWindow(lowerHalf));
+        SplitWord32 split{addressLinesLower24};
+        setBankIndex(split.getBankIndex(BusKind{}));
+        return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
     }
 }
 struct PulseReadySignal final { };
@@ -608,14 +606,14 @@ static void idleTransaction() noexcept {
     static void
     doCommunication() noexcept {
         auto theBytes = getTransactionWindow<enableDebug>(); 
+        auto theWords = reinterpret_cast<DataRegister16>(theBytes);
         // we don't need to worry about the upper 16-bits of the bus like we
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
         // needed
         {
             if constexpr (isReadOperation) {
-                setDataByte<0>(theBytes[0]);
-                setDataByte<1>(theBytes[1]);
+                dataLinesHalves[0] = theWords[0];
             } else {
                 if (digitalRead<Pin::BE0>() == LOW) {
                     theBytes[0] = getDataByte<0>();
@@ -631,8 +629,7 @@ static void idleTransaction() noexcept {
         }
         {
             if constexpr (isReadOperation) {
-                setDataByte<0>(theBytes[2]);
-                setDataByte<1>(theBytes[3]);
+                dataLinesHalves[0] = theWords[1];
             } else {
                 theBytes[2] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
@@ -647,8 +644,7 @@ static void idleTransaction() noexcept {
         }
         {
             if constexpr (isReadOperation) {
-                setDataByte<0>(theBytes[4]);
-                setDataByte<1>(theBytes[5]);
+                dataLinesHalves[0] = theWords[2];
             } else {
                 theBytes[4] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
@@ -662,8 +658,7 @@ static void idleTransaction() noexcept {
         }
         {
             if constexpr (isReadOperation) {
-                setDataByte<0>(theBytes[6]);
-                setDataByte<1>(theBytes[7]);
+                dataLinesHalves[0] = theWords[3];
             } else {
                 theBytes[6] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
@@ -677,8 +672,7 @@ static void idleTransaction() noexcept {
         }
         {
             if constexpr (isReadOperation) {
-                setDataByte<0>(theBytes[8]);
-                setDataByte<1>(theBytes[9]);
+                dataLinesHalves[0] = theWords[4];
             } else {
                 theBytes[8] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
@@ -692,8 +686,7 @@ static void idleTransaction() noexcept {
         }
         {
             if constexpr (isReadOperation) {
-                setDataByte<0>(theBytes[10]);
-                setDataByte<1>(theBytes[11]);
+                dataLinesHalves[0] = theWords[5];
             } else {
                 theBytes[10] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
@@ -708,8 +701,7 @@ static void idleTransaction() noexcept {
         }
         {
             if constexpr (isReadOperation) {
-                setDataByte<0>(theBytes[12]);
-                setDataByte<1>(theBytes[13]);
+                dataLinesHalves[0] = theWords[6];
             } else {
                 theBytes[12] = getDataByte<0>();
                 if (digitalRead<Pin::BE1>() == LOW) {
@@ -723,8 +715,7 @@ static void idleTransaction() noexcept {
             signalReady<true>();
         }
         if constexpr (isReadOperation) {
-            setDataByte<0>(theBytes[14]);
-            setDataByte<1>(theBytes[15]);
+            dataLinesHalves[0] = theWords[7];
         } else {
             theBytes[14] = getDataByte<0>();
             if (digitalRead<Pin::BE1>() == LOW) {

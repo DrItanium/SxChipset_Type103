@@ -600,8 +600,6 @@ static void idleTransaction() noexcept {
     }
     signalReady<true>();
 }
-    //[[gnu::used]] 
-    [[gnu::optimize("no-reorder-blocks")]]
     FORCE_INLINE
     inline
     static void
@@ -657,76 +655,67 @@ static void idleTransaction() noexcept {
             dataLinesHalves[0] = next;
         } else {
             auto theBytes = getTransactionWindow<enableDebug>(); 
-            auto db0 = getDataByte<0>();
-            auto db1 = getDataByte<1>();
             if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = db0;
+                theBytes[0] = getDataByte<0>();
             }
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = db1;
+                theBytes[1] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
             theBytes[2] = getDataByte<0>();
-            db1 = getDataByte<1>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[3] = db1;
+                theBytes[3] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
             theBytes[4] = getDataByte<0>();
-            db1 = getDataByte<1>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[5] = db1;
+                theBytes[5] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
             theBytes[6] = getDataByte<0>();
-            db1 = getDataByte<1>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[7] = db1;
+                theBytes[7] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
             theBytes[8] = getDataByte<0>();
-            db1 = getDataByte<1>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[9] = db1;
+                theBytes[9] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
             theBytes[10] = getDataByte<0>();
-            db1 = getDataByte<1>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[11] = db1;
+                theBytes[11] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
             theBytes[12] = getDataByte<0>();
-            db1 = getDataByte<1>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[13] = db1;
+                theBytes[13] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
             theBytes[14] = getDataByte<0>();
-            db1 = getDataByte<1>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[15] = db1;
+                theBytes[15] = getDataByte<1>();
             }
         }
 Done:

@@ -158,9 +158,11 @@ getTransactionWindow() noexcept {
         setBankIndex(result);
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else {
-        SplitWord32 split{addressLinesLower24};
-        setBankIndex(split.getBankIndex(BusKind{}));
-        return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
+        uint16_t lowerHalf = addressLinesLowerHalf;
+        auto bank = __builtin_avr_insert_bits(0xFFFF'FFF6, static_cast<uint8_t>(lowerHalf >> 8), 
+                __builtin_avr_insert_bits(0x6543'210F, getInputRegister<Port::BankCapture>(), 0));
+        setBankIndex(bank);
+        return memoryPointer<uint8_t>(computeTransactionWindow(lowerHalf));
     }
 }
 struct PulseReadySignal final { };

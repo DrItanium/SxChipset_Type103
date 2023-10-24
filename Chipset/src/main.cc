@@ -603,56 +603,66 @@ static void idleTransaction() noexcept {
     FORCE_INLINE
     inline
     static void
+    doReadCommunication() noexcept {
+        auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
+        auto next = theWords[0];
+        if (isBurstLast()) { 
+            goto Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[1];
+        if (isBurstLast()) { 
+            goto Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[2];
+        if (isBurstLast()) { 
+            goto Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[3];
+        if (isBurstLast()) { 
+            goto Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[4];
+        if (isBurstLast()) { 
+            goto Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[5];
+        if (isBurstLast()) { 
+            goto Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[6];
+        if (isBurstLast()) { 
+            goto Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[7];
+Done:
+        dataLinesHalves[0] = next;
+        signalReady<true>();
+
+    }
+    FORCE_INLINE
+    inline
+    static void
     doCommunication() noexcept {
         // we don't need to worry about the upper 16-bits of the bus like we
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
         // needed
         if constexpr (isReadOperation) {
-            auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
-            dataLinesHalves[0] = theWords[0];
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<false>();
-            auto next = theWords[1];
-            dataLinesHalves[0] = next;
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<false>();
-            next = theWords[2];
-            dataLinesHalves[0] = next;
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<false>();
-            next = theWords[3];
-            dataLinesHalves[0] = next;
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<false>();
-            next = theWords[4];
-            dataLinesHalves[0] = next;
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<false>();
-            next = theWords[5];
-            dataLinesHalves[0] = next;
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<false>();
-            next = theWords[6];
-            dataLinesHalves[0] = next;
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            signalReady<false>();
-            next = theWords[7];
-            dataLinesHalves[0] = next;
+            doReadCommunication();
         } else {
             auto theBytes = getTransactionWindow<enableDebug>(); 
             if (digitalRead<Pin::BE0>() == LOW) {
@@ -687,9 +697,9 @@ static void idleTransaction() noexcept {
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[15] = getDataByte<1>();
             }
-        }
 Done:
-        signalReady<true>();
+            signalReady<true>();
+        }
     }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \

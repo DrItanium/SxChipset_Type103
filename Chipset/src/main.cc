@@ -962,11 +962,14 @@ doIOOperation() noexcept {
     }
 }
 
-template<NativeBusWidth width, bool enableDebug>
+template<NativeBusWidth width, bool enableDebug> 
+//[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
-[[noreturn]]
-void
-pureIODeviceHandler() noexcept {
+[[noreturn]] 
+void 
+executionBody() noexcept {
+    digitalWrite<Pin::DirectionOutput, HIGH>();
+    setBankIndex(0);
     static constexpr auto WaitPin = Pin::DEN;
     // this microcontroller is not responsible for signalling ready manually
     // in this method. Instead, an external piece of hardware known as "Timing
@@ -1039,17 +1042,6 @@ WriteOperationBypass:
     }
     doIOOperation<false, width, enableDebug>();
     goto WriteOperationStart;
-}
-
-template<NativeBusWidth width, bool enableDebug> 
-//[[gnu::optimize("no-reorder-blocks")]]
-[[gnu::noinline]]
-[[noreturn]] 
-void 
-executionBody() noexcept {
-    digitalWrite<Pin::DirectionOutput, HIGH>();
-    setBankIndex(0);
-    pureIODeviceHandler<width, enableDebug>();
 }
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>

@@ -658,17 +658,19 @@ static void idleTransaction() noexcept {
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
             }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = getDataByte<1>();
+            if (digitalRead<Pin::BE1>() == HIGH) {
+                goto Done;
             }
+            theBytes[1] = getDataByte<1>();
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
             theBytes[2] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[3] = getDataByte<1>();
+            if (digitalRead<Pin::BE1>() == HIGH) {
+                goto Done;
             }
+            theBytes[3] = getDataByte<1>();
             if (isBurstLast()) { 
                 goto Done; 
             } 

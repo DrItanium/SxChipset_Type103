@@ -656,14 +656,7 @@ Done:
     FORCE_INLINE
     inline
     static void
-    doCommunication() noexcept {
-        // we don't need to worry about the upper 16-bits of the bus like we
-        // used to. In this improved design, there is no need to keep track of
-        // where we are starting. Instead, we can easily just do the check as
-        // needed
-        if constexpr (isReadOperation) {
-            doReadCommunication();
-        } else {
+    doWriteCommunication() noexcept {
             auto theBytes = getTransactionWindow<enableDebug>(); 
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
@@ -672,33 +665,84 @@ Done:
                 theBytes[1] = getDataByte<1>();
             }
             if (isBurstLast()) { 
-                goto Done; 
+                goto SignalDone; 
             } 
             signalReady<true>();
-#define X(a, b) \
-            { \
-                theBytes[a] = getDataByte<0>(); \
-                if (digitalRead<Pin::BE1>() == LOW) { \
-                    theBytes[b] = getDataByte<1>(); \
-                } \
-                if (isBurstLast()) { \
-                    goto Done; \
-                } \
-                signalReady<true>(); \
+            theBytes += 2;
+            { // 2, 3
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
             }
-            X(2,3);
-            X(4,5);
-            X(6,7);
-            X(8,9);
-            X(10, 11);
-            X(12, 13);
-#undef X
-            theBytes[14] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[15] = getDataByte<1>();
+            { // 4, 5
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 6, 7
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 8, 9
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 10, 11
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 12, 13
+                if (isBurstLast()) {
+                    goto Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
             }
 Done:
+            theBytes[0] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[1] = getDataByte<1>();
+            }
+SignalDone:
             signalReady<true>();
+    }
+    FORCE_INLINE
+    inline
+    static void
+    doCommunication() noexcept {
+        // we don't need to worry about the upper 16-bits of the bus like we
+        // used to. In this improved design, there is no need to keep track of
+        // where we are starting. Instead, we can easily just do the check as
+        // needed
+        if constexpr (isReadOperation) {
+            doReadCommunication();
+        } else {
+            doWriteCommunication();
         }
     }
 #define I960_Signal_Switch \

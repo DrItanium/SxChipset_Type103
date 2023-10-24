@@ -274,705 +274,385 @@ updateDataLinesDirection() noexcept {
             break;
     }
 }
-
-template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
-struct CommunicationKernel {
-    using Self = CommunicationKernel<isReadOperation, width, enableDebug>;
-    CommunicationKernel() = delete;
-    ~CommunicationKernel() = delete;
-    CommunicationKernel(const Self&) = delete;
-    CommunicationKernel(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
-template<bool delay>
 FORCE_INLINE
 inline
-static void signalReady() noexcept {
-    ::signalReady<delay>();
-}
-FORCE_INLINE
-inline
-static void idleTransaction() noexcept {
-    do {
-        if (isBurstLast()) {
-            signalReady<true>();
-            break;
-        }
-        signalReady<true>();
-    } while (true);
-}
-FORCE_INLINE
-inline
-static void
-doCommunication() noexcept {
-        auto theBytes = getTransactionWindow<enableDebug>(); 
-        if constexpr (isReadOperation) {
-            DataRegister32 view32 = reinterpret_cast<DataRegister32>(theBytes);
-            dataLinesFull = view32[0];
-            if (isBurstLast()) {
-                goto Done;
-            }
-            signalReady<true>();
-            dataLinesFull = view32[1];
-            if (isBurstLast()) {
-                goto Done;
-            }
-            signalReady<true>();
-            dataLinesFull = view32[2];
-            if (isBurstLast()) {
-                goto Done;
-            }
-            signalReady<true>();
-            dataLinesFull = view32[3];
-        } else {
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = getDataByte<1>();
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[2] = getDataByte<2>();
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[3] = getDataByte<3>();
-            } 
-            if (isBurstLast()) {
-                goto Done;
-            }
-            signalReady<true>();
-            // we know that we can safely write to the lowest byte since we
-            // flowed into this
-            theBytes[4] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[5] = getDataByte<1>();
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[6] = getDataByte<2>();
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[7] = getDataByte<3>();
-            } 
-            if (isBurstLast()) {
-                goto Done;
-            }
-            signalReady<true>();
-            // we know that we can safely write to the lowest byte since we
-            // flowed into this
-            theBytes[8] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[9] = getDataByte<1>();
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[10] = getDataByte<2>();
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[11] = getDataByte<3>();
-            } 
-            if (isBurstLast()) {
-                goto Done;
-            }
-            signalReady<true>();
-            // we know that we can safely write to the lowest byte!
-            theBytes[12] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[13] = getDataByte<1>();
-            }
-            if (digitalRead<Pin::BE2>() == LOW) {
-                theBytes[14] = getDataByte<2>();
-            }
-            if (digitalRead<Pin::BE3>() == LOW) {
-                theBytes[15] = getDataByte<3>();
-            } 
-        }
-Done:
-        signalReady<true>();
-
-}
-FORCE_INLINE 
-inline 
-static void doIO() noexcept { 
-        switch (addressLines[0]) { 
-            case 0: { 
-                        if constexpr (isReadOperation) { 
-                            dataLinesFull = F_CPU;
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>();  
-                    } 
-            case 4: { 
-                        if constexpr (isReadOperation) { 
-                            dataLinesFull = F_CPU / 2;
-                        } 
-                        if (isBurstLast()) { 
-                            break; 
-                        } 
-                        signalReady<true>();  
-                    } 
-            case 8: { 
-                        /* Serial RW connection */
-                        if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = Serial.read();
-                            dataLinesHalves[1] = 0;
-                        } else { 
-                            // no need to check this out just ignore the byte
-                            // enable lines
-                            Serial.write(static_cast<uint8_t>(dataLinesHalves[0]));
-                        } 
-                         if (isBurstLast()) { 
-                             break; 
-                         } 
-                         signalReady<true>(); 
-                     } 
-            case 12: { 
-                         Serial.flush();
-                         if constexpr (isReadOperation) { 
-                             dataLinesFull = 0;
-                         } 
-                         if (isBurstLast()) {
-                             break;
-                         } 
-                         signalReady<true>(); 
-                     } 
-                     break;
-#define X(obj, index) \
-            case index + 0: { \
-                        /* TCCRnA and TCCRnB */ \
-                        if constexpr (isReadOperation) { \
-                            setDataByte(obj.TCCRxA, obj.TCCRxB, obj.TCCRxC, 0);\
-                        } else { \
-                            if (digitalRead<Pin::BE0>() == LOW) { \
-                                obj.TCCRxA = getDataByte<0>();\
-                            } \
-                            if (digitalRead<Pin::BE1>() == LOW) { \
-                                obj.TCCRxB = getDataByte<1>();\
-                            } \
-                            if (digitalRead<Pin::BE2>() == LOW) { \
-                                obj.TCCRxC = getDataByte<2>();\
-                            } \
-                        } \
-                        if (isBurstLast()) {\
-                            break; \
-                        }\
-                        signalReady<true>();  \
-                    } \
-            case index + 4: { \
-                        /* TCNTn should only be accessible if you do a full 16-bit
-                         * write 
-                         */ \
-                        if constexpr (isReadOperation) { \
-                            noInterrupts(); \
-                            auto tmp = obj.TCNTx;\
-                            auto tmp2 = obj.ICRx;\
-                            interrupts(); \
-                            dataLinesHalves[0] = tmp; \
-                            dataLinesHalves[1] = tmp2;\
-                        } else { \
-                            if (digitalRead<Pin::BE0>() == LOW && \
-                                    digitalRead<Pin::BE1>() == LOW) { \
-                                auto value = dataLinesHalves[0]; \
-                                noInterrupts(); \
-                                obj.TCNTx = value;\
-                                interrupts(); \
-                            } \
-                            if (digitalRead<Pin::BE2>() == LOW &&  \
-                                    digitalRead<Pin::BE3>() == LOW) { \
-                                auto value = dataLinesHalves[1]; \
-                                noInterrupts(); \
-                                obj.ICRx = value;\
-                                interrupts(); \
-                            } \
-                        } \
-                        if (isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<true>(); \
-                    } \
-            case index + 8: { \
-                        /* OCRnA should only be accessible if you do a full 16-bit write */ \
-                        if constexpr (isReadOperation) { \
-                            noInterrupts(); \
-                            auto tmp = obj.OCRxA;\
-                             auto tmp2 = obj.OCRxB;\
-                            interrupts(); \
-                            dataLinesHalves[0] = tmp; \
-                            dataLinesHalves[1] = tmp2; \
-                        } else { \
-                            if (digitalRead<Pin::BE0>() == LOW &&  \
-                                    digitalRead<Pin::BE1>() == LOW) { \
-                                auto value = dataLinesHalves[0]; \
-                                noInterrupts(); \
-                                obj.OCRxA = value;\
-                                interrupts(); \
-                            } \
-                             if (digitalRead<Pin::BE2>() == LOW &&  \
-                                     digitalRead<Pin::BE3>() == LOW) { \
-                                auto value = dataLinesHalves[1]; \
-                                noInterrupts(); \
-                                obj.OCRxB = value; \
-                                interrupts(); \
-                             } \
-                        } \
-                        if (isBurstLast()) { \
-                            break; \
-                        } \
-                        signalReady<true>(); \
-                    } \
-            case index + 12: { \
-                         /* OCRnC */ \
-                         if constexpr (isReadOperation) { \
-                             noInterrupts(); \
-                             auto tmp = obj.OCRxC; \
-                             interrupts(); \
-                             dataLinesHalves[0] = tmp; \
-                             dataLinesHalves[1] = 0;\
-                         } else { \
-                              if (digitalRead<Pin::BE0>() == LOW && \
-                                      digitalRead<Pin::BE1>() == LOW) { \
-                                  auto value = dataLinesHalves[0]; \
-                                  noInterrupts(); \
-                                  obj.OCRxC = value;\
-                                  interrupts(); \
-                              }\
-                         } \
-                         if (isBurstLast()) {\
-                             break;\
-                         } \
-                         signalReady<true>(); \
-                         break;\
-                     } 
-#ifdef TCCR1A
-                    X(timer1, 0x10);
-#endif
-#ifdef TCCR3A
-                    X(timer3, 0x20);
-#endif
-#ifdef TCCR4A
-                    X(timer4, 0x30);
-#endif
-#ifdef TCCR5A
-                    X(timer5, 0x40);
-#endif
-#undef X
-            default:
-                     if constexpr (isReadOperation) {
-                         dataLinesFull = 0;
-                     }
-                     idleTransaction();
-                     return;
-        } 
-        signalReady<true>(); 
-}
-};
-
-template<int index>
-constexpr auto ByteEnablePinDetect = Pin::Count;
-template<> constexpr auto ByteEnablePinDetect<0> = Pin::BE0;
-template<> constexpr auto ByteEnablePinDetect<1> = Pin::BE1;
-template<> constexpr auto ByteEnablePinDetect<2> = Pin::BE2;
-template<> constexpr auto ByteEnablePinDetect<3> = Pin::BE3;
-
-template<bool isReadOperation, bool enableDebug>
-struct CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen, enableDebug> {
-    using Self = CommunicationKernel<isReadOperation, NativeBusWidth::Sixteen, enableDebug>;
-    static constexpr auto BusWidth = NativeBusWidth::Sixteen;
-    CommunicationKernel() = delete;
-    ~CommunicationKernel() = delete;
-    CommunicationKernel(const Self&) = delete;
-    CommunicationKernel(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
-
-public:
-template<bool delay>
-FORCE_INLINE
-inline
-static void signalReady() noexcept {
-    ::signalReady<delay>();
-}
-FORCE_INLINE
-inline
-static void idleTransaction() noexcept {
+void idleTransaction() noexcept {
     while (!isBurstLast()) {
         signalReady<true>();
     }
     signalReady<true>();
 }
-    FORCE_INLINE
-    inline
-    static void
-    doReadCommunication() noexcept {
-        if constexpr (isReadOperation) {
-            auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
-            auto next = theWords[0];
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            dataLinesHalves[0] = next;
-            signalReady<false>();
-            next = theWords[1];
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            dataLinesHalves[0] = next;
-            signalReady<false>();
-            next = theWords[2];
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            dataLinesHalves[0] = next;
-            signalReady<false>();
-            next = theWords[3];
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            dataLinesHalves[0] = next;
-            signalReady<false>();
-            next = theWords[4];
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            dataLinesHalves[0] = next;
-            signalReady<false>();
-            next = theWords[5];
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            dataLinesHalves[0] = next;
-            signalReady<false>();
-            next = theWords[6];
-            if (isBurstLast()) { 
-                goto Done; 
-            } 
-            dataLinesHalves[0] = next;
-            signalReady<false>();
-            next = theWords[7];
+template<bool enableDebug>
+FORCE_INLINE
+inline
+void
+doReadCommunication() noexcept {
+    auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
+    auto next = theWords[0];
+    if (isBurstLast()) { 
+        goto Done; 
+    } 
+    dataLinesHalves[0] = next;
+    signalReady<false>();
+    next = theWords[1];
+    if (isBurstLast()) { 
+        goto Done; 
+    } 
+    dataLinesHalves[0] = next;
+    signalReady<false>();
+    next = theWords[2];
+    if (isBurstLast()) { 
+        goto Done; 
+    } 
+    dataLinesHalves[0] = next;
+    signalReady<false>();
+    next = theWords[3];
+    if (isBurstLast()) { 
+        goto Done; 
+    } 
+    dataLinesHalves[0] = next;
+    signalReady<false>();
+    next = theWords[4];
+    if (isBurstLast()) { 
+        goto Done; 
+    } 
+    dataLinesHalves[0] = next;
+    signalReady<false>();
+    next = theWords[5];
+    if (isBurstLast()) { 
+        goto Done; 
+    } 
+    dataLinesHalves[0] = next;
+    signalReady<false>();
+    next = theWords[6];
+    if (isBurstLast()) { 
+        goto Done; 
+    } 
+    dataLinesHalves[0] = next;
+    signalReady<false>();
+    next = theWords[7];
 Done:
-            dataLinesHalves[0] = next;
-            signalReady<true>();
-        }
+    dataLinesHalves[0] = next;
+    signalReady<true>();
 
+}
+template<bool enableDebug>
+FORCE_INLINE
+inline
+void
+doWriteCommunication() noexcept {
+    auto theBytes = getTransactionWindow<enableDebug>(); 
+    if (digitalRead<Pin::BE0>() == LOW) {
+        theBytes[0] = getDataByte<0>();
     }
-//[[gnu::optimize("no-reorder-blocks")]]
-    FORCE_INLINE
-    inline
-    static void
-    doWriteCommunication() noexcept {
-        if constexpr (!isReadOperation) {
-            auto theBytes = getTransactionWindow<enableDebug>(); 
-            if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = getDataByte<1>();
-            }
-            if (isBurstLast()) { 
-                goto SignalDone; 
-            } 
-            signalReady<true>();
-            theBytes += 2;
-            { // 2, 3
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 4, 5
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 6, 7
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 8, 9
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 10, 11
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
-            { // 12, 13
-                if (isBurstLast()) {
-                    goto Done;
-                }
-                theBytes[0] = getDataByte<0>(); 
-                theBytes[1] = getDataByte<1>(); 
-                signalReady<true>();
-                theBytes += 2;
-            }
+    if (digitalRead<Pin::BE1>() == LOW) {
+        theBytes[1] = getDataByte<1>();
+    }
+    if (isBurstLast()) { 
+        goto SignalDone; 
+    } 
+    signalReady<true>();
+    theBytes += 2;
+    { // 2, 3
+        if (isBurstLast()) {
+            goto Done;
+        }
+        theBytes[0] = getDataByte<0>(); 
+        theBytes[1] = getDataByte<1>(); 
+        signalReady<true>();
+        theBytes += 2;
+    }
+    { // 4, 5
+        if (isBurstLast()) {
+            goto Done;
+        }
+        theBytes[0] = getDataByte<0>(); 
+        theBytes[1] = getDataByte<1>(); 
+        signalReady<true>();
+        theBytes += 2;
+    }
+    { // 6, 7
+        if (isBurstLast()) {
+            goto Done;
+        }
+        theBytes[0] = getDataByte<0>(); 
+        theBytes[1] = getDataByte<1>(); 
+        signalReady<true>();
+        theBytes += 2;
+    }
+    { // 8, 9
+        if (isBurstLast()) {
+            goto Done;
+        }
+        theBytes[0] = getDataByte<0>(); 
+        theBytes[1] = getDataByte<1>(); 
+        signalReady<true>();
+        theBytes += 2;
+    }
+    { // 10, 11
+        if (isBurstLast()) {
+            goto Done;
+        }
+        theBytes[0] = getDataByte<0>(); 
+        theBytes[1] = getDataByte<1>(); 
+        signalReady<true>();
+        theBytes += 2;
+    }
+    { // 12, 13
+        if (isBurstLast()) {
+            goto Done;
+        }
+        theBytes[0] = getDataByte<0>(); 
+        theBytes[1] = getDataByte<1>(); 
+        signalReady<true>();
+        theBytes += 2;
+    }
 Done:
-            theBytes[0] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = getDataByte<1>();
-            }
+    theBytes[0] = getDataByte<0>();
+    if (digitalRead<Pin::BE1>() == LOW) {
+        theBytes[1] = getDataByte<1>();
+    }
 SignalDone:
-            signalReady<true>();
-        }
+    signalReady<true>();
+}
+template<bool isReadOperation, bool enableDebug>
+FORCE_INLINE
+inline
+void
+doCommunication() noexcept {
+    // we don't need to worry about the upper 16-bits of the bus like we
+    // used to. In this improved design, there is no need to keep track of
+    // where we are starting. Instead, we can easily just do the check as
+    // needed
+    if constexpr (isReadOperation) {
+        doReadCommunication<enableDebug>();
+    } else {
+        doWriteCommunication<enableDebug>();
     }
-    FORCE_INLINE
-    inline
-    static void
-    doCommunication() noexcept {
-        // we don't need to worry about the upper 16-bits of the bus like we
-        // used to. In this improved design, there is no need to keep track of
-        // where we are starting. Instead, we can easily just do the check as
-        // needed
-        if constexpr (isReadOperation) {
-            doReadCommunication();
-        } else {
-            doWriteCommunication();
-        }
-    }
+}
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
         break; \
     } \
     signalReady<true>()
 
+template<bool isReadOperation, bool enableDebug>
 FORCE_INLINE 
 inline 
-static void doIO() noexcept { 
-        switch (addressLines[0]) { 
-            case 0: { 
-                        if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);
-                        } 
-                        I960_Signal_Switch;
+void doIO() noexcept { 
+    switch (addressLines[0]) { 
+        case 0: { 
+                    if constexpr (isReadOperation) { 
+                        dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);
                     } 
-            case 2: { 
-                        if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = static_cast<uint16_t>((F_CPU) >> 16);
-                        } 
-                        I960_Signal_Switch;
+                    I960_Signal_Switch;
+                } 
+        case 2: { 
+                    if constexpr (isReadOperation) { 
+                        dataLinesHalves[0] = static_cast<uint16_t>((F_CPU) >> 16);
                     } 
-            case 4: { 
-                        if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = static_cast<uint16_t>(F_CPU / 2);
-                        } 
-                        I960_Signal_Switch;
+                    I960_Signal_Switch;
+                } 
+        case 4: { 
+                    if constexpr (isReadOperation) { 
+                        dataLinesHalves[0] = static_cast<uint16_t>(F_CPU / 2);
                     } 
-            case 6: { 
-                        if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = static_cast<uint16_t>((F_CPU / 2) >> 16);
-                        } 
-                        I960_Signal_Switch;
+                    I960_Signal_Switch;
+                } 
+        case 6: { 
+                    if constexpr (isReadOperation) { 
+                        dataLinesHalves[0] = static_cast<uint16_t>((F_CPU / 2) >> 16);
                     } 
-            case 8: { 
-                        /* Serial RW connection */
-                        if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = Serial.read();
-                        } else { 
-                            // no need to check this out just ignore the byte
-                            // enable lines
-                            Serial.write(static_cast<uint8_t>(getDataByte<0>()));
-                        } 
-                        I960_Signal_Switch;
+                    I960_Signal_Switch;
+                } 
+        case 8: { 
+                    /* Serial RW connection */
+                    if constexpr (isReadOperation) { 
+                        dataLinesHalves[0] = Serial.read();
+                    } else { 
+                        // no need to check this out just ignore the byte
+                        // enable lines
+                        Serial.write(static_cast<uint8_t>(getDataByte<0>()));
                     } 
-            case 10: {
-                         if constexpr (isReadOperation) { 
-                             dataLinesHalves[0] = 0;
-                         } 
-                        I960_Signal_Switch;
+                    I960_Signal_Switch;
+                } 
+        case 10: {
+                     if constexpr (isReadOperation) { 
+                         dataLinesHalves[0] = 0;
                      } 
-            case 12: { 
-                         if constexpr (isReadOperation) { 
-                             dataLinesHalves[0] = 0; 
-                         } else { 
-                             Serial.flush();
-                         }
-                         I960_Signal_Switch;
+                     I960_Signal_Switch;
+                 } 
+        case 12: { 
+                     if constexpr (isReadOperation) { 
+                         dataLinesHalves[0] = 0; 
+                     } else { 
+                         Serial.flush();
                      }
-            case 14: {
-                        /* nothing to do on writes but do update the data port
-                         * on reads */ 
-                         if constexpr (isReadOperation) { 
-                            dataLinesHalves[0] = 0; 
-                         } 
-                     }
-                     break;
+                     I960_Signal_Switch;
+                 }
+        case 14: {
+                     /* nothing to do on writes but do update the data port
+                      * on reads */ 
+                     if constexpr (isReadOperation) { 
+                         dataLinesHalves[0] = 0; 
+                     } 
+                 }
+                 break;
 #define X(obj, offset) \
-            case offset + 0: { \
-                        /* TCCRnA and TCCRnB */ \
-                        if constexpr (isReadOperation) { \
-                            setDataByte<0>(obj.TCCRxA);\
-                            setDataByte<1>(obj.TCCRxB);\
-                        } else { \
-                            if (digitalRead<Pin::BE0>() == LOW) { \
-                                obj.TCCRxA = getDataByte<0>();\
-                            } \
-                            if (digitalRead<Pin::BE1>() == LOW) { \
-                                obj.TCCRxB = getDataByte<1>();\
-                            } \
-                        } \
-                        I960_Signal_Switch;\
-                    } \
-            case offset + 2: { \
-                        /* TCCRnC and Reserved (ignore that) */ \
-                        if constexpr (isReadOperation) { \
-                            setDataByte<0>(obj.TCCRxC);\
-                            setDataByte<1>(0); \
-                        } else { \
-                            if (digitalRead<Pin::BE0>() == LOW) { \
-                                obj.TCCRxC = getDataByte<0>();\
-                            } \
-                        } \
-                        I960_Signal_Switch;\
-                    } \
-            case offset + 4: { \
-                        /* TCNTn should only be accessible if you do a full 16-bit
-                         * write 
-                         */ \
-                        if constexpr (isReadOperation) { \
-                            noInterrupts(); \
-                            auto tmp = obj.TCNTx; \
-                            interrupts();  \
-                            dataLinesHalves[0] = tmp;  \
-                        } else {  \
-                            if (digitalRead<Pin::BE0>() == LOW &&  \
-                                    digitalRead<Pin::BE1>() == LOW) {  \
-                                auto value = dataLinesHalves[0];  \
-                                noInterrupts();  \
-                                obj.TCNTx = value; \
-                                interrupts();  \
-                            }  \
-                        }  \
-                        I960_Signal_Switch; \
-                    }  \
-            case offset + 6: {  \
-                        /* ICRn should only be accessible if you do a full 16-bit 
-                         * write
-                         */  \
-                        if constexpr (isReadOperation) { \
-                            noInterrupts(); \
-                            auto tmp = obj.ICRx;\
-                            interrupts(); \
-                            dataLinesHalves[0] = tmp; \
-                        } else { \
-                            if (digitalRead<Pin::BE0>() == LOW &&  \
-                                    digitalRead<Pin::BE1>() == LOW) { \
-                                auto value = dataLinesHalves[0]; \
-                                noInterrupts(); \
-                                obj.ICRx = value;\
-                                interrupts(); \
-                            } \
-                        } \
-                        I960_Signal_Switch;\
-                    } \
-            case offset + 8: { \
-                        /* OCRnA should only be accessible if you do a full 16-bit write */ \
-                        if constexpr (isReadOperation) { \
-                            noInterrupts(); \
-                            auto tmp = obj.OCRxA;\
-                            interrupts(); \
-                            dataLinesHalves[0] = tmp; \
-                        } else { \
-                            if (digitalRead<Pin::BE0>() == LOW &&  \
-                                    digitalRead<Pin::BE1>() == LOW) { \
-                                auto value = dataLinesHalves[0]; \
-                                noInterrupts(); \
-                                obj.OCRxA = value;\
-                                interrupts(); \
-                            } \
-                        } \
-                        I960_Signal_Switch;\
-                    } \
-            case offset + 10: {\
-                         /* OCRnB */ \
-                         if constexpr (isReadOperation) { \
-                             noInterrupts(); \
-                             auto tmp = obj.OCRxB;\
-                             interrupts(); \
-                             dataLinesHalves[0] = tmp; \
-                         } else { \
-                             if (digitalRead<Pin::BE0>() == LOW &&  \
-                                     digitalRead<Pin::BE1>() == LOW) { \
-                                auto value = dataLinesHalves[0]; \
-                                noInterrupts(); \
-                                obj.OCRxB = value; \
-                                interrupts(); \
+        case offset + 0: { \
+                             /* TCCRnA and TCCRnB */ \
+                             if constexpr (isReadOperation) { \
+                                 setDataByte<0>(obj.TCCRxA);\
+                                 setDataByte<1>(obj.TCCRxB);\
+                             } else { \
+                                 if (digitalRead<Pin::BE0>() == LOW) { \
+                                     obj.TCCRxA = getDataByte<0>();\
+                                 } \
+                                 if (digitalRead<Pin::BE1>() == LOW) { \
+                                     obj.TCCRxB = getDataByte<1>();\
+                                 } \
                              } \
+                             I960_Signal_Switch;\
                          } \
-                        I960_Signal_Switch;\
-                     } \
-            case offset + 12: { \
-                         /* OCRnC */ \
-                         if constexpr (isReadOperation) { \
-                             noInterrupts(); \
-                             auto tmp = obj.OCRxC; \
-                             interrupts(); \
-                             dataLinesHalves[0] = tmp; \
-                         } else { \
-                              if (digitalRead<Pin::BE0>() == LOW && \
-                                      digitalRead<Pin::BE1>() == LOW) { \
-                                  auto value = dataLinesHalves[0]; \
-                                  noInterrupts(); \
-                                  obj.OCRxC = value;\
-                                  interrupts(); \
-                              }\
+        case offset + 2: { \
+                             /* TCCRnC and Reserved (ignore that) */ \
+                             if constexpr (isReadOperation) { \
+                                 setDataByte<0>(obj.TCCRxC);\
+                                 setDataByte<1>(0); \
+                             } else { \
+                                 if (digitalRead<Pin::BE0>() == LOW) { \
+                                     obj.TCCRxC = getDataByte<0>();\
+                                 } \
+                             } \
+                             I960_Signal_Switch;\
                          } \
-                        I960_Signal_Switch;\
-                     } \
-            case offset + 14: { \
-                        /* nothing to do on writes but do update the data port
-                         * on reads */ \
-                         if constexpr (isReadOperation) { \
-                            dataLinesHalves[0] = 0; \
+        case offset + 4: { \
+                             /* TCNTn should only be accessible if you do a full 16-bit
+                              * write 
+                              */ \
+                             if constexpr (isReadOperation) { \
+                                 noInterrupts(); \
+                                     auto tmp = obj.TCNTx; \
+                                     interrupts();  \
+                                     dataLinesHalves[0] = tmp;  \
+                             } else {  \
+                                 if (digitalRead<Pin::BE0>() == LOW &&  \
+                                         digitalRead<Pin::BE1>() == LOW) {  \
+                                     auto value = dataLinesHalves[0];  \
+                                         noInterrupts();  \
+                                         obj.TCNTx = value; \
+                                         interrupts();  \
+                                 }  \
+                             }  \
+                             I960_Signal_Switch; \
+                         }  \
+        case offset + 6: {  \
+                             /* ICRn should only be accessible if you do a full 16-bit 
+                              * write
+                              */  \
+                             if constexpr (isReadOperation) { \
+                                 noInterrupts(); \
+                                     auto tmp = obj.ICRx;\
+                                     interrupts(); \
+                                     dataLinesHalves[0] = tmp; \
+                             } else { \
+                                 if (digitalRead<Pin::BE0>() == LOW &&  \
+                                         digitalRead<Pin::BE1>() == LOW) { \
+                                     auto value = dataLinesHalves[0]; \
+                                         noInterrupts(); \
+                                         obj.ICRx = value;\
+                                         interrupts(); \
+                                 } \
+                             } \
+                             I960_Signal_Switch;\
                          } \
-                         break;\
-                     }  
+        case offset + 8: { \
+                             /* OCRnA should only be accessible if you do a full 16-bit write */ \
+                                 if constexpr (isReadOperation) { \
+                                     noInterrupts(); \
+                                         auto tmp = obj.OCRxA;\
+                                         interrupts(); \
+                                         dataLinesHalves[0] = tmp; \
+                                 } else { \
+                                     if (digitalRead<Pin::BE0>() == LOW &&  \
+                                             digitalRead<Pin::BE1>() == LOW) { \
+                                         auto value = dataLinesHalves[0]; \
+                                             noInterrupts(); \
+                                             obj.OCRxA = value;\
+                                             interrupts(); \
+                                     } \
+                                 } \
+                             I960_Signal_Switch;\
+                         } \
+        case offset + 10: {\
+                              /* OCRnB */ \
+                                  if constexpr (isReadOperation) { \
+                                      noInterrupts(); \
+                                          auto tmp = obj.OCRxB;\
+                                          interrupts(); \
+                                          dataLinesHalves[0] = tmp; \
+                                  } else { \
+                                      if (digitalRead<Pin::BE0>() == LOW &&  \
+                                              digitalRead<Pin::BE1>() == LOW) { \
+                                          auto value = dataLinesHalves[0]; \
+                                              noInterrupts(); \
+                                              obj.OCRxB = value; \
+                                              interrupts(); \
+                                      } \
+                                  } \
+                              I960_Signal_Switch;\
+                          } \
+        case offset + 12: { \
+                              /* OCRnC */ \
+                                  if constexpr (isReadOperation) { \
+                                      noInterrupts(); \
+                                          auto tmp = obj.OCRxC; \
+                                          interrupts(); \
+                                          dataLinesHalves[0] = tmp; \
+                                  } else { \
+                                      if (digitalRead<Pin::BE0>() == LOW && \
+                                              digitalRead<Pin::BE1>() == LOW) { \
+                                          auto value = dataLinesHalves[0]; \
+                                              noInterrupts(); \
+                                              obj.OCRxC = value;\
+                                              interrupts(); \
+                                      }\
+                                  } \
+                              I960_Signal_Switch;\
+                          } \
+        case offset + 14: { \
+                              /* nothing to do on writes but do update the data port
+                               * on reads */ \
+                              if constexpr (isReadOperation) { \
+                                  dataLinesHalves[0] = 0; \
+                              } \
+                              break;\
+                          }  
 #ifdef TCCR1A
-                              X(timer1, 0x10);
+                          X(timer1, 0x10);
 #endif
 #ifdef TCCR3A
-                              X(timer3, 0x20);
+                          X(timer3, 0x20);
 #endif
 #ifdef TCCR4A
-                              X(timer4, 0x30);
+                          X(timer4, 0x30);
 #endif
 #ifdef TCCR5A
-                              X(timer5, 0x40);
+                          X(timer5, 0x40);
 #endif
 #undef X
 
 
-            default:
-                     if constexpr (isReadOperation) {
-                         dataLinesFull = 0;
-                     }
-                     idleTransaction();
-                     return;
-        } 
-        signalReady<true>(); 
+        default:
+                          if constexpr (isReadOperation) {
+                              dataLinesFull = 0;
+                          }
+                          idleTransaction();
+                          return;
+    } 
+    signalReady<true>(); 
 }
 #undef I960_Signal_Switch
-};
 /*
 void processPacketFromSender_Serial2(const PacketSerial& sender, const uint8_t* buffer, size_t size) {
     /// @todo implement
@@ -985,9 +665,9 @@ inline
 void
 doIOOperation() noexcept {
     if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-        CommunicationKernel<isReadOperation, width, enableDebug>::doCommunication();
+        doCommunication<isReadOperation, enableDebug>();
     } else {
-        CommunicationKernel<isReadOperation, width, enableDebug>::doIO();
+        doIO<isReadOperation, enableDebug>();
     }
 }
 

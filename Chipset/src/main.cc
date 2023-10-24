@@ -605,13 +605,12 @@ static void idleTransaction() noexcept {
     inline
     static void
     doCommunication() noexcept {
-        auto theBytes = getTransactionWindow<enableDebug>(); 
-        auto theWords = reinterpret_cast<DataRegister16>(theBytes);
         // we don't need to worry about the upper 16-bits of the bus like we
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
         // needed
         if constexpr (isReadOperation) {
+            auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
             dataLinesHalves[0] = theWords[0];
             if (isBurstLast()) { 
                 goto Done; 
@@ -634,8 +633,29 @@ static void idleTransaction() noexcept {
             if (isBurstLast()) { 
                 goto Done; 
             } 
-            signalReady<true>();
+            signalReady<false>();
+            next = theWords[4];
+            dataLinesHalves[0] = next;
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<false>();
+            next = theWords[5];
+            dataLinesHalves[0] = next;
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<false>();
+            next = theWords[6];
+            dataLinesHalves[0] = next;
+            if (isBurstLast()) { 
+                goto Done; 
+            } 
+            signalReady<false>();
+            next = theWords[7];
+            dataLinesHalves[0] = next;
         } else {
+            auto theBytes = getTransactionWindow<enableDebug>(); 
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
             }
@@ -670,54 +690,30 @@ static void idleTransaction() noexcept {
                 goto Done; 
             } 
             signalReady<true>();
-        }
-        {
-            if constexpr (isReadOperation) {
-                dataLinesHalves[0] = theWords[4];
-            } else {
-                theBytes[8] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    theBytes[9] = getDataByte<1>();
-                }
+            theBytes[8] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[9] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
-        }
-        {
-            if constexpr (isReadOperation) {
-                dataLinesHalves[0] = theWords[5];
-            } else {
-                theBytes[10] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    theBytes[11] = getDataByte<1>();
-                }
-
+            theBytes[10] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[11] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
-        }
-        {
-            if constexpr (isReadOperation) {
-                dataLinesHalves[0] = theWords[6];
-            } else {
-                theBytes[12] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    theBytes[13] = getDataByte<1>();
-                }
-
+            theBytes[12] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[13] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Done; 
             } 
             signalReady<true>();
-        }
-        if constexpr (isReadOperation) {
-            dataLinesHalves[0] = theWords[7];
-        } else {
             theBytes[14] = getDataByte<0>();
             if (digitalRead<Pin::BE1>() == LOW) {
                 theBytes[15] = getDataByte<1>();

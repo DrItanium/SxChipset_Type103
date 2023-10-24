@@ -666,15 +666,16 @@ static void idleTransaction() noexcept {
             } 
             signalReady<true>();
 #define X(a, b) \
-            theBytes[a] = getDataByte<0>(); \
-            if (isBurstLast()) { \
+            { \
+                theBytes[a] = getDataByte<0>(); \
                 if (digitalRead<Pin::BE1>() == LOW) { \
                     theBytes[b] = getDataByte<1>(); \
                 } \
-                goto Done; \
-            } \
-            theBytes[b] = getDataByte<1>(); \
-            signalReady<true>() 
+                if (isBurstLast()) { \
+                    goto Done; \
+                } \
+                signalReady<true>(); \
+            }
             X(2,3);
             X(4,5);
             X(6,7);

@@ -679,7 +679,7 @@ ReadOperationStart:
     while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
-        // change direction to input since we are doing read -> write
+        // change direction to output since we are doing write -> read
         updateDataLinesDirection<0>();
         // update the direction pin 
         toggle<Pin::DirectionOutput>();

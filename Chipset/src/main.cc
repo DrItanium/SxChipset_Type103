@@ -401,21 +401,6 @@ Done:
 SignalDone:
     signalReady<true>();
 }
-template<bool isReadOperation, bool enableDebug>
-FORCE_INLINE
-inline
-void
-doCommunication() noexcept {
-    // we don't need to worry about the upper 16-bits of the bus like we
-    // used to. In this improved design, there is no need to keep track of
-    // where we are starting. Instead, we can easily just do the check as
-    // needed
-    if constexpr (isReadOperation) {
-        doReadCommunication<enableDebug>();
-    } else {
-        doWriteCommunication<enableDebug>();
-    }
-}
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
         break; \
@@ -651,7 +636,15 @@ inline
 void
 doIOOperation() noexcept {
     if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-        doCommunication<isReadOperation, enableDebug>();
+        // we don't need to worry about the upper 16-bits of the bus like we
+        // used to. In this improved design, there is no need to keep track of
+        // where we are starting. Instead, we can easily just do the check as
+        // needed
+        if constexpr (isReadOperation) {
+            doReadCommunication<enableDebug>();
+        } else {
+            doWriteCommunication<enableDebug>();
+        }
     } else {
         doIO<isReadOperation, enableDebug>();
     }

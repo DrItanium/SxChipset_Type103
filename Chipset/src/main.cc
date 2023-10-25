@@ -690,7 +690,57 @@ ReadOperationBypass:
     if constexpr (enableDebug) {
         Serial.printf(F("R (0x%lx)\n"), addressLinesValue32);
     }
-    doIOOperation<true, enableDebug>();
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
+        auto next = theWords[0];
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[1];
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[2];
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[3];
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[4];
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[5];
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[6];
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        dataLinesHalves[0] = next;
+        signalReady<false>();
+        next = theWords[7];
+Read_Done:
+        dataLinesHalves[0] = next;
+        signalReady<true>();
+    } else {
+        doIO<true, enableDebug>();
+    }
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
@@ -708,7 +758,83 @@ WriteOperationBypass:
     if constexpr (enableDebug) {
         Serial.printf(F("W (0x%lx)\n"), addressLinesValue32);
     }
-    doIOOperation<false, enableDebug>();
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        auto theBytes = getTransactionWindow<enableDebug>(); 
+        if (digitalRead<Pin::BE0>() == LOW) {
+            theBytes[0] = getDataByte<0>();
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            theBytes[1] = getDataByte<1>();
+        }
+        if (isBurstLast()) { 
+            goto Write_SignalDone; 
+        } 
+        signalReady<true>();
+        theBytes += 2;
+        { // 2, 3
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            theBytes[0] = getDataByte<0>(); 
+            theBytes[1] = getDataByte<1>(); 
+            signalReady<true>();
+            theBytes += 2;
+        }
+        { // 4, 5
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            theBytes[0] = getDataByte<0>(); 
+            theBytes[1] = getDataByte<1>(); 
+            signalReady<true>();
+            theBytes += 2;
+        }
+        { // 6, 7
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            theBytes[0] = getDataByte<0>(); 
+            theBytes[1] = getDataByte<1>(); 
+            signalReady<true>();
+            theBytes += 2;
+        }
+        { // 8, 9
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            theBytes[0] = getDataByte<0>(); 
+            theBytes[1] = getDataByte<1>(); 
+            signalReady<true>();
+            theBytes += 2;
+        }
+        { // 10, 11
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            theBytes[0] = getDataByte<0>(); 
+            theBytes[1] = getDataByte<1>(); 
+            signalReady<true>();
+            theBytes += 2;
+        }
+        { // 12, 13
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            theBytes[0] = getDataByte<0>(); 
+            theBytes[1] = getDataByte<1>(); 
+            signalReady<true>();
+            theBytes += 2;
+        }
+Write_Done:
+        theBytes[0] = getDataByte<0>();
+        if (digitalRead<Pin::BE1>() == LOW) {
+            theBytes[1] = getDataByte<1>();
+        }
+Write_SignalDone:
+        signalReady<true>();
+    } else {
+        doIO<false, enableDebug>();
+    }
     goto WriteOperationStart;
 }
 

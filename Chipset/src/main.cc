@@ -135,10 +135,6 @@ setBankIndex(uint8_t value) {
     getOutputRegister<Port::IBUS_Bank>() = value;
 }
 
-template<NativeBusWidth width>
-inline constexpr uint8_t getWordByteOffset(uint8_t value) noexcept {
-    return value & 0b1100;
-}
 constexpr
 uint16_t
 computeTransactionWindow(uint16_t offset) noexcept {
@@ -256,23 +252,13 @@ inline uint8_t getDataByte() noexcept {
         return 0;
     }
 }
-template<uint8_t value, NativeBusWidth width>
+template<uint8_t value>
 [[gnu::always_inline]]
 inline 
 void 
 updateDataLinesDirection() noexcept {
-    switch (width) {
-        case NativeBusWidth::Sixteen:
-            dataLinesDirection_bytes[0] = value;
-            dataLinesDirection_bytes[1] = value;
-            break;
-        default:
-            dataLinesDirection_bytes[0] = value;
-            dataLinesDirection_bytes[1] = value;
-            dataLinesDirection_bytes[2] = value;
-            dataLinesDirection_bytes[3] = value;
-            break;
-    }
+    dataLinesDirection_bytes[0] = value;
+    dataLinesDirection_bytes[1] = value;
 }
 FORCE_INLINE
 inline
@@ -659,7 +645,7 @@ void processPacketFromSender_Serial2(const PacketSerial& sender, const uint8_t* 
 }
 */
 
-template<bool isReadOperation, NativeBusWidth width, bool enableDebug>
+template<bool isReadOperation, bool enableDebug>
 FORCE_INLINE
 inline
 void
@@ -671,7 +657,7 @@ doIOOperation() noexcept {
     }
 }
 
-template<NativeBusWidth width, bool enableDebug> 
+template<bool enableDebug> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
 [[noreturn]] 
@@ -721,7 +707,7 @@ ReadOperationStart:
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
-        updateDataLinesDirection<0, width>();
+        updateDataLinesDirection<0>();
         // update the direction pin 
         toggle<Pin::DirectionOutput>();
         // then jump into the write loop
@@ -731,7 +717,7 @@ ReadOperationBypass:
     if constexpr (enableDebug) {
         Serial.printf(F("R (0x%lx)\n"), addressLinesValue32);
     }
-    doIOOperation<true, width, enableDebug>();
+    doIOOperation<true, enableDebug>();
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
@@ -739,7 +725,7 @@ WriteOperationStart:
     // standard read/write operation so do the normal dispatch
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
-        updateDataLinesDirection<0xFF, width>();
+        updateDataLinesDirection<0xFF>();
         // update the direction pin 
         toggle<Pin::DirectionOutput>();
         // then jump into the write loop
@@ -749,7 +735,7 @@ WriteOperationBypass:
     if constexpr (enableDebug) {
         Serial.printf(F("W (0x%lx)\n"), addressLinesValue32);
     }
-    doIOOperation<false, width, enableDebug>();
+    doIOOperation<false, enableDebug>();
     goto WriteOperationStart;
 }
 
@@ -920,7 +906,7 @@ void
 detectAndDispatch() {
     switch (getBusWidth(getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
-            executionBody<NativeBusWidth::Sixteen, enableDebug>();
+            executionBody<enableDebug>();
             break;
         default:
             Serial.println(F("Target CPU is not supported by this firmware!"));

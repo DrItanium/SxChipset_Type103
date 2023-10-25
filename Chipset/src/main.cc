@@ -268,139 +268,6 @@ void idleTransaction() noexcept {
     }
     signalReady<true>();
 }
-template<bool enableDebug>
-FORCE_INLINE
-inline
-void
-doReadCommunication() noexcept {
-    auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
-    auto next = theWords[0];
-    if (isBurstLast()) { 
-        goto Done; 
-    } 
-    dataLinesHalves[0] = next;
-    signalReady<false>();
-    next = theWords[1];
-    if (isBurstLast()) { 
-        goto Done; 
-    } 
-    dataLinesHalves[0] = next;
-    signalReady<false>();
-    next = theWords[2];
-    if (isBurstLast()) { 
-        goto Done; 
-    } 
-    dataLinesHalves[0] = next;
-    signalReady<false>();
-    next = theWords[3];
-    if (isBurstLast()) { 
-        goto Done; 
-    } 
-    dataLinesHalves[0] = next;
-    signalReady<false>();
-    next = theWords[4];
-    if (isBurstLast()) { 
-        goto Done; 
-    } 
-    dataLinesHalves[0] = next;
-    signalReady<false>();
-    next = theWords[5];
-    if (isBurstLast()) { 
-        goto Done; 
-    } 
-    dataLinesHalves[0] = next;
-    signalReady<false>();
-    next = theWords[6];
-    if (isBurstLast()) { 
-        goto Done; 
-    } 
-    dataLinesHalves[0] = next;
-    signalReady<false>();
-    next = theWords[7];
-Done:
-    dataLinesHalves[0] = next;
-    signalReady<true>();
-
-}
-template<bool enableDebug>
-FORCE_INLINE
-inline
-void
-doWriteCommunication() noexcept {
-    auto theBytes = getTransactionWindow<enableDebug>(); 
-    if (digitalRead<Pin::BE0>() == LOW) {
-        theBytes[0] = getDataByte<0>();
-    }
-    if (digitalRead<Pin::BE1>() == LOW) {
-        theBytes[1] = getDataByte<1>();
-    }
-    if (isBurstLast()) { 
-        goto SignalDone; 
-    } 
-    signalReady<true>();
-    theBytes += 2;
-    { // 2, 3
-        if (isBurstLast()) {
-            goto Done;
-        }
-        theBytes[0] = getDataByte<0>(); 
-        theBytes[1] = getDataByte<1>(); 
-        signalReady<true>();
-        theBytes += 2;
-    }
-    { // 4, 5
-        if (isBurstLast()) {
-            goto Done;
-        }
-        theBytes[0] = getDataByte<0>(); 
-        theBytes[1] = getDataByte<1>(); 
-        signalReady<true>();
-        theBytes += 2;
-    }
-    { // 6, 7
-        if (isBurstLast()) {
-            goto Done;
-        }
-        theBytes[0] = getDataByte<0>(); 
-        theBytes[1] = getDataByte<1>(); 
-        signalReady<true>();
-        theBytes += 2;
-    }
-    { // 8, 9
-        if (isBurstLast()) {
-            goto Done;
-        }
-        theBytes[0] = getDataByte<0>(); 
-        theBytes[1] = getDataByte<1>(); 
-        signalReady<true>();
-        theBytes += 2;
-    }
-    { // 10, 11
-        if (isBurstLast()) {
-            goto Done;
-        }
-        theBytes[0] = getDataByte<0>(); 
-        theBytes[1] = getDataByte<1>(); 
-        signalReady<true>();
-        theBytes += 2;
-    }
-    { // 12, 13
-        if (isBurstLast()) {
-            goto Done;
-        }
-        theBytes[0] = getDataByte<0>(); 
-        theBytes[1] = getDataByte<1>(); 
-        signalReady<true>();
-        theBytes += 2;
-    }
-Done:
-    theBytes[0] = getDataByte<0>();
-    if (digitalRead<Pin::BE1>() == LOW) {
-        theBytes[1] = getDataByte<1>();
-    }
-SignalDone:
-    signalReady<true>();
-}
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
         break; \
@@ -616,7 +483,7 @@ void doIO() noexcept {
 
         default:
                           if constexpr (isReadOperation) {
-                              dataLinesFull = 0;
+                              dataLinesHalves[0] = 0;
                           }
                           idleTransaction();
                           return;
@@ -624,11 +491,6 @@ void doIO() noexcept {
     signalReady<true>(); 
 }
 #undef I960_Signal_Switch
-/*
-void processPacketFromSender_Serial2(const PacketSerial& sender, const uint8_t* buffer, size_t size) {
-    /// @todo implement
-}
-*/
 
 template<bool isReadOperation, bool enableDebug>
 FORCE_INLINE
@@ -641,9 +503,127 @@ doIOOperation() noexcept {
         // where we are starting. Instead, we can easily just do the check as
         // needed
         if constexpr (isReadOperation) {
-            doReadCommunication<enableDebug>();
+            auto theWords = reinterpret_cast<DataRegister16>(getTransactionWindow<enableDebug>());
+            auto next = theWords[0];
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[1];
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[2];
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[3];
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[4];
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[5];
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[6];
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            dataLinesHalves[0] = next;
+            signalReady<false>();
+            next = theWords[7];
+Read_Done:
+            dataLinesHalves[0] = next;
+            signalReady<true>();
         } else {
-            doWriteCommunication<enableDebug>();
+            auto theBytes = getTransactionWindow<enableDebug>(); 
+            if (digitalRead<Pin::BE0>() == LOW) {
+                theBytes[0] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[1] = getDataByte<1>();
+            }
+            if (isBurstLast()) { 
+                goto Write_SignalDone; 
+            } 
+            signalReady<true>();
+            theBytes += 2;
+            { // 2, 3
+                if (isBurstLast()) {
+                    goto Write_Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 4, 5
+                if (isBurstLast()) {
+                    goto Write_Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 6, 7
+                if (isBurstLast()) {
+                    goto Write_Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 8, 9
+                if (isBurstLast()) {
+                    goto Write_Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 10, 11
+                if (isBurstLast()) {
+                    goto Write_Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+            { // 12, 13
+                if (isBurstLast()) {
+                    goto Write_Done;
+                }
+                theBytes[0] = getDataByte<0>(); 
+                theBytes[1] = getDataByte<1>(); 
+                signalReady<true>();
+                theBytes += 2;
+            }
+Write_Done:
+            theBytes[0] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                theBytes[1] = getDataByte<1>();
+            }
+Write_SignalDone:
+            signalReady<true>();
         }
     } else {
         doIO<isReadOperation, enableDebug>();

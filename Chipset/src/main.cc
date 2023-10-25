@@ -51,7 +51,6 @@ constexpr bool SupportNewRAMLayout = false;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
-
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
@@ -68,26 +67,6 @@ Adafruit_SSD1351 oled(
         EyeSpi::Pins::DC,
         EyeSpi::Pins::Reset);
 
-
-template<typename T>
-struct OptionalDevice {
-    constexpr bool found() const noexcept { return _found; }
-    T* operator->() noexcept { return &_device; }
-    const T* operator->() const noexcept { return &_device; }
-    T& getDevice() noexcept { return _device; }
-    const T& getDevice() const noexcept { return _device; }
-    T& operator*() noexcept { return getDevice(); }
-    const T& operator*() const noexcept { return getDevice(); }
-    explicit constexpr operator bool() const noexcept { return _found; }
-    template<typename ... Args>
-    OptionalDevice(Args&& ... parameters) : _device(parameters...) { }
-    void begin() noexcept {
-        _found = _device.begin();
-    }
-    private:
-        T _device;
-        bool _found = false;
-};
 
 
 
@@ -485,6 +464,7 @@ void doIO() noexcept {
 #undef I960_Signal_Switch
 
 template<bool isReadOperation, bool enableDebug>
+//[[gnu::optimize("no-reorder-blocks")]]
 FORCE_INLINE
 inline
 void

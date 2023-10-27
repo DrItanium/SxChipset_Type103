@@ -122,6 +122,12 @@ computeTransactionWindow(uint16_t offset) noexcept {
     return MemoryWindowBaseAddress | (offset & MemoryWindowMask);
 }
 
+FORCE_INLINE
+inline
+constexpr uint8_t computeNewBankIndex(uint16_t value, uint8_t upper7) noexcept {
+    return __builtin_avr_insert_bits(0xffff'fff6, static_cast<uint8_t>(value >> 8), 
+            __builtin_avr_insert_bits(0x6543210f, upper7, 0));
+}
 template<bool enableDebug>
 FORCE_INLINE
 inline
@@ -137,9 +143,9 @@ getTransactionWindow() noexcept {
     } else if constexpr (I960AddressLinesControlBankSwitching) {
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else if constexpr (Use32kBankInformationForBankSwitching) {
-        SplitWord32 split{addressLinesLowerHalf};
-        setBankIndex(split.computeBankIndex(getInputRegister<Port::BankCapture>()));
-        return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
+        uint16_t theAddress = addressLinesLowerHalf;
+        setBankIndex(computeNewBankIndex(theAddress, getInputRegister<Port::BankCapture>()));
+        return memoryPointer<uint8_t>(computeTransactionWindow(theAddress));
     } else {
         SplitWord32 split{addressLinesLower24};
         setBankIndex(split.getBankIndex(BusKind{}));

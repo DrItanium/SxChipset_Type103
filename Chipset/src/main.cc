@@ -51,6 +51,7 @@ constexpr bool SupportNewRAMLayout = false;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
+constexpr bool I960AddressLinesControlBankSwitching = true;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
@@ -131,6 +132,8 @@ getTransactionWindow() noexcept {
             Serial.printf(F("Bank Index: 0x%x\n"), result);
         }
         setBankIndex(result);
+        return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
+    } else if constexpr (I960AddressLinesControlBankSwitching) {
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else {
         SplitWord32 split{addressLinesLower24};
@@ -599,6 +602,9 @@ executionBody() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex(0);
     static constexpr auto WaitPin = Pin::DEN;
+    if constexpr (I960AddressLinesControlBankSwitching) {
+        getDirectionRegister<Port::IBUS_Bank>() = 0x00;
+    }
     // this microcontroller is not responsible for signalling ready manually
     // in this method. Instead, an external piece of hardware known as "Timing
     // Circuit" in the Intel manuals handles all external timing. It is drawn

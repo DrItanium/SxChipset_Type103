@@ -51,8 +51,8 @@ constexpr bool SupportNewRAMLayout = false;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
-constexpr bool I960AddressLinesControlBankSwitching = false;
-constexpr bool Use32kBankInformationForBankSwitching = true;
+constexpr bool I960AddressLinesControlBankSwitching = true;
+constexpr bool Use32kBankInformationForBankSwitching = false;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 

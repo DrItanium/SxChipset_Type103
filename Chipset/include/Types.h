@@ -68,7 +68,7 @@ union SplitWord32 {
 #endif
     }
     [[nodiscard]] constexpr uint8_t computeBankIndex(uint8_t upper7) const noexcept {
-        return __builtin_avr_insert_bits(0xffff'fff7, bytes[1], 
+        return __builtin_avr_insert_bits(0xffff'fff6, bytes[1], 
                 __builtin_avr_insert_bits(0x6543210f, upper7, 0));
     }
     [[nodiscard]] constexpr uint8_t getBankIndex(AccessFromIBUS) const noexcept {

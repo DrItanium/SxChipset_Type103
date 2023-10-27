@@ -67,6 +67,10 @@ union SplitWord32 {
                 __builtin_avr_insert_bits(0x6543210f, bytes[2], 0));
 #endif
     }
+    [[nodiscard]] constexpr uint8_t computeBankIndex(uint8_t upper7) const noexcept {
+        return __builtin_avr_insert_bits(0xffff'fff7, bytes[1], 
+                __builtin_avr_insert_bits(0x6543210f, upper7, 0));
+    }
     [[nodiscard]] constexpr uint8_t getBankIndex(AccessFromIBUS) const noexcept {
         // the problem is that we are spanning two bytes in the _middle_ of an
         // address... so we have to treat them separately and merge them

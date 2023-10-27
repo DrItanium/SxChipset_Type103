@@ -52,6 +52,7 @@ constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr bool I960AddressLinesControlBankSwitching = false;
+constexpr bool Use32kBankInformationForBankSwitching = false;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
@@ -135,6 +136,10 @@ getTransactionWindow() noexcept {
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else if constexpr (I960AddressLinesControlBankSwitching) {
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
+    } else if constexpr (Use32kBankInformationForBankSwitching) {
+        SplitWord32 split{addressLinesLowerHalf};
+        setBankIndex(split.computeBankIndex(getInputRegister<Port::BankCapture>()));
+        return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
     } else {
         SplitWord32 split{addressLinesLower24};
         setBankIndex(split.getBankIndex(BusKind{}));

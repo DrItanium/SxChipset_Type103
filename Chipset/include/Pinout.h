@@ -60,7 +60,6 @@ Count = NUM_DIGITAL_PINS,
     LED = LED_BUILTIN,
 #endif
     SD_EN = PortB0,
-    DebugEnable = PortB4,
     INT0_960_ = PortB5, // OC1A
 
     BE0 = PortF0,
@@ -79,7 +78,6 @@ Count = NUM_DIGITAL_PINS,
     DirectionOutput = PortD6,
     A23_960 = PortD7,
 
-    BusQueryEnable = PortE2,
     EyeSpi_Pin_MEMCS = PortB6,
     EyeSpi_Pin_TSCS = PortE5,
     EyeSpi_Pin_INT = PortE6,

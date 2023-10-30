@@ -772,14 +772,11 @@ setupPins() noexcept {
     pinMode(Pin::CFG1, INPUT);
     pinMode(Pin::CFG2, INPUT);
 
-    pinMode(Pin::BusQueryEnable, OUTPUT);
-    digitalWrite<Pin::BusQueryEnable, HIGH>();
     // set these up ahead of time
     //pinMode(Pin::EN2560, INPUT);
     pinMode(Pin::READY, OUTPUT);
     digitalWrite<Pin::READY, HIGH>();
     // setup bank capture to read in address lines
-    pinMode(Pin::DebugEnable, INPUT_PULLUP);
     pinMode(Pin::LED, OUTPUT);
     digitalWrite<Pin::LED, LOW>();
 }
@@ -867,11 +864,7 @@ detectAndDispatch() {
 
 void 
 loop() {
-    if (digitalRead<Pin::DebugEnable>() == HIGH) {
-        detectAndDispatch<false>();
-    } else {
-        detectAndDispatch<true>();
-    }
+    detectAndDispatch<false>();
 }
 
 template<typename T>
@@ -928,7 +921,5 @@ banner() noexcept {
             Serial.println(F("Unknown (fallback to 32-bit)"));
             break;
     }
-    Serial.print(F("MCU Debug: "));
-    printlnBool(digitalRead<Pin::DebugEnable>() == LOW);
 }
 

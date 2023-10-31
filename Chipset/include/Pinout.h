@@ -120,6 +120,7 @@ enum class Port : byte {
     ExecutionState = D,
     BankCapture = K,
     CTL960 = L,
+    PointerOffset = H,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

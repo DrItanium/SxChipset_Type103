@@ -53,6 +53,7 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr bool I960AddressLinesControlBankSwitching = true;
 constexpr bool Use32kBankInformationForBankSwitching = false;
+constexpr bool UsePortForPointerComputation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
@@ -116,7 +117,6 @@ setBankIndex(uint8_t value) {
     getOutputRegister<Port::IBUS_Bank>() = value;
 }
 
-constexpr
 uint16_t
 computeTransactionWindow(uint16_t offset) noexcept {
     return MemoryWindowBaseAddress | (offset & MemoryWindowMask);
@@ -141,7 +141,13 @@ getTransactionWindow() noexcept {
         setBankIndex(result);
         return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
     } else if constexpr (I960AddressLinesControlBankSwitching) {
-        return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
+        if constexpr (UsePortForPointerComputation) {
+            uint8_t upper = getInputRegister<Port::PointerOffset>();
+            uint8_t lower = addressLinesLowest;
+            return memoryPointer<uint8_t>((static_cast<uint16_t>(upper) << 8) | (static_cast<uint16_t>(lower)));
+        } else {
+            return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
+        }
     } else if constexpr (Use32kBankInformationForBankSwitching) {
         uint16_t theAddress = addressLinesLowerHalf;
         setBankIndex(computeNewBankIndex(theAddress, getInputRegister<Port::BankCapture>()));
@@ -779,6 +785,7 @@ setupPins() noexcept {
     // setup bank capture to read in address lines
     pinMode(Pin::LED, OUTPUT);
     digitalWrite<Pin::LED, LOW>();
+    getDirectionRegister<Port::PointerOffset>() = 0;
 }
 void
 setupExternalBus() noexcept {

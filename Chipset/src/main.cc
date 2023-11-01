@@ -50,8 +50,6 @@ constexpr bool PrintBanner = true;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
-constexpr bool I960AddressLinesControlBankSwitching = true;
-constexpr bool UsePortForPointerComputation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
@@ -130,19 +128,10 @@ FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
-    if constexpr (I960AddressLinesControlBankSwitching) {
-        if constexpr (UsePortForPointerComputation) {
-            uint8_t upper = getInputRegister<Port::PointerOffset>();
-            uint8_t lower = addressLinesLowest;
-            return memoryPointer<uint8_t>((static_cast<uint16_t>(upper) << 8) | (static_cast<uint16_t>(lower)));
-        } else {
-            return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
-        }
-    } else {
-        SplitWord32 split{addressLinesLower24};
-        setBankIndex(split.getBankIndex(BusKind{}));
-        return memoryPointer<uint8_t>(computeTransactionWindow(split.halves[0]));
-    }
+    // currently, there is no bank switching!
+    uint8_t upper = getInputRegister<Port::PointerOffset>();
+    uint8_t lower = addressLinesLowest;
+    return memoryPointer<uint8_t>((static_cast<uint16_t>(upper) << 8) | (static_cast<uint16_t>(lower)));
 }
 struct PulseReadySignal final { };
 struct ToggleReadySignal final { };
@@ -605,9 +594,7 @@ executionBody() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex(0);
     static constexpr auto WaitPin = Pin::DEN;
-    if constexpr (I960AddressLinesControlBankSwitching) {
-        getDirectionRegister<Port::IBUS_Bank>() = 0x00;
-    }
+    getDirectionRegister<Port::IBUS_Bank>() = 0x00;
     // this microcontroller is not responsible for signalling ready manually
     // in this method. Instead, an external piece of hardware known as "Timing
     // Circuit" in the Intel manuals handles all external timing. It is drawn

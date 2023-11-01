@@ -39,19 +39,13 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 using DataRegister32 = volatile uint32_t*;
 
-constexpr bool XINT1DirectConnect = false;
-constexpr bool XINT2DirectConnect = false;
-constexpr bool XINT3DirectConnect = false;
-constexpr bool XINT4DirectConnect = false;
-constexpr bool XINT5DirectConnect = false;
-constexpr bool XINT6DirectConnect = false;
-constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
+constexpr bool HardwareConstructsOffsetAddress = true;
 
 
 
@@ -109,6 +103,9 @@ void
 setBankIndex(uint32_t value) {
     AddressLinesInterface.bankSwitching.bank = value;
 }
+constexpr uint8_t fixOffsetAddress(uint8_t value) noexcept {
+    return (0x3F & value) | 0x40;
+}
 
 template<bool enableDebug>
 FORCE_INLINE
@@ -116,7 +113,11 @@ inline
 DataRegister8
 getTransactionWindow() noexcept {
     // currently, there is no bank switching, the i960 handles that
-    return memoryPointer<uint8_t>(word(getInputRegister<Port::PointerOffset>(), addressLinesLowest));
+    if constexpr (HardwareConstructsOffsetAddress) {
+        return memoryPointer<uint8_t>(word(getInputRegister<Port::PointerOffset>(), addressLinesLowest));
+    } else {
+        return memoryPointer<uint8_t>(word(fixOffsetAddress(addressLines[1]), addressLines[0]));
+    }
 }
 struct PulseReadySignal final { };
 struct ToggleReadySignal final { };

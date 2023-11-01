@@ -53,8 +53,6 @@ constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
-using BusKind = AccessFromIBUS;
-//using BusKind = AccessFromNewIBUS;
 
 
 Adafruit_SSD1351 oled(
@@ -688,8 +686,8 @@ installMemoryImage() noexcept {
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             SplitWord32 view{address};
             // just modify the bank as we go along
-            setBankIndex(view.getBankIndex(BusKind{}));
-            auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress(BusKind{}));
+            setBankIndex(view.getBankIndex());
+            auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress());
             theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
             Serial.print(F("."));
         }

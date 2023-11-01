@@ -41,9 +41,6 @@ struct TagDispatcher {
 template<typename T>
 using TreatAs = TagDispatcher<T>;
 using TreatAsOrdinal = TreatAs<uint32_t>;
-struct AccessFromIBUS final { };
-struct AccessFromNewIBUS final { };
-struct AccessFromInstruction final { };
 
 union SplitWord32 {
     uint32_t full;
@@ -57,7 +54,7 @@ union SplitWord32 {
     constexpr SplitWord32() : SplitWord32(0) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
-    [[nodiscard]] constexpr auto getBankIndex(AccessFromIBUS) const noexcept {
+    [[nodiscard]] constexpr auto getBankIndex() const noexcept {
 #if 0
         // the problem is that we are spanning two bytes in the _middle_ of an
         // address... so we have to treat them separately and merge them
@@ -75,10 +72,10 @@ union SplitWord32 {
         return bankView14.bank;
 #endif
     }
-    constexpr size_t alignedBankAddress(AccessFromIBUS) const noexcept {
+    constexpr size_t alignedBankAddress() const noexcept {
         return 0x4000 | (halves[0] & 0x3FFC);
     }
-    constexpr size_t unalignedBankAddress(AccessFromIBUS) const noexcept {
+    constexpr size_t unalignedBankAddress() const noexcept {
         return 0x4000 | (halves[0] & 0x3FFF);
     }
 };

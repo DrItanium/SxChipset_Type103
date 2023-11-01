@@ -895,17 +895,7 @@ setupExternalBus() noexcept {
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
     AddressLinesInterface.view32.data = 0;
-    switch (PortHIsFunctioningAs) {
-        case PortHUsage::DataLines0_7:
-            DataLinesInterface.view32.direction = 0x0000'00FF;
-            break;
-        case PortHUsage::DataLines8_15:
-            DataLinesInterface.view32.direction = 0x0000'FF00;
-            break;
-        default:
-            DataLinesInterface.view32.direction = 0x0000'FFFF;
-
-    }
+    DataLinesInterface.view32.direction = 0x0000'FFFF;
     DataLinesInterface.view32.data = 0;
 }
 

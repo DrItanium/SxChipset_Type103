@@ -144,8 +144,7 @@ union [[gnu::packed]] CH351 {
     } ctl;
     struct {
         uint32_t ebi : 14;
-        uint32_t bank : 8;
-        uint32_t upper : 10;
+        uint32_t bank : 18;
         uint32_t direction;
     } bankSwitching;
 };

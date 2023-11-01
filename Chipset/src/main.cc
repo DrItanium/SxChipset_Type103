@@ -110,7 +110,7 @@ setupDevices() noexcept {
 [[gnu::always_inline]]
 inline
 void 
-setBankIndex(uint8_t value) {
+setBankIndex(uint32_t value) {
     AddressLinesInterface.bankSwitching.bank = value;
 }
 

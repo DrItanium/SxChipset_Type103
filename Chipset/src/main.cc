@@ -45,7 +45,14 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
+enum class PortHUsage {
+    Unspecified,
+    OffsetAddressTranslation,
+    DataLines0_7,
+    DataLines8_15,
+};
 
+constexpr auto PortHIsFunctioningAs = PortHUsage::OffsetAddressTranslation;
 
 
 Adafruit_SSD1351 oled(
@@ -103,13 +110,84 @@ setBankIndex(uint32_t value) {
     AddressLinesInterface.bankSwitching.bank = value;
 }
 
+[[gnu::always_inline]]
+inline 
+uint8_t 
+getUpperDataByte() noexcept {
+    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
+        return getInputRegister<Port::H>();
+    } else {
+        return dataLines[1];
+    }
+}
+
+[[gnu::always_inline]]
+inline 
+uint8_t 
+getLowerDataByte() noexcept {
+    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7) {
+        return getInputRegister<Port::H>();
+    } else {
+        return dataLines[0];
+    }
+}
+
+[[gnu::always_inline]]
+inline
+void
+setLowerDataByte(uint8_t value) noexcept {
+    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7) {
+        getOutputRegister<Port::H>() = value;
+    } else {
+        dataLines[0] = value;
+    }
+}
+
+[[gnu::always_inline]]
+inline
+void
+setUpperDataByte(uint8_t value) noexcept {
+    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
+        getOutputRegister<Port::H>() = value;
+    } else {
+        dataLines[1] = value;
+    }
+}
+
+[[gnu::always_inline]]
+inline
+uint16_t
+getData() noexcept {
+    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7 || PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
+        return word(getUpperDataByte(), getLowerDataByte());
+    } else {
+        return dataLinesHalves[0];
+    }
+}
+
+[[gnu::always_inline]]
+inline
+void
+setData(uint16_t value) noexcept {
+    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7 || PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
+        setLowerDataByte(static_cast<uint8_t>(value));
+        setUpperDataByte(static_cast<uint8_t>(value >> 8));
+    } else {
+        dataLinesHalves[0] = value;
+    }
+}
+
 template<bool enableDebug>
 FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
     // currently, there is no bank switching, the i960 handles that
-    return memoryPointer<uint8_t>(word(getInputRegister<Port::PointerOffset>(), addressLinesLowest));
+    if constexpr (PortHIsFunctioningAs == PortHUsage::OffsetAddressTranslation) {
+        return memoryPointer<uint8_t>(word(getInputRegister<Port::PointerOffset>(), addressLinesLowest));
+    } else {
+        return memoryPointer<uint8_t>(word(((0x3f & addressLines[1]) | 0x40), addressLines[0]));
+    }
 }
 struct PulseReadySignal final { };
 struct ToggleReadySignal final { };
@@ -184,7 +262,11 @@ template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 2, "Invalid index provided to setDataByte, must be less than 2");
     if constexpr (index < 2) {
-        dataLines[index] = value;
+        if constexpr (index == 0) {
+            setLowerDataByte(value);
+        } else {
+            setUpperDataByte(value);
+        }
     }
 }
 
@@ -192,7 +274,11 @@ template<uint8_t index>
 inline uint8_t getDataByte() noexcept {
     static_assert(index < 2, "Invalid index provided to getDataByte, must be less than 4");
     if constexpr (index < 2) {
-        return dataLines[index];
+        if constexpr (index == 0) {
+            return getLowerDataByte();
+        } else {
+            return getUpperDataByte();
+        }
     } else {
         return 0;
     }
@@ -202,8 +288,16 @@ template<uint8_t value>
 inline 
 void 
 updateDataLinesDirection() noexcept {
-    dataLinesDirection_bytes[0] = value;
-    dataLinesDirection_bytes[1] = value;
+    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7) {
+        getDirectionRegister<Port::H>() = value;
+    } else {
+        dataLinesDirection_bytes[0] = value;
+    }
+    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
+        getDirectionRegister<Port::H>() = value;
+    } else {
+        dataLinesDirection_bytes[1] = value;
+    }
 }
 FORCE_INLINE
 inline
@@ -226,32 +320,32 @@ void doIO() noexcept {
     switch (addressLines[0]) { 
         case 0: { 
                     if constexpr (isReadOperation) { 
-                        dataLinesHalves[0] = static_cast<uint16_t>(F_CPU);
+                        setData(static_cast<uint16_t>(F_CPU));
                     } 
                     I960_Signal_Switch;
                 } 
         case 2: { 
                     if constexpr (isReadOperation) { 
-                        dataLinesHalves[0] = static_cast<uint16_t>((F_CPU) >> 16);
+                        setData(static_cast<uint16_t>((F_CPU) >> 16));
                     } 
                     I960_Signal_Switch;
                 } 
         case 4: { 
                     if constexpr (isReadOperation) { 
-                        dataLinesHalves[0] = static_cast<uint16_t>(F_CPU / 2);
+                        setData(static_cast<uint16_t>(F_CPU / 2));
                     } 
                     I960_Signal_Switch;
                 } 
         case 6: { 
                     if constexpr (isReadOperation) { 
-                        dataLinesHalves[0] = static_cast<uint16_t>((F_CPU / 2) >> 16);
+                        setData(static_cast<uint16_t>((F_CPU / 2) >> 16));
                     } 
                     I960_Signal_Switch;
                 } 
         case 8: { 
                     /* Serial RW connection */
                     if constexpr (isReadOperation) { 
-                        dataLinesHalves[0] = Serial.read();
+                        setData(Serial.read());
                     } else { 
                         // no need to check this out just ignore the byte
                         // enable lines
@@ -261,13 +355,13 @@ void doIO() noexcept {
                 } 
         case 10: {
                      if constexpr (isReadOperation) { 
-                         dataLinesHalves[0] = 0;
+                         setData(0);
                      } 
                      I960_Signal_Switch;
                  } 
         case 12: { 
                      if constexpr (isReadOperation) { 
-                         dataLinesHalves[0] = 0; 
+                         setData(0);
                      } else { 
                          Serial.flush();
                      }
@@ -277,7 +371,7 @@ void doIO() noexcept {
                      /* nothing to do on writes but do update the data port
                       * on reads */ 
                      if constexpr (isReadOperation) { 
-                         dataLinesHalves[0] = 0; 
+                         setData(0);
                      } 
                  }
                  break;
@@ -317,11 +411,11 @@ void doIO() noexcept {
                                  noInterrupts(); \
                                      auto tmp = obj.TCNTx; \
                                      interrupts();  \
-                                     dataLinesHalves[0] = tmp;  \
+                                     setData(tmp); \
                              } else {  \
                                  if (digitalRead<Pin::BE0>() == LOW &&  \
                                          digitalRead<Pin::BE1>() == LOW) {  \
-                                     auto value = dataLinesHalves[0];  \
+                                     auto value = getData();  \
                                          noInterrupts();  \
                                          obj.TCNTx = value; \
                                          interrupts();  \
@@ -337,11 +431,11 @@ void doIO() noexcept {
                                  noInterrupts(); \
                                      auto tmp = obj.ICRx;\
                                      interrupts(); \
-                                     dataLinesHalves[0] = tmp; \
+                                     setData(tmp); \
                              } else { \
                                  if (digitalRead<Pin::BE0>() == LOW &&  \
                                          digitalRead<Pin::BE1>() == LOW) { \
-                                     auto value = dataLinesHalves[0]; \
+                                        auto value = getData(); \
                                          noInterrupts(); \
                                          obj.ICRx = value;\
                                          interrupts(); \
@@ -355,11 +449,11 @@ void doIO() noexcept {
                                      noInterrupts(); \
                                          auto tmp = obj.OCRxA;\
                                          interrupts(); \
-                                         dataLinesHalves[0] = tmp; \
+                                         setData(tmp); \
                                  } else { \
                                      if (digitalRead<Pin::BE0>() == LOW &&  \
                                              digitalRead<Pin::BE1>() == LOW) { \
-                                         auto value = dataLinesHalves[0]; \
+                                        auto value = getData(); \
                                              noInterrupts(); \
                                              obj.OCRxA = value;\
                                              interrupts(); \
@@ -373,11 +467,11 @@ void doIO() noexcept {
                                       noInterrupts(); \
                                           auto tmp = obj.OCRxB;\
                                           interrupts(); \
-                                          dataLinesHalves[0] = tmp; \
+                                          setData(tmp); \
                                   } else { \
                                       if (digitalRead<Pin::BE0>() == LOW &&  \
                                               digitalRead<Pin::BE1>() == LOW) { \
-                                          auto value = dataLinesHalves[0]; \
+                                            auto value = getData(); \
                                               noInterrupts(); \
                                               obj.OCRxB = value; \
                                               interrupts(); \
@@ -391,11 +485,11 @@ void doIO() noexcept {
                                       noInterrupts(); \
                                           auto tmp = obj.OCRxC; \
                                           interrupts(); \
-                                          dataLinesHalves[0] = tmp; \
+                                          setData(tmp); \
                                   } else { \
                                       if (digitalRead<Pin::BE0>() == LOW && \
                                               digitalRead<Pin::BE1>() == LOW) { \
-                                          auto value = dataLinesHalves[0]; \
+                                          auto value = getData(); \
                                               noInterrupts(); \
                                               obj.OCRxC = value;\
                                               interrupts(); \
@@ -407,7 +501,7 @@ void doIO() noexcept {
                               /* nothing to do on writes but do update the data port
                                * on reads */ \
                               if constexpr (isReadOperation) { \
-                                  dataLinesHalves[0] = 0; \
+                                  setData(0); \
                               } \
                               break;\
                           }  
@@ -427,9 +521,9 @@ void doIO() noexcept {
         case 0x50: {
                     if constexpr (isReadOperation) {
                         auto result = millis();
-                        dataLinesHalves[0] = static_cast<uint16_t>(result);
+                        setData(static_cast<uint16_t>(result));
                         I960_Signal_Switch;
-                        dataLinesHalves[0] = static_cast<uint16_t>(result >> 16);
+                        setData(static_cast<uint16_t>(result >> 16));
                         I960_Signal_Switch;
                     } else {
                         I960_Signal_Switch;
@@ -439,9 +533,9 @@ void doIO() noexcept {
         case 0x54: {
                     if constexpr (isReadOperation) {
                         auto result = micros();
-                        dataLinesHalves[0] = static_cast<uint16_t>(result);
+                        setData(static_cast<uint16_t>(result));
                         I960_Signal_Switch;
-                        dataLinesHalves[0] = static_cast<uint16_t>(result >> 16);
+                        setData(static_cast<uint16_t>(result >> 16));
                         I960_Signal_Switch;
                     } else {
                         I960_Signal_Switch;
@@ -450,14 +544,14 @@ void doIO() noexcept {
                    }
         case 0x58: {
                        if constexpr (isReadOperation) {
-                           dataLinesHalves[0] = 0;
+                           setData(0);
                        }
                        I960_Signal_Switch;
                        I960_Signal_Switch;
                    }
         case 0x5c: {
                        if constexpr (isReadOperation) {
-                           dataLinesHalves[0] = 0;
+                           setData(0);
                        }
                        I960_Signal_Switch;
                        I960_Signal_Switch;
@@ -465,7 +559,7 @@ void doIO() noexcept {
                    break;
         default:
                           if constexpr (isReadOperation) {
-                              dataLinesHalves[0] = 0;
+                              setData(0);
                           }
                           idleTransaction();
                           return;
@@ -492,47 +586,47 @@ doIOOperation() noexcept {
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            dataLinesHalves[0] = next;
+            setData(next);
             signalReady<false>();
             next = theWords[1];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            dataLinesHalves[0] = next;
+            setData(next);
             signalReady<false>();
             next = theWords[2];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            dataLinesHalves[0] = next;
+            setData(next);
             signalReady<false>();
             next = theWords[3];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            dataLinesHalves[0] = next;
+            setData(next);
             signalReady<false>();
             next = theWords[4];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            dataLinesHalves[0] = next;
+            setData(next);
             signalReady<false>();
             next = theWords[5];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            dataLinesHalves[0] = next;
+            setData(next);
             signalReady<false>();
             next = theWords[6];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            dataLinesHalves[0] = next;
+            setData(next);
             signalReady<false>();
             next = theWords[7];
 Read_Done:
-            dataLinesHalves[0] = next;
+            setData(next);
             signalReady<true>();
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {

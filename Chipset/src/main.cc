@@ -868,7 +868,19 @@ setupPins() noexcept {
     // setup bank capture to read in address lines
     pinMode(Pin::LED, OUTPUT);
     digitalWrite<Pin::LED, LOW>();
-    getDirectionRegister<Port::PointerOffset>() = 0;
+    switch (PortHIsFunctioningAs) {
+        case PortHUsage::OffsetAddressTranslation:
+            // input since we are always going to be capturing data
+            getDirectionRegister<Port::H>() = 0;
+            break;
+        case PortHUsage::DataLines0_7:
+        case PortHUsage::DataLines8_15:
+            getDirectionRegister<Port::H>() = 0xFF; // output since we start in read mode
+            getOutputRegister<Port::H>() = 0;
+            break;
+        default:
+            break;
+    }
 }
 
 void

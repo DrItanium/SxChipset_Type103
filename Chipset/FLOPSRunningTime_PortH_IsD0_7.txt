@@ -1,4 +1,5 @@
-Note: Address Lines are read from io expander as a consequence
+Note: Address Lines are read from io expander as a consequence, it is most
+directly comparable to i960Bank!
 
  FLOPS C Program (Double Precision), V2.0 18 Dec 1992
 

@@ -186,7 +186,7 @@ getTransactionWindow() noexcept {
     if constexpr (PortHIsFunctioningAs == PortHUsage::OffsetAddressTranslation) {
         return memoryPointer<uint8_t>(word(getInputRegister<Port::PointerOffset>(), addressLinesLowest));
     } else {
-        return memoryPointer<uint8_t>(word(((0x3f & addressLines[1]) | 0x40), addressLines[0]));
+        return memoryPointer<uint8_t>((addressLinesLowerHalf & 0x3fff) | 0x4000);
     }
 }
 struct PulseReadySignal final { };

@@ -142,7 +142,14 @@ union [[gnu::packed]] CH351 {
         uint8_t wr : 1;
         uint8_t bankSelect : 1;
     } ctl;
+    struct {
+        uint32_t ebi : 14;
+        uint32_t bank : 8;
+        uint32_t upper : 10;
+        uint32_t direction;
+    } bankSwitching;
 };
+static_assert(sizeof(CH351) == 8);
 
 
 #endif //SXCHIPSET_TYPE103_TYPES_H__

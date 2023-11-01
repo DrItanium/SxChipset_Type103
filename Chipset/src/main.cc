@@ -47,17 +47,14 @@ constexpr bool XINT5DirectConnect = false;
 constexpr bool XINT6DirectConnect = false;
 constexpr bool XINT7DirectConnect = false;
 constexpr bool PrintBanner = true;
-constexpr bool SupportNewRAMLayout = false;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr bool I960AddressLinesControlBankSwitching = true;
-constexpr bool Use32kBankInformationForBankSwitching = false;
 constexpr bool UsePortForPointerComputation = true;
-constexpr uintptr_t MemoryWindowBaseAddress = SupportNewRAMLayout ? 0x8000 : 0x4000;
+constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
-static_assert((( SupportNewRAMLayout && MemoryWindowMask == 0x7FFF) || (!SupportNewRAMLayout && MemoryWindowMask == 0x3FFF)), "MemoryWindowMask is not right");
 using BusKind = AccessFromIBUS;
 //using BusKind = AccessFromNewIBUS;
 
@@ -114,7 +111,7 @@ setupDevices() noexcept {
 inline
 void 
 setBankIndex(uint8_t value) {
-    getOutputRegister<Port::IBUS_Bank>() = value;
+    AddressLinesInterface.bankSwitching.bank = value;
 }
 
 uint16_t
@@ -133,14 +130,7 @@ FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
-    if constexpr (SupportNewRAMLayout) {
-        auto result = getInputRegister<Port::BankCapture>();
-        if constexpr (enableDebug) {
-            Serial.printf(F("Bank Index: 0x%x\n"), result);
-        }
-        setBankIndex(result);
-        return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
-    } else if constexpr (I960AddressLinesControlBankSwitching) {
+    if constexpr (I960AddressLinesControlBankSwitching) {
         if constexpr (UsePortForPointerComputation) {
             uint8_t upper = getInputRegister<Port::PointerOffset>();
             uint8_t lower = addressLinesLowest;
@@ -148,10 +138,6 @@ getTransactionWindow() noexcept {
         } else {
             return memoryPointer<uint8_t>(computeTransactionWindow(addressLinesLowerHalf));
         }
-    } else if constexpr (Use32kBankInformationForBankSwitching) {
-        uint16_t theAddress = addressLinesLowerHalf;
-        setBankIndex(computeNewBankIndex(theAddress, getInputRegister<Port::BankCapture>()));
-        return memoryPointer<uint8_t>(computeTransactionWindow(theAddress));
     } else {
         SplitWord32 split{addressLinesLower24};
         setBankIndex(split.getBankIndex(BusKind{}));
@@ -750,7 +736,7 @@ setupPins() noexcept {
     pinMode<Pin::INT0_960_>(OUTPUT);
     digitalWrite<Pin::INT0_960_, HIGH>();
     // setup the IBUS bank
-    getDirectionRegister<Port::IBUS_Bank>() = 0xFF;
+    getDirectionRegister<Port::IBUS_Bank>() = 0;
     getOutputRegister<Port::IBUS_Bank>() = 0;
     pinMode(Pin::IsMemorySpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);
@@ -787,18 +773,16 @@ setupPins() noexcept {
     digitalWrite<Pin::LED, LOW>();
     getDirectionRegister<Port::PointerOffset>() = 0;
 }
+
 void
 setupExternalBus() noexcept {
     // setup the EBI
     XMCRB=0b1'0000'000;
-    if constexpr (SupportNewRAMLayout) {
-        XMCRA=0b1'100'01'01;  
-    } else {
-        XMCRA=0b1'010'01'01;  
-    }
+    XMCRA=0b1'010'01'01;  
     // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
-    AddressLinesInterface.view32.direction = 0;
+    AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
+    AddressLinesInterface.view32.data = 0;
     DataLinesInterface.view32.direction = 0xFFFF'FFFF;
     DataLinesInterface.view32.data = 0;
 }
@@ -852,6 +836,8 @@ setup() {
     } else {
         delay(1000);
     }
+    // put the address line capture io expander back into input mode
+    AddressLinesInterface.view32.direction = 0;
     pullCPUOutOfReset();
 }
 template<bool enableDebug>

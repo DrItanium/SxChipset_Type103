@@ -49,29 +49,16 @@ union SplitWord32 {
     uint32_t full;
     ElementContainer<uint32_t, uint16_t> halves;
     ElementContainer<uint32_t, uint8_t> bytes;
+    struct {
+        uint32_t offset : 14;
+        uint32_t bank : 18;
+    } bankView14;
     constexpr explicit SplitWord32(uint32_t value) : full(value) { }
     constexpr SplitWord32() : SplitWord32(0) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
-    [[nodiscard]] constexpr uint8_t getBankIndex(AccessFromNewIBUS) const noexcept {
-        // the problem is that we are spanning two bytes in the _middle_ of an
-        // address... so we have to treat them separately and merge them
-        // together later on. So far, this seems to be the most optimal
-        // implementation
-#ifndef __BUILTIN_AVR_INSERT_BITS
-        uint8_t lower = static_cast<uint8_t>(bytes[1] >> 7) & 0b1;
-        uint8_t upper = static_cast<uint8_t>(bytes[2] << 1) & 0b1111'1110;
-        return lower | upper;
-#else
-        return __builtin_avr_insert_bits(0xfffffff7, bytes[1], 
-                __builtin_avr_insert_bits(0x6543210f, bytes[2], 0));
-#endif
-    }
-    [[nodiscard]] constexpr uint8_t computeBankIndex(uint8_t upper7) const noexcept {
-        return __builtin_avr_insert_bits(0xffff'fff6, bytes[1], 
-                __builtin_avr_insert_bits(0x6543210f, upper7, 0));
-    }
-    [[nodiscard]] constexpr uint8_t getBankIndex(AccessFromIBUS) const noexcept {
+    [[nodiscard]] constexpr auto getBankIndex(AccessFromIBUS) const noexcept {
+#if 0
         // the problem is that we are spanning two bytes in the _middle_ of an
         // address... so we have to treat them separately and merge them
         // together later on. So far, this seems to be the most optimal
@@ -84,18 +71,15 @@ union SplitWord32 {
         return __builtin_avr_insert_bits(0xffffff76, bytes[1], 
                 __builtin_avr_insert_bits(0x543210ff, bytes[2], 0));
 #endif
+#else
+        return bankView14.bank;
+#endif
     }
     constexpr size_t alignedBankAddress(AccessFromIBUS) const noexcept {
         return 0x4000 | (halves[0] & 0x3FFC);
     }
     constexpr size_t unalignedBankAddress(AccessFromIBUS) const noexcept {
         return 0x4000 | (halves[0] & 0x3FFF);
-    }
-    constexpr size_t alignedBankAddress(AccessFromNewIBUS) const noexcept {
-        return 0x8000 | (halves[0] & 0x7FFC);
-    }
-    constexpr size_t unalignedBankAddress(AccessFromNewIBUS) const noexcept {
-        return 0x8000 | (halves[0] & 0x7FFF);
     }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");

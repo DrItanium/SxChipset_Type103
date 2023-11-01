@@ -112,30 +112,18 @@ setBankIndex(uint32_t value) {
     AddressLinesInterface.bankSwitching.bank = value;
 }
 
-uint16_t
-computeTransactionWindow(uint16_t offset) noexcept {
-    return MemoryWindowBaseAddress | (offset & MemoryWindowMask);
-}
-
-FORCE_INLINE
-inline
-constexpr uint8_t computeNewBankIndex(uint16_t value, uint8_t upper7) noexcept {
-    return __builtin_avr_insert_bits(0xffff'fff6, static_cast<uint8_t>(value >> 8), 
-            __builtin_avr_insert_bits(0x6543210f, upper7, 0));
-}
 template<bool enableDebug>
 FORCE_INLINE
 inline
 DataRegister8
 getTransactionWindow() noexcept {
-    // currently, there is no bank switching!
-    uint8_t upper = getInputRegister<Port::PointerOffset>();
-    uint8_t lower = addressLinesLowest;
-    return memoryPointer<uint8_t>((static_cast<uint16_t>(upper) << 8) | (static_cast<uint16_t>(lower)));
+    // currently, there is no bank switching, the i960 handles that
+    return memoryPointer<uint8_t>(word(getInputRegister<Port::PointerOffset>(), addressLinesLowest));
 }
 struct PulseReadySignal final { };
 struct ToggleReadySignal final { };
 using ReadySignalStyle = ToggleReadySignal;
+
 template<bool waitForReady, Pin targetPin, int delayAmount>
 [[gnu::always_inline]] 
 inline void 

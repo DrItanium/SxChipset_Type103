@@ -424,8 +424,45 @@ void doIO() noexcept {
                           X(timer5, 0x40);
 #endif
 #undef X
-
-
+        case 0x50: {
+                    if constexpr (isReadOperation) {
+                        auto result = millis();
+                        dataLinesHalves[0] = static_cast<uint16_t>(result);
+                        I960_Signal_Switch;
+                        dataLinesHalves[0] = static_cast<uint16_t>(result >> 16);
+                        I960_Signal_Switch;
+                    } else {
+                        I960_Signal_Switch;
+                        I960_Signal_Switch;
+                    }
+                   }
+        case 0x54: {
+                    if constexpr (isReadOperation) {
+                        auto result = micros();
+                        dataLinesHalves[0] = static_cast<uint16_t>(result);
+                        I960_Signal_Switch;
+                        dataLinesHalves[0] = static_cast<uint16_t>(result >> 16);
+                        I960_Signal_Switch;
+                    } else {
+                        I960_Signal_Switch;
+                        I960_Signal_Switch;
+                    }
+                   }
+        case 0x58: {
+                       if constexpr (isReadOperation) {
+                           dataLinesHalves[0] = 0;
+                       }
+                       I960_Signal_Switch;
+                       I960_Signal_Switch;
+                   }
+        case 0x5c: {
+                       if constexpr (isReadOperation) {
+                           dataLinesHalves[0] = 0;
+                       }
+                       I960_Signal_Switch;
+                       I960_Signal_Switch;
+                   }
+                   break;
         default:
                           if constexpr (isReadOperation) {
                               dataLinesHalves[0] = 0;

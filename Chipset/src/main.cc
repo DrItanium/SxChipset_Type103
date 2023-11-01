@@ -842,18 +842,6 @@ void
 banner() noexcept {
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
-    Serial.println(F("Variant: Type 103 Narrow Wide"));
-    constexpr uint32_t IORamMax = MemoryWindowBaseAddress * 256ul; // 256 banks *
-                                                                 // window size
-    Serial.println(F("Features: "));
-    Serial.println(F("Bank Switching Controlled By AVR"));
-    Serial.print(F("Base Address of IO RAM Window: 0x"));
-    Serial.println(MemoryWindowBaseAddress, HEX);
-    Serial.print(F("Maximum IO RAM Available: "));
-    Serial.print(IORamMax, DEC);
-    Serial.println(F(" bytes"));
-    Serial.print(F("Memory Mapping Mode: "));
-    Serial.println(F("Directly Connected FLASH/SRAM/RAM + IO Space with Independent RAM Section"));
     Serial.print(F("Detected i960 CPU Kind: "));
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:

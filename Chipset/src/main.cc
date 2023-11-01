@@ -52,7 +52,7 @@ enum class PortHUsage {
     DataLines8_15,
 };
 
-constexpr auto PortHIsFunctioningAs = PortHUsage::OffsetAddressTranslation;
+constexpr auto PortHIsFunctioningAs = PortHUsage::DataLines0_7;
 
 
 Adafruit_SSD1351 oled(

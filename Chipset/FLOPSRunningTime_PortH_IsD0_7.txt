@@ -1,0 +1,22 @@
+Note: Address Lines are read from io expander as a consequence
+
+ FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.6290e-13    116.0800      0.1206
+     2     -1.5099e-14     82.4400      0.0849
+     3     -7.2803e-13    131.6000      0.1292
+     4     -1.1826e-12    109.9200      0.1365
+     5      4.3492e-12    226.9200      0.1278
+     6     -8.1382e-13    228.1600      0.1271
+     7      1.2739e-10    129.4800      0.0927
+     8     -2.3518e-12    222.2800      0.1350
+
+   Iterations      =     250000
+   NullTime (usec) =     1.4800
+   MFLOPS(1)       =     0.0956
+   MFLOPS(2)       =     0.1142
+   MFLOPS(3)       =     0.1254
+   MFLOPS(4)       =     0.1315
+

@@ -879,6 +879,9 @@ setupPins() noexcept {
             getOutputRegister<Port::H>() = 0;
             break;
         default:
+            // for testing purposes, make all pins as inputs
+            getDirectionRegister<Port::H>() = 0;
+            getOutputRegister<Port::H>() = 0; // disable pullups
             break;
     }
 }

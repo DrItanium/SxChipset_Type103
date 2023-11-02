@@ -52,7 +52,7 @@ enum class PortHUsage {
     DataLines8_15,
 };
 
-constexpr auto PortHIsFunctioningAs = PortHUsage::DataLines0_7;
+constexpr auto PortHIsFunctioningAs = PortHUsage::Unspecified;
 
 
 Adafruit_SSD1351 oled(
@@ -744,6 +744,7 @@ ReadOperationStart:
     // wait until DEN goes low
     while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
+#if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to output since we are doing write -> read
         updateDataLinesDirection<0>();
@@ -752,6 +753,16 @@ ReadOperationStart:
         // then jump into the write loop
         goto WriteOperationBypass;
     } 
+#else
+    if (digitalRead<Pin::WR>() == HIGH) {
+        // change direction to output since we are doing write -> read
+        updateDataLinesDirection<0>();
+        // update the direction pin 
+        toggle<Pin::DirectionOutput>();
+        // then jump into the write loop
+        goto WriteOperationBypass;
+    } 
+#endif
 ReadOperationBypass:
     if constexpr (enableDebug) {
         Serial.printf(F("R (0x%lx)\n"), addressLinesValue32);
@@ -762,6 +773,7 @@ WriteOperationStart:
     // wait until DEN goes low
     while (digitalRead<WaitPin>());
     // standard read/write operation so do the normal dispatch
+#if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
         updateDataLinesDirection<0xFF>();
@@ -770,6 +782,17 @@ WriteOperationStart:
         // then jump into the write loop
         goto ReadOperationBypass;
     } 
+#else
+    if (digitalRead<Pin::WR>() == LOW) {
+        // change direction to input since we are doing read -> write
+        updateDataLinesDirection<0xFF>();
+        // update the direction pin 
+        toggle<Pin::DirectionOutput>();
+        // then jump into the write loop
+        goto ReadOperationBypass;
+    } 
+#endif
+
 WriteOperationBypass:
     if constexpr (enableDebug) {
         Serial.printf(F("W (0x%lx)\n"), addressLinesValue32);

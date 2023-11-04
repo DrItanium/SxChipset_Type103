@@ -95,6 +95,7 @@ Count = NUM_DIGITAL_PINS,
     CFG1 = PortL6,
     CFG2 = PortL7,
 
+    NewTransaction = PortE4,
 };
 namespace EyeSpi::Pins {
 #define X(title) constexpr auto title = static_cast<int>(Pin:: EyeSpi_Pin_ ## title )

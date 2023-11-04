@@ -694,7 +694,10 @@ Write_SignalDone:
         doIO<isReadOperation, enableDebug>();
     }
 }
-
+volatile bool enteredAddressState = false;
+ISR(INT4_vect) {
+    enteredAddressState = true;
+}
 template<bool enableDebug> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -742,7 +745,8 @@ executionBody() noexcept {
 ReadOperationStart:
     // read operation
     // wait until DEN goes low
-    while (digitalRead<WaitPin>());
+    while (!enteredAddressState);
+    enteredAddressState = false;
     // standard read/write operation so do the normal dispatch
 #if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
@@ -771,7 +775,8 @@ ReadOperationBypass:
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
-    while (digitalRead<WaitPin>());
+    while (!enteredAddressState);
+    enteredAddressState = false;
     // standard read/write operation so do the normal dispatch
 #if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
@@ -907,6 +912,7 @@ setupPins() noexcept {
             getOutputRegister<Port::H>() = 0; // disable pullups
             break;
     }
+    pinMode(Pin::NewTransaction, INPUT);
 }
 
 void
@@ -973,6 +979,10 @@ setup() {
     }
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
+    // attach interrupts
+    bitClear(EICRB, ISC40);
+    bitSet(EICRB, ISC41);
+    bitSet(EIMSK, INT4); 
     pullCPUOutOfReset();
 }
 template<bool enableDebug>

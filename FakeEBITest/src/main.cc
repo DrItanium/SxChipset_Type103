@@ -62,7 +62,7 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 [[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
 [[gnu::address(0x2200)]] volatile uint24_t addressLinesLower24;
-
+[[gnu::address(0x2204)]] volatile uint32_t addressLinesDirection;
 
 
 
@@ -71,24 +71,64 @@ setupExternalBus() noexcept {
     // setup the EBI
     XMCRB=0b1'0000'000;
     XMCRA=0b1'010'01'01;  
-    // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
-    // the single cycle wait state is necessary even with the AHC573s
+    // the CH351 does not return the direction register contents on a read
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
     AddressLinesInterface.view32.data = 0;
-    DataLinesInterface.view32.direction = 0xFFFF'FFFF;
-    DataLinesInterface.view32.data = 0;
-    Serial.print(F("address_lines.data: 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
-    Serial.print(F("address_lines.direction: 0x")); Serial.println(AddressLinesInterface.view32.direction, HEX);
+    DataLinesInterface.view32.direction = 0;
+}
+
+uint32_t readFromBus(uint32_t address) noexcept {
+    AddressLinesInterface.view32.data = address;
+    DataLinesInterface.view32.direction = 0;
+    digitalWrite<Pin::BE0, LOW>();
+    digitalWrite<Pin::BE1, LOW>();
+    digitalWrite<Pin::BE2, LOW>();
+    digitalWrite<Pin::BE3, LOW>();
+    digitalWrite<Pin::WR, LOW>();
+    digitalWrite<Pin::DEN, LOW>();
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    uint32_t result = DataLinesInterface.view32.data;
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    digitalWrite<Pin::DEN, HIGH>();
+    return result;
 }
 
 
 void
 setup() {
     Serial.begin(115200);
+    pinMode(Pin::BE0, OUTPUT);
+    pinMode(Pin::BE1, OUTPUT);
+    pinMode(Pin::BE2, OUTPUT);
+    pinMode(Pin::BE3, OUTPUT);
+    pinMode(Pin::DEN, OUTPUT);
+    pinMode(Pin::WR, OUTPUT);
+    digitalWrite<Pin::WR, HIGH>();
+    digitalWrite<Pin::BE0, LOW>();
+    digitalWrite<Pin::BE1, LOW>();
+    digitalWrite<Pin::BE2, LOW>();
+    digitalWrite<Pin::BE3, LOW>();
+    digitalWrite<Pin::DEN, HIGH>();
     setupExternalBus();
 }
-
+volatile uint32_t address = 0;
 void 
 loop() {
+    Serial.print(F("Read from 0x"));
+    Serial.print(address, HEX);
+    Serial.print(F(": 0x"));
+    auto result = readFromBus(address);
+    Serial.println(result, HEX);
+    address+=4;
 }
 

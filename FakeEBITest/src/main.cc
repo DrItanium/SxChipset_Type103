@@ -86,21 +86,24 @@ uint32_t readFromBus(uint32_t address) noexcept {
     digitalWrite<Pin::BE3, LOW>();
     digitalWrite<Pin::WR, LOW>();
     digitalWrite<Pin::DEN, LOW>();
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
     uint32_t result = DataLinesInterface.view32.data;
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
+    digitalWrite<Pin::DEN, HIGH>();
+    return result;
+}
+
+void writeToBus(uint32_t address, uint32_t value) noexcept {
+    AddressLinesInterface.view32.data = address;
+    digitalWrite<Pin::BE0, LOW>();
+    digitalWrite<Pin::BE1, LOW>();
+    digitalWrite<Pin::BE2, LOW>();
+    digitalWrite<Pin::BE3, LOW>();
+    digitalWrite<Pin::WR, HIGH>();
+    digitalWrite<Pin::DEN, LOW>();
+    DataLinesInterface.view32.direction = 0xFFFF'FFFF;
+    DataLinesInterface.view32.data = value;
     asm volatile ("nop");
     asm volatile ("nop");
     digitalWrite<Pin::DEN, HIGH>();
-    return result;
 }
 
 
@@ -121,14 +124,30 @@ setup() {
     digitalWrite<Pin::DEN, HIGH>();
     setupExternalBus();
 }
-volatile uint32_t address = 0;
+volatile uint24_t flashAddress = 0;
+constexpr uint32_t sramBaseAddress = 16ul * 1024ul * 1024ul;
 void 
 loop() {
     Serial.print(F("Read from 0x"));
-    Serial.print(address, HEX);
+    Serial.print(static_cast<uint32_t>(flashAddress), HEX);
     Serial.print(F(": 0x"));
-    auto result = readFromBus(address);
+    auto result = readFromBus(flashAddress);
     Serial.println(result, HEX);
-    address+=4;
+    Serial.print(F("Write to 0x"));
+    uint32_t dest = flashAddress + sramBaseAddress;
+    Serial.print(dest, HEX);
+    Serial.print(F(" the value 0x"));
+    Serial.println(result, HEX);
+    writeToBus(dest, result);
+
+    Serial.print(F("Read from 0x"));
+    Serial.print(dest, HEX);
+    Serial.print(F(": 0x"));
+    auto result2 = readFromBus(dest);
+    Serial.println(result2, HEX);
+    if (result != result2) {
+        Serial.println(F("MISMATCH!!!!"));
+    }
+    flashAddress+=4;
 }
 

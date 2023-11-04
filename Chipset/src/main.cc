@@ -694,10 +694,6 @@ Write_SignalDone:
         doIO<isReadOperation, enableDebug>();
     }
 }
-volatile bool enteredAddressState = false;
-ISR(INT4_vect) {
-    enteredAddressState = true;
-}
 template<bool enableDebug> 
 //[[gnu::optimize("no-reorder-blocks")]]
 [[gnu::noinline]]
@@ -745,8 +741,8 @@ executionBody() noexcept {
 ReadOperationStart:
     // read operation
     // wait until DEN goes low
-    while (!enteredAddressState);
-    enteredAddressState = false;
+    while (!(EIFR & _BV(INTF4)));
+    bitSet(EIFR, INTF4);
     // standard read/write operation so do the normal dispatch
 #if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
@@ -775,8 +771,8 @@ ReadOperationBypass:
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
-    while (!enteredAddressState);
-    enteredAddressState = false;
+    while (!(EIFR & _BV(INTF4)));
+    bitSet(EIFR, INTF4);
     // standard read/write operation so do the normal dispatch
 #if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
@@ -982,7 +978,8 @@ setup() {
     // attach interrupts
     bitClear(EICRB, ISC40);
     bitSet(EICRB, ISC41);
-    bitSet(EIMSK, INT4); 
+    // don't enable the interrupt handler
+    //bitSet(EIMSK, INT4); 
     pullCPUOutOfReset();
 }
 template<bool enableDebug>

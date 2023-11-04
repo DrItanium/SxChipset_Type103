@@ -108,6 +108,8 @@ void transfer32() {
     Serial.println(F("Transferring data from FLASH to SRAM (32-bits at a time)!"));
     auto startTime = millis();
     for (uint32_t flashAddress = 0, sramAddress = 16ul * 1024ul * 1024ul; flashAddress < (2 * 1024ul * 1024ul); flashAddress += 4, sramAddress += 4) {
+        writeToBus(sramAddress, readFromBus(flashAddress));
+#if 0
         auto flashRead = readFromBus(flashAddress);
         writeToBus(sramAddress, flashRead);
         auto readBackVerify = readFromBus(sramAddress);
@@ -120,6 +122,7 @@ void transfer32() {
             Serial.println(readBackVerify, HEX);
             break;
         }
+#endif
     }
     auto endTime = millis();
     Serial.println(F("DONE!"));

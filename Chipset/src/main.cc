@@ -305,7 +305,7 @@ void idleTransaction() noexcept {
     while (!isBurstLast()) {
         signalReady<true>();
     }
-    signalReady<true>();
+    signalReady<false>();
 }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
@@ -564,7 +564,7 @@ void doIO() noexcept {
                           idleTransaction();
                           return;
     } 
-    signalReady<true>(); 
+    signalReady<false>(); 
 }
 #undef I960_Signal_Switch
 
@@ -627,7 +627,7 @@ doIOOperation() noexcept {
             next = theWords[7];
 Read_Done:
             setData(next);
-            signalReady<true>();
+            signalReady<false>();
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
@@ -688,7 +688,7 @@ Write_Done:
                 theBytes[1] = getDataByte<1>();
             }
 Write_SignalDone:
-            signalReady<true>();
+            signalReady<false>();
         }
     } else {
         doIO<isReadOperation, enableDebug>();

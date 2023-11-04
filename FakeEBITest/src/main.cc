@@ -108,8 +108,7 @@ void transfer32() {
     Serial.println(F("Transferring data from FLASH to SRAM (32-bits at a time)!"));
     auto startTime = millis();
     for (uint32_t flashAddress = 0, sramAddress = 16ul * 1024ul * 1024ul; flashAddress < (2 * 1024ul * 1024ul); flashAddress += 4, sramAddress += 4) {
-        writeToBus(sramAddress, readFromBus(flashAddress));
-#if 0
+#if 1
         auto flashRead = readFromBus(flashAddress);
         writeToBus(sramAddress, flashRead);
         auto readBackVerify = readFromBus(sramAddress);
@@ -122,6 +121,8 @@ void transfer32() {
             Serial.println(readBackVerify, HEX);
             break;
         }
+#else
+        writeToBus(sramAddress, readFromBus(flashAddress));
 #endif
     }
     auto endTime = millis();
@@ -150,6 +151,10 @@ setup() {
     digitalWrite<Pin::BE2, LOW>();
     digitalWrite<Pin::BE3, LOW>();
     digitalWrite<Pin::DEN, HIGH>();
+    pinMode(Pin::HOLD, OUTPUT);
+    pinMode(Pin::RESET, OUTPUT);
+    digitalWrite<Pin::HOLD, LOW>();
+    digitalWrite<Pin::RESET, LOW>();
     setupExternalBus();
     transfer32();
 }

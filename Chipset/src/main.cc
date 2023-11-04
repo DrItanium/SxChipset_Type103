@@ -743,7 +743,6 @@ ReadOperationStart:
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
     bitSet(EIFR, INTF4);
-    // standard read/write operation so do the normal dispatch
 #if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to output since we are doing write -> read
@@ -773,7 +772,6 @@ WriteOperationStart:
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
     bitSet(EIFR, INTF4);
-    // standard read/write operation so do the normal dispatch
 #if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write

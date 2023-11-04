@@ -112,14 +112,20 @@ void transfer32() {
         auto flashRead = readFromBus(flashAddress);
         writeToBus(sramAddress, flashRead);
         auto readBackVerify = readFromBus(sramAddress);
+        // try it multiple times
         if (flashRead != readBackVerify) {
-            Serial.print(F("Mismatch @0x"));
-            Serial.print(flashAddress, HEX);
-            Serial.print(F(", expected: 0x"));
-            Serial.print(flashRead, HEX);
-            Serial.print(F(", got: 0x"));
-            Serial.println(readBackVerify, HEX);
-            break;
+            writeToBus(sramAddress, flashRead);
+            readBackVerify = readFromBus(sramAddress);
+            // see if the second time through works better
+            if (flashRead != readBackVerify) {
+                Serial.print(F("Mismatch @0x"));
+                Serial.print(flashAddress, HEX);
+                Serial.print(F(", expected: 0x"));
+                Serial.print(flashRead, HEX);
+                Serial.print(F(", got: 0x"));
+                Serial.println(readBackVerify, HEX);
+                break;
+            }
         }
 #else
         writeToBus(sramAddress, readFromBus(flashAddress));
@@ -145,18 +151,23 @@ setup() {
     pinMode(Pin::BE3, OUTPUT);
     pinMode(Pin::DEN, OUTPUT);
     pinMode(Pin::WR, OUTPUT);
+    pinMode(Pin::HOLD, OUTPUT);
+    pinMode(Pin::RESET, OUTPUT);
+    pinMode(Pin::LOCK, INPUT);
+    pinMode(Pin::INT0_960_, OUTPUT);
     digitalWrite<Pin::WR, HIGH>();
     digitalWrite<Pin::BE0, LOW>();
     digitalWrite<Pin::BE1, LOW>();
     digitalWrite<Pin::BE2, LOW>();
     digitalWrite<Pin::BE3, LOW>();
     digitalWrite<Pin::DEN, HIGH>();
-    pinMode(Pin::HOLD, OUTPUT);
-    pinMode(Pin::RESET, OUTPUT);
+    digitalWrite<Pin::INT0_960_, HIGH>();
     digitalWrite<Pin::HOLD, LOW>();
     digitalWrite<Pin::RESET, LOW>();
     setupExternalBus();
+    // hold control of the bus!
     transfer32();
+    // at this point we reset the cpu and pull it out of LOCK mode
 }
 void 
 loop() {

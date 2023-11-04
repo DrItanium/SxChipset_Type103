@@ -76,7 +76,6 @@ setupExternalBus() noexcept {
     AddressLinesInterface.view32.data = 0;
     DataLinesInterface.view32.direction = 0;
 }
-
 uint32_t readFromBus(uint32_t address) noexcept {
     AddressLinesInterface.view32.data = address;
     DataLinesInterface.view32.direction = 0;
@@ -91,6 +90,8 @@ uint32_t readFromBus(uint32_t address) noexcept {
     return result;
 }
 
+
+
 void writeToBus(uint32_t address, uint32_t value) noexcept {
     AddressLinesInterface.view32.data = address;
     digitalWrite<Pin::BE0, LOW>();
@@ -101,11 +102,35 @@ void writeToBus(uint32_t address, uint32_t value) noexcept {
     digitalWrite<Pin::DEN, LOW>();
     DataLinesInterface.view32.direction = 0xFFFF'FFFF;
     DataLinesInterface.view32.data = value;
-    asm volatile ("nop");
-    asm volatile ("nop");
     digitalWrite<Pin::DEN, HIGH>();
 }
-
+void transfer32() {
+    Serial.println(F("Transferring data from FLASH to SRAM (32-bits at a time)!"));
+    auto startTime = millis();
+    for (uint32_t flashAddress = 0, sramAddress = 16ul * 1024ul * 1024ul; flashAddress < (2 * 1024ul * 1024ul); flashAddress += 4, sramAddress += 4) {
+        auto flashRead = readFromBus(flashAddress);
+        writeToBus(sramAddress, flashRead);
+        auto readBackVerify = readFromBus(sramAddress);
+        if (flashRead != readBackVerify) {
+            Serial.print(F("Mismatch @0x"));
+            Serial.print(flashAddress, HEX);
+            Serial.print(F(", expected: 0x"));
+            Serial.print(flashRead, HEX);
+            Serial.print(F(", got: 0x"));
+            Serial.println(readBackVerify, HEX);
+            break;
+        }
+    }
+    auto endTime = millis();
+    Serial.println(F("DONE!"));
+    auto durationMillis = endTime - startTime;
+    Serial.print(F("Took "));
+    Serial.print(durationMillis);
+    Serial.println(F(" milliseconds!"));
+    Serial.print(F("Took "));
+    Serial.print(durationMillis / 1000);
+    Serial.println(F(" seconds!"));
+}
 
 void
 setup() {
@@ -123,31 +148,9 @@ setup() {
     digitalWrite<Pin::BE3, LOW>();
     digitalWrite<Pin::DEN, HIGH>();
     setupExternalBus();
+    transfer32();
 }
-volatile uint24_t flashAddress = 0;
-constexpr uint32_t sramBaseAddress = 16ul * 1024ul * 1024ul;
 void 
 loop() {
-    Serial.print(F("Read from 0x"));
-    Serial.print(static_cast<uint32_t>(flashAddress), HEX);
-    Serial.print(F(": 0x"));
-    auto result = readFromBus(flashAddress);
-    Serial.println(result, HEX);
-    Serial.print(F("Write to 0x"));
-    uint32_t dest = flashAddress + sramBaseAddress;
-    Serial.print(dest, HEX);
-    Serial.print(F(" the value 0x"));
-    Serial.println(result, HEX);
-    writeToBus(dest, result);
-
-    Serial.print(F("Read from 0x"));
-    Serial.print(dest, HEX);
-    Serial.print(F(": 0x"));
-    auto result2 = readFromBus(dest);
-    Serial.println(result2, HEX);
-    if (result != result2) {
-        Serial.println(F("MISMATCH!!!!"));
-    }
-    flashAddress+=4;
 }
 

@@ -741,7 +741,7 @@ executionBody() noexcept {
 ReadOperationStart:
     // read operation
     // wait until DEN goes low
-    while (!(EIFR & _BV(INTF4)));
+    loop_until_bit_is_set(EIFR, INTF4);
     bitSet(EIFR, INTF4);
     // standard read/write operation so do the normal dispatch
 #if 0
@@ -771,7 +771,7 @@ ReadOperationBypass:
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
-    while (!(EIFR & _BV(INTF4)));
+    loop_until_bit_is_set(EIFR, INTF4);
     bitSet(EIFR, INTF4);
     // standard read/write operation so do the normal dispatch
 #if 0

@@ -1,0 +1,25 @@
+
+
+ Pin # | Name     | Pin Type
+-----------------------------
+   1   | CLK      | Input
+   2   | ADS      | Input
+   3   | BLAST    | Input
+   4   | READY    | Input
+   5   | DEN      | Input
+   6   | WR       | Input
+   7   | NC       | Input
+   8   | NC       | Input
+   9   | NC       | Input
+  10   | GND      | GND
+  11   | NC       | Input
+  12   | NC       | NC
+  13   | NC       | NC
+  14   | NC       | NC
+  15   | LTR      | Output
+  16   | CAPC     | Output
+  17   | PE6      | Output
+  18   | PE5      | Output
+  19   | PE4      | Output
+  20   | VCC      | VCC
+

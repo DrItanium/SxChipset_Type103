@@ -26,8 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SdFat.h>
 #include <Wire.h>
+#if 0
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1351.h>
+#endif
 
 
 #include "Detect.h"
@@ -54,7 +56,7 @@ enum class PortHUsage {
 
 constexpr auto PortHIsFunctioningAs = PortHUsage::Unspecified;
 
-
+#if 0
 Adafruit_SSD1351 oled(
         128,
         128,
@@ -62,12 +64,13 @@ Adafruit_SSD1351 oled(
         EyeSpi::Pins::TFTCS,
         EyeSpi::Pins::DC,
         EyeSpi::Pins::Reset);
-
+#endif
 
 
 
 void
 setupDisplay() noexcept {
+#if 0
     oled.begin();
     oled.setFont();
     oled.fillScreen(0);
@@ -75,6 +78,7 @@ setupDisplay() noexcept {
     oled.setTextSize(1);
     oled.println(F("i960"));
     oled.enableDisplay(true);
+#endif
 }
 
 
@@ -702,7 +706,7 @@ void
 executionBody() noexcept {
     digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex(0);
-    static constexpr auto WaitPin = Pin::DEN;
+    //static constexpr auto WaitPin = Pin::DEN;
     getDirectionRegister<Port::IBUS_Bank>() = 0x00;
     // this microcontroller is not responsible for signalling ready manually
     // in this method. Instead, an external piece of hardware known as "Timing

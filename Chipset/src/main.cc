@@ -115,7 +115,6 @@ setData(uint16_t value) noexcept {
     dataLinesHalves[0] = value;
 }
 
-template<bool enableDebug>
 FORCE_INLINE
 inline
 DataRegister8
@@ -151,11 +150,11 @@ signalReadyRaw(ToggleReadySignal) noexcept {
     }
 }
 
-template<bool waitForReady, int delayAmount = 4>
+template<uint8_t delayAmount = 4>
 [[gnu::always_inline]]
 inline void
 signalReady() noexcept {
-    signalReadyRaw<waitForReady, Pin::READY, delayAmount>(ReadySignalStyle{});
+    signalReadyRaw<(delayAmount > 0), Pin::READY, delayAmount>(ReadySignalStyle{});
 }
 using Register8 = volatile uint8_t&;
 using Register16 = volatile uint16_t&;
@@ -231,15 +230,15 @@ FORCE_INLINE
 inline
 void idleTransaction() noexcept {
     while (!isBurstLast()) {
-        signalReady<true>();
+        signalReady();
     }
-    signalReady<false>();
+    signalReady<0>();
 }
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
         break; \
     } \
-    signalReady<true>()
+    signalReady()
 
 template<bool isReadOperation, bool enableDebug>
 FORCE_INLINE 
@@ -492,7 +491,7 @@ void doIO() noexcept {
                           idleTransaction();
                           return;
     } 
-    signalReady<false>(); 
+    signalReady<0>(); 
 }
 #undef I960_Signal_Switch
 
@@ -507,7 +506,7 @@ doIOOperation() noexcept {
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
         // needed
-        auto theBytes = getTransactionWindow<enableDebug>();
+        auto theBytes = getTransactionWindow();
         if constexpr (isReadOperation) {
             auto theWords = reinterpret_cast<DataRegister16>(theBytes);
             auto next = theWords[0];
@@ -515,47 +514,47 @@ doIOOperation() noexcept {
                 goto Read_Done; 
             } 
             setData(next);
-            signalReady<false>();
+            signalReady<0>();
             next = theWords[1];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(next);
-            signalReady<false>();
+            signalReady<0>();
             next = theWords[2];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(next);
-            signalReady<false>();
+            signalReady<0>();
             next = theWords[3];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(next);
-            signalReady<false>();
+            signalReady<0>();
             next = theWords[4];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(next);
-            signalReady<false>();
+            signalReady<0>();
             next = theWords[5];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(next);
-            signalReady<false>();
+            signalReady<0>();
             next = theWords[6];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(next);
-            signalReady<false>();
+            signalReady<0>();
             next = theWords[7];
 Read_Done:
             setData(next);
-            signalReady<false>();
+            signalReady<0>();
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {
                 theBytes[0] = getDataByte<0>();
@@ -566,49 +565,49 @@ Read_Done:
             if (isBurstLast()) { 
                 goto Write_SignalDone; 
             } 
-            signalReady<true>();
+            signalReady();
             theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
-            signalReady<true>();
+            signalReady();
             theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
-            signalReady<true>();
+            signalReady();
             theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
-            signalReady<true>();
+            signalReady();
             theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
-            signalReady<true>();
+            signalReady();
             theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
-            signalReady<true>();
+            signalReady();
             theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
-            signalReady<true>();
+            signalReady();
             theBytes += 2;
 Write_Done:
             theBytes[0] = getDataByte<0>();
@@ -616,7 +615,7 @@ Write_Done:
                 theBytes[1] = getDataByte<1>();
             }
 Write_SignalDone:
-            signalReady<false>();
+            signalReady<0>();
         }
     } else {
         doIO<isReadOperation, enableDebug>();

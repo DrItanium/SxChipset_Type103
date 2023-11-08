@@ -145,12 +145,10 @@ X(5);
 void 
 putCPUInReset() noexcept {
     ControlSignals.ctl.reset = 0;
-    //digitalWrite<Pin::RESET, LOW>();
 }
 void 
 pullCPUOutOfReset() noexcept {
     ControlSignals.ctl.reset = 1;
-    //digitalWrite<Pin::RESET, HIGH>();
 }
 
 

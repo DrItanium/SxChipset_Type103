@@ -731,7 +731,8 @@ ReadOperationStart:
         goto WriteOperationBypass;
     } 
 #else
-    if (digitalRead<Pin::WR>() == HIGH) {
+    if (bit_is_set(EIFR, INTF5)) {
+    //if (digitalRead<Pin::WR>() == HIGH) {
         // change direction to output since we are doing write -> read
         updateDataLinesDirection<0>();
         // update the direction pin 
@@ -760,7 +761,8 @@ WriteOperationStart:
         goto ReadOperationBypass;
     } 
 #else
-    if (digitalRead<Pin::WR>() == LOW) {
+    if (bit_is_set(EIFR, INTF6)) {
+    //if (digitalRead<Pin::WR>() == LOW) {
         // change direction to input since we are doing read -> write
         updateDataLinesDirection<0xFF>();
         // update the direction pin 

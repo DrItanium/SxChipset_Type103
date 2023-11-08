@@ -693,26 +693,9 @@ setupPins() noexcept {
     pinMode(Pin::DEN, INPUT);
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
-    pinMode(Pin::DirectionOutput, OUTPUT);
-    pinMode(Pin::A23_960, INPUT);
     // we start with 0xFF for the direction output so reflect it here
     pinMode(Pin::READY, OUTPUT);
     digitalWrite<Pin::READY, HIGH>();
-#if 0
-    digitalWrite<Pin::DirectionOutput, HIGH>();
-    pinMode(Pin::ChangeDirection, INPUT);
-    getDirectionRegister<Port::BankCapture>() = 0;
-    pinMode(Pin::HOLD, OUTPUT);
-    digitalWrite<Pin::HOLD, LOW>();
-    pinMode(Pin::HLDA, INPUT);
-    pinMode(Pin::LOCK, INPUT);
-    pinMode(Pin::FAIL, INPUT);
-    pinMode(Pin::RESET, OUTPUT);
-    digitalWrite<Pin::RESET, LOW>();
-    pinMode(Pin::CFG0, INPUT);
-    pinMode(Pin::CFG1, INPUT);
-    pinMode(Pin::CFG2, INPUT);
-#endif
 
     // set these up ahead of time
 
@@ -783,7 +766,6 @@ setup() {
             while(true);
             break;
     }
-    digitalWrite<Pin::DirectionOutput, HIGH>();
     setBankIndex(0);
     //static constexpr auto WaitPin = Pin::DEN;
     getDirectionRegister<Port::IBUS_Bank>() = 0x00;
@@ -794,7 +776,6 @@ void
 switchDirection() {
     updateDataLinesDirection<mask>();
     // update the direction pin to change the direction of the transceivers
-    toggle<Pin::DirectionOutput>();
 }
 void 
 loop() {

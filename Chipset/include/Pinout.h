@@ -71,21 +71,7 @@ Count = NUM_DIGITAL_PINS,
     WR = PortF6,
     READY = PortF7,
 
-    ChangeDirection = PortD4,
-    IsMemorySpaceOperation = PortD5,
-    DirectionOutput = PortD6,
-    A23_960 = PortD7,
-#if 0
-    HOLD = PortL0,
-    HLDA = PortL1,
-    LOCK = PortL2,
-    FAIL = PortL3,
-    RESET = PortL4,
-    CFG0 = PortL5,
-    CFG1 = PortL6,
-    CFG2 = PortL7,
-#endif
-
+    IsMemorySpaceOperation = PortE2,
     NewTransaction = PortE4,
     WriteTransaction = PortE5,
     ReadTransaction = PortE6,

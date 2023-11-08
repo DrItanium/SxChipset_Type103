@@ -721,7 +721,6 @@ ReadOperationStart:
     // read operation
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
-    bitSet(EIFR, INTF4);
 #if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to output since we are doing write -> read
@@ -742,6 +741,7 @@ ReadOperationStart:
     } 
 #endif
 ReadOperationBypass:
+    EIFR = 0b0111'0000;
     if constexpr (enableDebug) {
         Serial.printf(F("R (0x%lx)\n"), addressLinesValue32);
     }
@@ -750,7 +750,6 @@ ReadOperationBypass:
 WriteOperationStart:
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
-    bitSet(EIFR, INTF4);
 #if 0
     if (!digitalRead<Pin::ChangeDirection>()) {
         // change direction to input since we are doing read -> write
@@ -772,6 +771,7 @@ WriteOperationStart:
 #endif
 
 WriteOperationBypass:
+    EIFR = 0b0111'0000;
     if constexpr (enableDebug) {
         Serial.printf(F("W (0x%lx)\n"), addressLinesValue32);
     }

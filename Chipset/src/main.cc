@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
-#include <Wire.h>
 
 
 #include "Detect.h"
@@ -47,11 +46,7 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
-[[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
-[[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
 
-[[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
-[[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
@@ -67,42 +62,42 @@ setBankIndex(uint32_t value) {
 inline 
 uint8_t 
 getUpperDataByte() noexcept {
-    return dataLines[1];
+    return DataLinesInterface.view8.data[1];
 }
 
 [[gnu::always_inline]]
 inline 
 uint8_t 
 getLowerDataByte() noexcept {
-    return dataLines[0];
+    return DataLinesInterface.view8.data[0];
 }
 
 [[gnu::always_inline]]
 inline
 void
 setLowerDataByte(uint8_t value) noexcept {
-        dataLines[0] = value;
+    DataLinesInterface.view8.data[0] = value;
 }
 
 [[gnu::always_inline]]
 inline
 void
 setUpperDataByte(uint8_t value) noexcept {
-        dataLines[1] = value;
+    DataLinesInterface.view8.data[1] = value;
 }
 
 [[gnu::always_inline]]
 inline
 uint16_t
 getData() noexcept {
-    return dataLinesHalves[0];
+    return DataLinesInterface.view16.data[0];
 }
 
 [[gnu::always_inline]]
 inline
 void
 setData(uint16_t value) noexcept {
-    dataLinesHalves[0] = value;
+    DataLinesInterface.view16.data[0] = value;
 }
 
 FORCE_INLINE
@@ -110,41 +105,17 @@ inline
 DataRegister8
 getTransactionWindow() noexcept {
     // currently, there is no bank switching, the i960 handles that
-    return memoryPointer<uint8_t>((addressLinesLowerHalf & 0x3fff) | 0x4000);
-}
-struct PulseReadySignal final { };
-struct ToggleReadySignal final { };
-using ReadySignalStyle = ToggleReadySignal;
-
-template<bool waitForReady, Pin targetPin, int delayAmount>
-[[gnu::always_inline]] 
-inline void 
-signalReadyRaw(PulseReadySignal) noexcept {
-    pulse<targetPin>();
-    if constexpr (waitForReady) {
-        // wait four cycles after to make sure that the ready signal has been
-        // propagated to the i960
-        insertCustomNopCount<delayAmount>();
-    }
-}
-
-template<bool waitForReady, Pin targetPin, int delayAmount>
-[[gnu::always_inline]] 
-inline void 
-signalReadyRaw(ToggleReadySignal) noexcept {
-    toggle<targetPin>();
-    if constexpr (waitForReady) {
-        // wait four cycles after to make sure that the ready signal has been
-        // propagated to the i960
-        insertCustomNopCount<delayAmount>();
-    }
+    return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3fff) | 0x4000);
 }
 
 template<uint8_t delayAmount = 4>
 [[gnu::always_inline]]
 inline void
 signalReady() noexcept {
-    signalReadyRaw<(delayAmount > 0), Pin::READY, delayAmount>(ReadySignalStyle{});
+    toggle<Pin::READY>();
+    if constexpr (delayAmount > 0) {
+        insertCustomNopCount<delayAmount>();
+    }
 }
 
 using Register8 = volatile uint8_t&;
@@ -227,7 +198,7 @@ template<bool isReadOperation>
 FORCE_INLINE 
 inline 
 void doIO() noexcept { 
-    switch (addressLines[0]) { 
+    switch (AddressLinesInterface.view8.data[0]) { 
         case 0: { 
                     if constexpr (isReadOperation) { 
                         setData(static_cast<uint16_t>(F_CPU));
@@ -671,7 +642,6 @@ setup() {
     //serial2PacketEncoder.setStream(&Serial2);
     //serial2PacketEncoder.setPacketHandler([](const uint8_t* buffer, size_t size) { processPacketFromSender_Serial2(serial2PacketEncoder, buffer, size); });
     SPI.begin();
-    Wire.begin();
     // power down the ADC and USART3
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC

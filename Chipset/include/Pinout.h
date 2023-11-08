@@ -75,7 +75,6 @@ Count = NUM_DIGITAL_PINS,
     IsMemorySpaceOperation = PortD5,
     DirectionOutput = PortD6,
     A23_960 = PortD7,
-    AlignmentCheck = PortG5,
 #if 0
     HOLD = PortL0,
     HLDA = PortL1,
@@ -100,9 +99,6 @@ enum class Port : byte {
     SignalCTL = F,
     IBUS_Bank = J,
     ExecutionState = D,
-    BankCapture = K,
-    CTL960 = L,
-    PointerOffset = H,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

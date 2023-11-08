@@ -694,7 +694,6 @@ setupPins() noexcept {
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
     pinMode(Pin::DirectionOutput, OUTPUT);
-    pinMode(Pin::AlignmentCheck, INPUT);
     pinMode(Pin::A23_960, INPUT);
     // we start with 0xFF for the direction output so reflect it here
     pinMode(Pin::READY, OUTPUT);
@@ -727,7 +726,8 @@ setupPins() noexcept {
 
 CPUKind 
 getInstalledCPUKind() noexcept { 
-    return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
+    //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
+    return static_cast<CPUKind>(ControlSignals.ctl.cfg);
 }
 void banner() noexcept;
 

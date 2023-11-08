@@ -26,10 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SdFat.h>
 #include <Wire.h>
-#if 0
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1351.h>
-#endif
 
 
 #include "Detect.h"

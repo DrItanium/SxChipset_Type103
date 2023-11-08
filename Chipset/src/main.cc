@@ -35,7 +35,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
-using DataRegister32 = volatile uint32_t*;
 
 constexpr bool PrintBanner = true;
 constexpr auto TransferBufferSize = 16384;
@@ -225,8 +224,8 @@ template<uint8_t value>
 inline 
 void 
 updateDataLinesDirection() noexcept {
-    dataLinesDirection_bytes[0] = value;
-    dataLinesDirection_bytes[1] = value;
+    DataLinesInterface.view8.direction[0] = value;
+    DataLinesInterface.view8.direction[1] = value;
 }
 FORCE_INLINE
 inline

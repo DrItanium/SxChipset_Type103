@@ -146,6 +146,7 @@ inline void
 signalReady() noexcept {
     signalReadyRaw<(delayAmount > 0), Pin::READY, delayAmount>(ReadySignalStyle{});
 }
+
 using Register8 = volatile uint8_t&;
 using Register16 = volatile uint16_t&;
 template<int index>
@@ -737,6 +738,10 @@ setup() {
             Serial.println(F("Unknown"));
             break;
     }
+    auto cpuNotSupported = []() {
+        Serial.println(F("Target CPU is not supported by this firmware!"));
+        while(true);
+    };
     Serial.print(F("Bus Width: "));
     switch (getBusWidth(getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
@@ -744,9 +749,11 @@ setup() {
             break;
         case NativeBusWidth::ThirtyTwo:
             Serial.println(F("32-bit"));
+            cpuNotSupported();
             break;
         default:
             Serial.println(F("Unknown (fallback to 32-bit)"));
+            cpuNotSupported();
             break;
     }
     // find firmware.bin and install it into the 512k block of memory
@@ -761,14 +768,6 @@ setup() {
     EICRB = 0b1010'1010; // falling edge on the upper four interrupts
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
-    switch (getBusWidth(getInstalledCPUKind())) {
-        case NativeBusWidth::Sixteen:
-            break;
-        default:
-            Serial.println(F("Target CPU is not supported by this firmware!"));
-            while(true);
-            break;
-    }
     setBankIndex(0);
     //static constexpr auto WaitPin = Pin::DEN;
     getDirectionRegister<Port::IBUS_Bank>() = 0x00;

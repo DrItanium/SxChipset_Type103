@@ -76,7 +76,7 @@ Count = NUM_DIGITAL_PINS,
     DirectionOutput = PortD6,
     A23_960 = PortD7,
     AlignmentCheck = PortG5,
-
+#if 0
     HOLD = PortL0,
     HLDA = PortL1,
     LOCK = PortL2,
@@ -85,6 +85,7 @@ Count = NUM_DIGITAL_PINS,
     CFG0 = PortL5,
     CFG1 = PortL6,
     CFG2 = PortL7,
+#endif
 
     NewTransaction = PortE4,
     WriteTransaction = PortE5,

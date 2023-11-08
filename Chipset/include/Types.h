@@ -102,6 +102,33 @@ union [[gnu::packed]] CH351 {
         uint32_t bank : 18;
         uint32_t direction;
     } bankSwitching;
+    struct {
+        uint8_t hold : 1;
+        uint8_t hlda : 1;
+        uint8_t lock : 1;
+        uint8_t fail : 1;
+        uint8_t reset : 1;
+        uint8_t cfg : 3;
+        uint8_t freq : 3;
+        uint8_t backOff : 1;
+        uint8_t ready : 1;
+        uint8_t nmi : 1;
+        uint8_t unused : 2;
+        uint8_t xint0 : 1;
+        uint8_t xint1 : 1;
+        uint8_t xint2 : 1;
+        uint8_t xint3 : 1;
+        uint8_t xint4 : 1;
+        uint8_t xint5 : 1;
+        uint8_t xint6 : 1;
+        uint8_t xint7 : 1;
+        uint8_t byteEnable : 4;
+        uint8_t den : 1;
+        uint8_t blast : 1;
+        uint8_t wr : 1;
+        uint8_t bankSelect : 1;
+    } ctl;
+
 };
 static_assert(sizeof(CH351) == 8);
 

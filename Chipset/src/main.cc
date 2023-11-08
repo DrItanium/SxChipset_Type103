@@ -51,6 +51,8 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
+[[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
+[[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
 [[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
@@ -186,11 +188,13 @@ X(5);
 
 void 
 putCPUInReset() noexcept {
-    digitalWrite<Pin::RESET, LOW>();
+    ControlSignals.ctl.reset = 0;
+    //digitalWrite<Pin::RESET, LOW>();
 }
 void 
 pullCPUOutOfReset() noexcept {
-    digitalWrite<Pin::RESET, HIGH>();
+    ControlSignals.ctl.reset = 1;
+    //digitalWrite<Pin::RESET, HIGH>();
 }
 
 
@@ -693,6 +697,9 @@ setupPins() noexcept {
     pinMode(Pin::AlignmentCheck, INPUT);
     pinMode(Pin::A23_960, INPUT);
     // we start with 0xFF for the direction output so reflect it here
+    pinMode(Pin::READY, OUTPUT);
+    digitalWrite<Pin::READY, HIGH>();
+#if 0
     digitalWrite<Pin::DirectionOutput, HIGH>();
     pinMode(Pin::ChangeDirection, INPUT);
     getDirectionRegister<Port::BankCapture>() = 0;
@@ -706,11 +713,10 @@ setupPins() noexcept {
     pinMode(Pin::CFG0, INPUT);
     pinMode(Pin::CFG1, INPUT);
     pinMode(Pin::CFG2, INPUT);
+#endif
 
     // set these up ahead of time
-    //pinMode(Pin::EN2560, INPUT);
-    pinMode(Pin::READY, OUTPUT);
-    digitalWrite<Pin::READY, HIGH>();
+
     // setup bank capture to read in address lines
     pinMode(Pin::LED, OUTPUT);
     digitalWrite<Pin::LED, LOW>();
@@ -751,6 +757,8 @@ setup() {
     AddressLinesInterface.view32.data = 0;
     DataLinesInterface.view32.direction = 0x0000'FFFF;
     DataLinesInterface.view32.data = 0;
+    ControlSignals.view32.direction = 0b10000000'00000000'00000000'00010001;
+    ControlSignals.view32.data = 0;
     putCPUInReset();
     if constexpr (PrintBanner) {
         banner();

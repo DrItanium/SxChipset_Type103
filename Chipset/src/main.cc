@@ -48,19 +48,10 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
-[[gnu::address(0x2208)]] volatile uint32_t dataLinesFull;
 [[gnu::address(0x2208)]] volatile uint16_t dataLinesHalves[2];
-[[gnu::address(0x220C)]] volatile uint32_t dataLinesDirection;
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_bytes[4];
-[[gnu::address(0x220C)]] volatile uint8_t dataLinesDirection_LSB;
 
-[[gnu::address(0x2200)]] volatile uint16_t AddressLines16Ptr[4];
-[[gnu::address(0x2200)]] volatile uint32_t AddressLines32Ptr[2];
-[[gnu::address(0x2200)]] volatile uint32_t addressLinesValue32;
 [[gnu::address(0x2200)]] volatile uint16_t addressLinesLowerHalf;
 [[gnu::address(0x2200)]] volatile uint8_t addressLines[8];
-[[gnu::address(0x2200)]] volatile uint8_t addressLinesLowest;
-[[gnu::address(0x2200)]] volatile uint24_t addressLinesLower24;
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 

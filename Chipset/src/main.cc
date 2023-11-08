@@ -723,14 +723,6 @@ CPUKind
 getInstalledCPUKind() noexcept { 
     return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
 }
-void
-printlnBool(bool value) noexcept {
-    if (value) {
-        Serial.println(F("TRUE"));
-    } else {
-        Serial.println(F("FALSE"));
-    }
-}
 void banner() noexcept;
 
 void
@@ -869,10 +861,6 @@ WriteOperationBypass:
     goto WriteOperationStart;
 }
 
-template<typename T>
-void printlnBool(const T& value) noexcept {
-    printlnBool(value.found());
-}
 
 void
 banner() noexcept {

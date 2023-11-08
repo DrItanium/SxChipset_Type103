@@ -9,7 +9,7 @@ PE4 = ADS
 /PE6 = /ADS * /WR
 CAPC = /ADS * DEN
 LTR = /READY * /BLAST
-MEM = /A31
+MEM.R = /A31
 
 
 

@@ -47,21 +47,8 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
-enum class PortHUsage {
-    Unspecified,
-    OffsetAddressTranslation,
-    DataLines0_7,
-    DataLines8_15,
-};
-
-constexpr auto PortHIsFunctioningAs = PortHUsage::Unspecified;
 
 
-
-
-void 
-setupDevices() noexcept {
-}
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2208)]] volatile uint8_t dataLines[4];
@@ -93,67 +80,42 @@ setBankIndex(uint32_t value) {
 inline 
 uint8_t 
 getUpperDataByte() noexcept {
-    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
-        return getInputRegister<Port::H>();
-    } else {
-        return dataLines[1];
-    }
+    return dataLines[1];
 }
 
 [[gnu::always_inline]]
 inline 
 uint8_t 
 getLowerDataByte() noexcept {
-    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7) {
-        return getInputRegister<Port::H>();
-    } else {
-        return dataLines[0];
-    }
+    return dataLines[0];
 }
 
 [[gnu::always_inline]]
 inline
 void
 setLowerDataByte(uint8_t value) noexcept {
-    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7) {
-        getOutputRegister<Port::H>() = value;
-    } else {
         dataLines[0] = value;
-    }
 }
 
 [[gnu::always_inline]]
 inline
 void
 setUpperDataByte(uint8_t value) noexcept {
-    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
-        getOutputRegister<Port::H>() = value;
-    } else {
         dataLines[1] = value;
-    }
 }
 
 [[gnu::always_inline]]
 inline
 uint16_t
 getData() noexcept {
-    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7 || PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
-        return word(getUpperDataByte(), getLowerDataByte());
-    } else {
-        return dataLinesHalves[0];
-    }
+    return dataLinesHalves[0];
 }
 
 [[gnu::always_inline]]
 inline
 void
 setData(uint16_t value) noexcept {
-    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7 || PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
-        setLowerDataByte(static_cast<uint8_t>(value));
-        setUpperDataByte(static_cast<uint8_t>(value >> 8));
-    } else {
-        dataLinesHalves[0] = value;
-    }
+    dataLinesHalves[0] = value;
 }
 
 template<bool enableDebug>
@@ -162,11 +124,7 @@ inline
 DataRegister8
 getTransactionWindow() noexcept {
     // currently, there is no bank switching, the i960 handles that
-    if constexpr (PortHIsFunctioningAs == PortHUsage::OffsetAddressTranslation) {
-        return memoryPointer<uint8_t>(word(getInputRegister<Port::PointerOffset>(), addressLinesLowest));
-    } else {
-        return memoryPointer<uint8_t>((addressLinesLowerHalf & 0x3fff) | 0x4000);
-    }
+    return memoryPointer<uint8_t>((addressLinesLowerHalf & 0x3fff) | 0x4000);
 }
 struct PulseReadySignal final { };
 struct ToggleReadySignal final { };
@@ -267,16 +225,8 @@ template<uint8_t value>
 inline 
 void 
 updateDataLinesDirection() noexcept {
-    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines0_7) {
-        getDirectionRegister<Port::H>() = value;
-    } else {
-        dataLinesDirection_bytes[0] = value;
-    }
-    if constexpr (PortHIsFunctioningAs == PortHUsage::DataLines8_15) {
-        getDirectionRegister<Port::H>() = value;
-    } else {
-        dataLinesDirection_bytes[1] = value;
-    }
+    dataLinesDirection_bytes[0] = value;
+    dataLinesDirection_bytes[1] = value;
 }
 FORCE_INLINE
 inline
@@ -764,44 +714,9 @@ setupPins() noexcept {
     // setup bank capture to read in address lines
     pinMode(Pin::LED, OUTPUT);
     digitalWrite<Pin::LED, LOW>();
-    switch (PortHIsFunctioningAs) {
-        case PortHUsage::OffsetAddressTranslation:
-            // input since we are always going to be capturing data
-            getDirectionRegister<Port::H>() = 0;
-            break;
-        case PortHUsage::DataLines0_7:
-        case PortHUsage::DataLines8_15:
-            getDirectionRegister<Port::H>() = 0xFF; // output since we start in read mode
-            getOutputRegister<Port::H>() = 0;
-            break;
-        default:
-            // for testing purposes, make all pins as inputs
-            getDirectionRegister<Port::H>() = 0;
-            getOutputRegister<Port::H>() = 0; // disable pullups
-            break;
-    }
     pinMode(Pin::NewTransaction, INPUT);
     pinMode(Pin::ReadTransaction, INPUT);
     pinMode(Pin::WriteTransaction, INPUT);
-}
-
-void
-setupExternalBus() noexcept {
-    // setup the EBI
-    XMCRB=0b1'0000'000;
-    XMCRA=0b1'010'01'01;  
-    // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
-    // the single cycle wait state is necessary even with the AHC573s
-    AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
-    AddressLinesInterface.view32.data = 0;
-    DataLinesInterface.view32.direction = 0x0000'FFFF;
-    DataLinesInterface.view32.data = 0;
-}
-
-void 
-setupPlatform() noexcept {
-    setupExternalBus();
-    setupDevices();
 }
 
 CPUKind 
@@ -835,8 +750,15 @@ setup() {
     SPI.begin();
     Wire.begin();
     setupPins();
-    // setup the IO Expanders
-    setupPlatform();
+    // setup the EBI
+    XMCRB=0b1'0000'000;
+    XMCRA=0b1'010'01'01;  
+    // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
+    // the single cycle wait state is necessary even with the AHC573s
+    AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
+    AddressLinesInterface.view32.data = 0;
+    DataLinesInterface.view32.direction = 0x0000'FFFF;
+    DataLinesInterface.view32.data = 0;
     putCPUInReset();
     if constexpr (PrintBanner) {
         banner();

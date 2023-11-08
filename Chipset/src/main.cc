@@ -866,7 +866,14 @@ setup() {
     //static constexpr auto WaitPin = Pin::DEN;
     getDirectionRegister<Port::IBUS_Bank>() = 0x00;
 }
-
+template<uint8_t mask>
+inline
+void
+switchDirection() {
+    updateDataLinesDirection<mask>();
+    // update the direction pin to change the direction of the transceivers
+    toggle<Pin::DirectionOutput>();
+}
 void 
 loop() {
     static constexpr bool enableDebug = false;
@@ -908,26 +915,12 @@ ReadOperationStart:
     // read operation
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
-#if 0
-    if (!digitalRead<Pin::ChangeDirection>()) {
-        // change direction to output since we are doing write -> read
-        updateDataLinesDirection<0>();
-        // update the direction pin 
-        toggle<Pin::DirectionOutput>();
-        // then jump into the write loop
-        goto WriteOperationBypass;
-    } 
-#else
     if (bit_is_set(EIFR, INTF5)) {
-    //if (digitalRead<Pin::WR>() == HIGH) {
         // change direction to output since we are doing write -> read
-        updateDataLinesDirection<0>();
-        // update the direction pin 
-        toggle<Pin::DirectionOutput>();
+        switchDirection<0>();
         // then jump into the write loop
         goto WriteOperationBypass;
     } 
-#endif
 ReadOperationBypass:
     EIFR = 0b0111'0000;
     if constexpr (enableDebug) {
@@ -938,26 +931,12 @@ ReadOperationBypass:
 WriteOperationStart:
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
-#if 0
-    if (!digitalRead<Pin::ChangeDirection>()) {
-        // change direction to input since we are doing read -> write
-        updateDataLinesDirection<0xFF>();
-        // update the direction pin 
-        toggle<Pin::DirectionOutput>();
-        // then jump into the write loop
-        goto ReadOperationBypass;
-    } 
-#else
     if (bit_is_set(EIFR, INTF6)) {
-    //if (digitalRead<Pin::WR>() == LOW) {
         // change direction to input since we are doing read -> write
-        updateDataLinesDirection<0xFF>();
-        // update the direction pin 
-        toggle<Pin::DirectionOutput>();
+        switchDirection<0xFF>();
         // then jump into the write loop
         goto ReadOperationBypass;
     } 
-#endif
 
 WriteOperationBypass:
     EIFR = 0b0111'0000;

@@ -768,9 +768,6 @@ setup() {
     EICRB = 0b1010'1010; // falling edge on the upper four interrupts
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
-    setBankIndex(0);
-    //static constexpr auto WaitPin = Pin::DEN;
-    getDirectionRegister<Port::IBUS_Bank>() = 0x00;
 }
 template<uint8_t mask>
 inline

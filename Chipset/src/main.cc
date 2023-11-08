@@ -218,14 +218,6 @@ inline uint8_t getDataByte() noexcept {
         return 0;
     }
 }
-template<uint8_t value>
-[[gnu::always_inline]]
-inline 
-void 
-updateDataLinesDirection() noexcept {
-    DataLinesInterface.view8.direction[0] = value;
-    DataLinesInterface.view8.direction[1] = value;
-}
 FORCE_INLINE
 inline
 void idleTransaction() noexcept {
@@ -240,7 +232,7 @@ void idleTransaction() noexcept {
     } \
     signalReady()
 
-template<bool isReadOperation, bool enableDebug>
+template<bool isReadOperation>
 FORCE_INLINE 
 inline 
 void doIO() noexcept { 
@@ -495,7 +487,7 @@ void doIO() noexcept {
 }
 #undef I960_Signal_Switch
 
-template<bool isReadOperation, bool enableDebug>
+template<bool isReadOperation>
 //[[gnu::optimize("no-reorder-blocks")]]
 FORCE_INLINE
 inline
@@ -618,7 +610,7 @@ Write_SignalDone:
             signalReady<0>();
         }
     } else {
-        doIO<isReadOperation, enableDebug>();
+        doIO<isReadOperation>();
     }
 }
 
@@ -768,12 +760,11 @@ template<uint8_t mask>
 inline
 void
 switchDirection() {
-    updateDataLinesDirection<mask>();
-    // update the direction pin to change the direction of the transceivers
+    DataLinesInterface.view8.direction[0] = mask;
+    DataLinesInterface.view8.direction[1] = mask;
 }
 void 
 loop() {
-    static constexpr bool enableDebug = false;
     // this microcontroller is not responsible for signalling ready manually
     // in this method. Instead, an external piece of hardware known as "Timing
     // Circuit" in the Intel manuals handles all external timing. It is drawn
@@ -820,10 +811,7 @@ ReadOperationStart:
     } 
 ReadOperationBypass:
     EIFR = 0b0111'0000;
-    if constexpr (enableDebug) {
-        Serial.printf(F("R (0x%lx)\n"), addressLinesValue32);
-    }
-    doIOOperation<true, enableDebug>();
+    doIOOperation<true>();
     goto ReadOperationStart;
 WriteOperationStart:
     // wait until DEN goes low
@@ -837,10 +825,7 @@ WriteOperationStart:
 
 WriteOperationBypass:
     EIFR = 0b0111'0000;
-    if constexpr (enableDebug) {
-        Serial.printf(F("W (0x%lx)\n"), addressLinesValue32);
-    }
-    doIOOperation<false, enableDebug>();
+    doIOOperation<false>();
     goto WriteOperationStart;
 }
 

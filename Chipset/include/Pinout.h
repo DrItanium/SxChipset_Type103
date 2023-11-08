@@ -71,19 +71,10 @@ Count = NUM_DIGITAL_PINS,
     WR = PortF6,
     READY = PortF7,
 
-    EyeSpi_Pin_TCS = PortD2,
-    EyeSpi_Pin_Busy = PortD3,
     ChangeDirection = PortD4,
     IsMemorySpaceOperation = PortD5,
     DirectionOutput = PortD6,
     A23_960 = PortD7,
-
-    EyeSpi_Pin_MEMCS = PortB6,
-    EyeSpi_Pin_TSCS = PortE5,
-    EyeSpi_Pin_INT = PortE6,
-
-    EyeSpi_Pin_DC = PortG3,
-    EyeSpi_Pin_RST = PortG4,
     AlignmentCheck = PortG5,
 
     HOLD = PortL0,
@@ -96,20 +87,9 @@ Count = NUM_DIGITAL_PINS,
     CFG2 = PortL7,
 
     NewTransaction = PortE4,
+    WriteTransaction = PortE5,
+    ReadTransaction = PortE6,
 };
-namespace EyeSpi::Pins {
-#define X(title) constexpr auto title = static_cast<int>(Pin:: EyeSpi_Pin_ ## title )
-    X(TCS);
-    X(Busy);
-    X(MEMCS); 
-    X(TSCS);
-    X(INT);
-    X(DC);
-    X(RST);
-    constexpr auto TFTCS = TCS;
-    constexpr auto Reset = RST;
-#undef X
-} // end namespace EyeSpi
 enum class Port : byte {
     // stop at mega2560 tier
 #define X(name) name ,

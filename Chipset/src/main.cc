@@ -56,36 +56,11 @@ enum class PortHUsage {
 
 constexpr auto PortHIsFunctioningAs = PortHUsage::Unspecified;
 
-#if 0
-Adafruit_SSD1351 oled(
-        128,
-        128,
-        &SPI, 
-        EyeSpi::Pins::TFTCS,
-        EyeSpi::Pins::DC,
-        EyeSpi::Pins::Reset);
-#endif
-
-
-
-void
-setupDisplay() noexcept {
-#if 0
-    oled.begin();
-    oled.setFont();
-    oled.fillScreen(0);
-    oled.setTextColor(0xFFFF);
-    oled.setTextSize(1);
-    oled.println(F("i960"));
-    oled.enableDisplay(true);
-#endif
-}
 
 
 
 void 
 setupDevices() noexcept {
-    setupDisplay();
 }
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
@@ -911,6 +886,8 @@ setupPins() noexcept {
             break;
     }
     pinMode(Pin::NewTransaction, INPUT);
+    pinMode(Pin::ReadTransaction, INPUT);
+    pinMode(Pin::WriteTransaction, INPUT);
 }
 
 void
@@ -978,10 +955,8 @@ setup() {
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
     // attach interrupts
-    bitClear(EICRB, ISC40);
-    bitSet(EICRB, ISC41);
+    EICRB = 0b1010'1010; // falling edge on the upper four interrupts
     // don't enable the interrupt handler
-    //bitSet(EIMSK, INT4); 
     pullCPUOutOfReset();
 }
 template<bool enableDebug>

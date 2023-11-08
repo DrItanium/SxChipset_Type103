@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 
-constexpr bool PrintBanner = true;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
@@ -724,42 +723,40 @@ setup() {
     ControlSignals.view32.direction = 0b10000000'00000000'00000000'00010001;
     ControlSignals.view32.data = 0;
     putCPUInReset();
-    if constexpr (PrintBanner) {
-        Serial.println(F("i960 Chipset"));
-        Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
-        Serial.print(F("Detected i960 CPU Kind: "));
-        switch (getInstalledCPUKind()) {
-            case CPUKind::Sx:
-                Serial.println(F("Sx"));
-                break;
-            case CPUKind::Kx:
-                Serial.println(F("Kx"));
-                break;
-            case CPUKind::Jx:
-                Serial.println(F("Jx"));
-                break;
-            case CPUKind::Hx:
-                Serial.println(F("Hx"));
-                break;
-            case CPUKind::Cx:
-                Serial.println(F("Cx"));
-                break;
-            default:
-                Serial.println(F("Unknown"));
-                break;
-        }
-        Serial.print(F("Bus Width: "));
-        switch (getBusWidth(getInstalledCPUKind())) {
-            case NativeBusWidth::Sixteen:
-                Serial.println(F("16-bit"));
-                break;
-            case NativeBusWidth::ThirtyTwo:
-                Serial.println(F("32-bit"));
-                break;
-            default:
-                Serial.println(F("Unknown (fallback to 32-bit)"));
-                break;
-        }
+    Serial.println(F("i960 Chipset"));
+    Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
+    Serial.print(F("Detected i960 CPU Kind: "));
+    switch (getInstalledCPUKind()) {
+        case CPUKind::Sx:
+            Serial.println(F("Sx"));
+            break;
+        case CPUKind::Kx:
+            Serial.println(F("Kx"));
+            break;
+        case CPUKind::Jx:
+            Serial.println(F("Jx"));
+            break;
+        case CPUKind::Hx:
+            Serial.println(F("Hx"));
+            break;
+        case CPUKind::Cx:
+            Serial.println(F("Cx"));
+            break;
+        default:
+            Serial.println(F("Unknown"));
+            break;
+    }
+    Serial.print(F("Bus Width: "));
+    switch (getBusWidth(getInstalledCPUKind())) {
+        case NativeBusWidth::Sixteen:
+            Serial.println(F("16-bit"));
+            break;
+        case NativeBusWidth::ThirtyTwo:
+            Serial.println(F("32-bit"));
+            break;
+        default:
+            Serial.println(F("Unknown (fallback to 32-bit)"));
+            break;
     }
     // find firmware.bin and install it into the 512k block of memory
     if constexpr (PerformMemoryImageInstallation) {

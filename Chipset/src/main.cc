@@ -658,8 +658,29 @@ installMemoryImage() noexcept {
     SD.end();
     SPI.endTransaction();
 }
-void 
-setupPins() noexcept {
+
+CPUKind 
+getInstalledCPUKind() noexcept { 
+    //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
+    return static_cast<CPUKind>(ControlSignals.ctl.cfg);
+}
+
+void
+setup() {
+    int32_t seed = 0;
+#define X(value) seed += analogRead(value) 
+    X(A0); X(A1); X(A2); X(A3);
+    X(A4); X(A5); X(A6); X(A7);
+    X(A8); X(A9); X(A10); X(A11);
+    X(A12); X(A13); X(A14); X(A15);
+#undef X
+    randomSeed(seed);
+    Serial.begin(115200);
+    //Serial2.begin(115200);
+    //serial2PacketEncoder.setStream(&Serial2);
+    //serial2PacketEncoder.setPacketHandler([](const uint8_t* buffer, size_t size) { processPacketFromSender_Serial2(serial2PacketEncoder, buffer, size); });
+    SPI.begin();
+    Wire.begin();
     // power down the ADC and USART3
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC
@@ -691,32 +712,6 @@ setupPins() noexcept {
     pinMode(Pin::NewTransaction, INPUT);
     pinMode(Pin::ReadTransaction, INPUT);
     pinMode(Pin::WriteTransaction, INPUT);
-}
-
-CPUKind 
-getInstalledCPUKind() noexcept { 
-    //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
-    return static_cast<CPUKind>(ControlSignals.ctl.cfg);
-}
-void banner() noexcept;
-
-void
-setup() {
-    int32_t seed = 0;
-#define X(value) seed += analogRead(value) 
-    X(A0); X(A1); X(A2); X(A3);
-    X(A4); X(A5); X(A6); X(A7);
-    X(A8); X(A9); X(A10); X(A11);
-    X(A12); X(A13); X(A14); X(A15);
-#undef X
-    randomSeed(seed);
-    Serial.begin(115200);
-    //Serial2.begin(115200);
-    //serial2PacketEncoder.setStream(&Serial2);
-    //serial2PacketEncoder.setPacketHandler([](const uint8_t* buffer, size_t size) { processPacketFromSender_Serial2(serial2PacketEncoder, buffer, size); });
-    SPI.begin();
-    Wire.begin();
-    setupPins();
     // setup the EBI
     XMCRB=0b1'0000'000;
     XMCRA=0b1'010'01'01;  
@@ -730,7 +725,41 @@ setup() {
     ControlSignals.view32.data = 0;
     putCPUInReset();
     if constexpr (PrintBanner) {
-        banner();
+        Serial.println(F("i960 Chipset"));
+        Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
+        Serial.print(F("Detected i960 CPU Kind: "));
+        switch (getInstalledCPUKind()) {
+            case CPUKind::Sx:
+                Serial.println(F("Sx"));
+                break;
+            case CPUKind::Kx:
+                Serial.println(F("Kx"));
+                break;
+            case CPUKind::Jx:
+                Serial.println(F("Jx"));
+                break;
+            case CPUKind::Hx:
+                Serial.println(F("Hx"));
+                break;
+            case CPUKind::Cx:
+                Serial.println(F("Cx"));
+                break;
+            default:
+                Serial.println(F("Unknown"));
+                break;
+        }
+        Serial.print(F("Bus Width: "));
+        switch (getBusWidth(getInstalledCPUKind())) {
+            case NativeBusWidth::Sixteen:
+                Serial.println(F("16-bit"));
+                break;
+            case NativeBusWidth::ThirtyTwo:
+                Serial.println(F("32-bit"));
+                break;
+            default:
+                Serial.println(F("Unknown (fallback to 32-bit)"));
+                break;
+        }
     }
     // find firmware.bin and install it into the 512k block of memory
     if constexpr (PerformMemoryImageInstallation) {
@@ -742,7 +771,7 @@ setup() {
     AddressLinesInterface.view32.direction = 0;
     // attach interrupts
     EICRB = 0b1010'1010; // falling edge on the upper four interrupts
-    // don't enable the interrupt handler
+                         // don't enable the interrupt handler
     pullCPUOutOfReset();
     switch (getBusWidth(getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:
@@ -830,42 +859,4 @@ WriteOperationBypass:
 }
 
 
-void
-banner() noexcept {
-    Serial.println(F("i960 Chipset"));
-    Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
-    Serial.print(F("Detected i960 CPU Kind: "));
-    switch (getInstalledCPUKind()) {
-        case CPUKind::Sx:
-            Serial.println(F("Sx"));
-            break;
-        case CPUKind::Kx:
-            Serial.println(F("Kx"));
-            break;
-        case CPUKind::Jx:
-            Serial.println(F("Jx"));
-            break;
-        case CPUKind::Hx:
-            Serial.println(F("Hx"));
-            break;
-        case CPUKind::Cx:
-            Serial.println(F("Cx"));
-            break;
-        default:
-            Serial.println(F("Unknown"));
-            break;
-    }
-    Serial.print(F("Bus Width: "));
-    switch (getBusWidth(getInstalledCPUKind())) {
-        case NativeBusWidth::Sixteen:
-            Serial.println(F("16-bit"));
-            break;
-        case NativeBusWidth::ThirtyTwo:
-            Serial.println(F("32-bit"));
-            break;
-        default:
-            Serial.println(F("Unknown (fallback to 32-bit)"));
-            break;
-    }
-}
 

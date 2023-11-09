@@ -144,11 +144,11 @@ X(5);
 
 void 
 putCPUInReset() noexcept {
-    ControlSignals.ctl.reset = 0;
+    ControlSignals.ctl.data.reset = 0;
 }
 void 
 pullCPUOutOfReset() noexcept {
-    ControlSignals.ctl.reset = 1;
+    ControlSignals.ctl.data.reset = 1;
 }
 
 
@@ -622,7 +622,7 @@ installMemoryImage() noexcept {
 CPUKind 
 getInstalledCPUKind() noexcept { 
     //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
-    return static_cast<CPUKind>(ControlSignals.ctl.cfg);
+    return static_cast<CPUKind>(ControlSignals.ctl.data.cfg);
 }
 
 void
@@ -680,8 +680,8 @@ setup() {
     AddressLinesInterface.view32.data = 0;
     DataLinesInterface.view32.direction = 0x0000'FFFF;
     DataLinesInterface.view32.data = 0;
-    ControlSignals.view32.direction = 0b10000000'00000000'00000000'00010001;
-    ControlSignals.view32.data = 0;
+    ControlSignals.view32.direction = 0b10000000'11111110'00000000'00010001;
+    ControlSignals.view32.data =      0b00000000'11111110'00000000'00000001;
     putCPUInReset();
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));

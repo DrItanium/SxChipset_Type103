@@ -737,6 +737,17 @@ setup() {
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
 }
+inline 
+void 
+setLowerDataLinesDirection(uint8_t value) {
+    DataLinesInterface.view8.direction[0] = value;
+}
+inline 
+void 
+setUpperDataLinesDirection(uint8_t value) {
+    DataLinesInterface.view8.direction[1] = value;
+}
+
 void 
 loop() {
     // this microcontroller is not responsible for signalling ready manually
@@ -779,8 +790,8 @@ ReadOperationStart:
     loop_until_bit_is_set(EIFR, INTF4);
     if (bit_is_set(EIFR, INTF5)) {
         // change direction to output since we are doing write -> read
-        DataLinesInterface.view8.direction[0] = 0;
-        DataLinesInterface.view8.direction[1] = 0;
+        setLowerDataLinesDirection(0);
+        setUpperDataLinesDirection(0);
         // then jump into the write loop
         goto WriteOperationBypass;
     } 
@@ -791,10 +802,10 @@ ReadOperationBypass:
 WriteOperationStart:
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
-    if (bit_is_set(EIFR, INTF6)) {
+    if (bit_is_clear(EIFR, INTF5)) {
         // change direction to input since we are doing read -> write
-        DataLinesInterface.view8.direction[0] = 0xff;
-        DataLinesInterface.view8.direction[1] = 0xff;
+        setLowerDataLinesDirection(0xff);
+        setUpperDataLinesDirection(0xff);
         // then jump into the write loop
         goto ReadOperationBypass;
     } 

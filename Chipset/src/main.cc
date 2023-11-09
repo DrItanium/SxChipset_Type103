@@ -686,30 +686,35 @@ setup() {
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
     Serial.print(F("Detected i960 CPU Kind: "));
+    auto cpuNotSupported = []() {
+        Serial.println(F("Target CPU is not supported by this firmware!"));
+        while(true);
+    };
     switch (getInstalledCPUKind()) {
         case CPUKind::Sx:
             Serial.println(F("Sx"));
             break;
         case CPUKind::Kx:
             Serial.println(F("Kx"));
+            cpuNotSupported();
             break;
         case CPUKind::Jx:
             Serial.println(F("Jx"));
+            cpuNotSupported();
             break;
         case CPUKind::Hx:
             Serial.println(F("Hx"));
+            cpuNotSupported();
             break;
         case CPUKind::Cx:
             Serial.println(F("Cx"));
+            cpuNotSupported();
             break;
         default:
             Serial.println(F("Unknown"));
+            cpuNotSupported();
             break;
     }
-    auto cpuNotSupported = []() {
-        Serial.println(F("Target CPU is not supported by this firmware!"));
-        while(true);
-    };
     Serial.print(F("Bus Width: "));
     switch (getBusWidth(getInstalledCPUKind())) {
         case NativeBusWidth::Sixteen:

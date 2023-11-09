@@ -681,7 +681,7 @@ setup() {
     DataLinesInterface.view32.direction = 0x0000'FFFF;
     DataLinesInterface.view32.data = 0;
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00010001;
-    ControlSignals.view32.data =      0b00000000'11111110'00000000'00000001;
+    ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     putCPUInReset();
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));

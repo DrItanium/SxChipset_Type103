@@ -715,20 +715,6 @@ setup() {
             cpuNotSupported();
             break;
     }
-    Serial.print(F("Bus Width: "));
-    switch (getBusWidth(getInstalledCPUKind())) {
-        case NativeBusWidth::Sixteen:
-            Serial.println(F("16-bit"));
-            break;
-        case NativeBusWidth::ThirtyTwo:
-            Serial.println(F("32-bit"));
-            cpuNotSupported();
-            break;
-        default:
-            Serial.println(F("Unknown (fallback to 32-bit)"));
-            cpuNotSupported();
-            break;
-    }
     // find firmware.bin and install it into the 512k block of memory
     if constexpr (PerformMemoryImageInstallation) {
         installMemoryImage();

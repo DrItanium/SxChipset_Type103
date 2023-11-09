@@ -115,6 +115,7 @@ union [[gnu::packed]] CH351 {
             uint8_t ready : 1;
             uint8_t nmi : 1;
             uint8_t unused : 2;
+
             uint8_t xint0 : 1;
             uint8_t xint1 : 1;
             uint8_t xint2 : 1;
@@ -123,6 +124,7 @@ union [[gnu::packed]] CH351 {
             uint8_t xint5 : 1;
             uint8_t xint6 : 1;
             uint8_t xint7 : 1;
+
             uint8_t byteEnable : 4;
             uint8_t den : 1;
             uint8_t blast : 1;

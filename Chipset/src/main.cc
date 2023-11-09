@@ -636,9 +636,6 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(115200);
-    //Serial2.begin(115200);
-    //serial2PacketEncoder.setStream(&Serial2);
-    //serial2PacketEncoder.setPacketHandler([](const uint8_t* buffer, size_t size) { processPacketFromSender_Serial2(serial2PacketEncoder, buffer, size); });
     SPI.begin();
     // power down the ADC and USART3
     // currently we can't use them

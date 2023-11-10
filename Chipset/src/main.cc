@@ -790,7 +790,7 @@ ReadOperationBypass:
 WriteOperationStart:
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
-    if (bit_is_clear(EIFR, INTF5)) {
+    if (bit_is_set(EIFR, INTF6)) {
         // change direction to input since we are doing read -> write
         setLowerDataLinesDirection(0xff);
         setUpperDataLinesDirection(0xff);

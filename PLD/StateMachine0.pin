@@ -22,8 +22,8 @@
   18   | NC       | NC
   19   | NC       | NC
   20   | NC       | NC
-  21   | NC       | NC
-  22   | NC       | NC
-  23   | NC       | NC
+  21   | C        | Output
+  22   | B        | Output
+  23   | A        | Output
   24   | VCC      | VCC
 

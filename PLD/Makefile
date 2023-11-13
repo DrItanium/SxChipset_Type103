@@ -19,7 +19,8 @@ all: Type103PLD.jed \
 	WideAuxDecoder.jed \
 	RAM2DecoderChip.jed \
 	ReadySynch.jed \
-	TransactionMachine.jed
+	TransactionMachine.jed \
+	StateMachine0.jed
 
 
 
@@ -79,6 +80,9 @@ install_ReadySynch: ReadySynch.jed
 
 install_TransactionMachine: TransactionMachine.jed
 	minipro -p ATF16V8C --write TransactionMachine.jed 
+
+install_StateMachine0: StateMachine0.jed
+	minipro -p "ATF22V10CQ(UES)" --write StateMachine0.jed 
 
 clean:
 	@echo -n "Cleaning..."

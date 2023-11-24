@@ -4,6 +4,18 @@ start:
 	set pins, 0
 	wait 0 gpio 8
 	set pins, 1
-	wait 1 gpio 2
+	wait 1 gpio 8
 	.wrap
 
+% c-sdk {
+    static inline void as_detector_program_init(PIO pio, uint sm, uint offset, uint adsIn) {
+        pio_sm_config c = as_detector_program_get_default_config(offset);
+        sm_config_set_in_pins(&c, adsIn);
+        sm_config_set_out_pins(&c, 25, 1);
+        pio_gpio_init(pio, adsIn);
+        pio_gpio_init(pio, 25);
+        // Load our configuration, and jump to the start of the program
+        pio_sm_init(pio, sm, offset, &c);
+        pio_sm_set_enabled(pio, sm, true);
+    }
+%}

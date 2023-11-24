@@ -1,0 +1,8 @@
+.program as_detector
+.wrap_target
+start:
+	set pins, 0
+	wait 0 gpio 8
+	set pins, 1
+	wait 1 gpio 2
+	.wrap

@@ -6,3 +6,4 @@ start:
 	set pins, 1
 	wait 1 gpio 2
 	.wrap
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export PICO_SDK_PATH=$PWD/../pico-sdk
+export PICO_TOOLCHAIN_PATH=$HOME/.platformio/packages/toolchain-gccarmnoneeabi

@@ -2,10 +2,15 @@
 set pindirs, 1
 .wrap_target
 start:
-	set pins, 0
-	wait 0 pin 0
+	set pins, 0 ; lower the set pins to 
+	wait 0 gpio 8
 	set pins, 1
-	wait 1 pin 0
+	wait 1 gpio 8
+    set pins, 0
+	wait 0 gpio 9
+	set pins, 1
+	wait 1 gpio 9
+    set pins, 0
 	.wrap
 
 % c-sdk {
@@ -13,7 +18,9 @@ start:
         pio_sm_config c = as_detector_program_get_default_config(offset);
         sm_config_set_in_pins(&c, adsIn);
         sm_config_set_set_pins(&c, outDisplay, 1);
+        pio_sm_set_consecutive_pindirs(pio, sm, adsIn, 2, false);
         pio_gpio_init(pio, adsIn);
+        pio_gpio_init(pio, adsIn+1);
         pio_gpio_init(pio, outDisplay);
         // Load our configuration, and jump to the start of the program
         pio_sm_init(pio, sm, offset, &c);

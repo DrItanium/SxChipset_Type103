@@ -20,14 +20,12 @@ void setup() {
 void loop() {
     digitalWrite(LED_BUILTIN, LOW);
     while (digitalRead(ADSPin) == HIGH);
-    digitalWrite(AddressStatePin, LOW);
+    //digitalWrite(AddressStatePin, LOW);
     digitalWrite(LED_BUILTIN, HIGH);
     while (digitalRead(ADSPin) == LOW);
-    digitalWrite(AddressStatePin, HIGH);
-    digitalWrite(LED_BUILTIN, HIGH);
-    digitalWrite(DataStatePin, LOW);
-    while (digitalRead(BLASTPin) == HIGH);
-    digitalWrite(LED_BUILTIN, LOW);
-    while (digitalRead(BLASTPin) == LOW);
-    digitalWrite(DataStatePin, HIGH);
+    //digitalWrite(AddressStatePin, HIGH);
+    //digitalWrite(DataStatePin, LOW);
+    //while (digitalRead(BLASTPin) == HIGH);
+    //while (digitalRead(BLASTPin) == LOW);
+    //digitalWrite(DataStatePin, HIGH);
 }

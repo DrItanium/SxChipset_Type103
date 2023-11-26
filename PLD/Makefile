@@ -79,7 +79,7 @@ install_ReadySynch: ReadySynch.jed
 	minipro -p "ATF22V10CQ(UES)" --write ReadySynch.jed 
 
 install_TransactionMachine: TransactionMachine.jed
-	minipro -p ATF16V8C --write TransactionMachine.jed 
+	minipro -p "ATF22V10CQ(UES)" --write TransactionMachine.jed 
 
 install_StateMachine0: StateMachine0.jed
 	minipro -p "ATF22V10CQ(UES)" --write StateMachine0.jed 

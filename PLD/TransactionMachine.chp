@@ -1,25 +1,29 @@
 
 
-                                GAL16V8
+                                GAL22V10
 
                           -------\___/-------
-                      CLK |  1           20 | VCC
+                      CLK |  1           24 | VCC
                           |                 |
-                      ADS |  2           19 | PE4
+                      ADS |  2           23 | PE4
                           |                 |
-                    BLAST |  3           18 | PE5
+                    BLAST |  3           22 | PE5
                           |                 |
-                    READY |  4           17 | PE6
+                    READY |  4           21 | PE6
                           |                 |
-                      DEN |  5           16 | CAPC
+                      DEN |  5           20 | MEM
                           |                 |
-                       WR |  6           15 | LTR
+                       WR |  6           19 | NC
                           |                 |
-                      A31 |  7           14 | MEM
+                      A31 |  7           18 | NC
                           |                 |
-                       NC |  8           13 | NC
+                       NC |  8           17 | NC
                           |                 |
-                       NC |  9           12 | NC
+                       NC |  9           16 | NC
                           |                 |
-                      GND | 10           11 | NC
+                       NC | 10           15 | NC
+                          |                 |
+                       NC | 11           14 | NC
+                          |                 |
+                      GND | 12           13 | NC
                           -------------------

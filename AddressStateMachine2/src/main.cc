@@ -11,17 +11,23 @@ void setup() {
     pinMode(READYPin, INPUT);
     pinMode(AddressStatePin, OUTPUT);
     pinMode(DataStatePin, OUTPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(AddressStatePin, HIGH);
     digitalWrite(DataStatePin, HIGH);
+    digitalWrite(LED_BUILTIN, LOW);
 }
 
 void loop() {
+    digitalWrite(LED_BUILTIN, LOW);
     while (digitalRead(ADSPin) == HIGH);
     digitalWrite(AddressStatePin, LOW);
+    digitalWrite(LED_BUILTIN, HIGH);
     while (digitalRead(ADSPin) == LOW);
     digitalWrite(AddressStatePin, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
     digitalWrite(DataStatePin, LOW);
     while (digitalRead(BLASTPin) == HIGH);
+    digitalWrite(LED_BUILTIN, LOW);
     while (digitalRead(BLASTPin) == LOW);
     digitalWrite(DataStatePin, HIGH);
 }

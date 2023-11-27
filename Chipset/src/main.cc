@@ -55,7 +55,7 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 inline
 void 
 setBankIndex(uint32_t value) {
-    AddressLinesInterface.bankSwitching.bank = value;
+    AddressLinesInterface.view32.data = value;
 }
 
 [[gnu::always_inline]]
@@ -603,13 +603,13 @@ installMemoryImage() noexcept {
         }
     } else {
         Serial.println(F("TRANSFERRING!!"));
-        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
-            SplitWord32 view{address};
+        auto* theBuffer = memoryPointer<uint8_t>(0x4000);
+        for (uint32_t address = 0; address < theFirmware.size(); address += 2) {
+            //SplitWord32 view{address};
             // just modify the bank as we go along
-            setBankIndex(view.getBankIndex());
-            auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress());
-            theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
-            Serial.print(F("."));
+            setBankIndex(address);
+            //auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress());
+            theFirmware.read(const_cast<uint8_t*>(theBuffer), 2);
         }
         Serial.println(F("DONE!"));
         theFirmware.close();

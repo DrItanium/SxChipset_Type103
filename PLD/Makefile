@@ -85,8 +85,8 @@ install_TransactionMachine: TransactionMachine.jed
 install_StateMachine0: StateMachine0.jed
 	minipro -p "ATF22V10CQ(UES)" --write StateMachine0.jed 
 
-install_NewEBIDetector: NewEBIDetector.jed
-	minipro -p "ATF22V10CQ(UES)" --write NewEBIDetector.jed 
+install_NewEBIDecoder: NewEBIDecoder.jed
+	minipro -p "ATF22V10CQ(UES)" --write NewEBIDecoder.jed 
 
 clean:
 	@echo -n "Cleaning..."

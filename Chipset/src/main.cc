@@ -106,7 +106,7 @@ DataRegister8
 getTransactionWindow() noexcept {
     // currently, there is no bank switching, the i960 handles that
     //return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3fff) | 0x4000);
-    return memoryPointer<uint8_t>(0x4000);
+    return memoryPointer<uint8_t>(0x4FFE);
 }
 
 template<uint8_t delayAmount = 4>
@@ -460,53 +460,45 @@ doIOOperation() noexcept {
         // where we are starting. Instead, we can easily just do the check as
         // needed
         auto theBytes = getTransactionWindow();
+        auto theWords = reinterpret_cast<DataRegister16>(theBytes);
         if constexpr (isReadOperation) {
-            auto theWords = reinterpret_cast<DataRegister16>(theBytes);
-            auto next = theWords[0];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(next);
+            setData(*theWords);
             signalReady<0>();
-            next = theWords[1];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(next);
+            setData(*theWords);
             signalReady<0>();
-            next = theWords[2];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(next);
+            setData(*theWords);
             signalReady<0>();
-            next = theWords[3];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(next);
+            setData(*theWords);
             signalReady<0>();
-            next = theWords[4];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(next);
+            setData(*theWords);
             signalReady<0>();
-            next = theWords[5];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(next);
+            setData(*theWords);
             signalReady<0>();
-            next = theWords[6];
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(next);
+            setData(*theWords);
             signalReady<0>();
-            next = theWords[7];
 Read_Done:
-            setData(next);
+            setData(*theWords);
             signalReady<0>();
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {
@@ -519,49 +511,42 @@ Read_Done:
                 goto Write_SignalDone; 
             } 
             signalReady();
-            theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
             signalReady();
-            theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
             signalReady();
-            theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
             signalReady();
-            theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
             signalReady();
-            theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
             signalReady();
-            theBytes += 2;
             if (isBurstLast()) {
                 goto Write_Done;
             }
             theBytes[0] = getDataByte<0>(); 
             theBytes[1] = getDataByte<1>(); 
             signalReady();
-            theBytes += 2;
 Write_Done:
             theBytes[0] = getDataByte<0>();
             if (digitalRead<Pin::BE1>() == LOW) {
@@ -604,13 +589,18 @@ installMemoryImage() noexcept {
         }
     } else {
         Serial.println(F("TRANSFERRING!!"));
-        auto* theBuffer = memoryPointer<uint8_t>(0x4000);
+        auto* theBuffer = memoryPointer<uint8_t>(0x4FFE);
         for (uint32_t address = 0; address < theFirmware.size(); address += 2) {
             //SplitWord32 view{address};
             // just modify the bank as we go along
             setBankIndex(address);
             //auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress());
             theFirmware.read(const_cast<uint8_t*>(theBuffer), 2);
+            //Serial.print(F("Address: 0x"));
+            //Serial.print(address, HEX);
+            //Serial.print(F(" Wrote: 0x"));
+            //Serial.print(*memoryPointer<uint16_t>(0x4FFE), HEX);
+            //Serial.println();
         }
         Serial.println(F("DONE!"));
         theFirmware.close();

@@ -20,7 +20,8 @@ all: Type103PLD.jed \
 	RAM2DecoderChip.jed \
 	ReadySynch.jed \
 	TransactionMachine.jed \
-	StateMachine0.jed
+	StateMachine0.jed \
+	NewEBIDecoder.jed 
 
 
 
@@ -83,6 +84,9 @@ install_TransactionMachine: TransactionMachine.jed
 
 install_StateMachine0: StateMachine0.jed
 	minipro -p "ATF22V10CQ(UES)" --write StateMachine0.jed 
+
+install_NewEBIDetector: NewEBIDetector.jed
+	minipro -p "ATF22V10CQ(UES)" --write NewEBIDetector.jed 
 
 clean:
 	@echo -n "Cleaning..."

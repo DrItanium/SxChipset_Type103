@@ -105,7 +105,8 @@ inline
 DataRegister8
 getTransactionWindow() noexcept {
     // currently, there is no bank switching, the i960 handles that
-    return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3fff) | 0x4000);
+    //return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3fff) | 0x4000);
+    return memoryPointer<uint8_t>(0x4000);
 }
 
 template<uint8_t delayAmount = 4>

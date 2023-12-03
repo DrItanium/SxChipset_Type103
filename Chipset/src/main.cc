@@ -598,29 +598,12 @@ installMemoryImage() noexcept {
         }
     } else {
         Serial.println(F("TRANSFERRING!!"));
-        DataRegister8 theBuffer2= memoryPointer<uint8_t>(0x4000);
         uint32_t transferDots = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += 2, ++transferDots) {
-            //SplitWord32 view{address};
             // just modify the bank as we go along
             AddressLinesInterface.view32.data = address;
-            //auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress());
-            uint8_t value[2] = {0};
-            theFirmware.read(&value, 2);
-            theBuffer2[0] = value[0];
-            theBuffer2[1] = value[1];
-            if (theBuffer2[0] != value[0] || theBuffer2[1] != value[1]) {
-                Serial.print(F("Address: 0x")); Serial.print(address, HEX);
-                Serial.print(F(" Wrote[0]: 0x")); Serial.print(value[0], HEX);
-                Serial.print(F(" Wrote[1]: 0x")); Serial.print(value[1], HEX);
-                Serial.print(F(", Got[0]: 0x")); Serial.print(theBuffer2[0], HEX);
-                Serial.print(F(", Got[1]: 0x")); Serial.print(theBuffer2[1], HEX);
-                Serial.println();
-                if (value[0] != theBuffer2[0] || value[1] != theBuffer2[1]) {
-                    Serial.println(F("HALTING"));
-                    while(true);
-                } 
-            }
+            auto* theBuffer = memoryPointer<uint8_t>(0x4000);
+            theFirmware.read(theBuffer, 2);
             if ((transferDots % (TransferBufferSize / 2)) == 0) {
                 Serial.print(F("."));
             }

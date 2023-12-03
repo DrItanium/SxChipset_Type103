@@ -93,12 +93,15 @@ getData() noexcept {
     return DataLinesInterface.view16.data[0];
 }
 
+template<bool enableDebug = false>
 [[gnu::always_inline]]
 inline
 void
 setData(uint16_t value) noexcept {
-    Serial.print(F("setData: 0b"));
-    Serial.println(value, BIN);
+    if constexpr (enableDebug) {
+        Serial.print(F("setData: 0b"));
+        Serial.println(value, BIN);
+    }
     DataLinesInterface.view16.data[0] = value;
 }
 
@@ -108,7 +111,7 @@ DataRegister8
 getTransactionWindow() noexcept {
     // currently, there is no bank switching, the i960 handles that
     //return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3fff) | 0x4000);
-    return memoryPointer<uint8_t>(0x4FFE);
+    return memoryPointer<uint8_t>(0x40FE);
 }
 
 template<uint8_t delayAmount = 4>
@@ -592,29 +595,28 @@ installMemoryImage() noexcept {
         }
     } else {
         Serial.println(F("TRANSFERRING!!"));
-        auto* theBuffer = memoryPointer<uint8_t>(0x4FFE);
+        DataRegister16 theBuffer = memoryPointer<uint16_t>(0x4000);
+        DataRegister8 theBuffer2= memoryPointer<uint8_t>(0x4000);
+
         for (uint32_t address = 0; address < theFirmware.size(); address += 2) {
             //SplitWord32 view{address};
             // just modify the bank as we go along
-            setBankIndex(address);
+            AddressLinesInterface.view32.data = address;
             //auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress());
             uint16_t value = 0;
             theFirmware.read(&value, 2);
-            theBuffer[0] = value;
-            theBuffer[1] = (value >> 8);
-            Serial.print(F("Address: 0x"));
-            Serial.print(address, HEX);
-            Serial.print(F(" Wrote: 0x"));
-            Serial.print(value, HEX);
-            Serial.print(F(", Got: 0x"));
-            Serial.println(*memoryPointer<uint16_t>(0x4FFE), HEX);
-            //Serial.println();
+            *theBuffer = value;
+            volatile uint16_t back = *theBuffer;
+            if (back != value) {
+                Serial.print(F("Address: 0x")); Serial.print(address, HEX);
+                Serial.print(F(" Wrote: 0x")); Serial.print(value, HEX);
+                Serial.print(F(", Got: 0x")); Serial.print(back, HEX);
+                Serial.print(F(", Got2: 0x")); Serial.print(theBuffer2[0], HEX);
+                Serial.print(F(", Got3: 0x")); Serial.print(theBuffer2[1], HEX);
+                Serial.println();
+                while(true);
+            }
 
-            //Serial.print(F("Address: 0x"));
-            //Serial.print(address, HEX);
-            //Serial.print(F(" Wrote: 0x"));
-            //Serial.print(*memoryPointer<uint16_t>(0x4FFE), HEX);
-            //Serial.println();
         }
         Serial.println(F("DONE!"));
         theFirmware.close();
@@ -676,7 +678,7 @@ setup() {
     pinMode(Pin::WriteTransaction, INPUT);
     // setup the EBI
     XMCRB=0b1'0000'000;
-    XMCRA=0b1'010'01'01;  
+    XMCRA=0b1'010'11'11;  
     // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
@@ -791,7 +793,7 @@ ReadOperationStart:
     } 
 ReadOperationBypass:
     EIFR = 0b0111'0000;
-    Serial.print(F("R 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
+    //Serial.print(F("R 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
     doIOOperation<true>();
     goto ReadOperationStart;
 WriteOperationStart:
@@ -807,7 +809,7 @@ WriteOperationStart:
 
 WriteOperationBypass:
     EIFR = 0b0111'0000;
-    Serial.print(F("W 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
+    //Serial.print(F("W 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
     doIOOperation<false>();
     goto WriteOperationStart;
 }

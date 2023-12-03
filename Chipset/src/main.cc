@@ -47,7 +47,6 @@ constexpr bool EnableTransactionDebug = false;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
-[[gnu::address(0x4000)]] inline volatile uint16_t memoryPort16;
 [[gnu::address(0x4000)]] inline volatile uint8_t memoryPort8[2];
 
 // allocate 1024 bytes total
@@ -449,8 +448,8 @@ void doIO() noexcept {
 }
 #undef I960_Signal_Switch
 
+
 template<bool isReadOperation>
-//[[gnu::optimize("no-reorder-blocks")]]
 FORCE_INLINE
 inline
 void

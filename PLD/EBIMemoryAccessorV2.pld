@@ -2,17 +2,15 @@ GAL22V10
 EBIMemoryAccessorV2
 
 NC  EN  IWR IRD A1 A2  A3  A4  A5  A6  A7  GND
-A19 A20 X0  X1  X2 EN3 EN2 EN1 EN0 ORD OWR VCC
+A19 A20 NC  NC  NC EN3 EN2 EN1 EN0 ORD OWR VCC
 
-X0 = A1 * A2 * A3 * A4 * A5 * A6 * A7
-X1 = /IWR * IRD + /IRD * IWR
-/OWR = /IWR * IRD * /EN * X0
-/ORD = /IRD * IWR * /EN * X0 
+OWR = IWR 
+ORD = IRD 
 
-/EN0 = /A19 * /A20 * X1 * X0 * /EN
-/EN1 = A19 * /A20 * X1 * X0 * /EN
-/EN2 = /A19 * A20 * X1 * X0 * /EN
-/EN3 = A19 * A20 * X1 * X0 * /EN
+/EN0 = /A19 * /A20 * /EN
+/EN1 = A19 * /A20 * /EN
+/EN2 = /A19 * A20 * /EN
+/EN3 = A19 * A20 * /EN
 
 DESCRIPTION
 

@@ -3,9 +3,9 @@
 AR
   0  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 23 = OWR          S0 = 0   S1 = 1
+Pin 23 = OWR          S0 = 1   S1 = 1
   1  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-  2  ---- -x-- -x-- x--- ---- ---- ---- ---- --x- ---- ----
+  2  ---- ---- x--- ---- ---- ---- ---- ---- ---- ---- ----
   3  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   4  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   5  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -14,9 +14,9 @@ Pin 23 = OWR          S0 = 0   S1 = 1
   8  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   9  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 22 = ORD          S0 = 0   S1 = 1
+Pin 22 = ORD          S0 = 1   S1 = 1
  10  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 11  ---- -x-- x--- -x-- ---- ---- ---- ---- --x- ---- ----
+ 11  ---- ---- ---- x--- ---- ---- ---- ---- ---- ---- ----
  12  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  13  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  14  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -29,7 +29,7 @@ Pin 22 = ORD          S0 = 0   S1 = 1
 
 Pin 21 = EN0          S0 = 0   S1 = 1
  21  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 22  ---- -x-- ---- ---- ---- ---- ---- --x- --x- ---x ---x
+ 22  ---- -x-- ---- ---- ---- ---- ---- ---- ---- ---x ---x
  23  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  24  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  25  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -44,7 +44,7 @@ Pin 21 = EN0          S0 = 0   S1 = 1
 
 Pin 20 = EN1          S0 = 0   S1 = 1
  34  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 35  ---- -x-- ---- ---- ---- ---- ---- --x- --x- ---x --x-
+ 35  ---- -x-- ---- ---- ---- ---- ---- ---- ---- ---x --x-
  36  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  37  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -61,7 +61,7 @@ Pin 20 = EN1          S0 = 0   S1 = 1
 
 Pin 19 = EN2          S0 = 0   S1 = 1
  49  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 50  ---- -x-- ---- ---- ---- ---- ---- --x- --x- --x- ---x
+ 50  ---- -x-- ---- ---- ---- ---- ---- ---- ---- --x- ---x
  51  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  52  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  53  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -80,7 +80,7 @@ Pin 19 = EN2          S0 = 0   S1 = 1
 
 Pin 18 = EN3          S0 = 0   S1 = 1
  66  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 67  ---- -x-- ---- ---- ---- ---- ---- --x- --x- --x- --x-
+ 67  ---- -x-- ---- ---- ---- ---- ---- ---- ---- --x- --x-
  68  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  69  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  70  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -97,7 +97,7 @@ Pin 18 = EN3          S0 = 0   S1 = 1
  81  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  82  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 17 = X2           S0 = 0   S1 = 0
+Pin 17 = NC           S0 = 0   S1 = 0
  83  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  84  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  85  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -114,10 +114,10 @@ Pin 17 = X2           S0 = 0   S1 = 0
  96  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  97  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 16 = X1           S0 = 1   S1 = 1
- 98  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 99  ---- ---- -x-- x--- ---- ---- ---- ---- ---- ---- ----
-100  ---- ---- x--- -x-- ---- ---- ---- ---- ---- ---- ----
+Pin 16 = NC           S0 = 0   S1 = 0
+ 98  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+ 99  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+100  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 101  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 102  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 103  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -129,9 +129,9 @@ Pin 16 = X1           S0 = 1   S1 = 1
 109  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 110  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 15 = X0           S0 = 1   S1 = 1
-111  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-112  ---- ---- ---- ---- x--- x--- x--- x--- x--- x--- x---
+Pin 15 = NC           S0 = 0   S1 = 0
+111  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+112  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 113  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 114  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 115  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

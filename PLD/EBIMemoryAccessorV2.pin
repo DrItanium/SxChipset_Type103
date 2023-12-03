@@ -16,9 +16,9 @@
   12   | GND      | GND
   13   | A19      | Input
   14   | A20      | Input
-  15   | X0       | Output
-  16   | X1       | Output
-  17   | X2       | NC
+  15   | NC       | NC
+  16   | NC       | NC
+  17   | NC       | NC
   18   | EN3      | Output
   19   | EN2      | Output
   20   | EN1      | Output

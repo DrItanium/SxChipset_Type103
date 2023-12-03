@@ -46,6 +46,8 @@ constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
+[[gnu::address(0x4000)]] inline volatile uint16_t memoryPort16;
+[[gnu::address(0x4000)]] inline volatile uint8_t memoryPort8[2];
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -114,7 +116,7 @@ DataRegister8
 getTransactionWindow() noexcept {
     // currently, there is no bank switching, the i960 handles that
     //return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3fff) | 0x4000);
-    return memoryPointer<uint8_t>(0x40FE);
+    return memoryPort8;
 }
 
 template<uint8_t delayAmount = 4>
@@ -468,8 +470,8 @@ doIOOperation() noexcept {
         // where we are starting. Instead, we can easily just do the check as
         // needed
         auto theBytes = getTransactionWindow();
-        auto theWords = reinterpret_cast<DataRegister16>(theBytes);
         if constexpr (isReadOperation) {
+            auto theWords = reinterpret_cast<DataRegister16>(theBytes);
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
@@ -599,11 +601,11 @@ installMemoryImage() noexcept {
     } else {
         Serial.println(F("TRANSFERRING!!"));
         uint32_t transferDots = 0;
+        auto* theBuffer = memoryPort8;
         for (uint32_t address = 0; address < theFirmware.size(); address += 2, ++transferDots) {
             // just modify the bank as we go along
             AddressLinesInterface.view32.data = address;
-            auto* theBuffer = memoryPointer<uint8_t>(0x4000);
-            theFirmware.read(theBuffer, 2);
+            theFirmware.read(const_cast<uint8_t*>(theBuffer), 2);
             if ((transferDots % (TransferBufferSize / 2)) == 0) {
                 Serial.print(F("."));
             }
@@ -668,8 +670,8 @@ setup() {
     pinMode(Pin::ReadTransaction, INPUT);
     pinMode(Pin::WriteTransaction, INPUT);
     // setup the EBI
-    XMCRB=0b1'0000'000;
-    XMCRA=0b1'010'10'01;  
+    XMCRB=0b0'0000'000;
+    XMCRA=0b1'010'01'01;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
@@ -784,7 +786,7 @@ ReadOperationStart:
     } 
 ReadOperationBypass:
     EIFR = 0b0111'0000;
-    //Serial.print(F("R 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
+    Serial.print(F("R 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
     doIOOperation<true>();
     goto ReadOperationStart;
 WriteOperationStart:
@@ -800,7 +802,7 @@ WriteOperationStart:
 
 WriteOperationBypass:
     EIFR = 0b0111'0000;
-    //Serial.print(F("W 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
+    Serial.print(F("W 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
     doIOOperation<false>();
     goto WriteOperationStart;
 }

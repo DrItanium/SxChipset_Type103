@@ -110,14 +110,6 @@ setData(uint16_t value) noexcept {
     //DataLinesInterface.view16.data[0] = value;
 }
 
-FORCE_INLINE
-inline
-DataRegister8
-getTransactionWindow() noexcept {
-    // currently, there is no bank switching, the i960 handles that
-    //return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3fff) | 0x4000);
-    return memoryPort8;
-}
 
 template<uint8_t delayAmount = 4>
 [[gnu::always_inline]]
@@ -469,7 +461,7 @@ doIOOperation() noexcept {
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
         // needed
-        auto theBytes = getTransactionWindow();
+        DataRegister8 theBytes = memoryPort8;
         if constexpr (isReadOperation) {
             //auto theWords = reinterpret_cast<DataRegister16>(theBytes);
             if (isBurstLast()) { 

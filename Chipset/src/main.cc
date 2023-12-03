@@ -94,7 +94,6 @@ inline
 uint16_t
 getData() noexcept {
     return makeWord(getUpperDataByte(), getLowerDataByte());
-    //return DataLinesInterface.view16.data[0];
 }
 
 [[gnu::always_inline]]
@@ -461,63 +460,59 @@ doIOOperation() noexcept {
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
         // needed
-        DataRegister8 theBytes = memoryPort8;
         if constexpr (isReadOperation) {
-            //auto theWords = reinterpret_cast<DataRegister16>(theBytes);
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-
-            setLowerDataByte(theBytes[0]);
-            setUpperDataByte(theBytes[1]);
-            signalReady();
-            
-            if (isBurstLast()) { 
-                goto Read_Done; 
-            } 
-            setLowerDataByte(theBytes[0]);
-            setUpperDataByte(theBytes[1]);
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(theBytes[0]);
-            setUpperDataByte(theBytes[1]);
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(theBytes[0]);
-            setUpperDataByte(theBytes[1]);
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(theBytes[0]);
-            setUpperDataByte(theBytes[1]);
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(theBytes[0]);
-            setUpperDataByte(theBytes[1]);
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(theBytes[0]);
-            setUpperDataByte(theBytes[1]);
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady();
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
             signalReady();
 Read_Done:
-            setLowerDataByte(theBytes[0]);
-            setUpperDataByte(theBytes[1]);
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
             signalReady<0>();
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {
-                theBytes[0] = getDataByte<0>();
+                memoryPort8[0] = getDataByte<0>();
             }
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = getDataByte<1>();
+                memoryPort8[1] = getDataByte<1>();
             }
             if (isBurstLast()) { 
                 goto Write_SignalDone; 
@@ -526,43 +521,43 @@ Read_Done:
             if (isBurstLast()) {
                 goto Write_Done;
             }
-            theBytes[0] = getDataByte<0>(); 
-            theBytes[1] = getDataByte<1>(); 
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
             signalReady();
             if (isBurstLast()) {
                 goto Write_Done;
             }
-            theBytes[0] = getDataByte<0>(); 
-            theBytes[1] = getDataByte<1>(); 
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
             signalReady();
             if (isBurstLast()) {
                 goto Write_Done;
             }
-            theBytes[0] = getDataByte<0>(); 
-            theBytes[1] = getDataByte<1>(); 
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
             signalReady();
             if (isBurstLast()) {
                 goto Write_Done;
             }
-            theBytes[0] = getDataByte<0>(); 
-            theBytes[1] = getDataByte<1>(); 
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
             signalReady();
             if (isBurstLast()) {
                 goto Write_Done;
             }
-            theBytes[0] = getDataByte<0>(); 
-            theBytes[1] = getDataByte<1>(); 
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
             signalReady();
             if (isBurstLast()) {
                 goto Write_Done;
             }
-            theBytes[0] = getDataByte<0>(); 
-            theBytes[1] = getDataByte<1>(); 
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
             signalReady();
 Write_Done:
-            theBytes[0] = getDataByte<0>();
+            memoryPort8[0] = getDataByte<0>();
             if (digitalRead<Pin::BE1>() == LOW) {
-                theBytes[1] = getDataByte<1>();
+                memoryPort8[1] = getDataByte<1>();
             }
 Write_SignalDone:
             signalReady<0>();

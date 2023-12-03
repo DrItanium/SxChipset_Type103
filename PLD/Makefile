@@ -21,8 +21,8 @@ all: Type103PLD.jed \
 	ReadySynch.jed \
 	TransactionMachine.jed \
 	StateMachine0.jed \
-	NewEBIDecoder.jed 
-
+	NewEBIDecoder.jed \
+	EBIMemoryAccessorV2.jed
 
 
 install_Type103: Type103PLD.jed
@@ -87,6 +87,9 @@ install_StateMachine0: StateMachine0.jed
 
 install_NewEBIDecoder: NewEBIDecoder.jed
 	minipro -p "ATF22V10CQ(UES)" --write NewEBIDecoder.jed 
+
+install_EBIMemoryAccessorV2: EBIMemoryAccessorV2.jed
+	minipro -p "ATF22V10CQ(UES)" --write EBIMemoryAccessorV2.jed 
 
 clean:
 	@echo -n "Cleaning..."

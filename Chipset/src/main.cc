@@ -90,7 +90,8 @@ setUpperDataByte(uint8_t value) noexcept {
 inline
 uint16_t
 getData() noexcept {
-    return DataLinesInterface.view16.data[0];
+    return makeWord(getUpperDataByte(), getLowerDataByte());
+    //return DataLinesInterface.view16.data[0];
 }
 
 template<bool enableDebug = false>
@@ -102,7 +103,9 @@ setData(uint16_t value) noexcept {
         Serial.print(F("setData: 0b"));
         Serial.println(value, BIN);
     }
-    DataLinesInterface.view16.data[0] = value;
+    setLowerDataByte(value);
+    setUpperDataByte(static_cast<uint8_t>(value >> 8));
+    //DataLinesInterface.view16.data[0] = value;
 }
 
 FORCE_INLINE
@@ -595,26 +598,31 @@ installMemoryImage() noexcept {
         }
     } else {
         Serial.println(F("TRANSFERRING!!"));
-        DataRegister16 theBuffer = memoryPointer<uint16_t>(0x4000);
         DataRegister8 theBuffer2= memoryPointer<uint8_t>(0x4000);
-
-        for (uint32_t address = 0; address < theFirmware.size(); address += 2) {
+        uint32_t transferDots = 0;
+        for (uint32_t address = 0; address < theFirmware.size(); address += 2, ++transferDots) {
             //SplitWord32 view{address};
             // just modify the bank as we go along
             AddressLinesInterface.view32.data = address;
             //auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress());
-            uint16_t value = 0;
+            uint8_t value[2] = {0};
             theFirmware.read(&value, 2);
-            *theBuffer = value;
-            volatile uint16_t back = *theBuffer;
-            if (back != value) {
+            theBuffer2[0] = value[0];
+            theBuffer2[1] = value[1];
+            if (theBuffer2[0] != value[0] || theBuffer2[1] != value[1]) {
                 Serial.print(F("Address: 0x")); Serial.print(address, HEX);
-                Serial.print(F(" Wrote: 0x")); Serial.print(value, HEX);
-                Serial.print(F(", Got: 0x")); Serial.print(back, HEX);
-                Serial.print(F(", Got2: 0x")); Serial.print(theBuffer2[0], HEX);
-                Serial.print(F(", Got3: 0x")); Serial.print(theBuffer2[1], HEX);
+                Serial.print(F(" Wrote[0]: 0x")); Serial.print(value[0], HEX);
+                Serial.print(F(" Wrote[1]: 0x")); Serial.print(value[1], HEX);
+                Serial.print(F(", Got[0]: 0x")); Serial.print(theBuffer2[0], HEX);
+                Serial.print(F(", Got[1]: 0x")); Serial.print(theBuffer2[1], HEX);
                 Serial.println();
-                while(true);
+                if (value[0] != theBuffer2[0] || value[1] != theBuffer2[1]) {
+                    Serial.println(F("HALTING"));
+                    while(true);
+                } 
+            }
+            if ((transferDots % (TransferBufferSize / 2)) == 0) {
+                Serial.print(F("."));
             }
 
         }
@@ -678,8 +686,8 @@ setup() {
     pinMode(Pin::WriteTransaction, INPUT);
     // setup the EBI
     XMCRB=0b1'0000'000;
-    XMCRA=0b1'010'11'11;  
-    // we divide the sector limits so that it 0x2200-0x7FFF and 0x8000-0xFFFF
+    XMCRA=0b1'010'10'01;  
+    // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
     AddressLinesInterface.view32.data = 0;

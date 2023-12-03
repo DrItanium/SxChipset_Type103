@@ -40,6 +40,7 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
+constexpr bool EnableTransactionDebug = false;
 
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
@@ -96,12 +97,11 @@ getData() noexcept {
     //return DataLinesInterface.view16.data[0];
 }
 
-template<bool enableDebug = false>
 [[gnu::always_inline]]
 inline
 void
 setData(uint16_t value) noexcept {
-    if constexpr (enableDebug) {
+    if constexpr (EnableTransactionDebug) {
         Serial.print(F("setData: 0b"));
         Serial.println(value, BIN);
     }
@@ -736,7 +736,6 @@ void
 setUpperDataLinesDirection(uint8_t value) {
     DataLinesInterface.view8.direction[1] = value;
 }
-
 void 
 loop() {
     // this microcontroller is not responsible for signalling ready manually
@@ -786,7 +785,10 @@ ReadOperationStart:
     } 
 ReadOperationBypass:
     EIFR = 0b0111'0000;
-    Serial.print(F("R 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
+    if constexpr (EnableTransactionDebug) {
+        Serial.print(F("R 0x")); 
+        Serial.println(AddressLinesInterface.view32.data, HEX);
+    }
     doIOOperation<true>();
     goto ReadOperationStart;
 WriteOperationStart:
@@ -802,7 +804,10 @@ WriteOperationStart:
 
 WriteOperationBypass:
     EIFR = 0b0111'0000;
-    Serial.print(F("W 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
+    if constexpr (EnableTransactionDebug) {
+        Serial.print(F("W 0x")); 
+        Serial.println(AddressLinesInterface.view32.data, HEX);
+    }
     doIOOperation<false>();
     goto WriteOperationStart;
 }

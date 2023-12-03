@@ -471,45 +471,54 @@ doIOOperation() noexcept {
         // needed
         auto theBytes = getTransactionWindow();
         if constexpr (isReadOperation) {
-            auto theWords = reinterpret_cast<DataRegister16>(theBytes);
+            //auto theWords = reinterpret_cast<DataRegister16>(theBytes);
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(*theWords);
+
+            setLowerDataByte(theBytes[0]);
+            setUpperDataByte(theBytes[1]);
             signalReady();
             
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(*theWords);
+            setLowerDataByte(theBytes[0]);
+            setUpperDataByte(theBytes[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(*theWords);
+            setLowerDataByte(theBytes[0]);
+            setUpperDataByte(theBytes[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(*theWords);
+            setLowerDataByte(theBytes[0]);
+            setUpperDataByte(theBytes[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(*theWords);
+            setLowerDataByte(theBytes[0]);
+            setUpperDataByte(theBytes[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(*theWords);
+            setLowerDataByte(theBytes[0]);
+            setUpperDataByte(theBytes[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setData(*theWords);
+            setLowerDataByte(theBytes[0]);
+            setUpperDataByte(theBytes[1]);
             signalReady();
 Read_Done:
-            setData(*theWords);
+            setLowerDataByte(theBytes[0]);
+            setUpperDataByte(theBytes[1]);
             signalReady<0>();
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {

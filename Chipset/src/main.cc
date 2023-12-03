@@ -97,6 +97,8 @@ getData() noexcept {
 inline
 void
 setData(uint16_t value) noexcept {
+    Serial.print(F("setData: 0b"));
+    Serial.println(value, BIN);
     DataLinesInterface.view16.data[0] = value;
 }
 
@@ -466,37 +468,38 @@ doIOOperation() noexcept {
                 goto Read_Done; 
             } 
             setData(*theWords);
-            signalReady<0>();
+            signalReady();
+            
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(*theWords);
-            signalReady<0>();
+            signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(*theWords);
-            signalReady<0>();
+            signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(*theWords);
-            signalReady<0>();
+            signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(*theWords);
-            signalReady<0>();
+            signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(*theWords);
-            signalReady<0>();
+            signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
             setData(*theWords);
-            signalReady<0>();
+            signalReady();
 Read_Done:
             setData(*theWords);
             signalReady<0>();
@@ -595,7 +598,18 @@ installMemoryImage() noexcept {
             // just modify the bank as we go along
             setBankIndex(address);
             //auto* theBuffer = memoryPointer<uint8_t>(view.unalignedBankAddress());
-            theFirmware.read(const_cast<uint8_t*>(theBuffer), 2);
+            uint16_t value = 0;
+            theFirmware.read(&value, 2);
+            theBuffer[0] = value;
+            theBuffer[1] = (value >> 8);
+            Serial.print(F("Address: 0x"));
+            Serial.print(address, HEX);
+            Serial.print(F(" Wrote: 0x"));
+            Serial.print(value, HEX);
+            Serial.print(F(", Got: 0x"));
+            Serial.println(*memoryPointer<uint16_t>(0x4FFE), HEX);
+            //Serial.println();
+
             //Serial.print(F("Address: 0x"));
             //Serial.print(address, HEX);
             //Serial.print(F(" Wrote: 0x"));
@@ -632,6 +646,7 @@ setup() {
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC
     PRR1 = 0b00000'100; // deactivate USART3
+
 
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
@@ -776,6 +791,7 @@ ReadOperationStart:
     } 
 ReadOperationBypass:
     EIFR = 0b0111'0000;
+    Serial.print(F("R 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
     doIOOperation<true>();
     goto ReadOperationStart;
 WriteOperationStart:
@@ -791,6 +807,7 @@ WriteOperationStart:
 
 WriteOperationBypass:
     EIFR = 0b0111'0000;
+    Serial.print(F("W 0x")); Serial.println(AddressLinesInterface.view32.data, HEX);
     doIOOperation<false>();
     goto WriteOperationStart;
 }

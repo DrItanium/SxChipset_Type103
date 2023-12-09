@@ -58,8 +58,7 @@ enum class DataPortInterfaceKind {
     IOExpander,
     AVRGPIO,
 };
-
-constexpr bool isValidKind(DataPortInterfaceKind kind) {
+constexpr bool isValidKind(DataPortInterfaceKind kind) noexcept {
     switch (kind) {
         case DataPortInterfaceKind::IOExpander:
         case DataPortInterfaceKind::AVRGPIO:

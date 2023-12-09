@@ -53,6 +53,49 @@ constexpr bool EnableTransactionDebug = false;
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }
+enum class DataPortInterfaceKind {
+    None,
+    IOExpander,
+    AVRGPIO,
+};
+
+constexpr bool isValidKind(DataPortInterfaceKind kind) {
+    switch (kind) {
+        case DataPortInterfaceKind::IOExpander:
+        case DataPortInterfaceKind::AVRGPIO:
+            return true;
+        default:
+            return false;
+    }
+}
+template<DataPortInterfaceKind kind>
+constexpr auto isValidKind_v = isValidKind(kind);
+
+constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
+static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
+
+template<DataPortInterfaceKind kind = DataPortKind>
+inline void 
+setLowerDataLinesDirection(uint8_t value) {
+    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
+        DataLinesInterface.view8.direction[0] = value;
+    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
+        getDirectionRegister<Port::DataLinesLower>() = value;
+    } else {
+        static_assert(isValidKind_v<kind>, "Unsupported data interface kind provided!");
+    }
+}
+template<DataPortInterfaceKind kind = DataPortKind>
+inline void 
+setUpperDataLinesDirection(uint8_t value) {
+    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
+        DataLinesInterface.view8.direction[1] = value;
+    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
+        getDirectionRegister<Port::DataLinesUpper>() = value;
+    } else {
+        static_assert(isValidKind_v<kind>, "Unsupported data interface kind provided!");
+    }
+}
 [[gnu::always_inline]]
 inline
 void 
@@ -60,41 +103,73 @@ setBankIndex(uint32_t value) {
     AddressLinesInterface.view32.data = value;
 }
 
+template<DataPortInterfaceKind kind = DataPortKind>
 [[gnu::always_inline]]
 inline 
 uint8_t 
 getUpperDataByte() noexcept {
-    return DataLinesInterface.view8.data[1];
+    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
+
+        return DataLinesInterface.view8.data[1];
+    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
+
+    } else {
+        static_assert(isValidKind_v<kind>);
+    }
 }
 
+template<DataPortInterfaceKind kind = DataPortKind>
 [[gnu::always_inline]]
 inline 
 uint8_t 
 getLowerDataByte() noexcept {
-    return DataLinesInterface.view8.data[0];
+    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
+
+        return DataLinesInterface.view8.data[0];
+    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
+
+    } else {
+        static_assert(isValidKind_v<kind>);
+    }
 }
 
-[[gnu::always_inline]]
-inline
-void
-setLowerDataByte(uint8_t value) noexcept {
-    DataLinesInterface.view8.data[0] = value;
-}
-
+template<DataPortInterfaceKind kind = DataPortKind>
 [[gnu::always_inline]]
 inline
 void
 setUpperDataByte(uint8_t value) noexcept {
-    DataLinesInterface.view8.data[1] = value;
+    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
+        DataLinesInterface.view8.data[1] = value;
+    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
+        getOutputRegister<Port::DataLinesUpper>() = value;
+    } else {
+        static_assert(isValidKind_v<kind>, "unsupported data interface kind provided!");
+    }
 }
 
+template<DataPortInterfaceKind kind = DataPortKind>
+[[gnu::always_inline]]
+inline
+void
+setLowerDataByte(uint8_t value) noexcept {
+    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
+        DataLinesInterface.view8.data[0] = value;
+    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
+        getOutputRegister<Port::DataLinesLower>() = value;
+    } else {
+        static_assert(isValidKind_v<kind>, "unsupported data interface kind provided!");
+    }
+}
+
+template<DataPortInterfaceKind kind = DataPortKind>
 [[gnu::always_inline]]
 inline
 uint16_t
 getData() noexcept {
-    return makeWord(getUpperDataByte(), getLowerDataByte());
+    return makeWord(getUpperDataByte<kind>(), getLowerDataByte<kind>());
 }
 
+template<DataPortInterfaceKind kind = DataPortKind>
 [[gnu::always_inline]]
 inline
 void
@@ -103,9 +178,8 @@ setData(uint16_t value) noexcept {
         Serial.print(F("setData: 0b"));
         Serial.println(value, BIN);
     }
-    setLowerDataByte(value);
-    setUpperDataByte(static_cast<uint8_t>(value >> 8));
-    //DataLinesInterface.view16.data[0] = value;
+    setLowerDataByte<kind>(value);
+    setUpperDataByte<kind>(static_cast<uint8_t>(value >> 8));
 }
 
 
@@ -642,8 +716,6 @@ setup() {
     pinMode<Pin::INT0_960_>(OUTPUT);
     digitalWrite<Pin::INT0_960_, HIGH>();
     // setup the IBUS bank
-    getDirectionRegister<Port::IBUS_Bank>() = 0;
-    getOutputRegister<Port::IBUS_Bank>() = 0;
     pinMode(Pin::IsMemorySpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
@@ -671,8 +743,23 @@ setup() {
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
     AddressLinesInterface.view32.data = 0;
-    DataLinesInterface.view32.direction = 0x0000'FFFF;
-    DataLinesInterface.view32.data = 0;
+    if constexpr (DataPortKind == DataPortInterfaceKind::IOExpander) {
+        DataLinesInterface.view32.direction = 0x0000'FFFF;
+        DataLinesInterface.view32.data = 0;
+        getDirectionRegister<Port::DataLinesUpper>() = 0;
+        getDirectionRegister<Port::DataLinesLower>() = 0;
+    } else if constexpr (DataPortKind == DataPortInterfaceKind::AVRGPIO) {
+        DataLinesInterface.view32.direction = 0;
+        DataLinesInterface.view32.data = 0;
+        getDirectionRegister<Port::DataLinesUpper>() = 0xff;
+        getDirectionRegister<Port::DataLinesLower>() = 0xff;
+    } else {
+        DataLinesInterface.view32.direction = 0;
+        DataLinesInterface.view32.data = 0;
+        getDirectionRegister<Port::DataLinesUpper>() = 0;
+        getDirectionRegister<Port::DataLinesLower>() = 0;
+
+    }
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00010001;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     putCPUInReset();
@@ -720,16 +807,6 @@ setup() {
     EICRB = 0b1010'1010; // falling edge on the upper four interrupts
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
-}
-inline 
-void 
-setLowerDataLinesDirection(uint8_t value) {
-    DataLinesInterface.view8.direction[0] = value;
-}
-inline 
-void 
-setUpperDataLinesDirection(uint8_t value) {
-    DataLinesInterface.view8.direction[1] = value;
 }
 void 
 loop() {

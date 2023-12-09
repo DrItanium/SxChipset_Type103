@@ -83,8 +83,10 @@ enum class Port : byte {
 #undef X
     None,
     SignalCTL = F,
-    IBUS_Bank = J,
+    //IBUS_Bank = J,
     ExecutionState = D,
+    DataLinesLower = J,
+    DataLinesUpper = K,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

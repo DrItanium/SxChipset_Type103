@@ -70,7 +70,7 @@ constexpr bool isValidKind(DataPortInterfaceKind kind) noexcept {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = isValidKind(kind);
 
-constexpr auto DataPortKind = DataPortInterfaceKind::AVRGPIO;
+constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 template<DataPortInterfaceKind kind = DataPortKind>
@@ -137,6 +137,10 @@ template<DataPortInterfaceKind kind = DataPortKind>
 inline
 void
 setUpperDataByte(uint8_t value) noexcept {
+    if constexpr (EnableTransactionDebug) {
+        Serial.print(F("setUpperDataByte: 0x"));
+        Serial.println(value, HEX);
+    }
     if constexpr (kind == DataPortInterfaceKind::IOExpander) {
         DataLinesInterface.view8.data[1] = value;
     } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
@@ -151,6 +155,10 @@ template<DataPortInterfaceKind kind = DataPortKind>
 inline
 void
 setLowerDataByte(uint8_t value) noexcept {
+    if constexpr (EnableTransactionDebug) {
+        Serial.print(F("setLowerDataByte: 0x"));
+        Serial.println(value, HEX);
+    }
     if constexpr (kind == DataPortInterfaceKind::IOExpander) {
         DataLinesInterface.view8.data[0] = value;
     } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {

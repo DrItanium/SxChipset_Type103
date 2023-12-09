@@ -85,7 +85,7 @@ enum class Port : byte {
     SignalCTL = F,
     //IBUS_Bank = J,
     ExecutionState = D,
-    DataLinesLower = J,
+    DataLinesLower = L,
     DataLinesUpper = K,
 };
 constexpr auto numberOfAvailablePins() noexcept {

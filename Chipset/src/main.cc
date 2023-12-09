@@ -70,7 +70,7 @@ constexpr bool isValidKind(DataPortInterfaceKind kind) noexcept {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = isValidKind(kind);
 
-constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
+constexpr auto DataPortKind = DataPortInterfaceKind::AVRGPIO;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 template<DataPortInterfaceKind kind = DataPortKind>
@@ -111,7 +111,7 @@ getUpperDataByte() noexcept {
 
         return DataLinesInterface.view8.data[1];
     } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
-
+        return getInputRegister<Port::DataLinesUpper>();
     } else {
         static_assert(isValidKind_v<kind>);
     }
@@ -126,7 +126,7 @@ getLowerDataByte() noexcept {
 
         return DataLinesInterface.view8.data[0];
     } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
-
+        return getInputRegister<Port::DataLinesLower>();
     } else {
         static_assert(isValidKind_v<kind>);
     }

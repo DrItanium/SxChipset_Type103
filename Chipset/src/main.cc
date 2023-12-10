@@ -196,11 +196,12 @@ inline void oneShotFire() {
 
 template<uint8_t delayAmount = 4>
 [[gnu::always_inline]]
-[[gnu::used]]
 inline void
 signalReady() noexcept {
     oneShotFire();
-    toggle<Pin::READY>();
+    // wait for the one shot to go on
+    while (TCNT2 > 0);
+    //toggle<Pin::READY>();
     if constexpr (delayAmount > 0) {
         insertCustomNopCount<delayAmount>();
     }
@@ -764,8 +765,9 @@ setup() {
     pinMode(Pin::BLAST, INPUT);
     pinMode(Pin::WR, INPUT);
     // we start with 0xFF for the direction output so reflect it here
-    pinMode(Pin::READY, OUTPUT);
-    digitalWrite<Pin::READY, HIGH>();
+    //pinMode(Pin::READY, OUTPUT);
+    //digitalWrite<Pin::READY, HIGH>();
+    pinMode<Pin::READY>(INPUT);
 
     // set these up ahead of time
 

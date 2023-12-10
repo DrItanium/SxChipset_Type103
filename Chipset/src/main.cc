@@ -189,9 +189,14 @@ setData(uint16_t value) noexcept {
     setUpperDataByte<kind>(static_cast<uint8_t>(value >> 8));
 }
 
-inline void oneShotFire() {
+constexpr uint8_t computeCycleWidth(uint8_t cycles) {
+    return 0xFF - (cycles - 1);
+}
+constexpr uint8_t ReadyCycleWidth = computeCycleWidth(2);
+constexpr uint8_t ReadyCycleStart = ReadyCycleWidth - 1;
+[[gnu::always_inline]] inline void oneShotFire() {
     // fire a one-shot pulse. Use the most recently set width!
-    TCNT2 = OCR2B - 1;
+    TCNT2 = ReadyCycleStart;
 }
 
 template<uint8_t delayAmount = 4>
@@ -202,9 +207,9 @@ signalReady() noexcept {
     // wait for the one shot to go on
     while (TCNT2 > 0);
     //toggle<Pin::READY>();
-    if constexpr (delayAmount > 0) {
-        insertCustomNopCount<delayAmount>();
-    }
+    //if constexpr (delayAmount > 0) {
+        //insertCustomNopCount<delayAmount>();
+    //}
 }
 
 using Register8 = volatile uint8_t&;
@@ -707,9 +712,6 @@ getInstalledCPUKind() noexcept {
     //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
     return static_cast<CPUKind>(ControlSignals.ctl.data.cfg);
 }
-inline void oneShotSetWidth(uint8_t cycles) {
-    OCR2B = 0xFF - (cycles - 1);
-}
 void
 setup() {
     int32_t seed = 0;
@@ -742,9 +744,9 @@ setup() {
                // we break out of this by manually setting TCNT higher than 0,
                // in which case it will count all the way up to MAX and then
                // overflow back to 0 and get locked up again.
-    oneShotSetWidth(2); // we want two cycles at 20MHz, this also makes new OCR
-                        // values get loaded from the buffer on every clock
-                        // cycle
+    OCR2B = ReadyCycleWidth; // we want two cycles at 20MHz, this also makes new OCR
+                             // values get loaded from the buffer on every clock
+                             // cycle
                         
     // we want to generate a falling signal so do Clear OC2B on Compare Match
     // and set OC2B at BOTTOM

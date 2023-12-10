@@ -189,12 +189,17 @@ setData(uint16_t value) noexcept {
     setUpperDataByte<kind>(static_cast<uint8_t>(value >> 8));
 }
 
+inline void oneShotFire() {
+    // fire a one-shot pulse. Use the most recently set width!
+    TCNT2 = OCR2B - 1;
+}
 
 template<uint8_t delayAmount = 4>
 [[gnu::always_inline]]
 inline void
 signalReady() noexcept {
     toggle<Pin::READY>();
+    oneShotFire();
     if constexpr (delayAmount > 0) {
         insertCustomNopCount<delayAmount>();
     }
@@ -700,7 +705,9 @@ getInstalledCPUKind() noexcept {
     //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
     return static_cast<CPUKind>(ControlSignals.ctl.data.cfg);
 }
-
+inline void oneShotSetWidth(uint8_t cycles) {
+    OCR2B = 0xFF - (cycles - 1);
+}
 void
 setup() {
     int32_t seed = 0;
@@ -718,12 +725,31 @@ setup() {
     PRR0 = 0b0000'0001; // deactivate ADC
     PRR1 = 0b00000'100; // deactivate USART3
 
-
     // configure PE3 to be CLK1
     pinMode<Pin::CLK1>(OUTPUT);
     digitalWrite<Pin::CLK1, LOW>();
+    pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
     TCCR3A = 0b01'00'00'00;
     TCCR3B = 0b00'0'01'001;
+    // taken from https://github.com/bigjosh/TimerShot/blob/master/TimerShot.ino and adapted to work with an arduino uno
+    TCCR2B = 0; // disable the counter completely
+    TCNT2 = 0x00; // start counting at the bottom
+    OCR2A = 0; // set TOP to 0. This will keep us from counting because the
+               // counter just keeps resetting back to zero.
+
+               // we break out of this by manually setting TCNT higher than 0,
+               // in which case it will count all the way up to MAX and then
+               // overflow back to 0 and get locked up again.
+    oneShotSetWidth(2); // we want two cycles at 20MHz, this also makes new OCR
+                        // values get loaded from the buffer on every clock
+                        // cycle
+                        
+    // we want to generate a falling signal so do Clear OC2B on Compare Match
+    // and set OC2B at BOTTOM
+    TCCR2A = _BV(COM2B1) | _BV(WGM20) | _BV(WGM21); // waveform generation
+                                                    // using FastPWM mode
+    TCCR2B = _BV(WGM22) | _BV(CS20); // enable the counter and select fastPWM mode 7
+    
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
     digitalWrite<Pin::INT0_960_, HIGH>();

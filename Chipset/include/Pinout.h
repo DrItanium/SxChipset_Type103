@@ -72,6 +72,7 @@ Count = NUM_DIGITAL_PINS,
     READY = PortF7,
 
     IsMemorySpaceOperation = PortE2,
+    CLK1 = PortE3,
     NewTransaction = PortE4,
     WriteTransaction = PortE5,
     ReadTransaction = PortE6,

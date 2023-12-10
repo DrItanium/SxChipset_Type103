@@ -719,6 +719,11 @@ setup() {
     PRR1 = 0b00000'100; // deactivate USART3
 
 
+    // configure PE3 to be CLK1
+    pinMode<Pin::CLK1>(OUTPUT);
+    digitalWrite<Pin::CLK1, LOW>();
+    TCCR3A = 0b01'00'00'00;
+    TCCR3B = 0b00'0'01'001;
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
     digitalWrite<Pin::INT0_960_, HIGH>();

@@ -203,13 +203,12 @@ template<uint8_t delayAmount = 4>
 [[gnu::always_inline]]
 inline void
 signalReady() noexcept {
-    oneShotFire();
     // wait for the one shot to go on
-    while (TCNT2 > 0);
-    //toggle<Pin::READY>();
-    //if constexpr (delayAmount > 0) {
-        //insertCustomNopCount<delayAmount>();
-    //}
+    oneShotFire();
+    if constexpr (delayAmount > 0) {
+        // we need two extra cycles for the blocking nature of TCNT2
+        insertCustomNopCount<delayAmount + 2>();
+    }
 }
 
 using Register8 = volatile uint8_t&;

@@ -196,10 +196,11 @@ inline void oneShotFire() {
 
 template<uint8_t delayAmount = 4>
 [[gnu::always_inline]]
+[[gnu::used]]
 inline void
 signalReady() noexcept {
-    toggle<Pin::READY>();
     oneShotFire();
+    toggle<Pin::READY>();
     if constexpr (delayAmount > 0) {
         insertCustomNopCount<delayAmount>();
     }

@@ -16,7 +16,7 @@ Pin 23 = PE4          S0 = 1   S1 = 1
 
 Pin 22 = PE5          S0 = 0   S1 = 1
  10  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 11  ---- -x-- ---- ---- ---- x--- ---- ---- ---- ---- ----
+ 11  ---- -x-- ---- ---- x--- ---- ---- ---- ---- ---- ----
  12  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  13  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  14  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -29,7 +29,7 @@ Pin 22 = PE5          S0 = 0   S1 = 1
 
 Pin 21 = PE6          S0 = 0   S1 = 1
  21  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 22  ---- -x-- ---- ---- ---- -x-- ---- ---- ---- ---- ----
+ 22  ---- -x-- ---- ---- -x-- ---- ---- ---- ---- ---- ----
  23  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  24  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  25  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -42,9 +42,9 @@ Pin 21 = PE6          S0 = 0   S1 = 1
  32  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  33  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 20 = MEM          S0 = 1   S1 = 0
+Pin 20 = MEM          S0 = 0   S1 = 0
  34  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 35  ---- ---- ---- ---- ---- ---- -x-- ---- ---- ---- ----
+ 35  ---- ---- ---- ---- ---- x--- x--- x--- x--- ---- ----
  36  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  37  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

@@ -734,7 +734,7 @@ setup() {
     pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
     TCCR3A = 0b01'00'00'00;
     TCCR3B = 0b00'0'01'001;
-    // taken from https://github.com/bigjosh/TimerShot/blob/master/TimerShot.ino and adapted to work with an arduino uno
+    // taken from https://github.com/bigjosh/TimerShot/blob/master/TimerShot.ino and adapted to work with a mega2560
     TCCR2B = 0; // disable the counter completely
     TCNT2 = 0x00; // start counting at the bottom
     OCR2A = 0; // set TOP to 0. This will keep us from counting because the

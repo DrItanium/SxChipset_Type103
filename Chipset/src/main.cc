@@ -230,7 +230,6 @@ struct TimerDescriptor< index > {  \
 }; \
 constexpr TimerDescriptor< index > timer ## index 
 X(1);
-X(3);
 X(4);
 X(5);
 #undef X
@@ -479,9 +478,6 @@ void doIO() noexcept {
                           }  
 #ifdef TCCR1A
                           X(timer1, 0x10);
-#endif
-#ifdef TCCR3A
-                          X(timer3, 0x20);
 #endif
 #ifdef TCCR4A
                           X(timer4, 0x30);
@@ -760,15 +756,7 @@ setup() {
     pinMode(Pin::IsMemorySpaceOperation, INPUT);
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
-    pinMode(Pin::BE2, INPUT);
-    pinMode(Pin::BE3, INPUT);
-    pinMode(Pin::DEN, INPUT);
     pinMode(Pin::BLAST, INPUT);
-    pinMode(Pin::WR, INPUT);
-    // we start with 0xFF for the direction output so reflect it here
-    //pinMode(Pin::READY, OUTPUT);
-    //digitalWrite<Pin::READY, HIGH>();
-    pinMode<Pin::READY>(INPUT);
 
     // set these up ahead of time
 

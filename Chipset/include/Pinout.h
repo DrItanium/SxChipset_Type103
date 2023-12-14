@@ -65,12 +65,7 @@ Count = NUM_DIGITAL_PINS,
 
     BE0 = PortF0,
     BE1 = PortF1,
-    BE2 = PortF2,
-    BE3 = PortF3,
-    DEN = PortF4,
     BLAST = PortF5,
-    WR = PortF6,
-    READY = PortF7,
 
     IsMemorySpaceOperation = PortE2,
     CLK1 = PortE3,

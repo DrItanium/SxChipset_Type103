@@ -230,6 +230,7 @@ struct TimerDescriptor< index > {  \
 }; \
 constexpr TimerDescriptor< index > timer ## index 
 X(1);
+X(3);
 X(4);
 X(5);
 #undef X
@@ -707,29 +708,9 @@ getInstalledCPUKind() noexcept {
     //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
     return static_cast<CPUKind>(ControlSignals.ctl.data.cfg);
 }
-void
-setup() {
-    int32_t seed = 0;
-#define X(value) seed += analogRead(value) 
-    X(A0); X(A1); X(A2); X(A3);
-    X(A4); X(A5); X(A6); X(A7);
-    X(A8); X(A9); X(A10); X(A11);
-    X(A12); X(A13); X(A14); X(A15);
-#undef X
-    randomSeed(seed);
-    Serial.begin(115200);
-    SPI.begin();
-    // power down the ADC and USART3
-    // currently we can't use them
-    PRR0 = 0b0000'0001; // deactivate ADC
-    PRR1 = 0b00000'100; // deactivate USART3
-
-    // configure PE3 to be CLK1
-    pinMode<Pin::CLK1>(OUTPUT);
-    digitalWrite<Pin::CLK1, LOW>();
+void 
+setupReadySignal() noexcept {
     pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
-    TCCR3A = 0b01'00'00'00;
-    TCCR3B = 0b00'0'01'001;
     // taken from https://github.com/bigjosh/TimerShot/blob/master/TimerShot.ino and adapted to work with a mega2560
     TCCR2B = 0; // disable the counter completely
     TCNT2 = 0x00; // start counting at the bottom
@@ -748,6 +729,35 @@ setup() {
     TCCR2A = _BV(COM2B1) | _BV(WGM20) | _BV(WGM21); // waveform generation
                                                     // using FastPWM mode
     TCCR2B = _BV(WGM22) | _BV(CS20); // enable the counter and select fastPWM mode 7
+}
+void
+setupCLK1() noexcept {
+    // configure PE3 to be CLK1
+    pinMode<Pin::CLK1>(OUTPUT);
+    digitalWrite<Pin::CLK1, LOW>();
+    timer3.TCCRxA = 0b01'00'00'00;
+    timer3.TCCRxB = 0b00'0'01'001;
+}
+
+void
+setup() {
+    int32_t seed = 0;
+#define X(value) seed += analogRead(value) 
+    X(A0); X(A1); X(A2); X(A3);
+    X(A4); X(A5); X(A6); X(A7);
+    X(A8); X(A9); X(A10); X(A11);
+    X(A12); X(A13); X(A14); X(A15);
+#undef X
+    randomSeed(seed);
+    Serial.begin(115200);
+    SPI.begin();
+    // power down the ADC and USART3
+    // currently we can't use them
+    PRR0 = 0b0000'0001; // deactivate ADC
+    PRR1 = 0b00000'100; // deactivate USART3
+    setupCLK1();
+    setupReadySignal();
+
     
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);

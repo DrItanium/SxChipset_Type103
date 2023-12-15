@@ -57,11 +57,13 @@ enum class DataPortInterfaceKind {
     None,
     IOExpander,
     AVRGPIO,
+    Mixed,
 };
 constexpr bool isValidKind(DataPortInterfaceKind kind) noexcept {
     switch (kind) {
         case DataPortInterfaceKind::IOExpander:
         case DataPortInterfaceKind::AVRGPIO:
+        case DataPortInterfaceKind::Mixed:
             return true;
         default:
             return false;
@@ -70,29 +72,39 @@ constexpr bool isValidKind(DataPortInterfaceKind kind) noexcept {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = isValidKind(kind);
 
-constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
+constexpr auto DataPortKind = DataPortInterfaceKind::Mixed;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 template<DataPortInterfaceKind kind = DataPortKind>
 inline void 
 setLowerDataLinesDirection(uint8_t value) {
-    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
-        DataLinesInterface.view8.direction[0] = value;
-    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
-        getDirectionRegister<Port::DataLinesLower>() = value;
-    } else {
-        static_assert(isValidKind_v<kind>, "Unsupported data interface kind provided!");
+    static_assert(isValidKind_v<kind>, "Unsupported data interface kind provided!");
+    switch (kind) {
+        case DataPortInterfaceKind::IOExpander:
+        case DataPortInterfaceKind::Mixed:
+            DataLinesInterface.view8.direction[0] = value;
+            break;
+        case DataLinesInterfaceKind::AVRGPIO:
+            getDirectionRegister<Port::DataLinesLower>() = value;
+            break;
+        default:
+            break;
     }
 }
 template<DataPortInterfaceKind kind = DataPortKind>
 inline void 
 setUpperDataLinesDirection(uint8_t value) {
-    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
-        DataLinesInterface.view8.direction[1] = value;
-    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
-        getDirectionRegister<Port::DataLinesUpper>() = value;
-    } else {
-        static_assert(isValidKind_v<kind>, "Unsupported data interface kind provided!");
+    static_assert(isValidKind_v<kind>, "Unsupported data interface kind provided!");
+    switch (kind) {
+        case DataPortInterfaceKind::IOExpander:
+        case DataPortInterfaceKind::Mixed:
+            DataLinesInterface.view8.direction[1] = value;
+            break;
+        case DataLinesInterfaceKind::AVRGPIO:
+            getDirectionRegister<Port::DataLinesUpper>() = value;
+            break;
+        default:
+            break;
     }
 }
 [[gnu::always_inline]]
@@ -107,13 +119,15 @@ template<DataPortInterfaceKind kind = DataPortKind>
 inline 
 uint8_t 
 getUpperDataByte() noexcept {
-    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
-
-        return DataLinesInterface.view8.data[1];
-    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
-        return getInputRegister<Port::DataLinesUpper>();
-    } else {
         static_assert(isValidKind_v<kind>);
+    switch (kind) {
+        case DataPortInterfaceKind::IOExpander:
+            return DataLinesInterface.view8.data[1];
+        case DataPortInterfaceKind::AVRGPIO:
+        case DataPortInterfaceKind::Mixed:
+            return getInputRegister<Port::DataLinesUpper>();
+        default:
+            return 0;
     }
 }
 
@@ -122,13 +136,15 @@ template<DataPortInterfaceKind kind = DataPortKind>
 inline 
 uint8_t 
 getLowerDataByte() noexcept {
-    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
-
-        return DataLinesInterface.view8.data[0];
-    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
-        return getInputRegister<Port::DataLinesLower>();
-    } else {
         static_assert(isValidKind_v<kind>);
+    switch (kind) {
+        case DataPortInterfaceKind::IOExpander:
+            return DataLinesInterface.view8.data[0];
+        case DataPortInterfaceKind::AVRGPIO:
+        case DataPortInterfaceKind::Mixed:
+            return getInputRegister<Port::DataLinesLower>();
+        default:
+            return 0;
     }
 }
 
@@ -141,12 +157,17 @@ setUpperDataByte(uint8_t value) noexcept {
         Serial.print(F("setUpperDataByte: 0x"));
         Serial.println(value, HEX);
     }
-    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
-        DataLinesInterface.view8.data[1] = value;
-    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
-        getOutputRegister<Port::DataLinesUpper>() = value;
-    } else {
-        static_assert(isValidKind_v<kind>, "unsupported data interface kind provided!");
+    static_assert(isValidKind_v<kind>, "unsupported data interface kind provided!");
+    switch (kind) {
+        case DataPortInterfaceKind::IOExpander:
+        case DataPortInterfaceKind::Mixed:
+            DataLinesInterface.view8.data[1] = value;
+            break;
+        case DataPortInterfaceKind::AVRGPIO:
+            getOutputRegister<Port::DataLinesUpper>() = value;
+            break;
+        default:
+            break;
     }
 }
 
@@ -159,12 +180,17 @@ setLowerDataByte(uint8_t value) noexcept {
         Serial.print(F("setLowerDataByte: 0x"));
         Serial.println(value, HEX);
     }
-    if constexpr (kind == DataPortInterfaceKind::IOExpander) {
-        DataLinesInterface.view8.data[0] = value;
-    } else if constexpr (kind == DataPortInterfaceKind::AVRGPIO) {
-        getOutputRegister<Port::DataLinesLower>() = value;
-    } else {
-        static_assert(isValidKind_v<kind>, "unsupported data interface kind provided!");
+    static_assert(isValidKind_v<kind>, "unsupported data interface kind provided!");
+    switch (kind) {
+        case DataPortInterfaceKind::IOExpander:
+        case DataPortInterfaceKind::Mixed:
+            DataLinesInterface.view8.data[0] = value;
+            break;
+        case DataPortInterfaceKind::AVRGPIO:
+            getOutputRegister<Port::DataLinesLower>() = value;
+            break;
+        default:
+            break;
     }
 }
 
@@ -783,22 +809,26 @@ setup() {
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
     AddressLinesInterface.view32.data = 0;
-    if constexpr (DataPortKind == DataPortInterfaceKind::IOExpander) {
-        DataLinesInterface.view32.direction = 0x0000'FFFF;
-        DataLinesInterface.view32.data = 0;
-        getDirectionRegister<Port::DataLinesUpper>() = 0;
-        getDirectionRegister<Port::DataLinesLower>() = 0;
-    } else if constexpr (DataPortKind == DataPortInterfaceKind::AVRGPIO) {
-        DataLinesInterface.view32.direction = 0;
-        DataLinesInterface.view32.data = 0;
-        getDirectionRegister<Port::DataLinesUpper>() = 0xff;
-        getDirectionRegister<Port::DataLinesLower>() = 0xff;
-    } else {
-        DataLinesInterface.view32.direction = 0;
-        DataLinesInterface.view32.data = 0;
-        getDirectionRegister<Port::DataLinesUpper>() = 0;
-        getDirectionRegister<Port::DataLinesLower>() = 0;
-
+    switch (DataPortKind) {
+        case DataPortInterfaceKind::IOExpander:
+        case DataPortInterfaceKind::Mixed:
+            DataLinesInterface.view32.direction = 0x0000'FFFF;
+            DataLinesInterface.view32.data = 0;
+            getDirectionRegister<Port::DataLinesUpper>() = 0;
+            getDirectionRegister<Port::DataLinesLower>() = 0;
+            break;
+        case DataPortInterfaceKind::AVRGPIO:
+            DataLinesInterface.view32.direction = 0;
+            DataLinesInterface.view32.data = 0;
+            getDirectionRegister<Port::DataLinesUpper>() = 0xff;
+            getDirectionRegister<Port::DataLinesLower>() = 0xff;
+            break;
+        default:
+            DataLinesInterface.view32.direction = 0;
+            DataLinesInterface.view32.data = 0;
+            getDirectionRegister<Port::DataLinesUpper>() = 0;
+            getDirectionRegister<Port::DataLinesLower>() = 0;
+            break;
     }
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00010001;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;

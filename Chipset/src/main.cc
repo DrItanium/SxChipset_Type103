@@ -84,7 +84,7 @@ setLowerDataLinesDirection(uint8_t value) {
         case DataPortInterfaceKind::Mixed:
             DataLinesInterface.view8.direction[0] = value;
             break;
-        case DataLinesInterfaceKind::AVRGPIO:
+        case DataPortInterfaceKind::AVRGPIO:
             getDirectionRegister<Port::DataLinesLower>() = value;
             break;
         default:
@@ -100,7 +100,7 @@ setUpperDataLinesDirection(uint8_t value) {
         case DataPortInterfaceKind::Mixed:
             DataLinesInterface.view8.direction[1] = value;
             break;
-        case DataLinesInterfaceKind::AVRGPIO:
+        case DataPortInterfaceKind::AVRGPIO:
             getDirectionRegister<Port::DataLinesUpper>() = value;
             break;
         default:
@@ -141,7 +141,7 @@ getLowerDataByte() noexcept {
         case DataPortInterfaceKind::IOExpander:
             return DataLinesInterface.view8.data[0];
         case DataPortInterfaceKind::AVRGPIO:
-        case DataPortInterfaceKind::Mixed:
+        case DataPortInterfaceKind::Mixed: 
             return getInputRegister<Port::DataLinesLower>();
         default:
             return 0;
@@ -816,6 +816,8 @@ setup() {
             DataLinesInterface.view32.data = 0;
             getDirectionRegister<Port::DataLinesUpper>() = 0;
             getDirectionRegister<Port::DataLinesLower>() = 0;
+            getOutputRegister<Port::DataLinesUpper>() = 0;
+            getOutputRegister<Port::DataLinesLower>() = 0;
             break;
         case DataPortInterfaceKind::AVRGPIO:
             DataLinesInterface.view32.direction = 0;

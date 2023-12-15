@@ -72,7 +72,7 @@ constexpr bool isValidKind(DataPortInterfaceKind kind) noexcept {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = isValidKind(kind);
 
-constexpr auto DataPortKind = DataPortInterfaceKind::Mixed;
+constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 template<DataPortInterfaceKind kind = DataPortKind>
@@ -114,38 +114,31 @@ setBankIndex(uint32_t value) {
     AddressLinesInterface.view32.data = value;
 }
 
-template<DataPortInterfaceKind kind = DataPortKind>
-[[gnu::always_inline]]
 inline 
 uint8_t 
 getUpperDataByte() noexcept {
-        static_assert(isValidKind_v<kind>);
-    switch (kind) {
-        case DataPortInterfaceKind::IOExpander:
+        if constexpr (DataPortKind == DataPortInterfaceKind::IOExpander) {
             return DataLinesInterface.view8.data[1];
-        case DataPortInterfaceKind::AVRGPIO:
-        case DataPortInterfaceKind::Mixed:
+        } else if constexpr (DataPortKind == DataPortInterfaceKind::Mixed ||
+                             DataPortKind == DataPortInterfaceKind::AVRGPIO) {
             return getInputRegister<Port::DataLinesUpper>();
-        default:
+        } else {
             return 0;
-    }
+        }
 }
 
-template<DataPortInterfaceKind kind = DataPortKind>
 [[gnu::always_inline]]
 inline 
 uint8_t 
 getLowerDataByte() noexcept {
-        static_assert(isValidKind_v<kind>);
-    switch (kind) {
-        case DataPortInterfaceKind::IOExpander:
+        if constexpr (DataPortKind == DataPortInterfaceKind::IOExpander) {
             return DataLinesInterface.view8.data[0];
-        case DataPortInterfaceKind::AVRGPIO:
-        case DataPortInterfaceKind::Mixed: 
+        } else if constexpr (DataPortKind == DataPortInterfaceKind::Mixed ||
+                             DataPortKind == DataPortInterfaceKind::AVRGPIO) {
             return getInputRegister<Port::DataLinesLower>();
-        default:
+        } else {
             return 0;
-    }
+        }
 }
 
 template<DataPortInterfaceKind kind = DataPortKind>
@@ -194,12 +187,11 @@ setLowerDataByte(uint8_t value) noexcept {
     }
 }
 
-template<DataPortInterfaceKind kind = DataPortKind>
 [[gnu::always_inline]]
 inline
 uint16_t
 getData() noexcept {
-    return makeWord(getUpperDataByte<kind>(), getLowerDataByte<kind>());
+    return makeWord(getUpperDataByte(), getLowerDataByte());
 }
 
 template<DataPortInterfaceKind kind = DataPortKind>

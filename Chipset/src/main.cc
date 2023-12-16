@@ -91,6 +91,10 @@ void
 setLowerDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) {
     getDirectionRegister<Port::DataLinesLower>() = value;
 }
+void 
+setLowerDataLinesDirection(uint8_t value) {
+    setLowerDataLinesDirection(value, InterfaceWith<DataPortKind>{});
+}
 void
 setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) {
     DataLinesInterface.view8.direction[1] = value;
@@ -104,12 +108,8 @@ setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::A
     getDirectionRegister<Port::DataLinesUpper>() = value;
 }
 void 
-setLowerDataLinesDirection(uint8_t value) {
-    setLowerDataLinesDirection(value, InterfaceWith<DataPortKind>{});
-}
-void 
 setUpperDataLinesDirection(uint8_t value) {
-    setLowerDataLinesDirection(value, InterfaceWith<DataPortKind>{});
+    setUpperDataLinesDirection(value, InterfaceWith<DataPortKind>{});
 }
 
 [[gnu::always_inline]]

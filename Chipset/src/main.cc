@@ -75,38 +75,43 @@ constexpr auto isValidKind_v = isValidKind(kind);
 constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
-template<DataPortInterfaceKind kind = DataPortKind>
-inline void 
+template<DataPortInterfaceKind kind>
+struct InterfaceWith {
+    
+};
+void
+setLowerDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) {
+    DataLinesInterface.view8.direction[0] = value;
+}
+void
+setLowerDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed>) {
+    DataLinesInterface.view8.direction[0] = value;
+}
+void
+setLowerDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) {
+    getDirectionRegister<Port::DataLinesLower>() = value;
+}
+void
+setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) {
+    DataLinesInterface.view8.direction[1] = value;
+}
+void
+setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed>) {
+    DataLinesInterface.view8.direction[1] = value;
+}
+void
+setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) {
+    getDirectionRegister<Port::DataLinesUpper>() = value;
+}
+void 
 setLowerDataLinesDirection(uint8_t value) {
-    static_assert(isValidKind_v<kind>, "Unsupported data interface kind provided!");
-    switch (kind) {
-        case DataPortInterfaceKind::IOExpander:
-        case DataPortInterfaceKind::Mixed:
-            DataLinesInterface.view8.direction[0] = value;
-            break;
-        case DataPortInterfaceKind::AVRGPIO:
-            getDirectionRegister<Port::DataLinesLower>() = value;
-            break;
-        default:
-            break;
-    }
+    setLowerDataLinesDirection(value, InterfaceWith<DataPortKind>{});
 }
-template<DataPortInterfaceKind kind = DataPortKind>
-inline void 
+void 
 setUpperDataLinesDirection(uint8_t value) {
-    static_assert(isValidKind_v<kind>, "Unsupported data interface kind provided!");
-    switch (kind) {
-        case DataPortInterfaceKind::IOExpander:
-        case DataPortInterfaceKind::Mixed:
-            DataLinesInterface.view8.direction[1] = value;
-            break;
-        case DataPortInterfaceKind::AVRGPIO:
-            getDirectionRegister<Port::DataLinesUpper>() = value;
-            break;
-        default:
-            break;
-    }
+    setLowerDataLinesDirection(value, InterfaceWith<DataPortKind>{});
 }
+
 [[gnu::always_inline]]
 inline
 void 
@@ -116,95 +121,117 @@ setBankIndex(uint32_t value) {
 
 inline 
 uint8_t 
-getUpperDataByte() noexcept {
-        if constexpr (DataPortKind == DataPortInterfaceKind::IOExpander) {
-            return DataLinesInterface.view8.data[1];
-        } else if constexpr (DataPortKind == DataPortInterfaceKind::Mixed ||
-                             DataPortKind == DataPortInterfaceKind::AVRGPIO) {
-            return getInputRegister<Port::DataLinesUpper>();
-        } else {
-            return 0;
-        }
+getLowerDataByte(InterfaceWith<DataPortInterfaceKind::IOExpander>) noexcept {
+    return DataLinesInterface.view8.data[0];
 }
-
+inline 
+uint8_t 
+getLowerDataByte(InterfaceWith<DataPortInterfaceKind::Mixed>) noexcept {
+    return getInputRegister<Port::DataLinesLower>();
+}
+inline 
+uint8_t 
+getLowerDataByte(InterfaceWith<DataPortInterfaceKind::AVRGPIO>) noexcept {
+    return getInputRegister<Port::DataLinesLower>();
+}
 [[gnu::always_inline]]
 inline 
 uint8_t 
 getLowerDataByte() noexcept {
-        if constexpr (DataPortKind == DataPortInterfaceKind::IOExpander) {
-            return DataLinesInterface.view8.data[0];
-        } else if constexpr (DataPortKind == DataPortInterfaceKind::Mixed ||
-                             DataPortKind == DataPortInterfaceKind::AVRGPIO) {
-            return getInputRegister<Port::DataLinesLower>();
-        } else {
-            return 0;
-        }
+    return getLowerDataByte(InterfaceWith<DataPortKind>{});
 }
 
-template<DataPortInterfaceKind kind = DataPortKind>
+inline 
+uint8_t 
+getUpperDataByte(InterfaceWith<DataPortInterfaceKind::IOExpander>) noexcept {
+    return DataLinesInterface.view8.data[1];
+}
+inline 
+uint8_t 
+getUpperDataByte(InterfaceWith<DataPortInterfaceKind::Mixed>) noexcept {
+    return getInputRegister<Port::DataLinesUpper>();
+}
+inline 
+uint8_t 
+getUpperDataByte(InterfaceWith<DataPortInterfaceKind::AVRGPIO>) noexcept {
+    return getInputRegister<Port::DataLinesUpper>();
+}
+[[gnu::always_inline]]
+inline 
+uint8_t 
+getUpperDataByte() noexcept {
+    return getUpperDataByte(InterfaceWith<DataPortKind>{});
+}
+
+
+[[gnu::always_inline]]
+inline
+void
+setUpperDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) noexcept {
+    DataLinesInterface.view8.data[1] = value;
+}
+
+[[gnu::always_inline]]
+inline
+void
+setUpperDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed>) noexcept {
+    DataLinesInterface.view8.data[1] = value;
+}
+
+[[gnu::always_inline]]
+inline
+void
+setUpperDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) noexcept {
+    getOutputRegister<Port::DataLinesUpper>() = value;
+}
+
 [[gnu::always_inline]]
 inline
 void
 setUpperDataByte(uint8_t value) noexcept {
-    if constexpr (EnableTransactionDebug) {
-        Serial.print(F("setUpperDataByte: 0x"));
-        Serial.println(value, HEX);
-    }
-    static_assert(isValidKind_v<kind>, "unsupported data interface kind provided!");
-    switch (kind) {
-        case DataPortInterfaceKind::IOExpander:
-        case DataPortInterfaceKind::Mixed:
-            DataLinesInterface.view8.data[1] = value;
-            break;
-        case DataPortInterfaceKind::AVRGPIO:
-            getOutputRegister<Port::DataLinesUpper>() = value;
-            break;
-        default:
-            break;
-    }
+    setUpperDataByte(value, InterfaceWith<DataPortKind>{});
 }
 
-template<DataPortInterfaceKind kind = DataPortKind>
+[[gnu::always_inline]]
+inline
+void
+setLowerDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) noexcept {
+    DataLinesInterface.view8.data[0] = value;
+}
+
+[[gnu::always_inline]]
+inline
+void
+setLowerDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed>) noexcept {
+    DataLinesInterface.view8.data[0] = value;
+}
+
+[[gnu::always_inline]]
+inline
+void
+setLowerDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) noexcept {
+    getOutputRegister<Port::DataLinesLower>() = value;
+}
+
 [[gnu::always_inline]]
 inline
 void
 setLowerDataByte(uint8_t value) noexcept {
-    if constexpr (EnableTransactionDebug) {
-        Serial.print(F("setLowerDataByte: 0x"));
-        Serial.println(value, HEX);
-    }
-    static_assert(isValidKind_v<kind>, "unsupported data interface kind provided!");
-    switch (kind) {
-        case DataPortInterfaceKind::IOExpander:
-        case DataPortInterfaceKind::Mixed:
-            DataLinesInterface.view8.data[0] = value;
-            break;
-        case DataPortInterfaceKind::AVRGPIO:
-            getOutputRegister<Port::DataLinesLower>() = value;
-            break;
-        default:
-            break;
-    }
+    setLowerDataByte(value, InterfaceWith<DataPortKind>{});
 }
 
-[[gnu::always_inline]]
 inline
 uint16_t
 getData() noexcept {
     return makeWord(getUpperDataByte(), getLowerDataByte());
 }
 
-template<DataPortInterfaceKind kind = DataPortKind>
 [[gnu::always_inline]]
 inline
 void
 setData(uint16_t value) noexcept {
-    if constexpr (EnableTransactionDebug) {
-        Serial.print(F("setData: 0b"));
-        Serial.println(value, BIN);
-    }
-    setLowerDataByte<kind>(value);
-    setUpperDataByte<kind>(static_cast<uint8_t>(value >> 8));
+    setLowerDataByte(value);
+    setUpperDataByte(static_cast<uint8_t>(value >> 8));
 }
 
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
@@ -808,8 +835,6 @@ setup() {
             DataLinesInterface.view32.data = 0;
             getDirectionRegister<Port::DataLinesUpper>() = 0;
             getDirectionRegister<Port::DataLinesLower>() = 0;
-            getOutputRegister<Port::DataLinesUpper>() = 0;
-            getOutputRegister<Port::DataLinesLower>() = 0;
             break;
         case DataPortInterfaceKind::AVRGPIO:
             DataLinesInterface.view32.direction = 0;

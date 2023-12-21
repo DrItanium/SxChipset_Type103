@@ -597,116 +597,6 @@ void doIO() noexcept {
 #undef I960_Signal_Switch
 
 
-FORCE_INLINE
-inline 
-void
-readOperation() {
-    if (isBurstLast()) { 
-        goto Read_Done; 
-    } 
-    setLowerDataByte(memoryPort8[0]);
-    setUpperDataByte(memoryPort8[1]);
-    signalReady();
-    if (isBurstLast()) { 
-        goto Read_Done; 
-    } 
-    setLowerDataByte(memoryPort8[0]);
-    setUpperDataByte(memoryPort8[1]);
-    signalReady();
-    if (isBurstLast()) { 
-        goto Read_Done; 
-    } 
-    setLowerDataByte(memoryPort8[0]);
-    setUpperDataByte(memoryPort8[1]);
-    signalReady();
-    if (isBurstLast()) { 
-        goto Read_Done; 
-    } 
-    setLowerDataByte(memoryPort8[0]);
-    setUpperDataByte(memoryPort8[1]);
-    signalReady();
-    if (isBurstLast()) { 
-        goto Read_Done; 
-    } 
-    setLowerDataByte(memoryPort8[0]);
-    setUpperDataByte(memoryPort8[1]);
-    signalReady();
-    if (isBurstLast()) { 
-        goto Read_Done; 
-    } 
-    setLowerDataByte(memoryPort8[0]);
-    setUpperDataByte(memoryPort8[1]);
-    signalReady();
-    if (isBurstLast()) { 
-        goto Read_Done; 
-    } 
-    setLowerDataByte(memoryPort8[0]);
-    setUpperDataByte(memoryPort8[1]);
-    signalReady();
-Read_Done:
-    setLowerDataByte(memoryPort8[0]);
-    setUpperDataByte(memoryPort8[1]);
-    signalReady<0>();
-}
-
-FORCE_INLINE
-inline
-void
-writeOperation() {
-    if (digitalRead<Pin::BE0>() == LOW) {
-        memoryPort8[0] = getDataByte<0>();
-    }
-    if (digitalRead<Pin::BE1>() == LOW) {
-        memoryPort8[1] = getDataByte<1>();
-    }
-    if (isBurstLast()) { 
-        goto Write_SignalDone; 
-    } 
-    signalReady();
-    if (isBurstLast()) {
-        goto Write_Done;
-    }
-    memoryPort8[0] = getDataByte<0>(); 
-    memoryPort8[1] = getDataByte<1>(); 
-    signalReady();
-    if (isBurstLast()) {
-        goto Write_Done;
-    }
-    memoryPort8[0] = getDataByte<0>(); 
-    memoryPort8[1] = getDataByte<1>(); 
-    signalReady();
-    if (isBurstLast()) {
-        goto Write_Done;
-    }
-    memoryPort8[0] = getDataByte<0>(); 
-    memoryPort8[1] = getDataByte<1>(); 
-    signalReady();
-    if (isBurstLast()) {
-        goto Write_Done;
-    }
-    memoryPort8[0] = getDataByte<0>(); 
-    memoryPort8[1] = getDataByte<1>(); 
-    signalReady();
-    if (isBurstLast()) {
-        goto Write_Done;
-    }
-    memoryPort8[0] = getDataByte<0>(); 
-    memoryPort8[1] = getDataByte<1>(); 
-    signalReady();
-    if (isBurstLast()) {
-        goto Write_Done;
-    }
-    memoryPort8[0] = getDataByte<0>(); 
-    memoryPort8[1] = getDataByte<1>(); 
-    signalReady();
-Write_Done:
-    memoryPort8[0] = getDataByte<0>();
-    if (digitalRead<Pin::BE1>() == LOW) {
-        memoryPort8[1] = getDataByte<1>();
-    }
-Write_SignalDone:
-    signalReady<0>();
-}
 template<bool isReadOperation>
 FORCE_INLINE
 inline
@@ -718,9 +608,106 @@ doIOOperation() noexcept {
         // where we are starting. Instead, we can easily just do the check as
         // needed
         if constexpr (isReadOperation) {
-            readOperation();
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady();
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady();
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady();
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady();
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady();
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady();
+            if (isBurstLast()) { 
+                goto Read_Done; 
+            } 
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady();
+Read_Done:
+            setLowerDataByte(memoryPort8[0]);
+            setUpperDataByte(memoryPort8[1]);
+            signalReady<0>();
         } else {
-            writeOperation();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                memoryPort8[0] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                memoryPort8[1] = getDataByte<1>();
+            }
+            if (isBurstLast()) { 
+                goto Write_SignalDone; 
+            } 
+            signalReady();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
+            signalReady();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
+            signalReady();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
+            signalReady();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
+            signalReady();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
+            signalReady();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            memoryPort8[0] = getDataByte<0>(); 
+            memoryPort8[1] = getDataByte<1>(); 
+            signalReady();
+Write_Done:
+            memoryPort8[0] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                memoryPort8[1] = getDataByte<1>();
+            }
+Write_SignalDone:
+            signalReady<0>();
         }
     } else {
         doIO<isReadOperation>();
@@ -775,13 +762,11 @@ installMemoryImage() noexcept {
     SPI.endTransaction();
 }
 
-#if 0
 CPUKind 
 getInstalledCPUKind() noexcept { 
     //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
     return static_cast<CPUKind>(ControlSignals.ctl.data.cfg);
 }
-#endif
 void 
 setupReadySignal() noexcept {
     pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
@@ -815,6 +800,14 @@ setupCLK1() noexcept {
 
 void
 setup() {
+    int32_t seed = 0;
+#define X(value) seed += analogRead(value) 
+    X(A0); X(A1); X(A2); X(A3);
+    X(A4); X(A5); X(A6); X(A7);
+    X(A8); X(A9); X(A10); X(A11);
+    X(A12); X(A13); X(A14); X(A15);
+#undef X
+    randomSeed(seed);
     Serial.begin(115200);
     SPI.begin();
     // power down the ADC and USART3
@@ -876,7 +869,6 @@ setup() {
     putCPUInReset();
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
-#if 0
     Serial.print(F("Detected i960 CPU Kind: "));
     auto cpuNotSupported = []() {
         Serial.println(F("Target CPU is not supported by this firmware!"));
@@ -907,7 +899,6 @@ setup() {
             cpuNotSupported();
             break;
     }
-#endif
     // find firmware.bin and install it into the 512k block of memory
     if constexpr (PerformMemoryImageInstallation) {
         installMemoryImage();

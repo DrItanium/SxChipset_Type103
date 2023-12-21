@@ -155,51 +155,7 @@ static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind prov
 
 using DataInterface = DataPortInterface<DataPortKind>;
 
-void 
-setLowerDataLinesDirection(uint8_t value) {
-    DataInterface::setLowerDataLinesDirection(value);
-}
-void 
-setUpperDataLinesDirection(uint8_t value) {
-    DataInterface::setUpperDataLinesDirection(value);
-}
 
-[[gnu::always_inline]]
-inline
-void 
-setBankIndex(uint32_t value) {
-    AddressLinesInterface.view32.data = value;
-}
-
-[[gnu::always_inline]]
-inline 
-uint8_t 
-getLowerDataByte() noexcept {
-    return DataInterface::getLowerDataByte();
-}
-
-[[gnu::always_inline]]
-inline 
-uint8_t 
-getUpperDataByte() noexcept {
-    return DataInterface::getUpperDataByte();
-}
-
-
-[[gnu::always_inline]]
-inline
-void
-setUpperDataByte(uint8_t value) noexcept {
-    DataInterface::setUpperDataByte(value);
-}
-
-
-[[gnu::always_inline]]
-inline
-void
-setLowerDataByte(uint8_t value) noexcept {
-    DataInterface::setLowerDataByte(value);
-}
 
 inline
 uint16_t
@@ -276,9 +232,9 @@ inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 2, "Invalid index provided to setDataByte, must be less than 2");
     if constexpr (index < 2) {
         if constexpr (index == 0) {
-            setLowerDataByte(value);
+            DataInterface::setLowerDataByte(value);
         } else {
-            setUpperDataByte(value);
+            DataInterface::setUpperDataByte(value);
         }
     }
 }
@@ -288,9 +244,9 @@ inline uint8_t getDataByte() noexcept {
     static_assert(index < 2, "Invalid index provided to getDataByte, must be less than 4");
     if constexpr (index < 2) {
         if constexpr (index == 0) {
-            return getLowerDataByte();
+            return DataInterface::getLowerDataByte();
         } else {
-            return getUpperDataByte();
+            return DataInterface::getUpperDataByte();
         }
     } else {
         return 0;
@@ -577,48 +533,48 @@ doIOOperation() noexcept {
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(memoryPort8[0]);
-            setUpperDataByte(memoryPort8[1]);
+            DataInterface::setLowerDataByte(memoryPort8[0]);
+            DataInterface::setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(memoryPort8[0]);
-            setUpperDataByte(memoryPort8[1]);
+            DataInterface::setLowerDataByte(memoryPort8[0]);
+            DataInterface::setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(memoryPort8[0]);
-            setUpperDataByte(memoryPort8[1]);
+            DataInterface::setLowerDataByte(memoryPort8[0]);
+            DataInterface::setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(memoryPort8[0]);
-            setUpperDataByte(memoryPort8[1]);
+            DataInterface::setLowerDataByte(memoryPort8[0]);
+            DataInterface::setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(memoryPort8[0]);
-            setUpperDataByte(memoryPort8[1]);
+            DataInterface::setLowerDataByte(memoryPort8[0]);
+            DataInterface::setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(memoryPort8[0]);
-            setUpperDataByte(memoryPort8[1]);
+            DataInterface::setLowerDataByte(memoryPort8[0]);
+            DataInterface::setUpperDataByte(memoryPort8[1]);
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            setLowerDataByte(memoryPort8[0]);
-            setUpperDataByte(memoryPort8[1]);
+            DataInterface::setLowerDataByte(memoryPort8[0]);
+            DataInterface::setUpperDataByte(memoryPort8[1]);
             signalReady();
 Read_Done:
-            setLowerDataByte(memoryPort8[0]);
-            setUpperDataByte(memoryPort8[1]);
+            DataInterface::setLowerDataByte(memoryPort8[0]);
+            DataInterface::setUpperDataByte(memoryPort8[1]);
             signalReady<0>();
         } else {
             if (digitalRead<Pin::BE0>() == LOW) {
@@ -899,8 +855,8 @@ ReadOperationStart:
     loop_until_bit_is_set(EIFR, INTF4);
     if (bit_is_set(EIFR, INTF5)) {
         // change direction to output since we are doing write -> read
-        setLowerDataLinesDirection(0);
-        setUpperDataLinesDirection(0);
+        DataInterface::setLowerDataLinesDirection(0);
+        DataInterface::setUpperDataLinesDirection(0);
         // then jump into the write loop
         goto WriteOperationBypass;
     } 
@@ -917,8 +873,8 @@ WriteOperationStart:
     loop_until_bit_is_set(EIFR, INTF4);
     if (bit_is_set(EIFR, INTF6)) {
         // change direction to input since we are doing read -> write
-        setLowerDataLinesDirection(0xff);
-        setUpperDataLinesDirection(0xff);
+        DataInterface::setLowerDataLinesDirection(0xff);
+        DataInterface::setUpperDataLinesDirection(0xff);
         // then jump into the write loop
         goto ReadOperationBypass;
     } 

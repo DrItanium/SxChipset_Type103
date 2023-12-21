@@ -73,23 +73,16 @@ constexpr bool isValidKind(DataPortInterfaceKind kind) noexcept {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = isValidKind(kind);
 
-constexpr auto DataPortKind = DataPortInterfaceKind::Mixed2;
+constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 template<DataPortInterfaceKind kind>
 struct InterfaceWith {
     
 };
+template<DataPortInterfaceKind kind>
 void
-setLowerDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) {
-    DataLinesInterface.view8.direction[0] = value;
-}
-void
-setLowerDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed>) {
-    DataLinesInterface.view8.direction[0] = value;
-}
-void
-setLowerDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed2>) {
+setLowerDataLinesDirection(uint8_t value, InterfaceWith<kind>) {
     DataLinesInterface.view8.direction[0] = value;
 }
 void
@@ -100,16 +93,9 @@ void
 setLowerDataLinesDirection(uint8_t value) {
     setLowerDataLinesDirection(value, InterfaceWith<DataPortKind>{});
 }
+template<DataPortInterfaceKind kind>
 void
-setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) {
-    DataLinesInterface.view8.direction[1] = value;
-}
-void
-setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed>) {
-    DataLinesInterface.view8.direction[1] = value;
-}
-void
-setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed2>) {
+setUpperDataLinesDirection(uint8_t value, InterfaceWith<kind>) {
     DataLinesInterface.view8.direction[1] = value;
 }
 void

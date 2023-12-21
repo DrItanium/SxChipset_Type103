@@ -57,52 +57,93 @@ enum class DataPortInterfaceKind {
     None,
     IOExpander,
     AVRGPIO,
-    Mixed,
-    Mixed2,
 };
-constexpr bool isValidKind(DataPortInterfaceKind kind) noexcept {
-    switch (kind) {
-        case DataPortInterfaceKind::IOExpander:
-        case DataPortInterfaceKind::AVRGPIO:
-        case DataPortInterfaceKind::Mixed2:
-            return true;
-        default:
-            return false;
-    }
-}
+
 template<DataPortInterfaceKind kind>
-constexpr auto isValidKind_v = isValidKind(kind);
+struct DataPortInterface {
+    static constexpr bool Valid = false;
+    static constexpr auto InterfaceKind = kind;
+    using Self = DataPortInterface<InterfaceKind>;
+    DataPortInterface() = delete;
+    ~DataPortInterface() = delete;
+    DataPortInterface(const Self&) = delete;
+    DataPortInterface(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+};
+
+template<>
+struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
+    static constexpr bool Valid = true;
+    static constexpr auto InterfaceKind = DataPortInterfaceKind::AVRGPIO;
+    using Self = DataPortInterface<InterfaceKind>;
+    DataPortInterface() = delete;
+    ~DataPortInterface() = delete;
+    DataPortInterface(const Self&) = delete;
+    DataPortInterface(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+    static void setLowerDataLinesDirection(uint8_t value) noexcept {
+        getDirectionRegister<Port::DataLinesLower>() = value;
+    }
+    static void setUpperDataLinesDirection(uint8_t value) noexcept {
+        getDirectionRegister<Port::DataLinesUpper>() = value;
+    }
+    static uint8_t getLowerDataByte() noexcept { return getInputRegister<Port::DataLinesLower>(); }
+    static uint8_t getUpperDataByte() noexcept { return getInputRegister<Port::DataLinesUpper>(); }
+    static void setLowerDataByte(uint8_t value) noexcept { getInputRegister<Port::DataLinesLower>() = value; }
+    static void setUpperDataByte(uint8_t value) noexcept { getInputRegister<Port::DataLinesUpper>() = value; }
+    static uint16_t getData() noexcept {
+        return makeWord(getUpperDataByte(), getLowerDataByte());
+    }
+};
+
+template<>
+struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
+    static constexpr bool Valid = true;
+    static constexpr auto InterfaceKind = DataPortInterfaceKind::IOExpander;
+    using Self = DataPortInterface<InterfaceKind>;
+    DataPortInterface() = delete;
+    ~DataPortInterface() = delete;
+    DataPortInterface(const Self&) = delete;
+    DataPortInterface(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+    static void setLowerDataLinesDirection(uint8_t value) noexcept {
+        DataLinesInterface.view8.direction[0] = value;
+    }
+    static void setUpperDataLinesDirection(uint8_t value) noexcept {
+        DataLinesInterface.view8.direction[1] = value;
+    }
+    static uint8_t getLowerDataByte() noexcept { return DataLinesInterface.view8.data[0]; }
+    static uint8_t getUpperDataByte() noexcept { return DataLinesInterface.view8.data[1]; }
+    static void setLowerDataByte(uint8_t value) noexcept { DataLinesInterface.view8.data[0] = value; }
+    static void setUpperDataByte(uint8_t value) noexcept { DataLinesInterface.view8.data[1] = value; }
+    static uint16_t getData() noexcept {
+        return makeWord(getUpperDataByte(), getLowerDataByte());
+    }
+    static void setData(uint16_t value) noexcept {
+        setLowerDataByte(value);
+        setUpperDataByte(static_cast<uint8_t>(value >> 8));
+    }
+};
+
+
+template<DataPortInterfaceKind kind>
+constexpr auto isValidKind_v = DataPortInterface<kind>::Valid;
 
 constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
-template<DataPortInterfaceKind kind> struct InterfaceWith { };
+using DataInterface = DataPortInterface<DataPortKind>;
 
-template<DataPortInterfaceKind kind>
-void
-setLowerDataLinesDirection(uint8_t value, InterfaceWith<kind>) {
-    DataLinesInterface.view8.direction[0] = value;
-}
-void
-setLowerDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) {
-    getDirectionRegister<Port::DataLinesLower>() = value;
-}
 void 
 setLowerDataLinesDirection(uint8_t value) {
-    setLowerDataLinesDirection(value, InterfaceWith<DataPortKind>{});
-}
-template<DataPortInterfaceKind kind>
-void
-setUpperDataLinesDirection(uint8_t value, InterfaceWith<kind>) {
-    DataLinesInterface.view8.direction[1] = value;
-}
-void
-setUpperDataLinesDirection(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) {
-    getDirectionRegister<Port::DataLinesUpper>() = value;
+    DataInterface::setLowerDataLinesDirection(value);
 }
 void 
 setUpperDataLinesDirection(uint8_t value) {
-    setUpperDataLinesDirection(value, InterfaceWith<DataPortKind>{});
+    DataInterface::setUpperDataLinesDirection(value);
 }
 
 [[gnu::always_inline]]
@@ -112,140 +153,47 @@ setBankIndex(uint32_t value) {
     AddressLinesInterface.view32.data = value;
 }
 
-inline 
-uint8_t 
-getLowerDataByte(InterfaceWith<DataPortInterfaceKind::IOExpander>) noexcept {
-    return DataLinesInterface.view8.data[0];
-}
-inline 
-uint8_t 
-getLowerDataByte(InterfaceWith<DataPortInterfaceKind::Mixed2>) noexcept {
-    return DataLinesInterface.view8.data[0];
-}
-inline 
-uint8_t 
-getLowerDataByte(InterfaceWith<DataPortInterfaceKind::Mixed>) noexcept {
-    return getInputRegister<Port::DataLinesLower>();
-}
-inline 
-uint8_t 
-getLowerDataByte(InterfaceWith<DataPortInterfaceKind::AVRGPIO>) noexcept {
-    return getInputRegister<Port::DataLinesLower>();
-}
 [[gnu::always_inline]]
 inline 
 uint8_t 
 getLowerDataByte() noexcept {
-    return getLowerDataByte(InterfaceWith<DataPortKind>{});
+    return DataInterface::getLowerDataByte();
 }
 
-inline 
-uint8_t 
-getUpperDataByte(InterfaceWith<DataPortInterfaceKind::IOExpander>) noexcept {
-    return DataLinesInterface.view8.data[1];
-}
-inline 
-uint8_t 
-getUpperDataByte(InterfaceWith<DataPortInterfaceKind::Mixed>) noexcept {
-    return getInputRegister<Port::DataLinesUpper>();
-}
-inline 
-uint8_t 
-getUpperDataByte(InterfaceWith<DataPortInterfaceKind::Mixed2>) noexcept {
-    return getInputRegister<Port::DataLinesUpper>();
-}
-inline 
-uint8_t 
-getUpperDataByte(InterfaceWith<DataPortInterfaceKind::AVRGPIO>) noexcept {
-    return getInputRegister<Port::DataLinesUpper>();
-}
 [[gnu::always_inline]]
 inline 
 uint8_t 
 getUpperDataByte() noexcept {
-    return getUpperDataByte(InterfaceWith<DataPortKind>{});
+    return DataInterface::getUpperDataByte();
 }
 
-[[gnu::always_inline]]
-inline
-void
-setUpperDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) noexcept {
-    DataLinesInterface.view8.data[1] = value;
-}
-
-[[gnu::always_inline]]
-inline
-void
-setUpperDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed>) noexcept {
-    DataLinesInterface.view8.data[1] = value;
-}
-[[gnu::always_inline]]
-inline
-void
-setUpperDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed2>) noexcept {
-    DataLinesInterface.view8.data[1] = value;
-}
-
-[[gnu::always_inline]]
-inline
-void
-setUpperDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) noexcept {
-    getOutputRegister<Port::DataLinesUpper>() = value;
-}
 
 [[gnu::always_inline]]
 inline
 void
 setUpperDataByte(uint8_t value) noexcept {
-    setUpperDataByte(value, InterfaceWith<DataPortKind>{});
+    DataInterface::setUpperDataByte(value);
 }
 
-[[gnu::always_inline]]
-inline
-void
-setLowerDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::IOExpander>) noexcept {
-    DataLinesInterface.view8.data[0] = value;
-}
-[[gnu::always_inline]]
-inline
-void
-setLowerDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed2>) noexcept {
-    DataLinesInterface.view8.data[0] = value;
-}
-
-[[gnu::always_inline]]
-inline
-void
-setLowerDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::Mixed>) noexcept {
-    DataLinesInterface.view8.data[0] = value;
-}
-
-[[gnu::always_inline]]
-inline
-void
-setLowerDataByte(uint8_t value, InterfaceWith<DataPortInterfaceKind::AVRGPIO>) noexcept {
-    getOutputRegister<Port::DataLinesLower>() = value;
-}
 
 [[gnu::always_inline]]
 inline
 void
 setLowerDataByte(uint8_t value) noexcept {
-    setLowerDataByte(value, InterfaceWith<DataPortKind>{});
+    DataInterface::setLowerDataByte(value);
 }
 
 inline
 uint16_t
 getData() noexcept {
-    return makeWord(getUpperDataByte(), getLowerDataByte());
+    return DataInterface::getData();
 }
 
 [[gnu::always_inline]]
 inline
 void
 setData(uint16_t value) noexcept {
-    setLowerDataByte(value);
-    setUpperDataByte(static_cast<uint8_t>(value >> 8));
+    DataInterface::setData(value);
 }
 
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
@@ -844,8 +792,6 @@ setup() {
     AddressLinesInterface.view32.data = 0;
     switch (DataPortKind) {
         case DataPortInterfaceKind::IOExpander:
-        case DataPortInterfaceKind::Mixed:
-        case DataPortInterfaceKind::Mixed2:
             DataLinesInterface.view32.direction = 0x0000'FFFF;
             DataLinesInterface.view32.data = 0;
             getDirectionRegister<Port::DataLinesUpper>() = 0;

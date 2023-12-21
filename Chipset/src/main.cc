@@ -157,19 +157,6 @@ using DataInterface = DataPortInterface<DataPortKind>;
 
 
 
-inline
-uint16_t
-getData() noexcept {
-    return DataInterface::getData();
-}
-
-[[gnu::always_inline]]
-inline
-void
-setData(uint16_t value) noexcept {
-    DataInterface::setData(value);
-}
-
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
     return 0xFF - (cycles - 1);
 }
@@ -273,32 +260,32 @@ void doIO() noexcept {
     switch (AddressLinesInterface.view8.data[0]) { 
         case 0: { 
                     if constexpr (isReadOperation) { 
-                        setData(static_cast<uint16_t>(F_CPU));
+                        DataInterface::setData(static_cast<uint16_t>(F_CPU));
                     } 
                     I960_Signal_Switch;
                 } 
         case 2: { 
                     if constexpr (isReadOperation) { 
-                        setData(static_cast<uint16_t>((F_CPU) >> 16));
+                        DataInterface::setData(static_cast<uint16_t>((F_CPU) >> 16));
                     } 
                     I960_Signal_Switch;
                 } 
         case 4: { 
                     if constexpr (isReadOperation) { 
-                        setData(static_cast<uint16_t>(F_CPU / 2));
+                        DataInterface::setData(static_cast<uint16_t>(F_CPU / 2));
                     } 
                     I960_Signal_Switch;
                 } 
         case 6: { 
                     if constexpr (isReadOperation) { 
-                        setData(static_cast<uint16_t>((F_CPU / 2) >> 16));
+                        DataInterface::setData(static_cast<uint16_t>((F_CPU / 2) >> 16));
                     } 
                     I960_Signal_Switch;
                 } 
         case 8: { 
                     /* Serial RW connection */
                     if constexpr (isReadOperation) { 
-                        setData(Serial.read());
+                        DataInterface::setData(Serial.read());
                     } else { 
                         // no need to check this out just ignore the byte
                         // enable lines
@@ -308,13 +295,13 @@ void doIO() noexcept {
                 } 
         case 10: {
                      if constexpr (isReadOperation) { 
-                         setData(0);
+                         DataInterface::setData(0);
                      } 
                      I960_Signal_Switch;
                  } 
         case 12: { 
                      if constexpr (isReadOperation) { 
-                         setData(0);
+                         DataInterface::setData(0);
                      } else { 
                          Serial.flush();
                      }
@@ -324,7 +311,7 @@ void doIO() noexcept {
                      /* nothing to do on writes but do update the data port
                       * on reads */ 
                      if constexpr (isReadOperation) { 
-                         setData(0);
+                         DataInterface::setData(0);
                      } 
                  }
                  break;
@@ -364,11 +351,11 @@ void doIO() noexcept {
                                  noInterrupts(); \
                                      auto tmp = obj.TCNTx; \
                                      interrupts();  \
-                                     setData(tmp); \
+                                     DataInterface::setData(tmp); \
                              } else {  \
                                  if (digitalRead<Pin::BE0>() == LOW &&  \
                                          digitalRead<Pin::BE1>() == LOW) {  \
-                                     auto value = getData();  \
+                                     auto value = DataInterface::getData();  \
                                          noInterrupts();  \
                                          obj.TCNTx = value; \
                                          interrupts();  \
@@ -384,11 +371,11 @@ void doIO() noexcept {
                                  noInterrupts(); \
                                      auto tmp = obj.ICRx;\
                                      interrupts(); \
-                                     setData(tmp); \
+                                     DataInterface::setData(tmp); \
                              } else { \
                                  if (digitalRead<Pin::BE0>() == LOW &&  \
                                          digitalRead<Pin::BE1>() == LOW) { \
-                                        auto value = getData(); \
+                                        auto value = DataInterface::getData(); \
                                          noInterrupts(); \
                                          obj.ICRx = value;\
                                          interrupts(); \
@@ -402,11 +389,11 @@ void doIO() noexcept {
                                      noInterrupts(); \
                                          auto tmp = obj.OCRxA;\
                                          interrupts(); \
-                                         setData(tmp); \
+                                         DataInterface::setData(tmp); \
                                  } else { \
                                      if (digitalRead<Pin::BE0>() == LOW &&  \
                                              digitalRead<Pin::BE1>() == LOW) { \
-                                        auto value = getData(); \
+                                        auto value = DataInterface::getData(); \
                                              noInterrupts(); \
                                              obj.OCRxA = value;\
                                              interrupts(); \
@@ -420,11 +407,11 @@ void doIO() noexcept {
                                       noInterrupts(); \
                                           auto tmp = obj.OCRxB;\
                                           interrupts(); \
-                                          setData(tmp); \
+                                          DataInterface::setData(tmp); \
                                   } else { \
                                       if (digitalRead<Pin::BE0>() == LOW &&  \
                                               digitalRead<Pin::BE1>() == LOW) { \
-                                            auto value = getData(); \
+                                            auto value = DataInterface::getData(); \
                                               noInterrupts(); \
                                               obj.OCRxB = value; \
                                               interrupts(); \
@@ -438,11 +425,11 @@ void doIO() noexcept {
                                       noInterrupts(); \
                                           auto tmp = obj.OCRxC; \
                                           interrupts(); \
-                                          setData(tmp); \
+                                          DataInterface::setData(tmp); \
                                   } else { \
                                       if (digitalRead<Pin::BE0>() == LOW && \
                                               digitalRead<Pin::BE1>() == LOW) { \
-                                          auto value = getData(); \
+                                          auto value = DataInterface::getData(); \
                                               noInterrupts(); \
                                               obj.OCRxC = value;\
                                               interrupts(); \
@@ -454,7 +441,7 @@ void doIO() noexcept {
                               /* nothing to do on writes but do update the data port
                                * on reads */ \
                               if constexpr (isReadOperation) { \
-                                  setData(0); \
+                                  DataInterface::setData(0); \
                               } \
                               break;\
                           }  
@@ -471,9 +458,9 @@ void doIO() noexcept {
         case 0x50: {
                     if constexpr (isReadOperation) {
                         auto result = millis();
-                        setData(static_cast<uint16_t>(result));
+                        DataInterface::setData(static_cast<uint16_t>(result));
                         I960_Signal_Switch;
-                        setData(static_cast<uint16_t>(result >> 16));
+                        DataInterface::setData(static_cast<uint16_t>(result >> 16));
                         I960_Signal_Switch;
                     } else {
                         I960_Signal_Switch;
@@ -483,9 +470,9 @@ void doIO() noexcept {
         case 0x54: {
                     if constexpr (isReadOperation) {
                         auto result = micros();
-                        setData(static_cast<uint16_t>(result));
+                        DataInterface::setData(static_cast<uint16_t>(result));
                         I960_Signal_Switch;
-                        setData(static_cast<uint16_t>(result >> 16));
+                        DataInterface::setData(static_cast<uint16_t>(result >> 16));
                         I960_Signal_Switch;
                     } else {
                         I960_Signal_Switch;
@@ -494,14 +481,14 @@ void doIO() noexcept {
                    }
         case 0x58: {
                        if constexpr (isReadOperation) {
-                           setData(0);
+                           DataInterface::setData(0);
                        }
                        I960_Signal_Switch;
                        I960_Signal_Switch;
                    }
         case 0x5c: {
                        if constexpr (isReadOperation) {
-                           setData(0);
+                           DataInterface::setData(0);
                        }
                        I960_Signal_Switch;
                        I960_Signal_Switch;
@@ -509,7 +496,7 @@ void doIO() noexcept {
                    break;
         default:
                           if constexpr (isReadOperation) {
-                              setData(0);
+                              DataInterface::setData(0);
                           }
                           idleTransaction();
                           return;

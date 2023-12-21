@@ -70,6 +70,12 @@ struct DataPortInterface {
     DataPortInterface(Self&&) = delete;
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
+    static void configureInterface() noexcept {
+        DataLinesInterface.view32.direction = 0;
+        DataLinesInterface.view32.data = 0;
+        getDirectionRegister<Port::DataLinesUpper>() = 0;
+        getDirectionRegister<Port::DataLinesLower>() = 0;
+    }
 };
 
 template<>
@@ -95,6 +101,12 @@ struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
     static void setUpperDataByte(uint8_t value) noexcept { getInputRegister<Port::DataLinesUpper>() = value; }
     static uint16_t getData() noexcept {
         return makeWord(getUpperDataByte(), getLowerDataByte());
+    }
+    static void configureInterface() noexcept {
+        DataLinesInterface.view32.direction = 0;
+        DataLinesInterface.view32.data = 0;
+        getDirectionRegister<Port::DataLinesUpper>() = 0xff;
+        getDirectionRegister<Port::DataLinesLower>() = 0xff;
     }
 };
 
@@ -125,6 +137,12 @@ struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
     static void setData(uint16_t value) noexcept {
         setLowerDataByte(value);
         setUpperDataByte(static_cast<uint8_t>(value >> 8));
+    }
+    static void configureInterface() noexcept {
+        DataLinesInterface.view32.direction = 0x0000'FFFF;
+        DataLinesInterface.view32.data = 0;
+        getDirectionRegister<Port::DataLinesUpper>() = 0;
+        getDirectionRegister<Port::DataLinesLower>() = 0;
     }
 };
 
@@ -790,26 +808,7 @@ setup() {
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
     AddressLinesInterface.view32.data = 0;
-    switch (DataPortKind) {
-        case DataPortInterfaceKind::IOExpander:
-            DataLinesInterface.view32.direction = 0x0000'FFFF;
-            DataLinesInterface.view32.data = 0;
-            getDirectionRegister<Port::DataLinesUpper>() = 0;
-            getDirectionRegister<Port::DataLinesLower>() = 0;
-            break;
-        case DataPortInterfaceKind::AVRGPIO:
-            DataLinesInterface.view32.direction = 0;
-            DataLinesInterface.view32.data = 0;
-            getDirectionRegister<Port::DataLinesUpper>() = 0xff;
-            getDirectionRegister<Port::DataLinesLower>() = 0xff;
-            break;
-        default:
-            DataLinesInterface.view32.direction = 0;
-            DataLinesInterface.view32.data = 0;
-            getDirectionRegister<Port::DataLinesUpper>() = 0;
-            getDirectionRegister<Port::DataLinesLower>() = 0;
-            break;
-    }
+    DataInterface::configureInterface();
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00010001;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     putCPUInReset();

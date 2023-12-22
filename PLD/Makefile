@@ -23,7 +23,8 @@ all: Type103PLD.jed \
 	StateMachine0.jed \
 	NewEBIDecoder.jed \
 	EBIMemoryAccessorV2.jed \
-	NewIntegratedChip2.jed
+	NewIntegratedChip2.jed \
+	NewIntegratedChip1.jed
 
 
 install_Type103: Type103PLD.jed
@@ -94,6 +95,9 @@ install_EBIMemoryAccessorV2: EBIMemoryAccessorV2.jed
 
 install_NewIntegratedChip2: NewIntegratedChip2.jed
 	minipro -p "ATF22V10CQ(UES)" --write NewIntegratedChip2.jed 
+
+install_NewIntegratedChip1: NewIntegratedChip1.jed
+	minipro -p ATF16V8B --write NewIntegratedChip1.jed 
 
 clean:
 	@echo -n "Cleaning..."

@@ -62,10 +62,9 @@ Count = NUM_DIGITAL_PINS,
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
     ONE_SHOT_READY = PortH6, // OC2B
-
-    BE0 = PortF0,
-    BE1 = PortF1,
-    BLAST = PortF5,
+    BE0 = PortG3,
+    BE1 = PortG4,
+    BLAST = PortG5,
 
     IsMemorySpaceOperation = PortE2,
     CLK1 = PortE3,

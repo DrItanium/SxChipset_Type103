@@ -40,7 +40,7 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
-constexpr bool EnableTransactionDebug = false;
+constexpr bool EnableTransactionDebug = true;
 
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
@@ -127,14 +127,52 @@ struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
     static void setUpperDataLinesDirection(uint8_t value) noexcept {
         DataLinesInterface.view8.direction[1] = value;
     }
-    static uint8_t getLowerDataByte() noexcept { return DataLinesInterface.view8.data[0]; }
-    static uint8_t getUpperDataByte() noexcept { return DataLinesInterface.view8.data[1]; }
-    static void setLowerDataByte(uint8_t value) noexcept { DataLinesInterface.view8.data[0] = value; }
-    static void setUpperDataByte(uint8_t value) noexcept { DataLinesInterface.view8.data[1] = value; }
+    static uint8_t getLowerDataByte() noexcept { 
+        auto result = DataLinesInterface.view8.data[0];
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("getLowerDataByte: 0x"));
+            Serial.println(result, HEX);
+        } 
+        return result;
+    }
+    static uint8_t getUpperDataByte() noexcept { 
+        auto result = DataLinesInterface.view8.data[1];
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("getUpperDataByte: 0x"));
+            Serial.println(result, HEX);
+        } 
+        return result;
+    }
+    static void setLowerDataByte(uint8_t value) noexcept { 
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("setLowerDataByte: 0x"));
+            Serial.println(value, HEX);
+        } 
+        DataLinesInterface.view8.data[0] = value; 
+    }
+    static void setUpperDataByte(uint8_t value) noexcept { 
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("setUpperDataByte: 0x"));
+            Serial.println(value, HEX);
+        } 
+        DataLinesInterface.view8.data[1] = value; 
+    }
     static uint16_t getData() noexcept {
-        return makeWord(getUpperDataByte(), getLowerDataByte());
+        if constexpr (EnableTransactionDebug) {
+            auto value = makeWord(getUpperDataByte(), getLowerDataByte());
+            Serial.print(F("getData: 0x"));
+            Serial.println(value, HEX);
+            return value;
+        } else {
+
+            return makeWord(getUpperDataByte(), getLowerDataByte());
+        }
     }
     static void setData(uint16_t value) noexcept {
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("setData: 0x"));
+            Serial.println(value, HEX);
+        }
         setLowerDataByte(value);
         setUpperDataByte(static_cast<uint8_t>(value >> 8));
     }
@@ -218,6 +256,9 @@ template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 2, "Invalid index provided to setDataByte, must be less than 2");
     if constexpr (index < 2) {
+        if constexpr (EnableTransactionDebug) {
+            Serial.printf(F("setDataByte<%d>(%x)\n"), index, value);
+        }
         if constexpr (index == 0) {
             DataInterface::setLowerDataByte(value);
         } else {
@@ -230,6 +271,9 @@ template<uint8_t index>
 inline uint8_t getDataByte() noexcept {
     static_assert(index < 2, "Invalid index provided to getDataByte, must be less than 4");
     if constexpr (index < 2) {
+        if constexpr (EnableTransactionDebug) {
+            Serial.printf(F("getDataByte<%d>()\n"), index);
+        }
         if constexpr (index == 0) {
             return DataInterface::getLowerDataByte();
         } else {
@@ -504,7 +548,18 @@ void doIO() noexcept {
     signalReady<0>(); 
 }
 #undef I960_Signal_Switch
-
+FORCE_INLINE
+inline
+void 
+doReadOperation() noexcept {
+    auto lo = memoryPort8[0];
+    auto hi = memoryPort8[1];
+    if constexpr (EnableTransactionDebug) {
+        Serial.printf(F("doReadOperation: 0x%x%x\n"), hi, lo);
+    }
+    DataInterface::setLowerDataByte(lo);
+    DataInterface::setUpperDataByte(hi);
+}
 
 template<bool isReadOperation>
 FORCE_INLINE
@@ -512,6 +567,9 @@ inline
 void
 doIOOperation() noexcept {
     if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        if constexpr (EnableTransactionDebug) {
+            Serial.println(F("read memory operation"));
+        }
         // we don't need to worry about the upper 16-bits of the bus like we
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
@@ -520,50 +578,45 @@ doIOOperation() noexcept {
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            DataInterface::setLowerDataByte(memoryPort8[0]);
-            DataInterface::setUpperDataByte(memoryPort8[1]);
+            doReadOperation();
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            DataInterface::setLowerDataByte(memoryPort8[0]);
-            DataInterface::setUpperDataByte(memoryPort8[1]);
+            doReadOperation();
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            DataInterface::setLowerDataByte(memoryPort8[0]);
-            DataInterface::setUpperDataByte(memoryPort8[1]);
+            doReadOperation();
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            DataInterface::setLowerDataByte(memoryPort8[0]);
-            DataInterface::setUpperDataByte(memoryPort8[1]);
+            doReadOperation();
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            DataInterface::setLowerDataByte(memoryPort8[0]);
-            DataInterface::setUpperDataByte(memoryPort8[1]);
+            doReadOperation();
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            DataInterface::setLowerDataByte(memoryPort8[0]);
-            DataInterface::setUpperDataByte(memoryPort8[1]);
+            doReadOperation();
             signalReady();
             if (isBurstLast()) { 
                 goto Read_Done; 
             } 
-            DataInterface::setLowerDataByte(memoryPort8[0]);
-            DataInterface::setUpperDataByte(memoryPort8[1]);
+            doReadOperation();
             signalReady();
 Read_Done:
-            DataInterface::setLowerDataByte(memoryPort8[0]);
-            DataInterface::setUpperDataByte(memoryPort8[1]);
+            doReadOperation();
             signalReady<0>();
         } else {
+            if constexpr (EnableTransactionDebug) {
+                Serial.println(F("write memory operation"));
+            }
             if (digitalRead<Pin::BE0>() == LOW) {
                 memoryPort8[0] = getDataByte<0>();
             }

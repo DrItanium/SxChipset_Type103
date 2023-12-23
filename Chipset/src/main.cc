@@ -785,50 +785,59 @@ public:
         if constexpr (EnableTransactionDebug) {
             Serial.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
         }
+        DataInterface::setLowerDataByte(view[0]);
+        DataInterface::setUpperDataByte(view[1]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
-        signalReady();
-        view += 2;
+        signalReady<0>();
+        {
+            auto lo = view[2];
+            auto hi = view[3];
+            DataInterface::setLowerDataByte(lo);
+            DataInterface::setUpperDataByte(hi);
+        }
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
-        signalReady();
-        view += 2;
+        signalReady<0>();
+        {
+            auto lo = view[4];
+            auto hi = view[5];
+            DataInterface::setLowerDataByte(lo);
+            DataInterface::setUpperDataByte(hi);
+        }
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[6]);
+        DataInterface::setUpperDataByte(view[7]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[8]);
+        DataInterface::setUpperDataByte(view[9]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[10]);
+        DataInterface::setUpperDataByte(view[11]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[12]);
+        DataInterface::setUpperDataByte(view[13]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[14]);
+        DataInterface::setUpperDataByte(view[15]);
 Read_Done:
-        doSingleReadOperation(view);
         signalReady<0>();
     }
     static void doWriteOperation() noexcept {

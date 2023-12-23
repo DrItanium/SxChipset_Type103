@@ -588,7 +588,7 @@ doReadOperation() noexcept {
     auto hi = memoryPort8[1];
     if constexpr (EnableTransactionDebug) {
         auto value = makeWord(hi, lo);
-        Serial.printf(F("doReadOperation: 0x%x%x\n"), value);
+        Serial.printf(F("doReadOperation: 0x%x\n"), value);
     }
     DataInterface::setLowerDataByte(lo);
     DataInterface::setUpperDataByte(hi);

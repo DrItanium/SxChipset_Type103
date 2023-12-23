@@ -105,8 +105,8 @@ struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
     }
     static uint8_t getLowerDataByte() noexcept { return getInputRegister<Port::DataLinesLower>(); }
     static uint8_t getUpperDataByte() noexcept { return getInputRegister<Port::DataLinesUpper>(); }
-    static void setLowerDataByte(uint8_t value) noexcept { getInputRegister<Port::DataLinesLower>() = value; }
-    static void setUpperDataByte(uint8_t value) noexcept { getInputRegister<Port::DataLinesUpper>() = value; }
+    static void setLowerDataByte(uint8_t value) noexcept { getOutputRegister<Port::DataLinesLower>() = value; }
+    static void setUpperDataByte(uint8_t value) noexcept { getOutputRegister<Port::DataLinesUpper>() = value; }
     static void configureInterface() noexcept {
         DataLinesInterface.view32.direction = 0;
         DataLinesInterface.view32.data = 0;
@@ -156,7 +156,7 @@ struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = DataPortInterface<kind>::Valid;
 
-constexpr auto DataPortKind = DataPortInterfaceKind::AVRGPIO;
+constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 

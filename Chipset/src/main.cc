@@ -785,51 +785,50 @@ public:
         if constexpr (EnableTransactionDebug) {
             Serial.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
         }
-        DataInterface::setLowerDataByte(view[0]);
-        DataInterface::setUpperDataByte(view[1]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
+        doSingleReadOperation(view);
         signalReady();
-        DataInterface::setLowerDataByte(view[2]);
-        DataInterface::setUpperDataByte(view[3]);
+        view += 2;
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
+        doSingleReadOperation(view);
         signalReady();
-        DataInterface::setLowerDataByte(view[4]);
-        DataInterface::setUpperDataByte(view[5]);
+        view += 2;
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
+        doSingleReadOperation(view);
         signalReady();
-        DataInterface::setLowerDataByte(view[6]);
-        DataInterface::setUpperDataByte(view[7]);
+        view += 2;
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
+        doSingleReadOperation(view);
         signalReady();
-        DataInterface::setLowerDataByte(view[8]);
-        DataInterface::setUpperDataByte(view[9]);
+        view += 2;
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
+        doSingleReadOperation(view);
         signalReady();
-        DataInterface::setLowerDataByte(view[10]);
-        DataInterface::setUpperDataByte(view[11]);
+        view += 2;
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
+        doSingleReadOperation(view);
         signalReady();
-        DataInterface::setLowerDataByte(view[12]);
-        DataInterface::setUpperDataByte(view[13]);
+        view += 2;
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
+        doSingleReadOperation(view);
         signalReady();
-        DataInterface::setLowerDataByte(view[14]);
-        DataInterface::setUpperDataByte(view[15]);
+        view += 2;
 Read_Done:
+        doSingleReadOperation(view);
         signalReady<0>();
     }
     static void doWriteOperation() noexcept {

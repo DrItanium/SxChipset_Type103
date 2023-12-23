@@ -61,6 +61,12 @@ constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }
+
+template<auto ViewKind>
+struct ViewIs final {
+    using Type = decltype(ViewKind);
+    static constexpr Type Value = ViewKind;
+};
 enum class DataPortInterfaceKind {
     None,
     IOExpander,
@@ -580,19 +586,142 @@ void doIO() noexcept {
     signalReady<0>(); 
 }
 #undef I960_Signal_Switch
-FORCE_INLINE
-inline
-void 
-doReadOperation() noexcept {
-    auto lo = memoryPort8[0];
-    auto hi = memoryPort8[1];
-    if constexpr (EnableTransactionDebug) {
-        auto value = makeWord(hi, lo);
-        Serial.printf(F("doReadOperation: 0x%x\n"), value);
+enum class IBUSMemoryViewKind {
+    SixteenK,
+    TwoByte,
+};
+
+constexpr auto ViewKind = IBUSMemoryViewKind::TwoByte;
+
+template<IBUSMemoryViewKind kind>
+struct MemoryInterfaceBackend {
+    using Self = MemoryInterfaceBackend<kind>;
+    MemoryInterfaceBackend() = delete;
+    ~MemoryInterfaceBackend() = delete;
+    MemoryInterfaceBackend(const Self&) = delete;
+    MemoryInterfaceBackend(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+};
+
+template<>
+struct MemoryInterfaceBackend<IBUSMemoryViewKind::TwoByte> {
+    using Self = MemoryInterfaceBackend<IBUSMemoryViewKind::TwoByte>;
+    MemoryInterfaceBackend() = delete;
+    ~MemoryInterfaceBackend() = delete;
+    MemoryInterfaceBackend(const Self&) = delete;
+    MemoryInterfaceBackend(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+private:
+    static void doSingleReadOperation() {
+        auto lo = memoryPort8[0];
+        auto hi = memoryPort8[1];
+        if constexpr (EnableTransactionDebug) {
+            auto value = makeWord(hi, lo);
+            Serial.printf(F("doReadOperation: 0x%x\n"), value);
+        }
+        DataInterface::setLowerDataByte(lo);
+        DataInterface::setUpperDataByte(hi);
     }
-    DataInterface::setLowerDataByte(lo);
-    DataInterface::setUpperDataByte(hi);
-}
+public:
+    static void doReadOperation() noexcept {
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation();
+        signalReady();
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation();
+        signalReady();
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation();
+        signalReady();
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation();
+        signalReady();
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation();
+        signalReady();
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation();
+        signalReady();
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation();
+        signalReady();
+Read_Done:
+        doSingleReadOperation();
+        signalReady<0>();
+    }
+    static void doWriteOperation() noexcept {
+        if (digitalRead<Pin::BE0>() == LOW) {
+            memoryPort8[0] = getDataByte<0>();
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            memoryPort8[1] = getDataByte<1>();
+        }
+        if (isBurstLast()) { 
+            goto Write_SignalDone; 
+        } 
+        signalReady();
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        memoryPort8[0] = getDataByte<0>(); 
+        memoryPort8[1] = getDataByte<1>(); 
+        signalReady();
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        memoryPort8[0] = getDataByte<0>(); 
+        memoryPort8[1] = getDataByte<1>(); 
+        signalReady();
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        memoryPort8[0] = getDataByte<0>(); 
+        memoryPort8[1] = getDataByte<1>(); 
+        signalReady();
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        memoryPort8[0] = getDataByte<0>(); 
+        memoryPort8[1] = getDataByte<1>(); 
+        signalReady();
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        memoryPort8[0] = getDataByte<0>(); 
+        memoryPort8[1] = getDataByte<1>(); 
+        signalReady();
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        memoryPort8[0] = getDataByte<0>(); 
+        memoryPort8[1] = getDataByte<1>(); 
+        signalReady();
+Write_Done:
+        memoryPort8[0] = getDataByte<0>();
+        if (digitalRead<Pin::BE1>() == LOW) {
+            memoryPort8[1] = getDataByte<1>();
+        }
+Write_SignalDone:
+        signalReady<0>();
+    }
+};
+
 
 template<bool isReadOperation>
 FORCE_INLINE
@@ -600,109 +729,20 @@ inline
 void
 doIOOperation() noexcept {
     if (digitalRead<Pin::IsMemorySpaceOperation>()) {
-        if constexpr (EnableTransactionDebug) {
-            Serial.println(F("read memory operation"));
-        }
         // we don't need to worry about the upper 16-bits of the bus like we
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
         // needed
         if constexpr (isReadOperation) {
-            if (isBurstLast()) { 
-                goto Read_Done; 
-            } 
-            doReadOperation();
-            signalReady();
-            if (isBurstLast()) { 
-                goto Read_Done; 
-            } 
-            doReadOperation();
-            signalReady();
-            if (isBurstLast()) { 
-                goto Read_Done; 
-            } 
-            doReadOperation();
-            signalReady();
-            if (isBurstLast()) { 
-                goto Read_Done; 
-            } 
-            doReadOperation();
-            signalReady();
-            if (isBurstLast()) { 
-                goto Read_Done; 
-            } 
-            doReadOperation();
-            signalReady();
-            if (isBurstLast()) { 
-                goto Read_Done; 
-            } 
-            doReadOperation();
-            signalReady();
-            if (isBurstLast()) { 
-                goto Read_Done; 
-            } 
-            doReadOperation();
-            signalReady();
-Read_Done:
-            doReadOperation();
-            signalReady<0>();
+            if constexpr (EnableTransactionDebug) {
+                Serial.println(F("read memory operation"));
+            }
+            MemoryInterfaceBackend<ViewKind>::doReadOperation();
         } else {
             if constexpr (EnableTransactionDebug) {
                 Serial.println(F("write memory operation"));
             }
-            if (digitalRead<Pin::BE0>() == LOW) {
-                memoryPort8[0] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                memoryPort8[1] = getDataByte<1>();
-            }
-            if (isBurstLast()) { 
-                goto Write_SignalDone; 
-            } 
-            signalReady();
-            if (isBurstLast()) {
-                goto Write_Done;
-            }
-            memoryPort8[0] = getDataByte<0>(); 
-            memoryPort8[1] = getDataByte<1>(); 
-            signalReady();
-            if (isBurstLast()) {
-                goto Write_Done;
-            }
-            memoryPort8[0] = getDataByte<0>(); 
-            memoryPort8[1] = getDataByte<1>(); 
-            signalReady();
-            if (isBurstLast()) {
-                goto Write_Done;
-            }
-            memoryPort8[0] = getDataByte<0>(); 
-            memoryPort8[1] = getDataByte<1>(); 
-            signalReady();
-            if (isBurstLast()) {
-                goto Write_Done;
-            }
-            memoryPort8[0] = getDataByte<0>(); 
-            memoryPort8[1] = getDataByte<1>(); 
-            signalReady();
-            if (isBurstLast()) {
-                goto Write_Done;
-            }
-            memoryPort8[0] = getDataByte<0>(); 
-            memoryPort8[1] = getDataByte<1>(); 
-            signalReady();
-            if (isBurstLast()) {
-                goto Write_Done;
-            }
-            memoryPort8[0] = getDataByte<0>(); 
-            memoryPort8[1] = getDataByte<1>(); 
-            signalReady();
-Write_Done:
-            memoryPort8[0] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                memoryPort8[1] = getDataByte<1>();
-            }
-Write_SignalDone:
-            signalReady<0>();
+            MemoryInterfaceBackend<ViewKind>::doWriteOperation();
         }
     } else {
         doIO<isReadOperation>();

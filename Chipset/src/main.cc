@@ -99,9 +99,6 @@ struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
     static uint8_t getUpperDataByte() noexcept { return getInputRegister<Port::DataLinesUpper>(); }
     static void setLowerDataByte(uint8_t value) noexcept { getInputRegister<Port::DataLinesLower>() = value; }
     static void setUpperDataByte(uint8_t value) noexcept { getInputRegister<Port::DataLinesUpper>() = value; }
-    static uint16_t getData() noexcept {
-        return makeWord(getUpperDataByte(), getLowerDataByte());
-    }
     static void configureInterface() noexcept {
         DataLinesInterface.view32.direction = 0;
         DataLinesInterface.view32.data = 0;
@@ -128,53 +125,16 @@ struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
         DataLinesInterface.view8.direction[1] = value;
     }
     static uint8_t getLowerDataByte() noexcept { 
-        auto result = DataLinesInterface.view8.data[0];
-        if constexpr (EnableTransactionDebug) {
-            Serial.print(F("getLowerDataByte: 0x"));
-            Serial.println(result, HEX);
-        } 
-        return result;
+        return DataLinesInterface.view8.data[0];
     }
     static uint8_t getUpperDataByte() noexcept { 
-        auto result = DataLinesInterface.view8.data[1];
-        if constexpr (EnableTransactionDebug) {
-            Serial.print(F("getUpperDataByte: 0x"));
-            Serial.println(result, HEX);
-        } 
-        return result;
+        return DataLinesInterface.view8.data[1];
     }
     static void setLowerDataByte(uint8_t value) noexcept { 
-        if constexpr (EnableTransactionDebug) {
-            Serial.print(F("setLowerDataByte: 0x"));
-            Serial.println(value, HEX);
-        } 
         DataLinesInterface.view8.data[0] = value; 
     }
     static void setUpperDataByte(uint8_t value) noexcept { 
-        if constexpr (EnableTransactionDebug) {
-            Serial.print(F("setUpperDataByte: 0x"));
-            Serial.println(value, HEX);
-        } 
         DataLinesInterface.view8.data[1] = value; 
-    }
-    static uint16_t getData() noexcept {
-        if constexpr (EnableTransactionDebug) {
-            auto value = makeWord(getUpperDataByte(), getLowerDataByte());
-            Serial.print(F("getData: 0x"));
-            Serial.println(value, HEX);
-            return value;
-        } else {
-
-            return makeWord(getUpperDataByte(), getLowerDataByte());
-        }
-    }
-    static void setData(uint16_t value) noexcept {
-        if constexpr (EnableTransactionDebug) {
-            Serial.print(F("setData: 0x"));
-            Serial.println(value, HEX);
-        }
-        setLowerDataByte(value);
-        setUpperDataByte(static_cast<uint8_t>(value >> 8));
     }
     static void configureInterface() noexcept {
         DataLinesInterface.view32.direction = 0x0000'FFFF;
@@ -188,10 +148,75 @@ struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = DataPortInterface<kind>::Valid;
 
-constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
+constexpr auto DataPortKind = DataPortInterfaceKind::AVRGPIO;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
-using DataInterface = DataPortInterface<DataPortKind>;
+
+struct DataInterface {
+    using UnderlyingDataInterface = DataPortInterface<DataPortKind>;
+    using Self = DataInterface;
+    DataInterface() = delete;
+    ~DataInterface() = delete;
+    DataInterface(const Self&) = delete;
+    DataInterface(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+    static void configureInterface() noexcept {
+        UnderlyingDataInterface::configureInterface();
+    }
+    static uint16_t getData() noexcept {
+        auto result = makeWord(UnderlyingDataInterface::getUpperDataByte(), UnderlyingDataInterface::getLowerDataByte());
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("getData: 0x"));
+            Serial.println(result, HEX);
+        }
+        return result;
+    }
+    static void setData(uint16_t value) noexcept {
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("setData: 0x"));
+            Serial.println(value, HEX);
+        }
+        UnderlyingDataInterface::setLowerDataByte(value);
+        UnderlyingDataInterface::setUpperDataByte(static_cast<uint8_t>(value >> 8));
+    }
+    static void setLowerDataLinesDirection(uint8_t value) noexcept {
+        UnderlyingDataInterface::setLowerDataLinesDirection(value);
+    }
+    static void setUpperDataLinesDirection(uint8_t value) noexcept {
+        UnderlyingDataInterface::setUpperDataLinesDirection(value);
+    }
+    static uint8_t getLowerDataByte() noexcept { 
+        auto result = UnderlyingDataInterface::getLowerDataByte();
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("getLowerDataByte: 0x"));
+            Serial.println(result, HEX);
+        } 
+        return result;
+    }
+    static uint8_t getUpperDataByte() noexcept { 
+        auto result = UnderlyingDataInterface::getUpperDataByte();
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("getUpperDataByte: 0x"));
+            Serial.println(result, HEX);
+        } 
+        return result;
+    }
+    static void setLowerDataByte(uint8_t value) noexcept { 
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("setLowerDataByte: 0x"));
+            Serial.println(value, HEX);
+        } 
+        UnderlyingDataInterface::setLowerDataByte(value);
+    }
+    static void setUpperDataByte(uint8_t value) noexcept { 
+        if constexpr (EnableTransactionDebug) {
+            Serial.print(F("setUpperDataByte: 0x"));
+            Serial.println(value, HEX);
+        } 
+        UnderlyingDataInterface::setUpperDataByte(value);
+    }
+};
 
 
 

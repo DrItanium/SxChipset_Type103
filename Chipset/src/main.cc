@@ -767,9 +767,7 @@ public:
             // just modify the bank as we go along
             AddressLinesInterface.view32.data = address;
             theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
-            if ((address % 16) == 0) {
-                Serial.print(F("."));
-            }
+            Serial.print(F("."));
         }
     }
     static void doReadOperation() noexcept {

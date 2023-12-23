@@ -182,8 +182,7 @@ struct DataInterface {
     }
     static void setData(uint16_t value) noexcept {
         if constexpr (EnableTransactionDebug) {
-            Serial.print(F("setData: 0x"));
-            Serial.println(value, HEX);
+            Serial.printf(F("setData: 0x%x\n"), value);
         }
         UnderlyingDataInterface::setLowerDataByte(value);
         UnderlyingDataInterface::setUpperDataByte(static_cast<uint8_t>(value >> 8));
@@ -588,7 +587,8 @@ doReadOperation() noexcept {
     auto lo = memoryPort8[0];
     auto hi = memoryPort8[1];
     if constexpr (EnableTransactionDebug) {
-        Serial.printf(F("doReadOperation: 0x%x%x\n"), hi, lo);
+        auto value = makeWord(hi, lo);
+        Serial.printf(F("doReadOperation: 0x%x%x\n"), value);
     }
     DataInterface::setLowerDataByte(lo);
     DataInterface::setUpperDataByte(hi);

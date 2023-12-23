@@ -156,7 +156,7 @@ struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = DataPortInterface<kind>::Valid;
 
-constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
+constexpr auto DataPortKind = DataPortInterfaceKind::AVRGPIO;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 

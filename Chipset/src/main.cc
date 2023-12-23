@@ -625,6 +625,19 @@ private:
         DataInterface::setUpperDataByte(hi);
     }
 public:
+    template<auto BufferSize>
+    static void installMemoryImage(File& theFirmware) {
+        uint32_t transferDots = 0;
+        auto* theBuffer = memoryPort8;
+        for (uint32_t address = 0; address < theFirmware.size(); address += 2, ++transferDots) {
+            // just modify the bank as we go along
+            AddressLinesInterface.view32.data = address;
+            theFirmware.read(const_cast<uint8_t*>(theBuffer), 2);
+            if ((transferDots % (BufferSize / 2)) == 0) {
+                Serial.print(F("."));
+            }
+        }
+    }
     static void doReadOperation() noexcept {
         if (isBurstLast()) { 
             goto Read_Done; 
@@ -916,17 +929,7 @@ installMemoryImage() noexcept {
         }
     } else {
         Serial.println(F("TRANSFERRING!!"));
-        uint32_t transferDots = 0;
-        auto* theBuffer = memoryPort8;
-        for (uint32_t address = 0; address < theFirmware.size(); address += 2, ++transferDots) {
-            // just modify the bank as we go along
-            AddressLinesInterface.view32.data = address;
-            theFirmware.read(const_cast<uint8_t*>(theBuffer), 2);
-            if ((transferDots % (TransferBufferSize / 2)) == 0) {
-                Serial.print(F("."));
-            }
-
-        }
+        MemoryInterfaceBackend<ViewKind>::installMemoryImage<BufferSize>(theFirmware);
         Serial.println(F("DONE!"));
         theFirmware.close();
     }

@@ -722,6 +722,144 @@ Write_SignalDone:
     }
 };
 
+template<>
+struct MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK> {
+    using Self = MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK>;
+    MemoryInterfaceBackend() = delete;
+    ~MemoryInterfaceBackend() = delete;
+    MemoryInterfaceBackend(const Self&) = delete;
+    MemoryInterfaceBackend(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+private:
+    static void doSingleReadOperation(DataRegister8 view) {
+
+        auto lo = view[0];
+        auto hi = view[1];
+        if constexpr (EnableTransactionDebug) {
+            auto value = makeWord(hi, lo);
+            Serial.printf(F("doReadOperation: 0x%x\n"), value);
+        }
+        DataInterface::setLowerDataByte(lo);
+        DataInterface::setUpperDataByte(hi);
+    }
+    static DataRegister8 computeTransactionAddress() {
+        return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3FFF) | 0x4000);
+    }
+public:
+    static void doReadOperation() noexcept {
+        DataRegister8 view = computeTransactionAddress();
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation(view);
+        signalReady();
+        view += 2;
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation(view);
+        signalReady();
+        view += 2;
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation(view);
+        signalReady();
+        view += 2;
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation(view);
+        signalReady();
+        view += 2;
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation(view);
+        signalReady();
+        view += 2;
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation(view);
+        signalReady();
+        view += 2;
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        doSingleReadOperation(view);
+        signalReady();
+        view += 2;
+Read_Done:
+        doSingleReadOperation(view);
+        signalReady<0>();
+    }
+    static void doWriteOperation() noexcept {
+        DataRegister8 view = computeTransactionAddress();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            view[0] = getDataByte<0>();
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            view[1] = getDataByte<1>();
+        }
+        if (isBurstLast()) { 
+            goto Write_SignalDone; 
+        } 
+        signalReady();
+        view += 2;
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        view[0] = getDataByte<0>(); 
+        view[1] = getDataByte<1>(); 
+        signalReady();
+        view += 2;
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        view[0] = getDataByte<0>(); 
+        view[1] = getDataByte<1>(); 
+        signalReady();
+        view += 2;
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        view[0] = getDataByte<0>(); 
+        view[1] = getDataByte<1>(); 
+        signalReady();
+        view += 2;
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        view[0] = getDataByte<0>(); 
+        view[1] = getDataByte<1>(); 
+        signalReady();
+        view += 2;
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        view[0] = getDataByte<0>(); 
+        view[1] = getDataByte<1>(); 
+        signalReady();
+        view += 2;
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        view[0] = getDataByte<0>(); 
+        view[1] = getDataByte<1>(); 
+        signalReady();
+        view += 2;
+Write_Done:
+        view[0] = getDataByte<0>();
+        if (digitalRead<Pin::BE1>() == LOW) {
+            view[1] = getDataByte<1>();
+        }
+Write_SignalDone:
+        signalReady<0>();
+    }
+};
+
 
 template<bool isReadOperation>
 FORCE_INLINE

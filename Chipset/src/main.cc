@@ -40,7 +40,15 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
-constexpr bool EnableTransactionDebug = true;
+constexpr bool transactionDebugEnabled() noexcept {
+#ifdef TRANSACTION_DEBUG
+    return true;
+#else
+    return false;
+#endif
+
+}
+constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 
 
 [[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;

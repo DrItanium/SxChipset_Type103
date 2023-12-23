@@ -760,6 +760,18 @@ private:
         return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3FFF) | 0x4000);
     }
 public:
+    template<auto BufferSize>
+    static void installMemoryImage(File& theFirmware) {
+        auto* theBuffer = memoryPointer<uint8_t>(0x4000);
+        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
+            // just modify the bank as we go along
+            AddressLinesInterface.view32.data = address;
+            theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
+            if ((address % 16) == 0) {
+                Serial.print(F("."));
+            }
+        }
+    }
     static void doReadOperation() noexcept {
         DataRegister8 view = computeTransactionAddress();
         if (isBurstLast()) { 

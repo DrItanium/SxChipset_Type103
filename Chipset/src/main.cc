@@ -162,7 +162,7 @@ struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = DataPortInterface<kind>::Valid;
 
-constexpr auto DataPortKind = DataPortInterfaceKind::AVRGPIO;
+constexpr auto DataPortKind = DataPortInterfaceKind::IOExpander;
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 
@@ -748,7 +748,6 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK> {
     Self& operator=(Self&&) = delete;
 private:
     static void doSingleReadOperation(DataRegister8 view) {
-
         auto lo = view[0];
         auto hi = view[1];
         if constexpr (EnableTransactionDebug) {
@@ -774,53 +773,63 @@ public:
             theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
             Serial.print(F("."));
         }
+        if constexpr (EnableTransactionDebug) {
+            AddressLinesInterface.view32.data = 0;
+            for (int i = 0; i < 32; ++i) {
+                Serial.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
+            }
+        }
     }
     static void doReadOperation() noexcept {
         DataRegister8 view = computeTransactionAddress();
+        if constexpr (EnableTransactionDebug) {
+            Serial.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
+        }
+        DataInterface::setLowerDataByte(view[0]);
+        DataInterface::setUpperDataByte(view[1]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[2]);
+        DataInterface::setUpperDataByte(view[3]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[4]);
+        DataInterface::setUpperDataByte(view[5]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[6]);
+        DataInterface::setUpperDataByte(view[7]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[8]);
+        DataInterface::setUpperDataByte(view[9]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[10]);
+        DataInterface::setUpperDataByte(view[11]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[12]);
+        DataInterface::setUpperDataByte(view[13]);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        doSingleReadOperation(view);
         signalReady();
-        view += 2;
+        DataInterface::setLowerDataByte(view[14]);
+        DataInterface::setUpperDataByte(view[15]);
 Read_Done:
-        doSingleReadOperation(view);
         signalReady<0>();
     }
     static void doWriteOperation() noexcept {
@@ -1035,10 +1044,10 @@ setup() {
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
     AddressLinesInterface.view32.data = 0;
     DataInterface::configureInterface();
+    MemoryInterface::configure();
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00010001;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     putCPUInReset();
-    MemoryInterface::configure();
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
     Serial.print(F("Detected i960 CPU Kind: "));

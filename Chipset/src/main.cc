@@ -591,7 +591,7 @@ enum class IBUSMemoryViewKind {
     TwoByte,
 };
 
-constexpr auto ViewKind = IBUSMemoryViewKind::TwoByte;
+constexpr auto MemoryViewKind = IBUSMemoryViewKind::SixteenK;
 
 template<IBUSMemoryViewKind kind>
 struct MemoryInterfaceBackend {
@@ -733,6 +733,8 @@ Write_Done:
 Write_SignalDone:
         signalReady<0>();
     }
+    static void configure() noexcept {
+    }
 };
 
 template<>
@@ -760,6 +762,9 @@ private:
         return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3FFF) | 0x4000);
     }
 public:
+    static void configure() noexcept {
+        getDirectionRegister<Port::IBUS_Bank>() = 0;
+    }
     template<auto BufferSize>
     static void installMemoryImage(File& theFirmware) {
         auto* theBuffer = memoryPointer<uint8_t>(0x4000);
@@ -883,6 +888,7 @@ Write_SignalDone:
     }
 };
 
+using MemoryInterface = MemoryInterfaceBackend<MemoryViewKind>;
 
 template<bool isReadOperation>
 FORCE_INLINE
@@ -898,12 +904,12 @@ doIOOperation() noexcept {
             if constexpr (EnableTransactionDebug) {
                 Serial.println(F("read memory operation"));
             }
-            MemoryInterfaceBackend<ViewKind>::doReadOperation();
+            MemoryInterface::doReadOperation();
         } else {
             if constexpr (EnableTransactionDebug) {
                 Serial.println(F("write memory operation"));
             }
-            MemoryInterfaceBackend<ViewKind>::doWriteOperation();
+            MemoryInterface::doWriteOperation();
         }
     } else {
         doIO<isReadOperation>();
@@ -939,7 +945,7 @@ installMemoryImage() noexcept {
         }
     } else {
         Serial.println(F("TRANSFERRING!!"));
-        MemoryInterfaceBackend<ViewKind>::installMemoryImage<BufferSize>(theFirmware);
+        MemoryInterface::installMemoryImage<BufferSize>(theFirmware);
         Serial.println(F("DONE!"));
         theFirmware.close();
     }
@@ -1032,6 +1038,7 @@ setup() {
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00010001;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     putCPUInReset();
+    MemoryInterface::configure();
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
     Serial.print(F("Detected i960 CPU Kind: "));

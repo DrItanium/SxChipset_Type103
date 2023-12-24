@@ -371,7 +371,10 @@ void doIO() noexcept {
                     } else { 
                         // no need to check this out just ignore the byte
                         // enable lines
-                        Serial.write(static_cast<uint8_t>(getDataByte<0>()));
+                        // needs to be separate operations to make sure that
+                        // the compiler doesn't do dumb things when optimizing!
+                        volatile uint8_t value = getDataByte<0>();
+                        Serial.write(value);
                     } 
                     I960_Signal_Switch;
                 } 

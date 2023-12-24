@@ -810,33 +810,53 @@ public:
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        signalReady();
-        DataInterface::setLowerDataByte(view[6]);
-        DataInterface::setUpperDataByte(view[7]);
+        signalReady<0>();
+        {
+            auto lo = view[6];
+            auto hi = view[7];
+            DataInterface::setLowerDataByte(lo);
+            DataInterface::setUpperDataByte(hi);
+        }
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        signalReady();
-        DataInterface::setLowerDataByte(view[8]);
-        DataInterface::setUpperDataByte(view[9]);
+        signalReady<0>();
+        {
+            auto lo = view[8];
+            auto hi = view[9];
+            DataInterface::setLowerDataByte(lo);
+            DataInterface::setUpperDataByte(hi);
+        }
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        signalReady();
-        DataInterface::setLowerDataByte(view[10]);
-        DataInterface::setUpperDataByte(view[11]);
+        signalReady<0>();
+        {
+            auto lo = view[10];
+            auto hi = view[11];
+            DataInterface::setLowerDataByte(lo);
+            DataInterface::setUpperDataByte(hi);
+        }
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        signalReady();
-        DataInterface::setLowerDataByte(view[12]);
-        DataInterface::setUpperDataByte(view[13]);
+        signalReady<0>();
+        {
+            auto lo = view[12];
+            auto hi = view[13];
+            DataInterface::setLowerDataByte(lo);
+            DataInterface::setUpperDataByte(hi);
+        }
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
-        signalReady();
-        DataInterface::setLowerDataByte(view[14]);
-        DataInterface::setUpperDataByte(view[15]);
+        signalReady<0>();
+        {
+            auto lo = view[14];
+            auto hi = view[15];
+            DataInterface::setLowerDataByte(lo);
+            DataInterface::setUpperDataByte(hi);
+        }
 Read_Done:
         signalReady<0>();
     }

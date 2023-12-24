@@ -856,45 +856,99 @@ Read_Done:
         if (isBurstLast()) {
             goto Write_Done;
         }
-        view[0] = getDataByte<0>(); 
-        view[1] = getDataByte<1>(); 
-        view += 2;
-        signalReady();
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
         if (isBurstLast()) {
             goto Write_Done;
         }
-        view[0] = getDataByte<0>(); 
-        view[1] = getDataByte<1>(); 
-        view += 2;
-        signalReady();
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
         if (isBurstLast()) {
             goto Write_Done;
         }
-        view[0] = getDataByte<0>(); 
-        view[1] = getDataByte<1>(); 
-        view += 2;
-        signalReady();
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
         if (isBurstLast()) {
             goto Write_Done;
         }
-        view[0] = getDataByte<0>(); 
-        view[1] = getDataByte<1>(); 
-        view += 2;
-        signalReady();
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
         if (isBurstLast()) {
             goto Write_Done;
         }
-        view[0] = getDataByte<0>(); 
-        view[1] = getDataByte<1>(); 
-        view += 2;
-        signalReady();
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
         if (isBurstLast()) {
             goto Write_Done;
         }
-        view[0] = getDataByte<0>(); 
-        view[1] = getDataByte<1>(); 
-        view += 2;
-        signalReady();
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
 Write_Done:
         view[0] = getDataByte<0>();
         if (digitalRead<Pin::BE1>() == LOW) {

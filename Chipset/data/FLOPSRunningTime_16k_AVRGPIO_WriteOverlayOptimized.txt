@@ -1,0 +1,25 @@
+12/23/2023
+16k window plus write overlay optimizations and AVRGPIO data line usage
+
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.6290e-13    109.1600      0.1283
+     2     -1.5099e-14     73.9200      0.0947
+     3     -7.2803e-13    125.2000      0.1358
+     4     -1.1826e-12    104.0800      0.1441
+     5      4.3492e-12    217.2400      0.1335
+     6     -8.1382e-13    215.1600      0.1348
+     7      1.2739e-10    122.1200      0.0983
+     8     -2.3518e-12    212.6800      0.1411
+
+   Iterations      =     250000
+   NullTime (usec) =     1.4800
+   MFLOPS(1)       =     0.1051
+   MFLOPS(2)       =     0.1207
+   MFLOPS(3)       =     0.1321
+   MFLOPS(4)       =     0.1385
+
+

@@ -783,83 +783,60 @@ public:
             }
         }
     }
+private:
+    template<uint8_t baseIndex>
+    FORCE_INLINE 
+    inline
+    static 
+    void doReadSingular(DataRegister8 view) noexcept {
+        auto lo = view[baseIndex + 0];
+        auto hi = view[baseIndex + 1];
+        DataInterface::setLowerDataByte(lo);
+        DataInterface::setUpperDataByte(hi);
+    }
+public:
+
     static void doReadOperation() noexcept {
         DataRegister8 view = computeTransactionAddress();
         if constexpr (EnableTransactionDebug) {
             Serial.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
         }
-        DataInterface::setLowerDataByte(view[0]);
-        DataInterface::setUpperDataByte(view[1]);
+        doReadSingular<0>(view);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
         signalReady<0>();
-        {
-            auto lo = view[2];
-            auto hi = view[3];
-            DataInterface::setLowerDataByte(lo);
-            DataInterface::setUpperDataByte(hi);
-        }
+        doReadSingular<2>(view);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
         signalReady<0>();
-        {
-            auto lo = view[4];
-            auto hi = view[5];
-            DataInterface::setLowerDataByte(lo);
-            DataInterface::setUpperDataByte(hi);
-        }
+        doReadSingular<4>(view);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
         signalReady<0>();
-        {
-            auto lo = view[6];
-            auto hi = view[7];
-            DataInterface::setLowerDataByte(lo);
-            DataInterface::setUpperDataByte(hi);
-        }
+        doReadSingular<6>(view);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
         signalReady<0>();
-        {
-            auto lo = view[8];
-            auto hi = view[9];
-            DataInterface::setLowerDataByte(lo);
-            DataInterface::setUpperDataByte(hi);
-        }
+        doReadSingular<8>(view);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
         signalReady<0>();
-        {
-            auto lo = view[10];
-            auto hi = view[11];
-            DataInterface::setLowerDataByte(lo);
-            DataInterface::setUpperDataByte(hi);
-        }
+        doReadSingular<10>(view);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
         signalReady<0>();
-        {
-            auto lo = view[12];
-            auto hi = view[13];
-            DataInterface::setLowerDataByte(lo);
-            DataInterface::setUpperDataByte(hi);
-        }
+        doReadSingular<12>(view);
         if (isBurstLast()) { 
             goto Read_Done; 
         } 
         signalReady<0>();
-        {
-            auto lo = view[14];
-            auto hi = view[15];
-            DataInterface::setLowerDataByte(lo);
-            DataInterface::setUpperDataByte(hi);
-        }
+        doReadSingular<14>(view);
 Read_Done:
         signalReady<0>();
     }
@@ -874,50 +851,50 @@ Read_Done:
         if (isBurstLast()) { 
             goto Write_SignalDone; 
         } 
-        signalReady();
         view += 2;
+        signalReady();
         if (isBurstLast()) {
             goto Write_Done;
         }
         view[0] = getDataByte<0>(); 
         view[1] = getDataByte<1>(); 
-        signalReady();
         view += 2;
+        signalReady();
         if (isBurstLast()) {
             goto Write_Done;
         }
         view[0] = getDataByte<0>(); 
         view[1] = getDataByte<1>(); 
-        signalReady();
         view += 2;
+        signalReady();
         if (isBurstLast()) {
             goto Write_Done;
         }
         view[0] = getDataByte<0>(); 
         view[1] = getDataByte<1>(); 
-        signalReady();
         view += 2;
+        signalReady();
         if (isBurstLast()) {
             goto Write_Done;
         }
         view[0] = getDataByte<0>(); 
         view[1] = getDataByte<1>(); 
-        signalReady();
         view += 2;
+        signalReady();
         if (isBurstLast()) {
             goto Write_Done;
         }
         view[0] = getDataByte<0>(); 
         view[1] = getDataByte<1>(); 
-        signalReady();
         view += 2;
+        signalReady();
         if (isBurstLast()) {
             goto Write_Done;
         }
         view[0] = getDataByte<0>(); 
         view[1] = getDataByte<1>(); 
-        signalReady();
         view += 2;
+        signalReady();
 Write_Done:
         view[0] = getDataByte<0>();
         if (digitalRead<Pin::BE1>() == LOW) {

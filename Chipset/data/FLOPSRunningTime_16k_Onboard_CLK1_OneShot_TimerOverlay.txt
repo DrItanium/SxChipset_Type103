@@ -1,0 +1,22 @@
+12/23/2023
+16k window plus unpacking optimizations
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      5.8975e-13    119.4400      0.1172
+     2     -9.3259e-15     87.7600      0.0798
+     3     -2.9330e-12    136.3200      0.1247
+     4     -4.9855e-12    113.2000      0.1325
+     5      1.7508e-11    232.5600      0.1247
+     6     -3.2840e-12    235.1200      0.1233
+     7      5.5411e-10    134.0000      0.0896
+     8     -9.4858e-12    227.6000      0.1318
+
+   Iterations      =     125000
+   NullTime (usec) =     1.5200
+   MFLOPS(1)       =     0.0904
+   MFLOPS(2)       =     0.1107
+   MFLOPS(3)       =     0.1218
+   MFLOPS(4)       =     0.1278
+

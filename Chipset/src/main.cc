@@ -534,13 +534,13 @@ void doIO() noexcept {
                           X(timer1, 0x10);
 #endif
 #ifdef TCCR4A
-                          X(timer4, 0x30);
+                          X(timer4, 0x20);
 #endif
 #ifdef TCCR5A
-                          X(timer5, 0x40);
+                          X(timer5, 0x30);
 #endif
 #undef X
-        case 0x50: {
+        case 0x40: {
                     if constexpr (isReadOperation) {
                         auto result = millis();
                         DataInterface::setData(static_cast<uint16_t>(result));
@@ -552,7 +552,7 @@ void doIO() noexcept {
                         I960_Signal_Switch;
                     }
                    }
-        case 0x54: {
+        case 0x44: {
                     if constexpr (isReadOperation) {
                         auto result = micros();
                         DataInterface::setData(static_cast<uint16_t>(result));
@@ -564,14 +564,14 @@ void doIO() noexcept {
                         I960_Signal_Switch;
                     }
                    }
-        case 0x58: {
+        case 0x48: {
                        if constexpr (isReadOperation) {
                            DataInterface::setData(0);
                        }
                        I960_Signal_Switch;
                        I960_Signal_Switch;
                    }
-        case 0x5c: {
+        case 0x4c: {
                        if constexpr (isReadOperation) {
                            DataInterface::setData(0);
                        }

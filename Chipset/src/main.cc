@@ -542,7 +542,7 @@ void doIO() noexcept {
 #undef X
         case 0x40: {
                     if constexpr (isReadOperation) {
-                        auto result = millis();
+                        volatile uint32_t result = millis();
                         DataInterface::setData(static_cast<uint16_t>(result));
                         I960_Signal_Switch;
                         DataInterface::setData(static_cast<uint16_t>(result >> 16));
@@ -554,7 +554,7 @@ void doIO() noexcept {
                    }
         case 0x44: {
                     if constexpr (isReadOperation) {
-                        auto result = micros();
+                        volatile uint32_t result = micros();
                         DataInterface::setData(static_cast<uint16_t>(result));
                         I960_Signal_Switch;
                         DataInterface::setData(static_cast<uint16_t>(result >> 16));

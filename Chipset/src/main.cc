@@ -339,7 +339,7 @@ template<bool isReadOperation>
 FORCE_INLINE 
 inline 
 void doIO() noexcept { 
-    switch (AddressLinesInterface.view8.data[0]) { 
+    switch (AddressLinesInterface.view16.data[0]) { 
         case 0: { 
                     if constexpr (isReadOperation) { 
                         DataInterface::setData(static_cast<uint16_t>(F_CPU));
@@ -1251,7 +1251,7 @@ ReadOperationBypass:
 WriteOperationStart:
     // wait until DEN goes low
     loop_until_bit_is_set(EIFR, INTF4);
-    if (bit_is_set(EIFR, INTF6)) {
+    if (bit_is_clear(EIFR, INTF5)) {
         // change direction to input since we are doing read -> write
         DataInterface::setLowerDataLinesDirection(0xff);
         DataInterface::setUpperDataLinesDirection(0xff);

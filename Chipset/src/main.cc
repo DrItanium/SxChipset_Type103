@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
+SdFs SD;
 
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
@@ -1031,15 +1032,6 @@ void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    SdFs SD;
-    Serial.println(F("Looking for an SD Card!"));
-    {
-        while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
-            Serial.println(F("NO SD CARD!"));
-            delay(1000);
-        }
-    }
-    Serial.println(F("SD CARD FOUND!"));
     static constexpr auto filePath = "prog.bin";
     // look for firmware.bin and open it readonly
     if (auto theFirmware = SD.open(filePath, FILE_READ); !theFirmware) {
@@ -1059,7 +1051,7 @@ installMemoryImage() noexcept {
         theFirmware.close();
     }
     // okay so now end reading from the SD Card
-    SD.end();
+    //SD.end();
     SPI.endTransaction();
 }
 
@@ -1180,6 +1172,14 @@ setup() {
             cpuNotSupported();
             break;
     }
+    Serial.println(F("Looking for an SD Card!"));
+    {
+        while (!SD.begin(static_cast<int>(Pin::SD_EN))) {
+            Serial.println(F("NO SD CARD!"));
+            delay(1000);
+        }
+    }
+    Serial.println(F("SD CARD FOUND!"));
     // find firmware.bin and install it into the 512k block of memory
     if constexpr (PerformMemoryImageInstallation) {
         installMemoryImage();

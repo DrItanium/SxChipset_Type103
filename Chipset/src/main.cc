@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
-SdFile disk0;
+FsFile disk0;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
@@ -1090,10 +1090,8 @@ setupCLK1() noexcept {
     timer3.TCCRxA = 0b01'00'00'00;
     timer3.TCCRxB = 0b00'0'01'001;
 }
-void
-openPrimaryDisk() noexcept {
 
-}
+
 
 void
 setup() {
@@ -1190,7 +1188,11 @@ setup() {
     } else {
         delay(1000);
     }
-    openPrimaryDisk();
+    disk0 = SD.open("disk0.dsk", FILE_WRITE);
+    if (!disk0) {
+        Serial.println(F("Could not open disk0.dsk"));
+        Serial.println(F("No hard drive will be available"));
+    }
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
     // attach interrupts

@@ -580,6 +580,83 @@ void doIO() noexcept {
                        I960_Signal_Switch;
                    }
                    break;
+                   // disk0 is special and is supposed to be as available as
+                   // possible
+#if 0
+                   struct Disk0View {
+                       uint64_t capacity; // in bytes
+                       uint64_t position; // in bytes
+                       uint16_t available; // 
+                       int16_t rw; 
+                   };
+#endif
+        case 0x50: {
+                       // capacity register
+                       if constexpr (isReadOperation) {
+                           auto capacity = disk0.size();
+                           DataInterface::setData(capacity);
+                           I960_Signal_Switch;
+                           DataInterface::setData(static_cast<uint16_t>(capacity >> 16));
+                           I960_Signal_Switch;
+                           DataInterface::setData(static_cast<uint16_t>(capacity >> 32));
+                           I960_Signal_Switch;
+                           DataInterface::setData(static_cast<uint16_t>(capacity >> 48));
+                           I960_Signal_Switch;
+                       } else {
+                           I960_Signal_Switch;
+                           I960_Signal_Switch;
+                           I960_Signal_Switch;
+                           I960_Signal_Switch;
+                       }
+                   }
+        case 0x58: {
+                       // setup the seeking register
+                       if constexpr (isReadOperation) {
+                           auto pos = disk0.curPosition();
+                           DataInterface::setData(pos);
+                           I960_Signal_Switch;
+                           DataInterface::setData(static_cast<uint16_t>(pos >> 16));
+                           I960_Signal_Switch;
+                           DataInterface::setData(static_cast<uint16_t>(pos >> 32));
+                           I960_Signal_Switch;
+                           DataInterface::setData(static_cast<uint16_t>(pos >> 48));
+                           I960_Signal_Switch;
+                       } else {
+                           uint64_t a = static_cast<uint64_t>(DataInterface::getData());
+                           I960_Signal_Switch;
+                           uint64_t b = static_cast<uint64_t>(DataInterface::getData()) << 16;
+                           I960_Signal_Switch;
+                           uint64_t c = static_cast<uint64_t>(DataInterface::getData()) << 32;
+                           I960_Signal_Switch;
+                           uint64_t d = static_cast<uint64_t>(DataInterface::getData()) << 48;
+                           uint64_t newPosition = a | b | c | d;
+                           if (newPosition >= disk0.size()) {
+                               newPosition %= disk0.size();
+                           }
+                           disk0.seek(newPosition);
+                           I960_Signal_Switch;
+                       }
+
+                   }
+        case 0x60: {
+                       // available lookup
+                       if constexpr (isReadOperation) {
+                            DataInterface::setData(disk0.isOpen() ? 0xFFFF : 0);
+                       } 
+                       I960_Signal_Switch;
+                   }
+        case 0x62: {
+                       // rw port
+                       if constexpr (isReadOperation) {
+                           int16_t result = disk0.read();
+                           DataInterface::setData(result);
+                       } else {
+                           // write a value out
+                           auto value = static_cast<uint8_t>(DataInterface::getData());
+                           (void)disk0.write(value);
+                       }
+                       I960_Signal_Switch;
+                   }
         default:
                           if constexpr (isReadOperation) {
                               DataInterface::setData(0);
@@ -1188,7 +1265,7 @@ setup() {
     } else {
         delay(1000);
     }
-    disk0 = SD.open("disk0.dsk", FILE_WRITE);
+    disk0 = SD.open("disk0.dsk", O_RDWR);
     if (!disk0) {
         Serial.println(F("Could not open disk0.dsk"));
         Serial.println(F("No hard drive will be available"));

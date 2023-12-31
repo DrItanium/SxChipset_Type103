@@ -39,7 +39,7 @@ FsFile disk0;
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
-constexpr uintptr_t MemoryWindowBaseAddress = 0x4000;
+constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
@@ -56,7 +56,7 @@ constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
-[[gnu::address(0x4000)]] inline volatile uint8_t memoryPort8[2];
+[[gnu::address(0xC000)]] inline volatile uint8_t memoryPort8[2];
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -839,7 +839,7 @@ private:
         DataInterface::setUpperDataByte(hi);
     }
     static DataRegister8 computeTransactionAddress() {
-        return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0] & 0x3FFF) | 0x4000);
+        return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0]) | MemoryWindowBaseAddress);
     }
 public:
     static void configure() noexcept {
@@ -847,7 +847,7 @@ public:
     }
     template<auto BufferSize>
     static void installMemoryImage(File& theFirmware) {
-        auto* theBuffer = memoryPointer<uint8_t>(0x4000);
+        auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
         for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
             // just modify the bank as we go along
             AddressLinesInterface.view32.data = address;

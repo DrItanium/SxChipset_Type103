@@ -239,7 +239,7 @@ constexpr uint8_t computeCycleWidth(uint8_t cycles) {
 }
 constexpr uint8_t ReadyCycleWidth = computeCycleWidth(2);
 constexpr uint8_t ReadyCycleStart = ReadyCycleWidth - 1;
-[[gnu::always_inline]] inline void oneShotFire() {
+[[gnu::always_inline]] inline void oneShotFire() noexcept {
     // fire a one-shot pulse. Use the most recently set width!
     TCNT2 = ReadyCycleStart;
 }

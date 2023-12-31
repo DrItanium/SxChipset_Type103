@@ -71,6 +71,7 @@ Count = NUM_DIGITAL_PINS,
     NewTransaction = PortE4,
     WriteTransaction = PortE5,
     ReadTransaction = PortE6,
+    MemoryConfigurationIOExpanderEnable = PortD4,
 };
 enum class Port : byte {
     // stop at mega2560 tier

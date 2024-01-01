@@ -1104,11 +1104,12 @@ FORCE_INLINE
 inline 
 void doIO() noexcept { 
     
+    auto lowest = AddressLinesInterface.view8.data[0];
     switch (AddressLinesInterface.view8.data[1]) {
         case 0x00:
-            doCoreIO<isReadOperation>(AddressLinesInterface.view8.data[0]);
+            doCoreIO<isReadOperation>(lowest);
             break;
-#define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(AddressLinesInterface.view8.data[0]); break
+#define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(lowest); break
             X(0x00);
             X(0x01);
             X(0x02);
@@ -1126,7 +1127,7 @@ void doIO() noexcept {
             X(0x0e);
             X(0x0f);
 #undef X
-#define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(AddressLinesInterface.view8.data[0]); break
+#define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(lowest); break
             X(0x00);
             X(0x01);
             X(0x02);

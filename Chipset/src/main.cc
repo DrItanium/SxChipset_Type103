@@ -1106,22 +1106,24 @@ void doIO() noexcept {
         case 0x00:
             doCoreIO<isReadOperation>(full);
             break;
-        case 0x10: doMemoryAccess<isReadOperation>(&StorageReservation[0][static_cast<uint8_t>(full)]); break;
-        case 0x11: doMemoryAccess<isReadOperation>(&StorageReservation[1][static_cast<uint8_t>(full)]); break;
-        case 0x12: doMemoryAccess<isReadOperation>(&StorageReservation[2][static_cast<uint8_t>(full)]); break;
-        case 0x13: doMemoryAccess<isReadOperation>(&StorageReservation[3][static_cast<uint8_t>(full)]); break;
-        case 0x14: doMemoryAccess<isReadOperation>(&StorageReservation[4][static_cast<uint8_t>(full)]); break;
-        case 0x15: doMemoryAccess<isReadOperation>(&StorageReservation[5][static_cast<uint8_t>(full)]); break;
-        case 0x16: doMemoryAccess<isReadOperation>(&StorageReservation[6][static_cast<uint8_t>(full)]); break;
-        case 0x17: doMemoryAccess<isReadOperation>(&StorageReservation[7][static_cast<uint8_t>(full)]); break;
-        case 0x18: doMemoryAccess<isReadOperation>(&StorageReservation[8][static_cast<uint8_t>(full)]); break;
-        case 0x19: doMemoryAccess<isReadOperation>(&StorageReservation[9][static_cast<uint8_t>(full)]); break;
-        case 0x1a: doMemoryAccess<isReadOperation>(&StorageReservation[10][static_cast<uint8_t>(full)]); break;
-        case 0x1b: doMemoryAccess<isReadOperation>(&StorageReservation[11][static_cast<uint8_t>(full)]); break;
-        case 0x1c: doMemoryAccess<isReadOperation>(&StorageReservation[12][static_cast<uint8_t>(full)]); break;
-        case 0x1d: doMemoryAccess<isReadOperation>(&StorageReservation[13][static_cast<uint8_t>(full)]); break;
-        case 0x1e: doMemoryAccess<isReadOperation>(&StorageReservation[14][static_cast<uint8_t>(full)]); break;
-        case 0x1f: doMemoryAccess<isReadOperation>(&StorageReservation[15][static_cast<uint8_t>(full)]); break;
+#define X(id) case id : doMemoryAccess<isReadOperation>(&StorageReservation[id - 0x10][static_cast<uint8_t>(full)]); break
+            X(0x10);
+            X(0x11);
+            X(0x12);
+            X(0x13);
+            X(0x14);
+            X(0x15);
+            X(0x16);
+            X(0x17);
+            X(0x18);
+            X(0x19);
+            X(0x1a);
+            X(0x1b);
+            X(0x1c);
+            X(0x1d);
+            X(0x1e);
+            X(0x1f);
+#undef X
         case 0x20: doEEPROMAccess<isReadOperation, 0x0000>(static_cast<uint8_t>(full)); break;
         case 0x21: doEEPROMAccess<isReadOperation, 0x0100>(static_cast<uint8_t>(full)); break;
         case 0x22: doEEPROMAccess<isReadOperation, 0x0200>(static_cast<uint8_t>(full)); break;

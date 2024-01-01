@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
+#include <EEPROM.h>
 
 
 #include "Detect.h"
@@ -337,10 +338,11 @@ void idleTransaction() noexcept {
     signalReady()
 
 template<bool isReadOperation>
-FORCE_INLINE 
+FORCE_INLINE
 inline 
-void doIO() noexcept { 
-    switch (AddressLinesInterface.view16.data[0]) { 
+void
+doCoreIO(uint8_t offset) noexcept {
+    switch (offset) {
         case 0: { 
                     if constexpr (isReadOperation) { 
                         DataInterface::setData(static_cast<uint16_t>(F_CPU));
@@ -461,7 +463,7 @@ void doIO() noexcept {
                              } else { \
                                  if (digitalRead<Pin::BE0>() == LOW &&  \
                                          digitalRead<Pin::BE1>() == LOW) { \
-                                        auto value = DataInterface::getData(); \
+                                     auto value = DataInterface::getData(); \
                                          noInterrupts(); \
                                          obj.ICRx = value;\
                                          interrupts(); \
@@ -479,7 +481,7 @@ void doIO() noexcept {
                                  } else { \
                                      if (digitalRead<Pin::BE0>() == LOW &&  \
                                              digitalRead<Pin::BE1>() == LOW) { \
-                                        auto value = DataInterface::getData(); \
+                                         auto value = DataInterface::getData(); \
                                              noInterrupts(); \
                                              obj.OCRxA = value;\
                                              interrupts(); \
@@ -497,7 +499,7 @@ void doIO() noexcept {
                                   } else { \
                                       if (digitalRead<Pin::BE0>() == LOW &&  \
                                               digitalRead<Pin::BE1>() == LOW) { \
-                                            auto value = DataInterface::getData(); \
+                                          auto value = DataInterface::getData(); \
                                               noInterrupts(); \
                                               obj.OCRxB = value; \
                                               interrupts(); \
@@ -542,28 +544,28 @@ void doIO() noexcept {
 #endif
 #undef X
         case 0x40: {
-                    if constexpr (isReadOperation) {
-                        volatile uint32_t result = millis();
-                        DataInterface::setData(static_cast<uint16_t>(result));
-                        I960_Signal_Switch;
-                        DataInterface::setData(static_cast<uint16_t>(result >> 16));
-                        I960_Signal_Switch;
-                    } else {
-                        I960_Signal_Switch;
-                        I960_Signal_Switch;
-                    }
+                       if constexpr (isReadOperation) {
+                           volatile uint32_t result = millis();
+                           DataInterface::setData(static_cast<uint16_t>(result));
+                           I960_Signal_Switch;
+                           DataInterface::setData(static_cast<uint16_t>(result >> 16));
+                           I960_Signal_Switch;
+                       } else {
+                           I960_Signal_Switch;
+                           I960_Signal_Switch;
+                       }
                    }
         case 0x44: {
-                    if constexpr (isReadOperation) {
-                        volatile uint32_t result = micros();
-                        DataInterface::setData(static_cast<uint16_t>(result));
-                        I960_Signal_Switch;
-                        DataInterface::setData(static_cast<uint16_t>(result >> 16));
-                        I960_Signal_Switch;
-                    } else {
-                        I960_Signal_Switch;
-                        I960_Signal_Switch;
-                    }
+                       if constexpr (isReadOperation) {
+                           volatile uint32_t result = micros();
+                           DataInterface::setData(static_cast<uint16_t>(result));
+                           I960_Signal_Switch;
+                           DataInterface::setData(static_cast<uint16_t>(result >> 16));
+                           I960_Signal_Switch;
+                       } else {
+                           I960_Signal_Switch;
+                           I960_Signal_Switch;
+                       }
                    }
         case 0x48: {
                        if constexpr (isReadOperation) {
@@ -641,7 +643,7 @@ void doIO() noexcept {
         case 0x60: {
                        // available lookup
                        if constexpr (isReadOperation) {
-                            DataInterface::setData(disk0.isOpen() ? 0xFFFF : 0);
+                           DataInterface::setData(disk0.isOpen() ? 0xFFFF : 0);
                        } 
                        I960_Signal_Switch;
                    }
@@ -658,13 +660,69 @@ void doIO() noexcept {
                        I960_Signal_Switch;
                    }
         default:
-                          if constexpr (isReadOperation) {
-                              DataInterface::setData(0);
-                          }
-                          idleTransaction();
-                          return;
+                   if constexpr (isReadOperation) {
+                       DataInterface::setData(0);
+                   }
+                   idleTransaction();
+                   return;
     } 
     signalReady<0>(); 
+}
+uint8_t StorageReservation[16][256];
+template<bool isReadOperation>
+FORCE_INLINE
+inline
+void doMemoryAccess(uint8_t* ptr) {
+    if constexpr (isReadOperation) {
+        
+    } else {
+
+    }
+}
+template<bool isReadOperation>
+FORCE_INLINE
+inline
+void doEEPROMAccess() {
+    if constexpr (isReadOperation) {
+        
+    } else {
+
+    }
+}
+template<bool isReadOperation>
+FORCE_INLINE 
+inline 
+void doIO() noexcept { 
+    auto full = AddressLinesInterface.view16.data[0];
+    
+    switch (static_cast<uint8_t>(full >> 8)) { 
+        case 0x00:
+            doCoreIO<isReadOperation>(full);
+            break;
+        case 0x10: doMemoryAccess<isReadOperation>(&StorageReservation[0][static_cast<uint8_t>(full)]); break;
+        case 0x11: doMemoryAccess<isReadOperation>(&StorageReservation[1][static_cast<uint8_t>(full)]); break;
+        case 0x12: doMemoryAccess<isReadOperation>(&StorageReservation[2][static_cast<uint8_t>(full)]); break;
+        case 0x13: doMemoryAccess<isReadOperation>(&StorageReservation[3][static_cast<uint8_t>(full)]); break;
+        case 0x14: doMemoryAccess<isReadOperation>(&StorageReservation[4][static_cast<uint8_t>(full)]); break;
+        case 0x15: doMemoryAccess<isReadOperation>(&StorageReservation[5][static_cast<uint8_t>(full)]); break;
+        case 0x16: doMemoryAccess<isReadOperation>(&StorageReservation[6][static_cast<uint8_t>(full)]); break;
+        case 0x17: doMemoryAccess<isReadOperation>(&StorageReservation[7][static_cast<uint8_t>(full)]); break;
+        case 0x18: doMemoryAccess<isReadOperation>(&StorageReservation[8][static_cast<uint8_t>(full)]); break;
+        case 0x19: doMemoryAccess<isReadOperation>(&StorageReservation[9][static_cast<uint8_t>(full)]); break;
+        case 0x1a: doMemoryAccess<isReadOperation>(&StorageReservation[10][static_cast<uint8_t>(full)]); break;
+        case 0x1b: doMemoryAccess<isReadOperation>(&StorageReservation[11][static_cast<uint8_t>(full)]); break;
+        case 0x1c: doMemoryAccess<isReadOperation>(&StorageReservation[12][static_cast<uint8_t>(full)]); break;
+        case 0x1d: doMemoryAccess<isReadOperation>(&StorageReservation[13][static_cast<uint8_t>(full)]); break;
+        case 0x1e: doMemoryAccess<isReadOperation>(&StorageReservation[14][static_cast<uint8_t>(full)]); break;
+        case 0x1f: doMemoryAccess<isReadOperation>(&StorageReservation[15][static_cast<uint8_t>(full)]); break;
+
+        default:
+            if constexpr (isReadOperation) {
+                DataInterface::setData(0);
+            }
+            idleTransaction();
+            break;
+    } 
 }
 #undef I960_Signal_Switch
 enum class IBUSMemoryViewKind {
@@ -1182,6 +1240,7 @@ setup() {
     randomSeed(seed);
     Serial.begin(115200);
     SPI.begin();
+    EEPROM.begin();
     // power down the ADC and USART3
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC

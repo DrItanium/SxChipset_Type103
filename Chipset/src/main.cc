@@ -617,7 +617,16 @@ using MemoryInterface = MemoryInterfaceBackend<MemoryViewKind>;
         break; \
     } \
     signalReady()
-
+template<bool isReadOperation>
+FORCE_INLINE
+inline
+void
+doNothing() {
+    if constexpr (isReadOperation) {
+        DataInterface::setData(0);
+    }
+    idleTransaction();
+}
 template<bool isReadOperation>
 FORCE_INLINE
 inline 
@@ -941,10 +950,7 @@ doCoreIO(uint8_t offset) noexcept {
                        I960_Signal_Switch;
                    }
         default:
-                   if constexpr (isReadOperation) {
-                       DataInterface::setData(0);
-                   }
-                   idleTransaction();
+                   doNothing<isReadOperation>();
                    return;
     } 
     signalReady<0>(); 
@@ -1146,10 +1152,7 @@ void doIO() noexcept {
             X(0x0f);
 #undef X
         default:
-            if constexpr (isReadOperation) {
-                DataInterface::setData(0);
-            }
-            idleTransaction();
+            doNothing<isReadOperation>();
             break;
     } 
 }

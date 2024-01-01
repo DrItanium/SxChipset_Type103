@@ -950,21 +950,24 @@ doCoreIO(uint8_t offset) noexcept {
     signalReady<0>(); 
 }
 uint8_t StorageReservation[16][256];
-template<bool isReadOperation>
+template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
-void doMemoryAccess(DataRegister8 ptr) {
+void doMemoryAccess(uint8_t offset) {
+    static_assert(index < 16);
+    DataRegister8 ptr = &StorageReservation[index][offset];
     if constexpr (isReadOperation) {
         MemoryInterface::doReadOperation(ptr);
     } else {
         MemoryInterface::doWriteOperation(ptr);
     }
 }
-template<bool isReadOperation, uint16_t core>
+template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
 void doEEPROMAccess(uint8_t offset) {
-    uint16_t address = core | static_cast<uint16_t>(offset);
+
+    uint16_t address = (static_cast<uint16_t>(index) << 8) | static_cast<uint16_t>(offset);
     if constexpr (isReadOperation) {
 
         uint16_t result = 0;
@@ -1100,46 +1103,47 @@ template<bool isReadOperation>
 FORCE_INLINE 
 inline 
 void doIO() noexcept { 
-    auto full = AddressLinesInterface.view16.data[0];
     
-    switch (static_cast<uint8_t>(full >> 8)) { 
+    switch (AddressLinesInterface.view8.data[1]) {
         case 0x00:
-            doCoreIO<isReadOperation>(full);
+            doCoreIO<isReadOperation>(AddressLinesInterface.view8.data[0]);
             break;
-#define X(id) case id : doMemoryAccess<isReadOperation>(&StorageReservation[id - 0x10][static_cast<uint8_t>(full)]); break
-            X(0x10);
-            X(0x11);
-            X(0x12);
-            X(0x13);
-            X(0x14);
-            X(0x15);
-            X(0x16);
-            X(0x17);
-            X(0x18);
-            X(0x19);
-            X(0x1a);
-            X(0x1b);
-            X(0x1c);
-            X(0x1d);
-            X(0x1e);
-            X(0x1f);
+#define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(AddressLinesInterface.view8.data[0]); break
+            X(0x00);
+            X(0x01);
+            X(0x02);
+            X(0x03);
+            X(0x04);
+            X(0x05);
+            X(0x06);
+            X(0x07);
+            X(0x08);
+            X(0x09);
+            X(0x0a);
+            X(0x0b);
+            X(0x0c);
+            X(0x0d);
+            X(0x0e);
+            X(0x0f);
 #undef X
-        case 0x20: doEEPROMAccess<isReadOperation, 0x0000>(static_cast<uint8_t>(full)); break;
-        case 0x21: doEEPROMAccess<isReadOperation, 0x0100>(static_cast<uint8_t>(full)); break;
-        case 0x22: doEEPROMAccess<isReadOperation, 0x0200>(static_cast<uint8_t>(full)); break;
-        case 0x23: doEEPROMAccess<isReadOperation, 0x0300>(static_cast<uint8_t>(full)); break;
-        case 0x24: doEEPROMAccess<isReadOperation, 0x0400>(static_cast<uint8_t>(full)); break;
-        case 0x25: doEEPROMAccess<isReadOperation, 0x0500>(static_cast<uint8_t>(full)); break;
-        case 0x26: doEEPROMAccess<isReadOperation, 0x0600>(static_cast<uint8_t>(full)); break;
-        case 0x27: doEEPROMAccess<isReadOperation, 0x0700>(static_cast<uint8_t>(full)); break;
-        case 0x28: doEEPROMAccess<isReadOperation, 0x0800>(static_cast<uint8_t>(full)); break;
-        case 0x29: doEEPROMAccess<isReadOperation, 0x0900>(static_cast<uint8_t>(full)); break;
-        case 0x2a: doEEPROMAccess<isReadOperation, 0x0a00>(static_cast<uint8_t>(full)); break;
-        case 0x2b: doEEPROMAccess<isReadOperation, 0x0b00>(static_cast<uint8_t>(full)); break;
-        case 0x2c: doEEPROMAccess<isReadOperation, 0x0c00>(static_cast<uint8_t>(full)); break;
-        case 0x2d: doEEPROMAccess<isReadOperation, 0x0d00>(static_cast<uint8_t>(full)); break;
-        case 0x2e: doEEPROMAccess<isReadOperation, 0x0e00>(static_cast<uint8_t>(full)); break;
-        case 0x2f: doEEPROMAccess<isReadOperation, 0x0f00>(static_cast<uint8_t>(full)); break;
+#define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(AddressLinesInterface.view8.data[0]); break
+            X(0x00);
+            X(0x01);
+            X(0x02);
+            X(0x03);
+            X(0x04);
+            X(0x05);
+            X(0x06);
+            X(0x07);
+            X(0x08);
+            X(0x09);
+            X(0x0a);
+            X(0x0b);
+            X(0x0c);
+            X(0x0d);
+            X(0x0e);
+            X(0x0f);
+#undef X
         default:
             if constexpr (isReadOperation) {
                 DataInterface::setData(0);

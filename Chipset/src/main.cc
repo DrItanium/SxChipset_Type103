@@ -1016,7 +1016,84 @@ Read_Done:
         signalReady<0>();
 
     } else {
-
+        if (digitalRead<Pin::BE0>() == LOW) {
+            EEPROM.update(address, DataInterface::getLowerDataByte());
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            EEPROM.update(address+1, DataInterface::getUpperDataByte());
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        signalReady();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            EEPROM.update(address+2, DataInterface::getLowerDataByte());
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            EEPROM.update(address+3, DataInterface::getUpperDataByte());
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        signalReady();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            EEPROM.update(address+4, DataInterface::getLowerDataByte());
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            EEPROM.update(address+5, DataInterface::getUpperDataByte());
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        signalReady();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            EEPROM.update(address+6, DataInterface::getLowerDataByte());
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            EEPROM.update(address+7, DataInterface::getUpperDataByte());
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        signalReady();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            EEPROM.update(address+8, DataInterface::getLowerDataByte());
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            EEPROM.update(address+9, DataInterface::getUpperDataByte());
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        signalReady();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            EEPROM.update(address+10, DataInterface::getLowerDataByte());
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            EEPROM.update(address+11, DataInterface::getUpperDataByte());
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        signalReady();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            EEPROM.update(address+12, DataInterface::getLowerDataByte());
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            EEPROM.update(address+13, DataInterface::getUpperDataByte());
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        signalReady();
+        if (digitalRead<Pin::BE0>() == LOW) {
+            EEPROM.update(address+14, DataInterface::getLowerDataByte());
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            EEPROM.update(address+15, DataInterface::getUpperDataByte());
+        }
+Write_Done:
+        signalReady<0>();
     }
 }
 template<bool isReadOperation>

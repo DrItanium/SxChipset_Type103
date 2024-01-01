@@ -331,6 +331,287 @@ void idleTransaction() noexcept {
     }
     signalReady<0>();
 }
+enum class IBUSMemoryViewKind {
+    SixteenK,
+};
+
+constexpr auto MemoryViewKind = IBUSMemoryViewKind::SixteenK;
+
+template<IBUSMemoryViewKind kind>
+struct MemoryInterfaceBackend {
+    using Self = MemoryInterfaceBackend<kind>;
+    MemoryInterfaceBackend() = delete;
+    ~MemoryInterfaceBackend() = delete;
+    MemoryInterfaceBackend(const Self&) = delete;
+    MemoryInterfaceBackend(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+};
+
+
+template<>
+struct MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK> {
+    using Self = MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK>;
+    MemoryInterfaceBackend() = delete;
+    ~MemoryInterfaceBackend() = delete;
+    MemoryInterfaceBackend(const Self&) = delete;
+    MemoryInterfaceBackend(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+private:
+    static void doSingleReadOperation(DataRegister8 view) {
+        auto lo = view[0];
+        auto hi = view[1];
+        if constexpr (EnableTransactionDebug) {
+            auto value = makeWord(hi, lo);
+            Serial.printf(F("doReadOperation: 0x%x\n"), value);
+        }
+        DataInterface::setLowerDataByte(lo);
+        DataInterface::setUpperDataByte(hi);
+    }
+    static DataRegister8 computeTransactionAddress() {
+        return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0]) | MemoryWindowBaseAddress);
+    }
+public:
+    static void configure() noexcept {
+        getDirectionRegister<Port::IBUS_Bank>() = 0;
+    }
+    template<auto BufferSize>
+    static void installMemoryImage(File& theFirmware) {
+        auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
+        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
+            // just modify the bank as we go along
+            AddressLinesInterface.view32.data = address;
+            theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
+            Serial.print(F("."));
+        }
+        if constexpr (EnableTransactionDebug) {
+            AddressLinesInterface.view32.data = 0;
+            for (int i = 0; i < 32; ++i) {
+                Serial.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
+            }
+        }
+    }
+private:
+    template<uint8_t baseIndex>
+    FORCE_INLINE 
+    inline
+    static 
+    void doReadSingular(DataRegister8 view) noexcept {
+        auto lo = view[baseIndex + 0];
+        auto hi = view[baseIndex + 1];
+        DataInterface::setLowerDataByte(lo);
+        DataInterface::setUpperDataByte(hi);
+    }
+public:
+    inline static void doReadOperation(DataRegister8 view) noexcept {
+        if constexpr (EnableTransactionDebug) {
+            Serial.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
+        }
+        doReadSingular<0>(view);
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        signalReady<0>();
+        doReadSingular<2>(view);
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        signalReady<0>();
+        doReadSingular<4>(view);
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        signalReady<0>();
+        doReadSingular<6>(view);
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        signalReady<0>();
+        doReadSingular<8>(view);
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        signalReady<0>();
+        doReadSingular<10>(view);
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        signalReady<0>();
+        doReadSingular<12>(view);
+        if (isBurstLast()) { 
+            goto Read_Done; 
+        } 
+        signalReady<0>();
+        doReadSingular<14>(view);
+Read_Done:
+        signalReady<0>();
+    }
+    inline static void doReadOperation() noexcept {
+        DataRegister8 view = computeTransactionAddress();
+        doReadOperation(view);
+    }
+    inline static void doWriteOperation() noexcept {
+        DataRegister8 view = computeTransactionAddress();
+        doWriteOperation(view);
+    }
+    inline static void doWriteOperation(DataRegister8 view) noexcept {
+        if (digitalRead<Pin::BE0>() == LOW) {
+            view[0] = getDataByte<0>();
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            view[1] = getDataByte<1>();
+        }
+        if (isBurstLast()) { 
+            goto Write_SignalDone; 
+        } 
+        view += 2;
+        signalReady();
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
+        if (isBurstLast()) {
+            goto Write_Done;
+        }
+        {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        }
+Write_Done:
+        // we have to check and see if an unaligned operation has taken place
+        // or not.
+        view[0] = getDataByte<0>();
+        if (digitalRead<Pin::BE1>() == LOW) {
+            view[1] = getDataByte<1>();
+        }
+Write_SignalDone:
+        signalReady<0>();
+    }
+};
+
+using MemoryInterface = MemoryInterfaceBackend<MemoryViewKind>;
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
         break; \
@@ -672,11 +953,11 @@ uint8_t StorageReservation[16][256];
 template<bool isReadOperation>
 FORCE_INLINE
 inline
-void doMemoryAccess(uint8_t* ptr) {
+void doMemoryAccess(DataRegister8 ptr) {
     if constexpr (isReadOperation) {
-        
+        MemoryInterface::doReadOperation(ptr);
     } else {
-
+        MemoryInterface::doWriteOperation(ptr);
     }
 }
 template<bool isReadOperation>
@@ -725,415 +1006,6 @@ void doIO() noexcept {
     } 
 }
 #undef I960_Signal_Switch
-enum class IBUSMemoryViewKind {
-    SixteenK,
-    TwoByte,
-};
-
-constexpr auto MemoryViewKind = IBUSMemoryViewKind::SixteenK;
-
-template<IBUSMemoryViewKind kind>
-struct MemoryInterfaceBackend {
-    using Self = MemoryInterfaceBackend<kind>;
-    MemoryInterfaceBackend() = delete;
-    ~MemoryInterfaceBackend() = delete;
-    MemoryInterfaceBackend(const Self&) = delete;
-    MemoryInterfaceBackend(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
-};
-
-template<>
-struct MemoryInterfaceBackend<IBUSMemoryViewKind::TwoByte> {
-    using Self = MemoryInterfaceBackend<IBUSMemoryViewKind::TwoByte>;
-    MemoryInterfaceBackend() = delete;
-    ~MemoryInterfaceBackend() = delete;
-    MemoryInterfaceBackend(const Self&) = delete;
-    MemoryInterfaceBackend(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
-private:
-    static void doSingleReadOperation() {
-        auto lo = memoryPort8[0];
-        auto hi = memoryPort8[1];
-        if constexpr (EnableTransactionDebug) {
-            auto value = makeWord(hi, lo);
-            Serial.printf(F("doReadOperation: 0x%x\n"), value);
-        }
-        DataInterface::setLowerDataByte(lo);
-        DataInterface::setUpperDataByte(hi);
-    }
-public:
-    template<auto BufferSize>
-    static void installMemoryImage(File& theFirmware) {
-        uint32_t transferDots = 0;
-        auto* theBuffer = memoryPort8;
-        for (uint32_t address = 0; address < theFirmware.size(); address += 2, ++transferDots) {
-            // just modify the bank as we go along
-            AddressLinesInterface.view32.data = address;
-            theFirmware.read(const_cast<uint8_t*>(theBuffer), 2);
-            if ((transferDots % (BufferSize / 2)) == 0) {
-                Serial.print(F("."));
-            }
-        }
-    }
-    static void doReadOperation() noexcept {
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        doSingleReadOperation();
-        signalReady();
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        doSingleReadOperation();
-        signalReady();
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        doSingleReadOperation();
-        signalReady();
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        doSingleReadOperation();
-        signalReady();
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        doSingleReadOperation();
-        signalReady();
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        doSingleReadOperation();
-        signalReady();
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        doSingleReadOperation();
-        signalReady();
-Read_Done:
-        doSingleReadOperation();
-        signalReady<0>();
-    }
-    static void doWriteOperation() noexcept {
-        if (digitalRead<Pin::BE0>() == LOW) {
-            memoryPort8[0] = getDataByte<0>();
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            memoryPort8[1] = getDataByte<1>();
-        }
-        if (isBurstLast()) { 
-            goto Write_SignalDone; 
-        } 
-        signalReady();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        memoryPort8[0] = getDataByte<0>(); 
-        memoryPort8[1] = getDataByte<1>(); 
-        signalReady();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        memoryPort8[0] = getDataByte<0>(); 
-        memoryPort8[1] = getDataByte<1>(); 
-        signalReady();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        memoryPort8[0] = getDataByte<0>(); 
-        memoryPort8[1] = getDataByte<1>(); 
-        signalReady();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        memoryPort8[0] = getDataByte<0>(); 
-        memoryPort8[1] = getDataByte<1>(); 
-        signalReady();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        memoryPort8[0] = getDataByte<0>(); 
-        memoryPort8[1] = getDataByte<1>(); 
-        signalReady();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        memoryPort8[0] = getDataByte<0>(); 
-        memoryPort8[1] = getDataByte<1>(); 
-        signalReady();
-Write_Done:
-        memoryPort8[0] = getDataByte<0>();
-        if (digitalRead<Pin::BE1>() == LOW) {
-            memoryPort8[1] = getDataByte<1>();
-        }
-Write_SignalDone:
-        signalReady<0>();
-    }
-    static void configure() noexcept {
-    }
-};
-
-template<>
-struct MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK> {
-    using Self = MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK>;
-    MemoryInterfaceBackend() = delete;
-    ~MemoryInterfaceBackend() = delete;
-    MemoryInterfaceBackend(const Self&) = delete;
-    MemoryInterfaceBackend(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
-private:
-    static void doSingleReadOperation(DataRegister8 view) {
-        auto lo = view[0];
-        auto hi = view[1];
-        if constexpr (EnableTransactionDebug) {
-            auto value = makeWord(hi, lo);
-            Serial.printf(F("doReadOperation: 0x%x\n"), value);
-        }
-        DataInterface::setLowerDataByte(lo);
-        DataInterface::setUpperDataByte(hi);
-    }
-    static DataRegister8 computeTransactionAddress() {
-        return memoryPointer<uint8_t>((AddressLinesInterface.view16.data[0]) | MemoryWindowBaseAddress);
-    }
-public:
-    static void configure() noexcept {
-        getDirectionRegister<Port::IBUS_Bank>() = 0;
-    }
-    template<auto BufferSize>
-    static void installMemoryImage(File& theFirmware) {
-        auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
-        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
-            // just modify the bank as we go along
-            AddressLinesInterface.view32.data = address;
-            theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
-            Serial.print(F("."));
-        }
-        if constexpr (EnableTransactionDebug) {
-            AddressLinesInterface.view32.data = 0;
-            for (int i = 0; i < 32; ++i) {
-                Serial.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
-            }
-        }
-    }
-private:
-    template<uint8_t baseIndex>
-    FORCE_INLINE 
-    inline
-    static 
-    void doReadSingular(DataRegister8 view) noexcept {
-        auto lo = view[baseIndex + 0];
-        auto hi = view[baseIndex + 1];
-        DataInterface::setLowerDataByte(lo);
-        DataInterface::setUpperDataByte(hi);
-    }
-public:
-
-    static void doReadOperation() noexcept {
-        DataRegister8 view = computeTransactionAddress();
-        if constexpr (EnableTransactionDebug) {
-            Serial.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
-        }
-        doReadSingular<0>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<2>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<4>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<6>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<8>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<10>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<12>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<14>(view);
-Read_Done:
-        signalReady<0>();
-    }
-    static void doWriteOperation() noexcept {
-        DataRegister8 view = computeTransactionAddress();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            view[0] = getDataByte<0>();
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            view[1] = getDataByte<1>();
-        }
-        if (isBurstLast()) { 
-            goto Write_SignalDone; 
-        } 
-        view += 2;
-        signalReady();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
-Write_Done:
-        // we have to check and see if an unaligned operation has taken place
-        // or not.
-        view[0] = getDataByte<0>();
-        if (digitalRead<Pin::BE1>() == LOW) {
-            view[1] = getDataByte<1>();
-        }
-Write_SignalDone:
-        signalReady<0>();
-    }
-};
-
-using MemoryInterface = MemoryInterfaceBackend<MemoryViewKind>;
 
 template<bool isReadOperation>
 FORCE_INLINE

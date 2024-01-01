@@ -960,10 +960,11 @@ void doMemoryAccess(DataRegister8 ptr) {
         MemoryInterface::doWriteOperation(ptr);
     }
 }
-template<bool isReadOperation>
+template<bool isReadOperation, uint16_t core>
 FORCE_INLINE
 inline
-void doEEPROMAccess(uint16_t address) {
+void doEEPROMAccess(uint8_t offset) {
+    uint16_t address = core | static_cast<uint16_t>(offset);
     if constexpr (isReadOperation) {
 
         uint16_t result = 0;
@@ -1044,23 +1045,22 @@ void doIO() noexcept {
         case 0x1d: doMemoryAccess<isReadOperation>(&StorageReservation[13][static_cast<uint8_t>(full)]); break;
         case 0x1e: doMemoryAccess<isReadOperation>(&StorageReservation[14][static_cast<uint8_t>(full)]); break;
         case 0x1f: doMemoryAccess<isReadOperation>(&StorageReservation[15][static_cast<uint8_t>(full)]); break;
-        case 0x20:
-        case 0x21:
-        case 0x22:
-        case 0x23:
-        case 0x24:
-        case 0x25:
-        case 0x26:
-        case 0x27:
-        case 0x28:
-        case 0x29:
-        case 0x2a:
-        case 0x2b:
-        case 0x2c:
-        case 0x2d:
-        case 0x2e:
-        case 0x2f:
-
+        case 0x20: doEEPROMAccess<isReadOperation, 0x0000>(static_cast<uint8_t>(full)); break;
+        case 0x21: doEEPROMAccess<isReadOperation, 0x0100>(static_cast<uint8_t>(full)); break;
+        case 0x22: doEEPROMAccess<isReadOperation, 0x0200>(static_cast<uint8_t>(full)); break;
+        case 0x23: doEEPROMAccess<isReadOperation, 0x0300>(static_cast<uint8_t>(full)); break;
+        case 0x24: doEEPROMAccess<isReadOperation, 0x0400>(static_cast<uint8_t>(full)); break;
+        case 0x25: doEEPROMAccess<isReadOperation, 0x0500>(static_cast<uint8_t>(full)); break;
+        case 0x26: doEEPROMAccess<isReadOperation, 0x0600>(static_cast<uint8_t>(full)); break;
+        case 0x27: doEEPROMAccess<isReadOperation, 0x0700>(static_cast<uint8_t>(full)); break;
+        case 0x28: doEEPROMAccess<isReadOperation, 0x0800>(static_cast<uint8_t>(full)); break;
+        case 0x29: doEEPROMAccess<isReadOperation, 0x0900>(static_cast<uint8_t>(full)); break;
+        case 0x2a: doEEPROMAccess<isReadOperation, 0x0a00>(static_cast<uint8_t>(full)); break;
+        case 0x2b: doEEPROMAccess<isReadOperation, 0x0b00>(static_cast<uint8_t>(full)); break;
+        case 0x2c: doEEPROMAccess<isReadOperation, 0x0c00>(static_cast<uint8_t>(full)); break;
+        case 0x2d: doEEPROMAccess<isReadOperation, 0x0d00>(static_cast<uint8_t>(full)); break;
+        case 0x2e: doEEPROMAccess<isReadOperation, 0x0e00>(static_cast<uint8_t>(full)); break;
+        case 0x2f: doEEPROMAccess<isReadOperation, 0x0f00>(static_cast<uint8_t>(full)); break;
         default:
             if constexpr (isReadOperation) {
                 DataInterface::setData(0);

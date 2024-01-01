@@ -963,9 +963,57 @@ void doMemoryAccess(DataRegister8 ptr) {
 template<bool isReadOperation>
 FORCE_INLINE
 inline
-void doEEPROMAccess() {
+void doEEPROMAccess(uint16_t address) {
     if constexpr (isReadOperation) {
-        
+
+        uint16_t result = 0;
+        EEPROM.get(address, result);
+        DataInterface::setData(result);
+        if (isBurstLast()) {
+            goto Read_Done;
+        }
+        signalReady();
+        EEPROM.get(address+2, result);
+        DataInterface::setData(result);
+        if (isBurstLast()) {
+            goto Read_Done;
+        }
+        signalReady();
+        EEPROM.get(address+4, result);
+        DataInterface::setData(result);
+        if (isBurstLast()) {
+            goto Read_Done;
+        }
+        signalReady();
+        EEPROM.get(address+6, result);
+        DataInterface::setData(result);
+        if (isBurstLast()) {
+            goto Read_Done;
+        }
+        signalReady();
+        EEPROM.get(address+8, result);
+        DataInterface::setData(result);
+        if (isBurstLast()) {
+            goto Read_Done;
+        }
+        signalReady();
+        EEPROM.get(address+10, result);
+        DataInterface::setData(result);
+        if (isBurstLast()) {
+            goto Read_Done;
+        }
+        signalReady();
+        EEPROM.get(address+12, result);
+        DataInterface::setData(result);
+        if (isBurstLast()) {
+            goto Read_Done;
+        }
+        signalReady();
+        EEPROM.get(address+14, result);
+        DataInterface::setData(result);
+Read_Done:
+        signalReady<0>();
+
     } else {
 
     }
@@ -996,6 +1044,22 @@ void doIO() noexcept {
         case 0x1d: doMemoryAccess<isReadOperation>(&StorageReservation[13][static_cast<uint8_t>(full)]); break;
         case 0x1e: doMemoryAccess<isReadOperation>(&StorageReservation[14][static_cast<uint8_t>(full)]); break;
         case 0x1f: doMemoryAccess<isReadOperation>(&StorageReservation[15][static_cast<uint8_t>(full)]); break;
+        case 0x20:
+        case 0x21:
+        case 0x22:
+        case 0x23:
+        case 0x24:
+        case 0x25:
+        case 0x26:
+        case 0x27:
+        case 0x28:
+        case 0x29:
+        case 0x2a:
+        case 0x2b:
+        case 0x2c:
+        case 0x2d:
+        case 0x2e:
+        case 0x2f:
 
         default:
             if constexpr (isReadOperation) {

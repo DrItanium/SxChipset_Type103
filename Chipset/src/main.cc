@@ -58,7 +58,8 @@ constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
-[[gnu::address(0xC000)]] inline volatile uint8_t memoryPort8[2];
+[[gnu::address(0x8000)]] inline volatile uint8_t XBusWindow[16384];
+[[gnu::address(0x4000)]] inline volatile uint8_t IOXBusWindow[16384];
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -1105,6 +1106,18 @@ Write_Done:
         signalReady<0>();
     }
 }
+template<bool isReadOperation, uint8_t index>
+FORCE_INLINE
+inline
+void doXBUSAccess(uint8_t offset) noexcept {
+    doNothing<isReadOperation>();
+}
+template<bool isReadOperation, uint8_t index>
+FORCE_INLINE
+inline
+void doIOXAccess(uint8_t offset) noexcept {
+    doNothing<isReadOperation>();
+}
 template<bool isReadOperation>
 FORCE_INLINE 
 inline 
@@ -1115,42 +1128,43 @@ void doIO() noexcept {
         case 0x00:
             doCoreIO<isReadOperation>(lowest);
             break;
+#define Block4K(offset)  \
+            X((offset + 0x00)); \
+            X((offset + 0x01)); \
+            X((offset + 0x02)); \
+            X((offset + 0x03)); \
+            X((offset + 0x04)); \
+            X((offset + 0x05)); \
+            X((offset + 0x06)); \
+            X((offset + 0x07)); \
+            X((offset + 0x08)); \
+            X((offset + 0x09)); \
+            X((offset + 0x0a)); \
+            X((offset + 0x0b)); \
+            X((offset + 0x0c)); \
+            X((offset + 0x0d)); \
+            X((offset + 0x0e)); \
+            X((offset + 0x0f))
+#define Block16K(offset) \
+            Block4K((offset + 0x00)); \
+            Block4K((offset + 0x10)); \
+            Block4K((offset + 0x20)); \
+            Block4K((offset + 0x30))
 #define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(lowest); break
-            X(0x00);
-            X(0x01);
-            X(0x02);
-            X(0x03);
-            X(0x04);
-            X(0x05);
-            X(0x06);
-            X(0x07);
-            X(0x08);
-            X(0x09);
-            X(0x0a);
-            X(0x0b);
-            X(0x0c);
-            X(0x0d);
-            X(0x0e);
-            X(0x0f);
+            Block4K(0);
 #undef X
 #define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(lowest); break
-            X(0x00);
-            X(0x01);
-            X(0x02);
-            X(0x03);
-            X(0x04);
-            X(0x05);
-            X(0x06);
-            X(0x07);
-            X(0x08);
-            X(0x09);
-            X(0x0a);
-            X(0x0b);
-            X(0x0c);
-            X(0x0d);
-            X(0x0e);
-            X(0x0f);
+            Block4K(0);
 #undef X
+            // map the middle 32k of the EBI out to the i960 for now
+#define X(id) case (0x80 + id) : doXBUSAccess<isReadOperation, id>(lowest); break
+            Block16K(0);
+#undef X
+#define X(id) case (0xC0 + id) : doIOXAccess<isReadOperation, id>(lowest); break
+            Block16K(0);
+#undef X
+#undef Block16K
+#undef Block4K
         default:
             doNothing<isReadOperation>();
             break;

@@ -37,6 +37,7 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
 FsFile disk0;
+uint8_t StorageReservation[16][256];
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
@@ -955,7 +956,6 @@ doCoreIO(uint8_t offset) noexcept {
     } 
     signalReady<0>(); 
 }
-uint8_t StorageReservation[16][256];
 template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline

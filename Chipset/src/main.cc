@@ -58,8 +58,8 @@ constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
-[[gnu::address(0x8000)]] inline volatile uint8_t XBusWindow[16384];
-[[gnu::address(0x4000)]] inline volatile uint8_t IOXBusWindow[16384];
+[[gnu::address(0x8000)]] inline volatile uint8_t XBusWindow[64][256];
+[[gnu::address(0x4000)]] inline volatile uint8_t IOXBusWindow[64][256];
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -1110,13 +1110,25 @@ template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
 void doXBUSAccess(uint8_t offset) noexcept {
-    doNothing<isReadOperation>();
+    static_assert(index < 64);
+    DataRegister8 ptr = &XBusWindow[index][offset];
+    if constexpr (isReadOperation) {
+        MemoryInterface::doReadOperation(ptr);
+    } else {
+        MemoryInterface::doWriteOperation(ptr);
+    }
 }
 template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
 void doIOXAccess(uint8_t offset) noexcept {
-    doNothing<isReadOperation>();
+    static_assert(index < 64);
+    DataRegister8 ptr = &IOXBusWindow[index][offset];
+    if constexpr (isReadOperation) {
+        MemoryInterface::doReadOperation(ptr);
+    } else {
+        MemoryInterface::doWriteOperation(ptr);
+    }
 }
 template<bool isReadOperation>
 FORCE_INLINE 

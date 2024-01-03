@@ -22,22 +22,18 @@ setup() {
     Serial.println(F("Serial3 STARTED"));
     Serial.println(F("Configuring Pins"));
     pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, LOW);
     Serial.println(F("Attaching interrupts"));
     attachInterrupt(digitalPinToInterrupt(2), intVect0, FALLING);
     attachInterrupt(digitalPinToInterrupt(3), intVect1, FALLING);
     Serial.println(F("Booted!"));
 }
 
+volatile uint8_t amount = 0;
 void 
 loop() {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(1000);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(1000);
-}
-void
-yield() {
+    analogWrite(LED_BUILTIN, amount);
+    delay(16);
+    ++amount;
 }
 void
 serialEvent() {

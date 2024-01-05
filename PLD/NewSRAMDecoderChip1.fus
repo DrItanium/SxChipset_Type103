@@ -3,16 +3,16 @@
 AR
   0  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 23 = EN0          S0 = 0   S1 = 0
-  1  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  2  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  3  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  4  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  5  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  8  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
-  9  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+Pin 23 = EN0          S0 = 0   S1 = 1
+  1  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+  2  ---- -x-- -x-- x--- ---- ---- -x-- -x-- -x-x -x-x -x-x
+  3  ---- -x-- -x-- -x-- ---- ---- -x-- -x-- -x-- -x-x -x-x
+  4  ---- x--- -x-- x--- ---- ---- -x-- -x-- -x-x -x-x -xx-
+  5  ---- x--- -x-- -x-- ---- ---- -x-- -x-- -x-- -x-x -xx-
+  6  ---- -x-- x--- x--- ---- ---- -x-- -x-- -x-x -xx- -x-x
+  7  ---- -x-- x--- -x-- ---- ---- -x-- -x-- -x-- -xx- -x-x
+  8  ---- x--- x--- x--- ---- ---- -x-- -x-- -x-x -xx- -xx-
+  9  ---- x--- x--- -x-- ---- ---- -x-- -x-- -x-- -xx- -xx-
 
 Pin 22 = EN1          S0 = 0   S1 = 0
  10  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -129,7 +129,7 @@ Pin 16 = EN7          S0 = 0   S1 = 0
 109  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 110  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 15 = SRAM         S0 = 0   S1 = 0
+Pin 15 = SRAM         S0 = 0   S1 = 1
 111  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 112  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 113  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -142,7 +142,7 @@ Pin 15 = SRAM         S0 = 0   S1 = 0
 120  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 121  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 14 = A23          S0 = 0   S1 = 0
+Pin 14 = A23          S0 = 0   S1 = 1
 122  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 123  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 124  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

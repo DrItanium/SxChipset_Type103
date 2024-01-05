@@ -4,5 +4,30 @@ NewSRAMDecoderChip1
 NC  M0  M1   M2  M3  M4  IBUSEN EBIEN A19 A20 A21 GND
 A22 A23 SRAM EN7 EN6 EN5 EN4    EN3   EN2 EN1 EN0 VCC
 
+/EN0 = /A19 * /A20 * /A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 + /A19 * /A20 * /A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + /A19 * /A20 * /A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + /A19 * /A20 * /A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + /A19 * /A20 * /A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + /A19 * /A20 * /A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 + /A19 * /A20 * /A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 + /A19 * /A20 * /A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
 DESCRIPTION
+The chip does enable line decoding
+M0-M4 are configuration bits
+M0 -> A22 Match
+M1 -> A23 Match
+
+All of the match configurations
+/A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 +
+/A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 +
+A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 +
+A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 +
+/A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 +
+/A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 +
+A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 +
+A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
+
+/A19 * /A20 * /A21
+A19 * /A20 * /A21
+/A19 * A20 * /A21
+A19 * A20 * /A21
+/A19 * /A20 * A21
+A19 * /A20 * A21
+/A19 * A20 * A21
+A19 * A20 * A21
+
 

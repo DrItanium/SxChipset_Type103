@@ -5,14 +5,14 @@ AR
 
 Pin 23 = EA8          S0 = 1   S1 = 1
   1  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-  2  ---- -x-- -x-- -x-- ---- ---- ---- ---- ---- ---- x---
-  3  ---- x--- -x-- -x-- ---- ---- ---- ---- ---- ---- x---
-  4  ---- -x-- x--- -x-- x--- ---- ---- ---- ---- ---- ----
-  5  ---- x--- x--- -x-- x--- ---- ---- ---- ---- ---- ----
-  6  ---- -x-- -x-- x--- x--- ---- ---- ---- ---- ---- ----
-  7  ---- x--- -x-- x--- x--- ---- ---- ---- ---- ---- ----
-  8  ---- -x-- x--- x--- x--- ---- ---- ---- ---- ---- ----
-  9  ---- x--- x--- x--- x--- ---- ---- ---- ---- ---- ----
+  2  ---- ---- -x-- -x-- ---- ---- ---- ---- ---- ---- x---
+  3  ---- ---- x--- -x-- x--- ---- ---- ---- ---- ---- ----
+  4  ---- ---- ---- x--- x--- ---- ---- ---- ---- ---- ----
+  5  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+  6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+  7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+  8  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+  9  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 22 = EA9          S0 = 1   S1 = 1
  10  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
@@ -80,14 +80,14 @@ Pin 19 = EA12         S0 = 1   S1 = 1
 
 Pin 18 = EA13         S0 = 1   S1 = 1
  66  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 67  ---- -x-- -x-- -x-- ---- ---- --x- ---- ---- ---- ----
- 68  ---- x--- -x-- -x-- ---- ---- --x- ---- ---- ---- ----
- 69  ---- -x-- x--- -x-- ---- ---- --x- ---- ---- ---- ----
- 70  ---- x--- x--- -x-- ---- ---- --x- ---- ---- ---- ----
- 71  ---- -x-- -x-- x--- ---- ---- --x- ---- ---- ---- ----
- 72  ---- x--- -x-- x--- ---- ---- --x- ---- ---- ---- ----
- 73  ---- -x-- x--- x--- ---- ---- --x- ---- ---- ---- ----
- 74  ---- x--- x--- x--- ---- ---- ---- ---- ---- x--- ----
+ 67  ---- ---- ---- -x-- ---- ---- --x- ---- ---- ---- ----
+ 68  ---- ---- -x-- x--- ---- ---- --x- ---- ---- ---- ----
+ 69  ---- -x-- x--- x--- ---- ---- --x- ---- ---- ---- ----
+ 70  ---- x--- x--- x--- ---- ---- ---- ---- ---- x--- ----
+ 71  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+ 72  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+ 73  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+ 74  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  75  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  76  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  77  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

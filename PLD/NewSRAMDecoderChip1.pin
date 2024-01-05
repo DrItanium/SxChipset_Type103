@@ -17,10 +17,10 @@
   13   | A22      | Input
   14   | A23      | Input
   15   | SRAM     | Input
-  16   | EN7      | NC
-  17   | EN6      | NC
-  18   | EN5      | NC
-  19   | EN4      | NC
+  16   | EN7      | Output
+  17   | EN6      | Output
+  18   | EN5      | Output
+  19   | EN4      | Output
   20   | EN3      | Output
   21   | EN2      | Output
   22   | EN1      | Output

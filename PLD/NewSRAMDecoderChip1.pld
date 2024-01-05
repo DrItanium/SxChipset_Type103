@@ -8,6 +8,10 @@ A22 A23 SRAM EN7 EN6 EN5 EN4    EN3   EN2 EN1 EN0 VCC
 /EN1 = A19 * /A20 * /A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 + A19 * /A20 * /A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + A19 * /A20 * /A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + A19 * /A20 * /A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + A19 * /A20 * /A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + A19 * /A20 * /A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 + A19 * /A20 * /A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 + A19 * /A20 * /A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
 /EN2 = /A19 * A20 * /A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 + /A19 * A20 * /A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + /A19 * A20 * /A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + /A19 * A20 * /A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + /A19 * A20 * /A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + /A19 * A20 * /A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 + /A19 * A20 * /A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 + /A19 * A20 * /A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
 /EN3 = A19 * A20 * /A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 + A19 * A20 * /A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + A19 * A20 * /A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + A19 * A20 * /A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + A19 * A20 * /A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + A19 * A20 * /A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 + A19 * A20 * /A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 + A19 * A20 * /A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
+/EN4 = /A19 * /A20 * A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 + /A19 * /A20 * A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + /A19 * /A20 * A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + /A19 * /A20 * A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + /A19 * /A20 * A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + /A19 * /A20 * A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 + /A19 * /A20 * A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 + /A19 * /A20 * A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
+/EN5 = A19 * /A20 * A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 + A19 * /A20 * A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + A19 * /A20 * A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + A19 * /A20 * A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + A19 * /A20 * A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + A19 * /A20 * A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 + A19 * /A20 * A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 + A19 * /A20 * A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
+/EN6 = /A19 * A20 * A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 + /A19 * A20 * A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + /A19 * A20 * A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + /A19 * A20 * A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + /A19 * A20 * A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + /A19 * A20 * A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 + /A19 * A20 * A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 + /A19 * A20 * A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
+/EN7 = A19 * A20 * A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 + A19 * A20 * A21 * /A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + A19 * A20 * A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + A19 * A20 * A21 * A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 + A19 * A20 * A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 + A19 * A20 * A21 * /A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 + A19 * A20 * A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 + A19 * A20 * A21 * A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
 DESCRIPTION
 The chip does enable line decoding
 M0-M4 are configuration bits
@@ -16,18 +20,5 @@ M1 -> A23 Match
 M2 -> Enable SRAM Check (when high)
 
 All of the match configurations
-/A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM * M2 +
-/A22 * /M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 +
-A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /SRAM  * M2 +
-A22 * M0 * /A23 * /M1 * /IBUSEN * /EBIEN * /M2 +
-/A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM  * M2 +
-/A22 * /M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 +
-A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /SRAM * M2 +
-A22 * M0 * A23 * M1 * /IBUSEN * /EBIEN * /M2 
-
-/A19 * /A20 * A21 *
-A19 * /A20 * A21 *
-/A19 * A20 * A21 *
-A19 * A20 * A21 *
 
 

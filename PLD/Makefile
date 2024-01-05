@@ -101,6 +101,14 @@ install_NewIntegratedChip2: NewIntegratedChip2.jed
 install_NewIntegratedChip1: NewIntegratedChip1.jed
 	minipro -p ATF16V8C --write NewIntegratedChip1.jed 
 
+install_NewSRAMDecoderChip1: NewSRAMDecoderChip1.jed
+	minipro -p "ATF22V10CQ(UES)" --write NewSRAMDecoderChip1.jed 
+
+install_NewSRAMDecoderChip2: NewSRAMDecoderChip2.jed
+	minipro -p "ATF22V10CQ(UES)" --write NewSRAMDecoderChip2.jed 
+
+
+
 clean:
 	@echo -n "Cleaning..."
 	@rm -rf *.chp *.fus *.jed *.pin

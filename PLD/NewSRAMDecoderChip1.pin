@@ -1,0 +1,29 @@
+
+
+ Pin # | Name     | Pin Type
+-----------------------------
+   1   | NC       | Clock/Input
+   2   | M0       | Input
+   3   | M1       | Input
+   4   | M2       | Input
+   5   | M3       | Input
+   6   | M4       | Input
+   7   | IBUSEN   | Input
+   8   | EBIEN    | Input
+   9   | A19      | Input
+  10   | A20      | Input
+  11   | A21      | Input
+  12   | GND      | GND
+  13   | A22      | Input
+  14   | A23      | NC
+  15   | SRAM     | NC
+  16   | EN7      | NC
+  17   | EN6      | NC
+  18   | EN5      | NC
+  19   | EN4      | NC
+  20   | EN3      | NC
+  21   | EN2      | NC
+  22   | EN1      | NC
+  23   | EN0      | NC
+  24   | VCC      | VCC
+

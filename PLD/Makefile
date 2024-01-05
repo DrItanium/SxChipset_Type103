@@ -24,7 +24,8 @@ all: Type103PLD.jed \
 	NewEBIDecoder.jed \
 	EBIMemoryAccessorV2.jed \
 	NewIntegratedChip2.jed \
-	NewIntegratedChip1.jed
+	NewIntegratedChip1.jed \
+	NewSRAMDecoderChip1.jed
 
 
 install_Type103: Type103PLD.jed

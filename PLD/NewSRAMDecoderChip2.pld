@@ -6,3 +6,17 @@ IA9 IA10 IA11 IA12 IA13 EA13 EA12 EA11 EA10 EA9 EA8 VCC
 
 DESCRIPTION
 
+This is a configurable muxing chip which allows one to configure what lines are
+connected to EBI.[A8-A13]. A14 and A15 are always connected to the
+corresponding i960 address lines. The configuration is selecting between AVR
+lines and i960 lines.
+M5:M7 are the configuration bits with the following layout
+0b000 -> All Address lines come from the i960
+0b001 -> Reserved
+0b010 -> Address Lines 9, 10, 11, 12, and 13 come from the i960
+0b011 -> Address Lines 10, 11, 12, and 13 come from the i960
+0b100 -> Address Lines 11, 12, and 13 come from the i960
+0b101 -> Address Lines 12 and 13 come from the i960
+0b110 -> Address Line 13 comes from the i960
+0b111 -> All Address lines come from the AVR
+

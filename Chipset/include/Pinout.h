@@ -80,7 +80,7 @@ enum class Port : byte {
 #undef X
     None,
     //SignalCTL = F,
-    IBUS_Bank = J,
+    //IBUS_Bank = J,
     ExecutionState = D,
     DataLinesLower = F,
     DataLinesUpper = K,

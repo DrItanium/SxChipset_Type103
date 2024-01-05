@@ -376,7 +376,7 @@ private:
     }
 public:
     static void configure() noexcept {
-        getDirectionRegister<Port::IBUS_Bank>() = 0;
+        //getDirectionRegister<Port::IBUS_Bank>() = 0;
     }
     template<auto BufferSize>
     static void installMemoryImage(File& theFirmware) {

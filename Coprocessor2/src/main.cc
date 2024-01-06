@@ -24,12 +24,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
 #include <SPI.h>
-#include <Wire.h>
+#include <SD.h>
 
+uint8_t* memoryBegin = nullptr;
+uint8_t* memoryEnd = nullptr;
+constexpr auto ExternalMemoryBaseAddress = 0x7000'0000;
+size_t memorySizeInBytes = 0;
+extern "C" uint8_t external_psram_size;
 void 
 setup() {
-    Serial.begin(9600);
+    Serial.begin(115'200);
+    while (!Serial);
     Serial8.begin(500'000);
+    if (SD.begin(BUILTIN_SDCARD)) {
+        Serial.println(F("SD CARD is connected!"));
+    } else {
+        Serial.println(F("SD CARD is not found!"));
+    }
+    Serial.printf(F("EXTMEM Memory Test Size: %d Mbyte\n"), external_psram_size);
+    if (external_psram_size > 0) {
+        memoryBegin = reinterpret_cast<uint8_t*>(ExternalMemoryBaseAddress);
+        memorySizeInBytes = (external_psram_size * (1024 * 1024));
+        memoryEnd = reinterpret_cast<uint8_t*>(ExternalMemoryBaseAddress + memorySizeInBytes);
+        Serial.println(F("External Memory Available"));
+        for (size_t i = 0; i < memorySizeInBytes; ++i) {
+            memoryBegin[i] = 0;
+        }
+        Serial.println(F("External Memory Cleared!"));
+    } else {
+        Serial.println(F("External Memory Not Available"));
+    }
 }
 
 void 

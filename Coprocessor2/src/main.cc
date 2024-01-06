@@ -25,17 +25,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SD.h>
+#include <Wire.h>
 
 uint8_t* memoryBegin = nullptr;
 uint8_t* memoryEnd = nullptr;
 constexpr auto ExternalMemoryBaseAddress = 0x7000'0000;
+constexpr auto WireAddress = 8;
 size_t memorySizeInBytes = 0;
 extern "C" uint8_t external_psram_size;
+void
+handleWireEvent(int howMany) {
+
+}
 void 
 setup() {
     Serial.begin(115'200);
     while (!Serial);
     Serial8.begin(500'000);
+    while (!Serial8);
+    Wire.begin(WireAddress);
+    Wire.onReceive(handleWireEvent);
     if (SD.begin(BUILTIN_SDCARD)) {
         Serial.println(F("SD CARD is connected!"));
     } else {
@@ -55,6 +64,8 @@ setup() {
         Serial.println(F("External Memory Not Available"));
     }
 }
+
+
 
 void 
 loop() {

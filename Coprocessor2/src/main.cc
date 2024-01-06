@@ -33,10 +33,7 @@ constexpr auto ExternalMemoryBaseAddress = 0x7000'0000;
 constexpr auto WireAddress = 8;
 size_t memorySizeInBytes = 0;
 extern "C" uint8_t external_psram_size;
-void
-handleWireEvent(int howMany) {
-
-}
+void handleWireEvent(int howMany);
 void 
 setup() {
     Serial.begin(115'200);
@@ -74,5 +71,10 @@ loop() {
 
 void
 serialEvent8() {
+
+}
+
+void
+handleWireEvent(int howMany) {
 
 }

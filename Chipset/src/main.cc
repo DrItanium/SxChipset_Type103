@@ -1293,7 +1293,6 @@ setup() {
     // power down the ADC and USART3
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC
-    PRR1 = 0b00000'100; // deactivate USART3
     setupCLK1();
     setupReadySignal();
 

@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SdFat.h>
 #include <EEPROM.h>
+#include <Wire.h>
 
 
 #include "Detect.h"
@@ -1287,7 +1288,9 @@ setup() {
     X(A12); X(A13); X(A14); X(A15);
 #undef X
     randomSeed(seed);
-    Serial.begin(115200);
+    Serial.begin(500'000);
+    Serial1.begin(500'000);
+    Wire.begin();
     SPI.begin();
     EEPROM.begin();
     // power down the ADC and USART3

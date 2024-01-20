@@ -38,7 +38,7 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
 FsFile disk0;
-uint8_t StorageReservation[16][256];
+uint8_t StorageReservation[8][256];
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
@@ -964,7 +964,7 @@ template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
 void doMemoryAccess(uint8_t offset) {
-    static_assert(index < 16);
+    static_assert(index < 8);
     DataRegister8 ptr = &StorageReservation[index][offset];
     if constexpr (isReadOperation) {
         MemoryInterface::doReadOperation(ptr);
@@ -1161,7 +1161,7 @@ void doIO() noexcept {
             Block4K((offset + 0x20)); \
             Block4K((offset + 0x30))
 #define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(lowest); break
-            Block4K(0);
+            Block2K(0);
 #undef X
 #define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(lowest); break
             Block4K(0);

@@ -23,15 +23,11 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <cstdint>
-#include <cerrno>
 #include <string>
-#include <fcntl.h>
-#include <termios.h>
-#include <unistd.h>
-#include <iostream>
 
+#include <iostream>
 #include <boost/program_options.hpp>
+#include <boost/asio.hpp>
 #include <filesystem>
 
 int main(int argc, char** argv) {
@@ -50,70 +46,20 @@ int main(int argc, char** argv) {
             std::cerr << desc << std::endl;
             return 1;
         }
+        boost::asio::io_context io;
         if (!vm.count("port")) {
+#if 0
             std::cerr << "No port specified!" << std::endl;
             std::cerr << desc << std::endl;
             return 1;
-        }
-#if 0
-        if (vm.count("include")) {
-            for (const auto &path: vm["include"].as<std::vector<Neutron::Path>>()) {
-                mainEnv.addToIncludePathBack(path);
-            }
-        }
-        auto value = vm["working-dir"].as<Neutron::Path>();
-        mainEnv.addToIncludePathFront(value);
-        Neutron::Path initLocation{value / "init.clp"};
-        if (!Neutron::exists(initLocation)) {
-            std::cerr << "ERROR: " << initLocation << " does not exist!" << std::endl;
-            return 1;
-        }
-        if (!mainEnv.batchFile(initLocation)) {
-            std::cerr << "ERROR: Failed to batch " << initLocation << std::endl;
-            return 1;
-        }
-        // okay so we have loaded the init.clp
-
-        if (vm.count("batch")) {
-            for (const auto &path: vm["batch"].as<std::vector<Neutron::Path>>()) {
-                if (!mainEnv.batchFile(path, false)) {
-                    std::cerr << "couldn't batch "  << path << std::endl;
-                    return 1;
-                }
-            }
-        }
-        if (vm.count("batch-star")) {
-            for (const auto &path: vm["batch-star"].as<std::vector<Neutron::Path>>()) {
-                if (!mainEnv.batchFile(path)) {
-                    std::cerr << "couldn't batch* " << path <<  std::endl;
-                    return 1;
-                }
-            }
-        }
-        if (vm.count("f2")) {
-            for (const auto &path: vm["f2"].as<std::vector<Neutron::Path>>()) {
-                if (!mainEnv.batchFile(path)) {
-                    std::cerr << "couldn't batch* " << path <<  std::endl;
-                    return 1;
-                }
-            }
-        }
-        if (vm.count("load")) {
-            for (const auto& path : vm["load"].as<std::vector<Neutron::Path>>()) {
-                mainEnv.loadFile(path);
-            }
-        }
-        bool enableRepl = vm["repl"].as<bool>();
-        if (enableRepl) {
-            CommandLoop(mainEnv);
-            return -1;
-        } else {
-            mainEnv.call("begin");
-            mainEnv.reset();
-            mainEnv.run(-1);
-        }
-        // unlike normal CLIPS, the environment will automatically clean itself up
+#else
+            boost::asio::steady_timer t(io, boost::asio::chrono::seconds(5));
+            t.wait();
+            std::cout << "hello, world" << std::endl;
 #endif
+
+        }
+
         return 0;
     } catch (const boost::program_options::error& ex) {
         std::cerr << ex.what() << std::endl;

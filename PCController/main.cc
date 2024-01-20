@@ -55,7 +55,6 @@ class RAM : public Device {
         }
     private:
         std::unique_ptr<uint8_t[]> _backingStore;
-
 };
 int main(int argc, char** argv) {
     try {
@@ -64,6 +63,7 @@ int main(int argc, char** argv) {
         desc.add_options()
                 ("help,h", "Help screen")
                 ("verbose,v", "enable verbose information")
+                ("baud,b", boost::program_options::value<unsigned int>()->default_value(115200), "the baud rate of the connection")
                 ("port,p", boost::program_options::value<std::string>(), "the serial port to connect to");
         boost::program_options::variables_map vm;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -82,8 +82,10 @@ int main(int argc, char** argv) {
             std::cerr << desc << std::endl;
             return 1;
         }
+        boost::asio::serial_port::baud_rate baud(vm["baud"].as<unsigned int>());
         boost::asio::io_context io;
         boost::asio::serial_port port(io);
+        port.set_option(baud);
         try {
             port.open(serialPortPath);
         } catch (const boost::system::system_error& ex) {

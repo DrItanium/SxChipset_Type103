@@ -38,7 +38,8 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
 FsFile disk0;
-uint8_t StorageReservation[8][256];
+constexpr auto NumStorageBlocks = 4;
+uint8_t StorageReservation[NumStorageBlocks][256];
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
@@ -964,7 +965,7 @@ template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
 void doMemoryAccess(uint8_t offset) {
-    static_assert(index < 8);
+    static_assert(index < NumStorageBlocks);
     DataRegister8 ptr = &StorageReservation[index][offset];
     if constexpr (isReadOperation) {
         MemoryInterface::doReadOperation(ptr);
@@ -1143,15 +1144,14 @@ void doIO() noexcept {
         case 0x00:
             doCoreIO<isReadOperation>(lowest);
             break;
-#define Block2K(offset)  \
+#define Block1K(offset)  \
             X((offset + 0x00)); \
             X((offset + 0x01)); \
             X((offset + 0x02)); \
-            X((offset + 0x03)); \
-            X((offset + 0x04)); \
-            X((offset + 0x05)); \
-            X((offset + 0x06)); \
-            X((offset + 0x07))
+            X((offset + 0x03))
+#define Block2K(offset)  \
+            Block1K((offset + 0x00)); \
+            Block1K((offset + 0x04)) 
 #define Block4K(offset)  \
             Block2K((offset + 0x00)); \
             Block2K((offset + 0x08))
@@ -1161,7 +1161,7 @@ void doIO() noexcept {
             Block4K((offset + 0x20)); \
             Block4K((offset + 0x30))
 #define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(lowest); break
-            Block2K(0);
+            Block1K(0);
 #undef X
 #define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(lowest); break
             Block4K(0);
@@ -1176,6 +1176,7 @@ void doIO() noexcept {
 #undef Block16K
 #undef Block4K
 #undef Block2K
+#undef Block1K
         default:
             doNothing<isReadOperation>();
             break;

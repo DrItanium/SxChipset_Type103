@@ -62,6 +62,9 @@ int main(int argc, char** argv) {
                 ("verbose,v", "enable verbose information")
                 ("baud,b", boost::program_options::value<unsigned int>()->default_value(115200), "the baud rate of the connection")
                 ("flow_control", boost::program_options::value<char>()->default_value('N'), "flow control of the connection, N -> None, S -> Software, H -> Hardware")
+                ("parity", boost::program_options::value<char>()->default_value('N'), "parity of the connection, N -> None, O -> Odd, E -> even")
+                ("stop_bits", boost::program_options::value<std::string>()->default_value("1"), "number of stop bits, accepted values are 1, 1.5, and 2")
+                ("character_size", boost::program_options::value<unsigned int>()->default_value(8), "character size for the connection")
                 ("port,p", boost::program_options::value<std::string>(), "the serial port to connect to");
         boost::program_options::variables_map vm;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -84,7 +87,7 @@ int main(int argc, char** argv) {
         boost::asio::io_context io;
         boost::asio::serial_port port(io);
         boost::asio::serial_port::baud_rate baud(vm["baud"].as<unsigned int>());
-        port.set_option(baud);
+        boost::asio::serial_port::character_size csize(vm["character_size"].as<unsigned int>());
         // parse the flow control settings
         boost::asio::serial_port::flow_control::type controlType;
         switch (vm["flow_control"].as<char>())  {
@@ -101,10 +104,46 @@ int main(int argc, char** argv) {
                 controlType = decltype(controlType)::software;
                 break;
             default:
-                std::cerr << "Invalid control type provided!" << std::endl;
+                std::cerr << "Invalid flow control provided!" << std::endl;
                 return 1;
         }
         boost::asio::serial_port::flow_control flow(controlType);
+        boost::asio::serial_port::parity::type parityType;
+        switch (vm["parity"].as<char>()) {
+            case 'N':
+            case 'n':
+                parityType = decltype(parityType)::none;
+                break;
+            case 'E':
+            case 'e':
+                parityType = decltype(parityType)::even;
+                break;
+            case 'O':
+            case 'o':
+                parityType = decltype(parityType)::odd;
+                break;
+            default:
+                std::cerr << "Invalid parity provided!" << std::endl;
+                return 1;
+        }
+        boost::asio::serial_port::parity parity(parityType);
+        boost::asio::serial_port::stop_bits::type sbitsType;
+        auto sbitsRaw = vm["stop_bits"].as<std::string>();
+        if (sbitsRaw == "1") {
+            sbitsType = decltype(sbitsType)::one;
+        } else if (sbitsRaw == "1.5") {
+            sbitsType = decltype(sbitsType)::onepointfive;
+        } else if (sbitsRaw == "2") {
+            sbitsType = decltype(sbitsType)::two;
+        } else {
+            std::cerr << "invalid stop bits size!" << std::endl;
+            return 1;
+        }
+        boost::asio::serial_port::stop_bits sbits(sbitsType);
+        port.set_option(parity);
+        port.set_option(sbits);
+        port.set_option(baud);
+        port.set_option(csize);
         port.set_option(flow);
         try {
             port.open(serialPortPath);

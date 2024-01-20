@@ -31,9 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <filesystem>
 #include <memory>
 
-void print(const boost::system::error_code&) {
-    std::cout << "hello, world" << std::endl;
-}
 using Path = std::filesystem::path;
 class Device {
     public:
@@ -64,6 +61,7 @@ int main(int argc, char** argv) {
                 ("help,h", "Help screen")
                 ("verbose,v", "enable verbose information")
                 ("baud,b", boost::program_options::value<unsigned int>()->default_value(115200), "the baud rate of the connection")
+                ("flow_control", boost::program_options::value<char>()->default_value('N'), "flow control of the connection, N -> None, S -> Software, H -> Hardware")
                 ("port,p", boost::program_options::value<std::string>(), "the serial port to connect to");
         boost::program_options::variables_map vm;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -82,10 +80,32 @@ int main(int argc, char** argv) {
             std::cerr << desc << std::endl;
             return 1;
         }
-        boost::asio::serial_port::baud_rate baud(vm["baud"].as<unsigned int>());
+
         boost::asio::io_context io;
         boost::asio::serial_port port(io);
+        boost::asio::serial_port::baud_rate baud(vm["baud"].as<unsigned int>());
         port.set_option(baud);
+        // parse the flow control settings
+        boost::asio::serial_port::flow_control::type controlType;
+        switch (vm["flow_control"].as<char>())  {
+            case 'N':
+            case 'n':
+                controlType = decltype(controlType)::none;
+                break;
+            case 'H':
+            case 'h':
+                controlType = decltype(controlType)::hardware;
+                break;
+            case 'S':
+            case 's':
+                controlType = decltype(controlType)::software;
+                break;
+            default:
+                std::cerr << "Invalid control type provided!" << std::endl;
+                return 1;
+        }
+        boost::asio::serial_port::flow_control flow(controlType);
+        port.set_option(flow);
         try {
             port.open(serialPortPath);
         } catch (const boost::system::system_error& ex) {

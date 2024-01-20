@@ -140,11 +140,6 @@ int main(int argc, char** argv) {
             return 1;
         }
         boost::asio::serial_port::stop_bits sbits(sbitsType);
-        port.set_option(parity);
-        port.set_option(sbits);
-        port.set_option(baud);
-        port.set_option(csize);
-        port.set_option(flow);
         try {
             port.open(serialPortPath);
         } catch (const boost::system::system_error& ex) {
@@ -154,11 +149,26 @@ int main(int argc, char** argv) {
             }
             return 1;
         }
+        port.set_option(parity);
+        port.set_option(sbits);
+        port.set_option(baud);
+        port.set_option(csize);
+        port.set_option(flow);
+        std::cout << "Connection Established to " << serialPortPath << std::endl;
+        for (;;) {
+            boost::array<char, 128> buf;
+            boost::system::error_code error;
+
+            size_t len = port.read_some(boost::asio::buffer(buf), error);
+            std::cout.write(buf.data(), len);
+        }
 
         return 0;
     } catch (const boost::program_options::error& ex) {
         std::cerr << ex.what() << std::endl;
         return 1;
-    } 
-
+    } catch (const std::exception& ex) {
+        std::cerr << ex.what() << std::endl;
+        return 1;
+    }
 }

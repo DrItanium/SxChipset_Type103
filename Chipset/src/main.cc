@@ -44,6 +44,8 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
+auto& DebugConsole = Serial1;
+auto& MemoryConnection = Serial2;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
     return true;
@@ -186,14 +188,14 @@ struct DataInterface {
     static uint16_t getData() noexcept {
         auto result = makeWord(UnderlyingDataInterface::getUpperDataByte(), UnderlyingDataInterface::getLowerDataByte());
         if constexpr (EnableTransactionDebug) {
-            Serial.print(F("getData: 0x"));
-            Serial.println(result, HEX);
+            DebugConsole.print(F("getData: 0x"));
+            DebugConsole.println(result, HEX);
         }
         return result;
     }
     static void setData(uint16_t value) noexcept {
         if constexpr (EnableTransactionDebug) {
-            Serial.printf(F("setData: 0x%x\n"), value);
+            DebugConsole.printf(F("setData: 0x%x\n"), value);
         }
         UnderlyingDataInterface::setLowerDataByte(value);
         UnderlyingDataInterface::setUpperDataByte(static_cast<uint8_t>(value >> 8));
@@ -207,30 +209,30 @@ struct DataInterface {
     static uint8_t getLowerDataByte() noexcept { 
         auto result = UnderlyingDataInterface::getLowerDataByte();
         if constexpr (EnableTransactionDebug) {
-            Serial.print(F("getLowerDataByte: 0x"));
-            Serial.println(result, HEX);
+            DebugConsole.print(F("getLowerDataByte: 0x"));
+            DebugConsole.println(result, HEX);
         } 
         return result;
     }
     static uint8_t getUpperDataByte() noexcept { 
         auto result = UnderlyingDataInterface::getUpperDataByte();
         if constexpr (EnableTransactionDebug) {
-            Serial.print(F("getUpperDataByte: 0x"));
-            Serial.println(result, HEX);
+            DebugConsole.print(F("getUpperDataByte: 0x"));
+            DebugConsole.println(result, HEX);
         } 
         return result;
     }
     static void setLowerDataByte(uint8_t value) noexcept { 
         if constexpr (EnableTransactionDebug) {
-            Serial.print(F("setLowerDataByte: 0x"));
-            Serial.println(value, HEX);
+            DebugConsole.print(F("setLowerDataByte: 0x"));
+            DebugConsole.println(value, HEX);
         } 
         UnderlyingDataInterface::setLowerDataByte(value);
     }
     static void setUpperDataByte(uint8_t value) noexcept { 
         if constexpr (EnableTransactionDebug) {
-            Serial.print(F("setUpperDataByte: 0x"));
-            Serial.println(value, HEX);
+            DebugConsole.print(F("setUpperDataByte: 0x"));
+            DebugConsole.println(value, HEX);
         } 
         UnderlyingDataInterface::setUpperDataByte(value);
     }
@@ -300,7 +302,7 @@ inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 2, "Invalid index provided to setDataByte, must be less than 2");
     if constexpr (index < 2) {
         if constexpr (EnableTransactionDebug) {
-            Serial.printf(F("setDataByte<%d>(%x)\n"), index, value);
+            DebugConsole.printf(F("setDataByte<%d>(%x)\n"), index, value);
         }
         if constexpr (index == 0) {
             DataInterface::setLowerDataByte(value);
@@ -315,7 +317,7 @@ inline uint8_t getDataByte() noexcept {
     static_assert(index < 2, "Invalid index provided to getDataByte, must be less than 4");
     if constexpr (index < 2) {
         if constexpr (EnableTransactionDebug) {
-            Serial.printf(F("getDataByte<%d>()\n"), index);
+            DebugConsole.printf(F("getDataByte<%d>()\n"), index);
         }
         if constexpr (index == 0) {
             return DataInterface::getLowerDataByte();
@@ -367,7 +369,7 @@ private:
         auto hi = view[1];
         if constexpr (EnableTransactionDebug) {
             auto value = makeWord(hi, lo);
-            Serial.printf(F("doReadOperation: 0x%x\n"), value);
+            DebugConsole.printf(F("doReadOperation: 0x%x\n"), value);
         }
         DataInterface::setLowerDataByte(lo);
         DataInterface::setUpperDataByte(hi);
@@ -391,7 +393,7 @@ public:
         if constexpr (EnableTransactionDebug) {
             AddressLinesInterface.view32.data = 0;
             for (int i = 0; i < 32; ++i) {
-                Serial.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
+                DebugConsole.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
             }
         }
     }
@@ -409,7 +411,7 @@ private:
 public:
     inline static void doReadOperation(DataRegister8 view) noexcept {
         if constexpr (EnableTransactionDebug) {
-            Serial.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
+            DebugConsole.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
         }
         doReadSingular<0>(view);
         if (isBurstLast()) { 
@@ -1197,12 +1199,12 @@ doIOOperation() noexcept {
         // needed
         if constexpr (isReadOperation) {
             if constexpr (EnableTransactionDebug) {
-                Serial.println(F("read memory operation"));
+                DebugConsole.println(F("read memory operation"));
             }
             MemoryInterface::doReadOperation();
         } else {
             if constexpr (EnableTransactionDebug) {
-                Serial.println(F("write memory operation"));
+                DebugConsole.println(F("write memory operation"));
             }
             MemoryInterface::doWriteOperation();
         }
@@ -1289,7 +1291,10 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(500'000);
-    Serial1.begin(500'000);
+    MemoryConnection.begin(500'000);
+    if constexpr (EnableTransactionDebug) {
+        DebugConsole.begin(500'000);
+    }
     Wire.begin();
     SPI.begin();
     EEPROM.begin();
@@ -1437,8 +1442,8 @@ ReadOperationStart:
 ReadOperationBypass:
     EIFR = 0b0111'0000;
     if constexpr (EnableTransactionDebug) {
-        Serial.print(F("R 0x")); 
-        Serial.println(AddressLinesInterface.view32.data, HEX);
+        DebugConsole.print(F("R 0x")); 
+        DebugConsole.println(AddressLinesInterface.view32.data, HEX);
     }
     doIOOperation<true>();
     goto ReadOperationStart;
@@ -1456,8 +1461,8 @@ WriteOperationStart:
 WriteOperationBypass:
     EIFR = 0b0111'0000;
     if constexpr (EnableTransactionDebug) {
-        Serial.print(F("W 0x")); 
-        Serial.println(AddressLinesInterface.view32.data, HEX);
+        DebugConsole.print(F("W 0x")); 
+        DebugConsole.println(AddressLinesInterface.view32.data, HEX);
     }
     doIOOperation<false>();
     goto WriteOperationStart;

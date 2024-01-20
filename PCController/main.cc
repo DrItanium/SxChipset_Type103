@@ -51,11 +51,16 @@ int main(int argc, char** argv) {
             return 1;
         }
         Path serialPortPath;
-        if (!vm.count("port")) {
+        if (vm.count("port")) {
             serialPortPath = vm["port"].as<Path>();
+            if (!std::filesystem::exists(serialPortPath)) {
+                std::cerr << "Path does not exist: " << serialPortPath << std::endl;
+                return 1;
+            }
         } else {
             std::cerr << "No serial port provided!" << std::endl;
             std::cerr << desc << std::endl;
+            return 1;
         }
         boost::asio::io_context io;
         boost::asio::serial_port port(io, serialPortPath.string());

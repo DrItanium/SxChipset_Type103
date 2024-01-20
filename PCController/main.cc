@@ -30,13 +30,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio.hpp>
 #include <filesystem>
 
+void print(const boost::system::error_code&) {
+    std::cout << "hello, world" << std::endl;
+}
+using Path = std::filesystem::path;
 int main(int argc, char** argv) {
     try {
         boost::program_options::options_description desc{"Options"};
         //clang-format off
         desc.add_options()
                 ("help,h", "Help screen")
-                ("port,p", boost::program_options::value<std::filesystem::path>(), "the serial port to connect to");
+                ("port,p", boost::program_options::value<Path>(), "the serial port to connect to");
         boost::program_options::variables_map vm;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         boost::program_options::notify(vm);
@@ -46,19 +50,15 @@ int main(int argc, char** argv) {
             std::cerr << desc << std::endl;
             return 1;
         }
-        boost::asio::io_context io;
+        Path serialPortPath;
         if (!vm.count("port")) {
-#if 0
-            std::cerr << "No port specified!" << std::endl;
+            serialPortPath = vm["port"].as<Path>();
+        } else {
+            std::cerr << "No serial port provided!" << std::endl;
             std::cerr << desc << std::endl;
-            return 1;
-#else
-            boost::asio::steady_timer t(io, boost::asio::chrono::seconds(5));
-            t.wait();
-            std::cout << "hello, world" << std::endl;
-#endif
-
         }
+        boost::asio::io_context io;
+        boost::asio::serial_port port(io, serialPortPath.string());
 
         return 0;
     } catch (const boost::program_options::error& ex) {

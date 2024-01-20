@@ -1143,7 +1143,7 @@ void doIO() noexcept {
         case 0x00:
             doCoreIO<isReadOperation>(lowest);
             break;
-#define Block4K(offset)  \
+#define Block2K(offset)  \
             X((offset + 0x00)); \
             X((offset + 0x01)); \
             X((offset + 0x02)); \
@@ -1151,15 +1151,10 @@ void doIO() noexcept {
             X((offset + 0x04)); \
             X((offset + 0x05)); \
             X((offset + 0x06)); \
-            X((offset + 0x07)); \
-            X((offset + 0x08)); \
-            X((offset + 0x09)); \
-            X((offset + 0x0a)); \
-            X((offset + 0x0b)); \
-            X((offset + 0x0c)); \
-            X((offset + 0x0d)); \
-            X((offset + 0x0e)); \
-            X((offset + 0x0f))
+            X((offset + 0x07))
+#define Block4K(offset)  \
+            Block2K((offset + 0x00)); \
+            Block2K((offset + 0x08))
 #define Block16K(offset) \
             Block4K((offset + 0x00)); \
             Block4K((offset + 0x10)); \
@@ -1180,6 +1175,7 @@ void doIO() noexcept {
 #undef X
 #undef Block16K
 #undef Block4K
+#undef Block2K
         default:
             doNothing<isReadOperation>();
             break;

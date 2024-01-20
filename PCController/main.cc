@@ -40,34 +40,40 @@ int main(int argc, char** argv) {
         //clang-format off
         desc.add_options()
                 ("help,h", "Help screen")
-                ("port,p", boost::program_options::value<Path>(), "the serial port to connect to");
+                ("verbose,v", "enable verbose information")
+                ("port,p", boost::program_options::value<std::string>(), "the serial port to connect to");
         boost::program_options::variables_map vm;
         boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
         boost::program_options::notify(vm);
         // clang-format on
-
+        bool verbose = vm.count("verbose");
         if (vm.count("help")) {
             std::cerr << desc << std::endl;
             return 1;
         }
-        Path serialPortPath;
+        std::string serialPortPath;
         if (vm.count("port")) {
-            serialPortPath = vm["port"].as<Path>();
-            if (!std::filesystem::exists(serialPortPath)) {
-                std::cerr << "Path does not exist: " << serialPortPath << std::endl;
-                return 1;
-            }
+            serialPortPath = vm["port"].as<std::string>();
         } else {
             std::cerr << "No serial port provided!" << std::endl;
             std::cerr << desc << std::endl;
             return 1;
         }
         boost::asio::io_context io;
-        boost::asio::serial_port port(io, serialPortPath.string());
-
+        boost::asio::serial_port port(io);
+        try {
+            port.open(serialPortPath);
+        } catch (const boost::system::system_error& ex) {
+            std::cerr << "Could not open " << serialPortPath << std::endl;
+            if (verbose) {
+                std::cerr << "Actual Message: " << ex.what() << std::endl;
+            }
+            return 1;
+        }
         return 0;
     } catch (const boost::program_options::error& ex) {
         std::cerr << ex.what() << std::endl;
         return 1;
-    }
+    } 
+
 }

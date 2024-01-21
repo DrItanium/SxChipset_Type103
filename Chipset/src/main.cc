@@ -65,6 +65,12 @@ constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 [[gnu::address(0x8000)]] inline volatile uint8_t XBusWindow[64][256];
 [[gnu::address(0x4000)]] inline volatile uint8_t IOXBusWindow[64][256];
 
+constexpr uint16_t UpperHalfOffset[256] {
+#define X(id) ((static_cast<uint16_t>(id) << 8) & 0xFF00),
+#include "Entry255.def"
+#undef X
+};
+
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
@@ -453,13 +459,17 @@ public:
 Read_Done:
         signalReady<0>();
     }
-    inline static void doReadOperation() noexcept {
-        DataRegister8 view = computeTransactionAddress();
-        doReadOperation(view);
+    template<bool isReadOperation>
+    inline static void doOperation(DataRegister8 view) noexcept {
+        if constexpr (isReadOperation) {
+            doReadOperation(view);
+        } else {
+            doWriteOperation(view);
+        }
     }
-    inline static void doWriteOperation() noexcept {
-        DataRegister8 view = computeTransactionAddress();
-        doWriteOperation(view);
+    template<bool isReadOperation>
+    inline static void doOperation() noexcept {
+        doOperation<isReadOperation>(computeTransactionAddress());
     }
     inline static void doWriteOperation(DataRegister8 view) noexcept {
         if (digitalRead<Pin::BE0>() == LOW) {
@@ -977,8 +987,7 @@ template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
 void doEEPROMAccess(uint8_t offset) {
-
-    uint16_t address = (static_cast<uint16_t>(index) << 8) | static_cast<uint16_t>(offset);
+    uint16_t address = UpperHalfOffset[index] | static_cast<uint16_t>(offset);
     if constexpr (isReadOperation) {
 
         uint16_t result = 0;
@@ -1183,77 +1192,29 @@ void doIO() noexcept {
     } 
 }
 #undef I960_Signal_Switch
-enum class Opcodes : uint8_t {
-    Nop,
-    Load,
-    Store,
-};
-union [[gnu::packed]] RequestHeader {
-    uint8_t length;
-    Opcodes opcode;
-    uint32_t baseAddress;
-};
 template<bool isReadOperation>
-FORCE_INLINE
-inline
 void
 doExternalCommunication() noexcept {
-#if 0
-    // okay, so the first thing we are going to do is get the system address to
-    // send off
-    uint32_t targetBaseAddress = AddressLinesInterface.view32.data;
-    // then we need to actually process the value
-    if constexpr (isReadOperation) {
-        RequestHeader header;
-        header.length = 16;
-        header.opcode = Opcodes::Load;
-        header.baseAddress = targetBaseAddress;
-        MemoryConnection.write(reinterpret_cast<uint8_t*>(&header), sizeof(header));
-        // then we wait for the result 
-        while (!MemoryConnection.available());
-        
-        // get the data from the serial connection by sending a request out
-    } else {
-
-    }
-#else 
-    if constexpr (isReadOperation) {
-        MemoryInterface::doReadOperation();
-    } else {
-        MemoryInterface::doWriteOperation();
-    }
-#endif
+    doNothing<isReadOperation>();
 }
-
 template<bool isReadOperation>
 FORCE_INLINE
 inline
 void
 doIOOperation() noexcept {
-    // we have two pins to look at, the first is the IsMemorySpaceOperation, if
-    // this is low then we do the onboard io operations
-    // 
-    // If it is high then we instead check to see if it is onboard or not. A
-    // low means it is onboard.
-    if (digitalRead<Pin::IsMemorySpaceOperation>() == LOW) {
-        doIO<isReadOperation>();
-    } else { 
-        // we don't need to worry about the upper 16-bits of the bus like we
-        // used to. In this improved design, there is no need to keep track of
-        // where we are starting. Instead, we can easily just do the check as
-        // needed
-        if constexpr (isReadOperation) {
-            if constexpr (EnableTransactionDebug) {
-                DebugConsole.println(F("read memory operation"));
-            }
-            MemoryInterface::doReadOperation();
+    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+        if (digitalRead<Pin::ExternalMemoryOperation>()) {
+            doExternalCommunication<isReadOperation>(); 
         } else {
-            if constexpr (EnableTransactionDebug) {
-                DebugConsole.println(F("write memory operation"));
-            }
-            MemoryInterface::doWriteOperation();
+            // we don't need to worry about the upper 16-bits of the bus like we
+            // used to. In this improved design, there is no need to keep track of
+            // where we are starting. Instead, we can easily just do the check as
+            // needed
+            MemoryInterface::doOperation<isReadOperation>();
         }
-    } 
+    } else {
+        doIO<isReadOperation>();
+    }
 }
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>

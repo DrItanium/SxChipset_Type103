@@ -40,7 +40,7 @@ class Device {
 };
 class RAM : public Device {
     public:
-        RAM() : _backingStore(std::make_unique<uint8_t[]>(256 * 1024 * 1024)) { }
+        RAM() : _backingStore(std::make_unique<uint8_t[]>(4ull * 1024ull * 1024ull * 1024ull)) { }
         void read(uint32_t offset, uint8_t* buffer, size_t count) override {
             for (size_t i = offset, j = 0; j < count; ++i, ++j) {
                 buffer[j] = _backingStore[i];
@@ -54,6 +54,7 @@ class RAM : public Device {
     private:
         std::unique_ptr<uint8_t[]> _backingStore;
 };
+RAM systemRam;
 int main(int argc, char** argv) {
     try {
         boost::program_options::options_description desc{"Options"};
@@ -160,6 +161,7 @@ int main(int argc, char** argv) {
             uint8_t length;
             uint8_t opcode;
             uint32_t address;
+            uint8_t data[16];
         };
         for (;;) {
             std::array<char, 256> buf;
@@ -169,11 +171,15 @@ int main(int argc, char** argv) {
                 continue; 
             }
             RequestHeader header = *reinterpret_cast<RequestHeader*>(buf.data());
-            std::cout << "header.length = " << std::dec << static_cast<int>(header.length) << std::endl;
-            std::cout << "header.opcode = " << std::dec << static_cast<int>(header.opcode) << std::endl;
-            std::cout << "header.length = " << std::dec << header.address << std::endl;
+            switch (header.opcode) {
+                case 2: // store operation
+                    systemRam.write(header.address, header.data, header.length);
+                    break;
+                default:
+                    break;
+            }
         }
-
+        
         return 0;
     } catch (const boost::program_options::error& ex) {
         std::cerr << ex.what() << std::endl;

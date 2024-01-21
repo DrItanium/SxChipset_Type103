@@ -1144,10 +1144,7 @@ void doIOXAccess(uint8_t offset) noexcept {
     }
 }
 template<bool isReadOperation>
-FORCE_INLINE 
-inline 
 void doIO() noexcept { 
-    
     auto lowest = AddressLinesInterface.view8.data[0];
     switch (AddressLinesInterface.view8.data[1]) {
         case 0x00:
@@ -1294,7 +1291,7 @@ setup() {
     X(A12); X(A13); X(A14); X(A15);
 #undef X
     randomSeed(seed);
-    Serial.begin(500'000);
+    Serial.begin(115200);
     MemoryConnection.begin(500'000);
     if constexpr (EnableTransactionDebug) {
         DebugConsole.begin(500'000);

@@ -6,8 +6,8 @@ A30 A31 SP4   SP3   SP2 SP1 SP0 PE6 PE5 PE4 PE2 VCC
 
 PE4 = ADS
 /PE5 = /ADS * WR
-/PE6 = /ADS * /WR
-/PE2.R = A31 * A30 * A29 * A28 * A27 * A26 * A25 * /A24
+/PE6.R = /A31 * /A30 * /A29 * /A28 * /A27 * /A26 * /A25 * /A24
+/PE2.R =  A31 *  A30 *  A29 *  A28 *  A27 *  A26 *  A25 * /A24
 
 
 
@@ -15,3 +15,5 @@ DESCRIPTION
 New i960 integrated configuration IC
 
 PE2 is the memory space operation detect
+PE5 is the write operation detect
+PE6 is the internal memory operation detect

@@ -1317,7 +1317,7 @@ setup() {
     pinMode(Pin::LED, OUTPUT);
     digitalWrite<Pin::LED, LOW>();
     pinMode(Pin::NewTransaction, INPUT);
-    pinMode(Pin::ReadTransaction, INPUT);
+    pinMode(Pin::ExternalMemoryOperation, INPUT);
     pinMode(Pin::WriteTransaction, INPUT);
     // setup the EBI
     XMCRB=0b0'0000'000;

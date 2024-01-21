@@ -42,9 +42,9 @@ Pin 21 = PE5          S0 = 0   S1 = 1
  32  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  33  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 20 = PE6          S0 = 0   S1 = 1
+Pin 20 = PE6          S0 = 0   S1 = 0
  34  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 35  ---- -x-- ---- ---- -x-- ---- ---- ---- ---- ---- ----
+ 35  ---- ---- ---- ---- ---- -x-- -x-- -x-- -x-- -x-x -x-x
  36  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  37  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

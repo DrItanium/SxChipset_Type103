@@ -169,13 +169,9 @@ int main(int argc, char** argv) {
                 continue; 
             }
             RequestHeader header = *reinterpret_cast<RequestHeader*>(buf.data());
-            switch (header.opcode) {
-                case 1: // load
-                case 2: // store
-                default:
-                    continue;
-            }
-            std::cout.write(buf.data(), len);
+            std::cout << "header.length = " << std::dec << static_cast<int>(header.length) << std::endl;
+            std::cout << "header.opcode = " << std::dec << static_cast<int>(header.opcode) << std::endl;
+            std::cout << "header.length = " << std::dec << header.address << std::endl;
         }
 
         return 0;

@@ -45,7 +45,7 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
-auto& DebugConsole = Serial1;
+auto& DebugConsole = Serial;
 auto& MemoryConnection = Serial2;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
@@ -1237,7 +1237,7 @@ doIOOperation() noexcept {
     // low means it is onboard.
     if (digitalRead<Pin::IsMemorySpaceOperation>() == LOW) {
         doIO<isReadOperation>();
-    } else if (digitalRead<Pin::ExternalMemoryOperation>() == LOW) {
+    } else { 
         // we don't need to worry about the upper 16-bits of the bus like we
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
@@ -1253,11 +1253,7 @@ doIOOperation() noexcept {
             }
             MemoryInterface::doWriteOperation();
         }
-    } else {
-        // do an external operation instead, talk over the MemoryChannel
-        // instead
-        doExternalCommunication<isReadOperation>();
-    }
+    } 
 }
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>

@@ -1183,13 +1183,61 @@ void doIO() noexcept {
     } 
 }
 #undef I960_Signal_Switch
+enum class Opcodes : uint8_t {
+    Nop,
+    Load,
+    Store,
+};
+union [[gnu::packed]] RequestHeader {
+    uint8_t length;
+    Opcodes opcode;
+    uint32_t baseAddress;
+};
+template<bool isReadOperation>
+FORCE_INLINE
+inline
+void
+doExternalCommunication() noexcept {
+#if 0
+    // okay, so the first thing we are going to do is get the system address to
+    // send off
+    uint32_t targetBaseAddress = AddressLinesInterface.view32.data;
+    // then we need to actually process the value
+    if constexpr (isReadOperation) {
+        RequestHeader header;
+        header.length = 16;
+        header.opcode = Opcodes::Load;
+        header.baseAddress = targetBaseAddress;
+        MemoryConnection.write(reinterpret_cast<uint8_t*>(&header), sizeof(header));
+        // then we wait for the result 
+        while (!MemoryConnection.available());
+        
+        // get the data from the serial connection by sending a request out
+    } else {
+
+    }
+#else 
+    if constexpr (isReadOperation) {
+        MemoryInterface::doReadOperation();
+    } else {
+        MemoryInterface::doWriteOperation();
+    }
+#endif
+}
 
 template<bool isReadOperation>
 FORCE_INLINE
 inline
 void
 doIOOperation() noexcept {
-    if (digitalRead<Pin::IsMemorySpaceOperation>()) {
+    // we have two pins to look at, the first is the IsMemorySpaceOperation, if
+    // this is low then we do the onboard io operations
+    // 
+    // If it is high then we instead check to see if it is onboard or not. A
+    // low means it is onboard.
+    if (digitalRead<Pin::IsMemorySpaceOperation>() == LOW) {
+        doIO<isReadOperation>();
+    } else if (digitalRead<Pin::ExternalMemoryOperation>() == LOW) {
         // we don't need to worry about the upper 16-bits of the bus like we
         // used to. In this improved design, there is no need to keep track of
         // where we are starting. Instead, we can easily just do the check as
@@ -1206,7 +1254,9 @@ doIOOperation() noexcept {
             MemoryInterface::doWriteOperation();
         }
     } else {
-        doIO<isReadOperation>();
+        // do an external operation instead, talk over the MemoryChannel
+        // instead
+        doExternalCommunication<isReadOperation>();
     }
 }
 

@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio.hpp>
 #include <filesystem>
 #include <memory>
+#include <array>
 
 using Path = std::filesystem::path;
 class Device {
@@ -155,11 +156,25 @@ int main(int argc, char** argv) {
         port.set_option(csize);
         port.set_option(flow);
         std::cout << "Connection Established to " << serialPortPath << std::endl;
+        struct [[gnu::packed]] RequestHeader {
+            uint8_t length;
+            uint8_t opcode;
+            uint32_t address;
+        };
         for (;;) {
-            boost::array<char, 128> buf;
+            std::array<char, 256> buf;
             boost::system::error_code error;
-
             size_t len = port.read_some(boost::asio::buffer(buf), error);
+            if (len == 0) {
+                continue; 
+            }
+            RequestHeader header = *reinterpret_cast<RequestHeader*>(buf.data());
+            switch (header.opcode) {
+                case 1: // load
+                case 2: // store
+                default:
+                    continue;
+            }
             std::cout.write(buf.data(), len);
         }
 

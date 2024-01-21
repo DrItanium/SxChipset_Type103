@@ -71,7 +71,6 @@ Count = NUM_DIGITAL_PINS,
     NewTransaction = PortE4,
     WriteTransaction = PortE5,
     ExternalMemoryOperation = PortE6,
-    //ReadTransaction = PortE6,
     MemoryConfigurationIOExpanderEnable = PortD4,
 };
 enum class Port : byte {

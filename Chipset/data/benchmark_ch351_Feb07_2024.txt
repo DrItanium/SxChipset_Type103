@@ -1,0 +1,22 @@
+Use CH351 as data lines instead of direct GPIO
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.6290e-13     61.3923      0.2280
+     2     -1.5099e-14     51.7282      0.1353
+     3     -7.2803e-13     69.9728      0.2430
+     4     -1.1826e-12     57.4238      0.2612
+     5      4.3492e-12    117.1906      0.2475
+     6     -8.1382e-13    120.6724      0.2403
+     7      1.2739e-10     68.3041      0.1757
+     8     -2.3518e-12    115.1824      0.2605
+
+   Iterations      =     250000
+   NullTime (usec) =     0.7415
+   MFLOPS(1)       =     0.1582
+   MFLOPS(2)       =     0.2172
+   MFLOPS(3)       =     0.2393
+   MFLOPS(4)       =     0.2505
+

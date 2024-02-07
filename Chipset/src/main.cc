@@ -649,6 +649,7 @@ doNothing() {
     }
     idleTransaction();
 }
+
 template<bool isReadOperation>
 FORCE_INLINE
 inline 
@@ -1151,50 +1152,49 @@ void doIOXAccess(uint8_t offset) noexcept {
 }
 template<bool isReadOperation>
 void doIO() noexcept { 
-    auto lowest = AddressLinesInterface.view8.data[0];
-    switch (AddressLinesInterface.view8.data[1]) {
-        case 0x00:
-            doCoreIO<isReadOperation>(lowest);
-            break;
+        auto lowest = AddressLinesInterface.view8.data[0];
+        switch (AddressLinesInterface.view8.data[1]) {
+            case 0x00:
+                doCoreIO<isReadOperation>(lowest);
+                break;
 #define Block1K(offset)  \
-            X((offset + 0x00)); \
-            X((offset + 0x01)); \
-            X((offset + 0x02)); \
-            X((offset + 0x03))
+                X((offset + 0x00)); \
+                X((offset + 0x01)); \
+                X((offset + 0x02)); \
+                X((offset + 0x03))
 #define Block2K(offset)  \
-            Block1K((offset + 0x00)); \
-            Block1K((offset + 0x04)) 
+                Block1K((offset + 0x00)); \
+                Block1K((offset + 0x04)) 
 #define Block4K(offset)  \
-            Block2K((offset + 0x00)); \
-            Block2K((offset + 0x08))
+                Block2K((offset + 0x00)); \
+                Block2K((offset + 0x08))
 #define Block16K(offset) \
-            Block4K((offset + 0x00)); \
-            Block4K((offset + 0x10)); \
-            Block4K((offset + 0x20)); \
-            Block4K((offset + 0x30))
+                Block4K((offset + 0x00)); \
+                Block4K((offset + 0x10)); \
+                Block4K((offset + 0x20)); \
+                Block4K((offset + 0x30))
 #define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(lowest); break
-            Block1K(0);
+                Block1K(0);
 #undef X
 #define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(lowest); break
-            Block4K(0);
+                Block4K(0);
 #undef X
-            // map the middle 32k of the EBI out to the i960 for now
+                // map the middle 32k of the EBI out to the i960 for now
 #define X(id) case (0x80 + id) : doXBUSAccess<isReadOperation, id>(lowest); break
-            Block16K(0);
+                Block16K(0);
 #undef X
 #define X(id) case (0xC0 + id) : doIOXAccess<isReadOperation, id>(lowest); break
-            Block16K(0);
+                Block16K(0);
 #undef X
 #undef Block16K
 #undef Block4K
 #undef Block2K
 #undef Block1K
-        default:
-            doNothing<isReadOperation>();
-            break;
-    } 
+            default:
+                doNothing<isReadOperation>();
+                break;
+        } 
 }
-#undef I960_Signal_Switch
 template<bool isReadOperation>
 void
 doExternalCommunication() noexcept {
@@ -1205,6 +1205,18 @@ FORCE_INLINE
 inline
 void
 doIOOperation() noexcept {
+    switch (AddressLinesInterface.view8.data[3]) {
+        case 0x00:
+            MemoryInterface::doOperation<isReadOperation>();
+            break;
+        case 0xFE:
+            doIO<isReadOperation>();
+            break;
+        default:
+            doExternalCommunication<isReadOperation>();
+            break;
+    }
+#if 0
     if (digitalRead<Pin::IsMemorySpaceOperation>()) {
         if (digitalRead<Pin::ExternalMemoryOperation>()) {
             doExternalCommunication<isReadOperation>(); 
@@ -1216,9 +1228,11 @@ doIOOperation() noexcept {
             MemoryInterface::doOperation<isReadOperation>();
         }
     } else {
-        doIO<isReadOperation>();
+            doIO<isReadOperation>();
     }
+#endif
 }
+#undef I960_Signal_Switch
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>
 [[gnu::noinline]]

@@ -123,10 +123,10 @@ struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
     static void setUpperDataLinesDirection(uint8_t value) noexcept {
         getDirectionRegister<Port::DataLinesUpper>() = value;
     }
-    static uint8_t getLowerDataByte() noexcept { return getInputRegister<Port::DataLinesLower>(); }
-    static uint8_t getUpperDataByte() noexcept { return getInputRegister<Port::DataLinesUpper>(); }
-    static void setLowerDataByte(uint8_t value) noexcept { getOutputRegister<Port::DataLinesLower>() = value; }
-    static void setUpperDataByte(uint8_t value) noexcept { getOutputRegister<Port::DataLinesUpper>() = value; }
+    static inline uint8_t getLowerDataByte() noexcept { return getInputRegister<Port::DataLinesLower>(); }
+    static inline uint8_t getUpperDataByte() noexcept { return getInputRegister<Port::DataLinesUpper>(); }
+    static inline void setLowerDataByte(uint8_t value) noexcept { getOutputRegister<Port::DataLinesLower>() = value; }
+    static inline void setUpperDataByte(uint8_t value) noexcept { getOutputRegister<Port::DataLinesUpper>() = value; }
     static void configureInterface() noexcept {
         DataLinesInterface.view32.direction = 0;
         DataLinesInterface.view32.data = 0;
@@ -152,18 +152,10 @@ struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
     static void setUpperDataLinesDirection(uint8_t value) noexcept {
         DataLinesInterface.view8.direction[1] = value;
     }
-    static uint8_t getLowerDataByte() noexcept { 
-        return DataLinesInterface.view8.data[0];
-    }
-    static uint8_t getUpperDataByte() noexcept { 
-        return DataLinesInterface.view8.data[1];
-    }
-    static void setLowerDataByte(uint8_t value) noexcept { 
-        DataLinesInterface.view8.data[0] = value; 
-    }
-    static void setUpperDataByte(uint8_t value) noexcept { 
-        DataLinesInterface.view8.data[1] = value; 
-    }
+    static inline uint8_t getLowerDataByte() noexcept { return DataLinesInterface.view8.data[0]; }
+    static inline uint8_t getUpperDataByte() noexcept { return DataLinesInterface.view8.data[1]; }
+    static inline void setLowerDataByte(uint8_t value) noexcept { DataLinesInterface.view8.data[0] = value; }
+    static inline void setUpperDataByte(uint8_t value) noexcept { DataLinesInterface.view8.data[1] = value; }
     static void configureInterface() noexcept {
         DataLinesInterface.view32.direction = 0x0000'FFFF;
         DataLinesInterface.view32.data = 0;
@@ -198,7 +190,7 @@ struct DataInterface {
     static void configureInterface() noexcept {
         UnderlyingDataInterface::configureInterface();
     }
-    static uint16_t getData() noexcept {
+    FORCE_INLINE static inline uint16_t getData() noexcept {
         auto result = makeWord(UnderlyingDataInterface::getUpperDataByte(), UnderlyingDataInterface::getLowerDataByte());
         if constexpr (EnableTransactionDebug) {
             DebugConsole.print(F("getData: 0x"));
@@ -206,7 +198,7 @@ struct DataInterface {
         }
         return result;
     }
-    static void setData(uint16_t value) noexcept {
+    FORCE_INLINE static inline void setData(uint16_t value) noexcept {
         if constexpr (EnableTransactionDebug) {
             DebugConsole.printf(F("setData: 0x%x\n"), value);
         }
@@ -984,11 +976,7 @@ inline
 void doMemoryAccess(uint8_t offset) {
     static_assert(index < NumStorageBlocks);
     DataRegister8 ptr = &StorageReservation[index][offset];
-    if constexpr (isReadOperation) {
-        MemoryInterface::doReadOperation(ptr);
-    } else {
-        MemoryInterface::doWriteOperation(ptr);
-    }
+    MemoryInterface::doOperation<isReadOperation>(ptr);
 }
 template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
@@ -1132,11 +1120,7 @@ inline
 void doXBUSAccess(uint8_t offset) noexcept {
     static_assert(index < 64);
     DataRegister8 ptr = &XBusWindow[index][offset];
-    if constexpr (isReadOperation) {
-        MemoryInterface::doReadOperation(ptr);
-    } else {
-        MemoryInterface::doWriteOperation(ptr);
-    }
+    MemoryInterface::doOperation<isReadOperation>(ptr);
 }
 template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
@@ -1144,14 +1128,13 @@ inline
 void doIOXAccess(uint8_t offset) noexcept {
     static_assert(index < 64);
     DataRegister8 ptr = &IOXBusWindow[index][offset];
-    if constexpr (isReadOperation) {
-        MemoryInterface::doReadOperation(ptr);
-    } else {
-        MemoryInterface::doWriteOperation(ptr);
-    }
+    MemoryInterface::doOperation<isReadOperation>(ptr);
 }
 template<bool isReadOperation>
-void doIO() noexcept { 
+FORCE_INLINE
+inline
+void 
+doIO() noexcept { 
         auto lowest = AddressLinesInterface.view8.data[0];
         switch (AddressLinesInterface.view8.data[1]) {
             case 0x00:

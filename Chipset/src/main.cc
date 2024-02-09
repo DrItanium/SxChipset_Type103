@@ -451,21 +451,6 @@ Read_Done:
     FORCE_INLINE inline static void doOperation() noexcept {
         doOperation<isReadOperation>(computeTransactionAddress());
     }
-    template<bool justAssignLowerByte>
-    [[gnu::always_inline]]
-    inline
-    static 
-    void
-    doWriteGeneric(DataRegister8 view) noexcept {
-        // we have to check and see if an unaligned operation has taken place
-        // or not.
-        if (justAssignLowerByte || (digitalRead<Pin::BE0>() == LOW)) {
-            view[0] = getDataByte<0>();
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            view[1] = getDataByte<1>();
-        }
-    }
     FORCE_INLINE inline static void doWriteOperation(DataRegister8 view) noexcept {
         auto body = [&view]() {
             // we can pull the data off the bus and 
@@ -486,7 +471,12 @@ Read_Done:
             view[1] = hi;
             view += 2;
         };
-        doWriteGeneric<false>(view);
+        if (digitalRead<Pin::BE0>() == LOW) {
+            view[0] = getDataByte<0>();
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            view[1] = getDataByte<1>();
+        }
         if (isBurstLast()) { 
             goto Write_SignalDone; 
         } 
@@ -517,7 +507,10 @@ Read_Done:
         }
         body();
 Write_Done:
-        doWriteGeneric<true>(view);
+        view[0] = getDataByte<0>();
+        if (digitalRead<Pin::BE1>() == LOW) {
+            view[1] = getDataByte<1>();
+        }
 Write_SignalDone:
         signalReady<0>();
     }

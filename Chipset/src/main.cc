@@ -967,9 +967,8 @@ FORCE_INLINE
 inline
 void 
 doIO() noexcept { 
-        auto lHalf = AddressLinesInterface.view16.data[0];
-        auto offset = static_cast<uint8_t>(lHalf >> 8);
-        switch (offset) {
+#if 0
+        switch (AddressLinesInterface.view8.data[1]) {
             case 0x00:
                 doCoreIO<isReadOperation>();
                 break;
@@ -990,10 +989,10 @@ doIO() noexcept {
                 Block4K((offset + 0x20)); \
                 Block4K((offset + 0x30))
 #define X(id) case (0x40 + id) : MemoryInterface::doOperation<isReadOperation>(&IOXBusWindow[id][AddressLinesInterface.view8.data[0]]); break
-                Block16K(0);
+                //Block16K(0);
 #undef X
 #define X(id) case (0x80 + id) : MemoryInterface::doOperation<isReadOperation>(&XBusWindow[id][AddressLinesInterface.view8.data[0]]); break
-                Block16K(0);
+                //Block16K(0);
 #undef X
 #undef Block16K
 #undef Block4K
@@ -1003,6 +1002,9 @@ doIO() noexcept {
                 doNothing<isReadOperation>();
                 break;
         } 
+#else
+        doCoreIO<isReadOperation>();
+#endif
 }
 template<bool isReadOperation>
 void

@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
-#include <EEPROM.h>
 #include <Wire.h>
 
 
@@ -38,8 +37,6 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
 FsFile disk0;
-constexpr auto NumStorageBlocks = 4;
-uint8_t StorageReservation[NumStorageBlocks][256];
 constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
@@ -970,172 +967,15 @@ doCoreIO() noexcept {
     } 
     signalReady<0>(); 
 }
-template<bool isReadOperation, uint8_t index>
-FORCE_INLINE
-inline
-void doMemoryAccess() {
-    static_assert(index < NumStorageBlocks);
-    DataRegister8 ptr = &StorageReservation[index][AddressLinesInterface.view8.data[0]];
-    MemoryInterface::doOperation<isReadOperation>(ptr);
-}
-template<bool isReadOperation, uint8_t index>
-FORCE_INLINE
-inline
-void doEEPROMAccess() {
-    uint16_t address = UpperHalfOffset[index] | static_cast<uint16_t>(AddressLinesInterface.view8.data[0]);
-    if constexpr (isReadOperation) {
 
-        uint16_t result = 0;
-        EEPROM.get(address, result);
-        DataInterface::setData(result);
-        if (isBurstLast()) {
-            goto Read_Done;
-        }
-        signalReady();
-        EEPROM.get(address+2, result);
-        DataInterface::setData(result);
-        if (isBurstLast()) {
-            goto Read_Done;
-        }
-        signalReady();
-        EEPROM.get(address+4, result);
-        DataInterface::setData(result);
-        if (isBurstLast()) {
-            goto Read_Done;
-        }
-        signalReady();
-        EEPROM.get(address+6, result);
-        DataInterface::setData(result);
-        if (isBurstLast()) {
-            goto Read_Done;
-        }
-        signalReady();
-        EEPROM.get(address+8, result);
-        DataInterface::setData(result);
-        if (isBurstLast()) {
-            goto Read_Done;
-        }
-        signalReady();
-        EEPROM.get(address+10, result);
-        DataInterface::setData(result);
-        if (isBurstLast()) {
-            goto Read_Done;
-        }
-        signalReady();
-        EEPROM.get(address+12, result);
-        DataInterface::setData(result);
-        if (isBurstLast()) {
-            goto Read_Done;
-        }
-        signalReady();
-        EEPROM.get(address+14, result);
-        DataInterface::setData(result);
-Read_Done:
-        signalReady<0>();
-
-    } else {
-        if (digitalRead<Pin::BE0>() == LOW) {
-            EEPROM.update(address, DataInterface::getLowerDataByte());
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            EEPROM.update(address+1, DataInterface::getUpperDataByte());
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        signalReady();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            EEPROM.update(address+2, DataInterface::getLowerDataByte());
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            EEPROM.update(address+3, DataInterface::getUpperDataByte());
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        signalReady();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            EEPROM.update(address+4, DataInterface::getLowerDataByte());
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            EEPROM.update(address+5, DataInterface::getUpperDataByte());
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        signalReady();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            EEPROM.update(address+6, DataInterface::getLowerDataByte());
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            EEPROM.update(address+7, DataInterface::getUpperDataByte());
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        signalReady();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            EEPROM.update(address+8, DataInterface::getLowerDataByte());
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            EEPROM.update(address+9, DataInterface::getUpperDataByte());
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        signalReady();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            EEPROM.update(address+10, DataInterface::getLowerDataByte());
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            EEPROM.update(address+11, DataInterface::getUpperDataByte());
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        signalReady();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            EEPROM.update(address+12, DataInterface::getLowerDataByte());
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            EEPROM.update(address+13, DataInterface::getUpperDataByte());
-        }
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        signalReady();
-        if (digitalRead<Pin::BE0>() == LOW) {
-            EEPROM.update(address+14, DataInterface::getLowerDataByte());
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            EEPROM.update(address+15, DataInterface::getUpperDataByte());
-        }
-Write_Done:
-        signalReady<0>();
-    }
-}
-template<bool isReadOperation, uint8_t index>
-FORCE_INLINE
-inline
-void doXBUSAccess() noexcept {
-    static_assert(index < 64);
-    DataRegister8 ptr = &XBusWindow[index][AddressLinesInterface.view8.data[0]];
-    MemoryInterface::doOperation<isReadOperation>(ptr);
-}
-template<bool isReadOperation, uint8_t index>
-FORCE_INLINE
-inline
-void doIOXAccess() noexcept {
-    static_assert(index < 64);
-    DataRegister8 ptr = &IOXBusWindow[index][AddressLinesInterface.view8.data[0]];
-    MemoryInterface::doOperation<isReadOperation>(ptr);
-}
 template<bool isReadOperation>
 FORCE_INLINE
 inline
 void 
 doIO() noexcept { 
-        switch (AddressLinesInterface.view8.data[1]) {
+        auto lHalf = AddressLinesInterface.view16.data[0];
+        auto offset = static_cast<uint8_t>(lHalf >> 8);
+        switch (offset) {
             case 0x00:
                 doCoreIO<isReadOperation>();
                 break;
@@ -1155,17 +995,10 @@ doIO() noexcept {
                 Block4K((offset + 0x10)); \
                 Block4K((offset + 0x20)); \
                 Block4K((offset + 0x30))
-#define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(); break
-                Block1K(0);
-#undef X
-#define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(); break
-                Block4K(0);
-#undef X
-                // map the middle 32k of the EBI out to the i960 for now
-#define X(id) case (0x80 + id) : doXBUSAccess<isReadOperation, id>(); break
+#define X(id) case (0x40 + id) : MemoryInterface::doOperation<isReadOperation>(&IOXBusWindow[id][AddressLinesInterface.view8.data[0]]); break
                 Block16K(0);
 #undef X
-#define X(id) case (0xC0 + id) : doIOXAccess<isReadOperation, id>(); break
+#define X(id) case (0x80 + id) : MemoryInterface::doOperation<isReadOperation>(&XBusWindow[id][AddressLinesInterface.view8.data[0]]); break
                 Block16K(0);
 #undef X
 #undef Block16K
@@ -1289,7 +1122,6 @@ setup() {
     }
     Wire.begin();
     SPI.begin();
-    EEPROM.begin();
     // power down the ADC and USART3
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC

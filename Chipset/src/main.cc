@@ -471,48 +471,54 @@ Read_Done:
             view[1] = hi;
             view += 2;
         };
-        if (digitalRead<Pin::BE0>() == LOW) {
-            view[0] = getDataByte<0>();
-        }
-        if (digitalRead<Pin::BE1>() == LOW) {
-            view[1] = getDataByte<1>();
-        }
-        if (isBurstLast()) { 
-            goto Write_SignalDone; 
-        } 
-        view += 2;
-        signalReady();
         if (isBurstLast()) {
-            goto Write_Done;
-        }
-        body();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        body();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        body();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        body();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        body();
-        if (isBurstLast()) {
-            goto Write_Done;
-        }
-        body();
+            if (digitalRead<Pin::BE0>() == LOW) {
+                view[0] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                view[1] = getDataByte<1>();
+            }
+            signalReady<0>();
+        } else {
+            if (digitalRead<Pin::BE0>() == LOW) {
+                view[0] = getDataByte<0>();
+            }
+            auto hi = getDataByte<1>();
+            signalReady<0>();
+            view[1] = hi;
+            view += 2;
+            insertCustomNopCount<2>();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            body();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            body();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            body();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            body();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            body();
+            if (isBurstLast()) {
+                goto Write_Done;
+            }
+            body();
 Write_Done:
-        view[0] = getDataByte<0>();
-        if (digitalRead<Pin::BE1>() == LOW) {
-            view[1] = getDataByte<1>();
+            view[0] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                view[1] = getDataByte<1>();
+            }
+            signalReady<0>();
         }
-Write_SignalDone:
-        signalReady<0>();
     }
 };
 

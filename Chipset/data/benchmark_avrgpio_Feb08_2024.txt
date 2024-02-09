@@ -1,0 +1,24 @@
+Deactivate all forced inlining and remove all parts of IO space that are not
+actually in use.
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     56.3459      0.2485
+     2     -3.8192e-14     38.7714      0.1805
+     3     -1.7902e-13     64.0378      0.2655
+     4     -2.7744e-13     53.3147      0.2813
+     5      1.0579e-12    109.5277      0.2648
+     6     -2.0101e-13    110.7257      0.2619
+     7      6.2528e-13     62.4278      0.1922
+     8     -5.7265e-13    107.5064      0.2791
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7269
+   MFLOPS(1)       =     0.2016
+   MFLOPS(2)       =     0.2361
+   MFLOPS(3)       =     0.2589
+   MFLOPS(4)       =     0.2712
+
+

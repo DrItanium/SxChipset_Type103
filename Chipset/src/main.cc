@@ -451,6 +451,18 @@ Read_Done:
     FORCE_INLINE inline static void doOperation() noexcept {
         doOperation<isReadOperation>(computeTransactionAddress());
     }
+    [[gnu::always_inline]]
+    inline
+    static 
+    void
+    doWriteDone(DataRegister8 view) noexcept {
+        // we have to check and see if an unaligned operation has taken place
+        // or not.
+        view[0] = getDataByte<0>();
+        if (digitalRead<Pin::BE1>() == LOW) {
+            view[1] = getDataByte<1>();
+        }
+    }
     FORCE_INLINE inline static void doWriteOperation(DataRegister8 view) noexcept {
         if (digitalRead<Pin::BE0>() == LOW) {
             view[0] = getDataByte<0>();
@@ -596,12 +608,7 @@ Read_Done:
             view += 2;
         }
 Write_Done:
-        // we have to check and see if an unaligned operation has taken place
-        // or not.
-        view[0] = getDataByte<0>();
-        if (digitalRead<Pin::BE1>() == LOW) {
-            view[1] = getDataByte<1>();
-        }
+        doWriteDone(view);
 Write_SignalDone:
         signalReady<0>();
     }

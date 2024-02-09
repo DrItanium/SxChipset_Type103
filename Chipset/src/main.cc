@@ -324,14 +324,6 @@ inline uint8_t getDataByte() noexcept {
         return 0;
     }
 }
-FORCE_INLINE
-inline
-void idleTransaction() noexcept {
-    while (!isBurstLast()) {
-        signalReady();
-    }
-    signalReady<0>();
-}
 enum class IBUSMemoryViewKind {
     SixteenK,
 };
@@ -630,7 +622,10 @@ doNothing() {
     if constexpr (isReadOperation) {
         DataInterface::setData(0);
     }
-    idleTransaction();
+    while (!isBurstLast()) {
+        signalReady();
+    }
+    signalReady<0>();
 }
 
 template<bool isReadOperation>

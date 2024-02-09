@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
-#include <Wire.h>
 
 
 #include "Detect.h"
@@ -1111,7 +1110,6 @@ setup() {
     if constexpr (EnableTransactionDebug) {
         DebugConsole.begin(500'000);
     }
-    Wire.begin();
     SPI.begin();
     // power down the ADC and USART3
     // currently we can't use them

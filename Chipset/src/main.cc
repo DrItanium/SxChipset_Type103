@@ -414,7 +414,7 @@ private:
         DataInterface::setUpperDataByte(hi);
     }
 public:
-    inline static void doReadOperation(DataRegister8 view) noexcept {
+    FORCE_INLINE inline static void doReadOperation(DataRegister8 view) noexcept {
         if constexpr (EnableTransactionDebug) {
             DebugConsole.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
         }
@@ -458,7 +458,7 @@ Read_Done:
         signalReady<0>();
     }
     template<bool isReadOperation>
-    inline static void doOperation(DataRegister8 view) noexcept {
+    FORCE_INLINE inline static void doOperation(DataRegister8 view) noexcept {
         if constexpr (isReadOperation) {
             doReadOperation(view);
         } else {
@@ -466,10 +466,10 @@ Read_Done:
         }
     }
     template<bool isReadOperation>
-    inline static void doOperation() noexcept {
+    FORCE_INLINE inline static void doOperation() noexcept {
         doOperation<isReadOperation>(computeTransactionAddress());
     }
-    inline static void doWriteOperation(DataRegister8 view) noexcept {
+    FORCE_INLINE inline static void doWriteOperation(DataRegister8 view) noexcept {
         if (digitalRead<Pin::BE0>() == LOW) {
             view[0] = getDataByte<0>();
         }
@@ -646,8 +646,8 @@ template<bool isReadOperation>
 FORCE_INLINE
 inline 
 void
-doCoreIO(uint8_t offset) noexcept {
-    switch (offset) {
+doCoreIO() noexcept {
+    switch (AddressLinesInterface.view8.data[0]) {
         case 0: { 
                     if constexpr (isReadOperation) { 
                         DataInterface::setData(static_cast<uint16_t>(F_CPU));
@@ -973,16 +973,16 @@ doCoreIO(uint8_t offset) noexcept {
 template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
-void doMemoryAccess(uint8_t offset) {
+void doMemoryAccess() {
     static_assert(index < NumStorageBlocks);
-    DataRegister8 ptr = &StorageReservation[index][offset];
+    DataRegister8 ptr = &StorageReservation[index][AddressLinesInterface.view8.data[0]];
     MemoryInterface::doOperation<isReadOperation>(ptr);
 }
 template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
-void doEEPROMAccess(uint8_t offset) {
-    uint16_t address = UpperHalfOffset[index] | static_cast<uint16_t>(offset);
+void doEEPROMAccess() {
+    uint16_t address = UpperHalfOffset[index] | static_cast<uint16_t>(AddressLinesInterface.view8.data[0]);
     if constexpr (isReadOperation) {
 
         uint16_t result = 0;
@@ -1117,17 +1117,17 @@ Write_Done:
 template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
-void doXBUSAccess(uint8_t offset) noexcept {
+void doXBUSAccess() noexcept {
     static_assert(index < 64);
-    DataRegister8 ptr = &XBusWindow[index][offset];
+    DataRegister8 ptr = &XBusWindow[index][AddressLinesInterface.view8.data[0]];
     MemoryInterface::doOperation<isReadOperation>(ptr);
 }
 template<bool isReadOperation, uint8_t index>
 FORCE_INLINE
 inline
-void doIOXAccess(uint8_t offset) noexcept {
+void doIOXAccess() noexcept {
     static_assert(index < 64);
-    DataRegister8 ptr = &IOXBusWindow[index][offset];
+    DataRegister8 ptr = &IOXBusWindow[index][AddressLinesInterface.view8.data[0]];
     MemoryInterface::doOperation<isReadOperation>(ptr);
 }
 template<bool isReadOperation>
@@ -1135,10 +1135,9 @@ FORCE_INLINE
 inline
 void 
 doIO() noexcept { 
-        auto lowest = AddressLinesInterface.view8.data[0];
         switch (AddressLinesInterface.view8.data[1]) {
             case 0x00:
-                doCoreIO<isReadOperation>(lowest);
+                doCoreIO<isReadOperation>();
                 break;
 #define Block1K(offset)  \
                 X((offset + 0x00)); \
@@ -1156,17 +1155,17 @@ doIO() noexcept {
                 Block4K((offset + 0x10)); \
                 Block4K((offset + 0x20)); \
                 Block4K((offset + 0x30))
-#define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(lowest); break
+#define X(id) case (0x10 + id) : doMemoryAccess<isReadOperation, id>(); break
                 Block1K(0);
 #undef X
-#define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(lowest); break
+#define X(id) case (0x20 + id) : doEEPROMAccess<isReadOperation, id>(); break
                 Block4K(0);
 #undef X
                 // map the middle 32k of the EBI out to the i960 for now
-#define X(id) case (0x80 + id) : doXBUSAccess<isReadOperation, id>(lowest); break
+#define X(id) case (0x80 + id) : doXBUSAccess<isReadOperation, id>(); break
                 Block16K(0);
 #undef X
-#define X(id) case (0xC0 + id) : doIOXAccess<isReadOperation, id>(lowest); break
+#define X(id) case (0xC0 + id) : doIOXAccess<isReadOperation, id>(); break
                 Block16K(0);
 #undef X
 #undef Block16K

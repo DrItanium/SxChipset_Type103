@@ -62,12 +62,6 @@ constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 [[gnu::address(0x8000)]] inline volatile uint8_t XBusWindow[64][256];
 [[gnu::address(0x4000)]] inline volatile uint8_t IOXBusWindow[64][256];
 
-constexpr uint16_t UpperHalfOffset[256] {
-#define X(id) ((static_cast<uint16_t>(id) << 8) & 0xFF00),
-#include "Entry255.def"
-#undef X
-};
-
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 

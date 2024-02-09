@@ -464,6 +464,25 @@ Read_Done:
         }
     }
     FORCE_INLINE inline static void doWriteOperation(DataRegister8 view) noexcept {
+        auto body = [&view]() {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        };
         if (digitalRead<Pin::BE0>() == LOW) {
             view[0] = getDataByte<0>();
         }
@@ -478,135 +497,141 @@ Read_Done:
         if (isBurstLast()) {
             goto Write_Done;
         }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
+        body();
+        //{
+        //    // we can pull the data off the bus and 
+        //    // request the next set of data from the i960 while we are stashing
+        //    // the current data
+        //    auto lo = getDataByte<0>();
+        //    auto hi = getDataByte<1>();
+        //    // we can drop the wait states because the store process will be
+        //    // taking place while the ready signal is being propagated
+        //    signalReady<0>();
+        //    // we do not need to check the enable signals because we already
+        //    // know that we are going to be continuing execution of this
+        //    // transaction. Thus we can ignore them and just do stores.
+        //    //
+        //    // If we are burst last then we only have to check BE1 because we
+        //    // "flow" into the end of the transaction.
+        //    view[0] = lo;
+        //    view[1] = hi;
+        //    view += 2;
+        //}
         if (isBurstLast()) {
             goto Write_Done;
         }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
+        body();
+        //{
+        //    // we can pull the data off the bus and 
+        //    // request the next set of data from the i960 while we are stashing
+        //    // the current data
+        //    auto lo = getDataByte<0>();
+        //    auto hi = getDataByte<1>();
+        //    // we can drop the wait states because the store process will be
+        //    // taking place while the ready signal is being propagated
+        //    signalReady<0>();
+        //    // we do not need to check the enable signals because we already
+        //    // know that we are going to be continuing execution of this
+        //    // transaction. Thus we can ignore them and just do stores.
+        //    //
+        //    // If we are burst last then we only have to check BE1 because we
+        //    // "flow" into the end of the transaction.
+        //    view[0] = lo;
+        //    view[1] = hi;
+        //    view += 2;
+        //}
         if (isBurstLast()) {
             goto Write_Done;
         }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
+        body();
+        //{
+        //    // we can pull the data off the bus and 
+        //    // request the next set of data from the i960 while we are stashing
+        //    // the current data
+        //    auto lo = getDataByte<0>();
+        //    auto hi = getDataByte<1>();
+        //    // we can drop the wait states because the store process will be
+        //    // taking place while the ready signal is being propagated
+        //    signalReady<0>();
+        //    // we do not need to check the enable signals because we already
+        //    // know that we are going to be continuing execution of this
+        //    // transaction. Thus we can ignore them and just do stores.
+        //    //
+        //    // If we are burst last then we only have to check BE1 because we
+        //    // "flow" into the end of the transaction.
+        //    view[0] = lo;
+        //    view[1] = hi;
+        //    view += 2;
+        //}
         if (isBurstLast()) {
             goto Write_Done;
         }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
+        body();
+        //{
+        //    // we can pull the data off the bus and 
+        //    // request the next set of data from the i960 while we are stashing
+        //    // the current data
+        //    auto lo = getDataByte<0>();
+        //    auto hi = getDataByte<1>();
+        //    // we can drop the wait states because the store process will be
+        //    // taking place while the ready signal is being propagated
+        //    signalReady<0>();
+        //    // we do not need to check the enable signals because we already
+        //    // know that we are going to be continuing execution of this
+        //    // transaction. Thus we can ignore them and just do stores.
+        //    //
+        //    // If we are burst last then we only have to check BE1 because we
+        //    // "flow" into the end of the transaction.
+        //    view[0] = lo;
+        //    view[1] = hi;
+        //    view += 2;
+        //}
         if (isBurstLast()) {
             goto Write_Done;
         }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
+        body();
+        //{
+        //    // we can pull the data off the bus and 
+        //    // request the next set of data from the i960 while we are stashing
+        //    // the current data
+        //    auto lo = getDataByte<0>();
+        //    auto hi = getDataByte<1>();
+        //    // we can drop the wait states because the store process will be
+        //    // taking place while the ready signal is being propagated
+        //    signalReady<0>();
+        //    // we do not need to check the enable signals because we already
+        //    // know that we are going to be continuing execution of this
+        //    // transaction. Thus we can ignore them and just do stores.
+        //    //
+        //    // If we are burst last then we only have to check BE1 because we
+        //    // "flow" into the end of the transaction.
+        //    view[0] = lo;
+        //    view[1] = hi;
+        //    view += 2;
+        //}
         if (isBurstLast()) {
             goto Write_Done;
         }
-        {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        }
+        body();
+        //{
+        //    // we can pull the data off the bus and 
+        //    // request the next set of data from the i960 while we are stashing
+        //    // the current data
+        //    auto lo = getDataByte<0>();
+        //    auto hi = getDataByte<1>();
+        //    // we can drop the wait states because the store process will be
+        //    // taking place while the ready signal is being propagated
+        //    signalReady<0>();
+        //    // we do not need to check the enable signals because we already
+        //    // know that we are going to be continuing execution of this
+        //    // transaction. Thus we can ignore them and just do stores.
+        //    //
+        //    // If we are burst last then we only have to check BE1 because we
+        //    // "flow" into the end of the transaction.
+        //    view[0] = lo;
+        //    view[1] = hi;
+        //    view += 2;
+        //}
 Write_Done:
         doWriteDone(view);
 Write_SignalDone:

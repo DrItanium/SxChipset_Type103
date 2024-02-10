@@ -397,47 +397,52 @@ private:
     }
 public:
     FORCE_INLINE inline static void doReadOperation(DataRegister8 view) noexcept {
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.printf(F("Read Operation Base Address: 0x%x\n"), reinterpret_cast<size_t>(view));
+        if (isBurstLast()) {
+            doReadSingular<0>(view);
+            signalReady<0>();
+            return;
+        } else {
+            doReadSingular<0>(view);
+            signalReady<0>();
+            doReadSingular<2>(view);
+            if (isBurstLast()) { 
+                signalReady<0>();
+                return;
+            } 
+            signalReady<0>();
+            doReadSingular<4>(view);
+            if (isBurstLast()) { 
+                signalReady<0>();
+                return;
+            } 
+            signalReady<0>();
+            doReadSingular<6>(view);
+            if (isBurstLast()) { 
+                signalReady<0>();
+                return;
+            } 
+            signalReady<0>();
+            doReadSingular<8>(view);
+            if (isBurstLast()) { 
+                signalReady<0>();
+                return;
+            } 
+            signalReady<0>();
+            doReadSingular<10>(view);
+            if (isBurstLast()) { 
+                signalReady<0>();
+                return;
+            } 
+            signalReady<0>();
+            doReadSingular<12>(view);
+            if (isBurstLast()) { 
+                signalReady<0>();
+                return;
+            } 
+            signalReady<0>();
+            doReadSingular<14>(view);
+            signalReady<0>();
         }
-        doReadSingular<0>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<2>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<4>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<6>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<8>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<10>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<12>(view);
-        if (isBurstLast()) { 
-            goto Read_Done; 
-        } 
-        signalReady<0>();
-        doReadSingular<14>(view);
-Read_Done:
-        signalReady<0>();
     }
     template<bool isReadOperation>
     FORCE_INLINE inline static void doOperation(DataRegister8 view) noexcept {
@@ -471,6 +476,13 @@ Read_Done:
             view[1] = hi;
             view += 2;
         };
+        auto whenDone = [&view]() {
+            view[0] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                view[1] = getDataByte<1>();
+            }
+            signalReady<0>();
+        };
         if (isBurstLast()) {
             if (digitalRead<Pin::BE0>() == LOW) {
                 view[0] = getDataByte<0>();
@@ -491,70 +503,36 @@ Read_Done:
                                        // isBurstLast is updated, replace with
                                        // more operations if found
             if (isBurstLast()) {
-                //goto Write_Done;
-                view[0] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    view[1] = getDataByte<1>();
-                }
-                signalReady<0>();
+                whenDone();
                 return;
             }
             body();
             if (isBurstLast()) {
-                //goto Write_Done;
-                view[0] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    view[1] = getDataByte<1>();
-                }
-                signalReady<0>();
+                whenDone();
                 return;
             }
             body();
             if (isBurstLast()) {
-                //goto Write_Done;
-                view[0] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    view[1] = getDataByte<1>();
-                }
-                signalReady<0>();
+                whenDone();
                 return;
             }
             body();
             if (isBurstLast()) {
-                //goto Write_Done;
-                view[0] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    view[1] = getDataByte<1>();
-                }
-                signalReady<0>();
+                whenDone();
                 return;
             }
             body();
             if (isBurstLast()) {
-                //goto Write_Done;
-                view[0] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    view[1] = getDataByte<1>();
-                }
-                signalReady<0>();
+                whenDone();
                 return;
             }
             body();
             if (isBurstLast()) {
-                //goto Write_Done;
-                view[0] = getDataByte<0>();
-                if (digitalRead<Pin::BE1>() == LOW) {
-                    view[1] = getDataByte<1>();
-                }
-                signalReady<0>();
+                whenDone();
                 return;
             }
             body();
-            view[0] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                view[1] = getDataByte<1>();
-            }
-            signalReady<0>();
+            whenDone();
         }
     }
 };

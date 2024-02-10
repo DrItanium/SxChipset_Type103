@@ -43,6 +43,8 @@ constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 auto& DebugConsole = Serial;
 auto& MemoryConnection = Serial2;
+auto& ExternalPeripheralConnection = Serial1;
+auto& ExternalPeripheralConnection2 = Serial3;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
     return true;
@@ -1037,11 +1039,13 @@ setup() {
     randomSeed(seed);
     Serial.begin(115200);
     MemoryConnection.begin(500'000);
+    ExternalPeripheralConnection.begin(500'000);
+    ExternalPeripheralConnection2.begin(500'000);
     if constexpr (EnableTransactionDebug) {
         DebugConsole.begin(500'000);
     }
     SPI.begin();
-    // power down the ADC and USART3
+    // power down the ADC
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC
     setupCLK1();

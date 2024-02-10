@@ -1,2 +1,22 @@
 Eliminating goto statements in memory writes and interleaving the start of write operations
 
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     55.7889      0.2509
+     2     -3.8192e-14     37.8997      0.1847
+     3     -1.7902e-13     63.5808      0.2674
+     4     -2.7744e-13     52.8485      0.2838
+     5      1.0577e-12    108.9557      0.2662
+     6     -2.0101e-13    109.7285      0.2643
+     7      6.2528e-13     61.9905      0.1936
+     8     -5.7265e-13    107.0041      0.2804
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7255
+   MFLOPS(1)       =     0.2055
+   MFLOPS(2)       =     0.2379
+   MFLOPS(3)       =     0.2608
+   MFLOPS(4)       =     0.2731
+

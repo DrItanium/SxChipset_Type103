@@ -399,52 +399,50 @@ private:
     }
 public:
     FORCE_INLINE inline static void doReadOperation(DataRegister8 view) noexcept {
+        doReadSingular<0>(view);
         if (isBurstLast()) {
-            doReadSingular<0>(view);
             signalReady<0>();
             return;
-        } else {
-            doReadSingular<0>(view);
-            signalReady<0>();
-            doReadSingular<2>(view);
-            if (isBurstLast()) { 
-                signalReady<0>();
-                return;
-            } 
-            signalReady<0>();
-            doReadSingular<4>(view);
-            if (isBurstLast()) { 
-                signalReady<0>();
-                return;
-            } 
-            signalReady<0>();
-            doReadSingular<6>(view);
-            if (isBurstLast()) { 
-                signalReady<0>();
-                return;
-            } 
-            signalReady<0>();
-            doReadSingular<8>(view);
-            if (isBurstLast()) { 
-                signalReady<0>();
-                return;
-            } 
-            signalReady<0>();
-            doReadSingular<10>(view);
-            if (isBurstLast()) { 
-                signalReady<0>();
-                return;
-            } 
-            signalReady<0>();
-            doReadSingular<12>(view);
-            if (isBurstLast()) { 
-                signalReady<0>();
-                return;
-            } 
-            signalReady<0>();
-            doReadSingular<14>(view);
-            signalReady<0>();
         }
+        signalReady<0>();
+        doReadSingular<2>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<4>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<6>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<8>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<10>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<12>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<14>(view);
+        signalReady<0>();
     }
     template<bool isReadOperation>
     FORCE_INLINE inline static void doOperation(DataRegister8 view) noexcept {

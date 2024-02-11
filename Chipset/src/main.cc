@@ -1183,54 +1183,32 @@ WriteOperationBypass:
 }
 void 
 loop() {
-    // this microcontroller is not responsible for signalling ready manually
-    // in this method. Instead, an external piece of hardware known as "Timing
-    // Circuit" in the Intel manuals handles all external timing. It is drawn
-    // as a box which takes in the different enable signals and generates the
-    // ready signal sent to the i960 based off of the inputs provided. It has
-    // eluded me for a very long time. I finally realized what it acutually is,
-    // a counter that is configured around delay times for non intelligent
-    // devices (flash, sram, dram, etc) and a multiplexer to allow intelligent
-    // devices to control the ready signal as well.
-    //
-    // In my design, this mysterious circuit is a GAL22V10 which takes in a
-    // 10MHz clock signal and provides a 4-bit counter and multiplexer to
-    // accelerate ready signal propagation and also tell the mega 2560 when to
-    // respond to the i960. The ready signal is rerouted from direct connection
-    // of the i960 to the GAL22V10. Right now, I have to waste an extra pin on
-    // the 2560 for this but my plan is to connect this directly to the 22V10
-    // instead. 
-    //
-    // I also have connected the DEN and space detect pins to this 22V10 to
-    // complete the package. I am not using the least significant counter bit
-    // and instead the next bit up to allow for proper delays. The IO pin is
-    // used to activate the mega2560 instead of the DEN pin directly. This is
-    // currently a separate pin. In the future, I will be making this
-    // infinitely more flexible by rerouting the DEN and READY pins into
-    // external hardware that allows me to directly control the design again if
-    // I so desire. 
-    //
-    // This change can also allow me to use more than one microcontroller for
-    // IO devices if I so desire :D. 
-    //
-    // This version of the handler method assumes that you are within the
-    // 16-megabyte window in the i960's memory space where this microcontroller
-    // lives. So we wait for the GAL22V10 to tell me it is good to go to
-    // continue!
-    loop_until_bit_is_set(EIFR, INTF4);
-    if (bit_is_set(EIFR, INTF5)) {
-        // change direction to output since we are doing write -> read
-        DataInterface::setLowerDataLinesDirection(0);
-        DataInterface::setUpperDataLinesDirection(0);
-        EIFR = 0b0111'0000;
-        doIOOperation<false>();
-        // then jump into the write loop
-    } else {
-        DataInterface::setLowerDataLinesDirection(0xFF);
-        DataInterface::setUpperDataLinesDirection(0xFF);
+    // read
+    while (true) {
+        loop_until_bit_is_set(EIFR, INTF4);
+        if (bit_is_set(EIFR, INTF5)) {
+            DataInterface::setLowerDataLinesDirection(0);
+            DataInterface::setUpperDataLinesDirection(0);
+            break;
+        }
         EIFR = 0b0111'0000;
         doIOOperation<true>();
     }
+    EIFR = 0b0111'0000;
+    doIOOperation<false>();
+    // write
+    while (true) {
+        loop_until_bit_is_set(EIFR, INTF4);
+        if (bit_is_clear(EIFR, INTF5)) {
+            DataInterface::setLowerDataLinesDirection(0xFF);
+            DataInterface::setUpperDataLinesDirection(0xFF);
+            break;
+        }
+        EIFR = 0b0111'0000;
+        doIOOperation<false>();
+    }
+    EIFR = 0b0111'0000;
+    doIOOperation<true>();
 }
 
 

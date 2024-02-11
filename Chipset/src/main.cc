@@ -1023,6 +1023,40 @@ setupCLK1() noexcept {
     timer3.TCCRxB = 0b00'0'01'001;
 }
 
+struct CacheLine {
+    uint32_t key = 0;
+    union {
+        uint8_t reg;
+        struct {
+            uint8_t dirty : 1;
+            uint8_t valid : 1;
+        } bits;
+    } flags;
+    uint8_t line[16] = { 0 };
+};
+CacheLine onboardCache[256];
+void
+setupMemoryConnection() noexcept {
+    MemoryConnection.begin(500'000);
+    // clear the cache
+    for (auto & a : onboardCache) {
+        a.key = 0;
+        a.flags.bits.valid = false;
+        a.flags.bits.dirty = false;
+        for (int i = 0; i < 16; ++i) {
+            a.line[i] = 0;
+        }
+    }
+    /// @todo wait for information from the memory connection
+}
+uint8_t* 
+getWriteCacheLine(uint32_t address) {
+    return nullptr;
+}
+const uint8_t*
+getReadCacheLine(uint32_t address) {
+    return nullptr;
+}
 
 
 void
@@ -1036,7 +1070,7 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(115200);
-    MemoryConnection.begin(500'000);
+    setupMemoryConnection();
     ExternalPeripheralConnection.begin(500'000);
     ExternalPeripheralConnection2.begin(500'000);
     if constexpr (EnableTransactionDebug) {

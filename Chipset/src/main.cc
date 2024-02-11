@@ -1139,77 +1139,33 @@ setup() {
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
 }
-[[noreturn]]
-void
-gotoExecutionBody() {
-ReadOperationStart:
-    // read operation
-    // wait until DEN goes low
-    loop_until_bit_is_set(EIFR, INTF4);
-    if (bit_is_set(EIFR, INTF5)) {
-        // change direction to output since we are doing write -> read
-        DataInterface::setLowerDataLinesDirection(0);
-        DataInterface::setUpperDataLinesDirection(0);
-        // then jump into the write loop
-        goto WriteOperationBypass;
-    } 
-ReadOperationBypass:
-    EIFR = 0b0111'0000;
-    if constexpr (EnableTransactionDebug) {
-        DebugConsole.print(F("R 0x")); 
-        DebugConsole.println(AddressLinesInterface.view32.data, HEX);
-    }
-    doIOOperation<true>();
-    goto ReadOperationStart;
-WriteOperationStart:
-    // wait until DEN goes low
-    loop_until_bit_is_set(EIFR, INTF4);
-    if (bit_is_clear(EIFR, INTF5)) {
-        // change direction to input since we are doing read -> write
-        DataInterface::setLowerDataLinesDirection(0xff);
-        DataInterface::setUpperDataLinesDirection(0xff);
-        // then jump into the write loop
-        goto ReadOperationBypass;
-    } 
-
-WriteOperationBypass:
-    EIFR = 0b0111'0000;
-    if constexpr (EnableTransactionDebug) {
-        DebugConsole.print(F("W 0x")); 
-        DebugConsole.println(AddressLinesInterface.view32.data, HEX);
-    }
-    doIOOperation<false>();
-    goto WriteOperationStart;
-}
 void 
 loop() {
+    //read
     while (true) {
-        //read
-        while (true) {
-            loop_until_bit_is_set(EIFR, INTF4);
-            if (bit_is_set(EIFR, INTF5)) {
-                DataInterface::setLowerDataLinesDirection(0);
-                DataInterface::setUpperDataLinesDirection(0);
-                EIFR = 0b0111'0000;
-                doIOOperation<false>();
-                break;
-            }
-            EIFR = 0b0111'0000;
-            doIOOperation<true>();
-        }
-        // write
-        while (true) {
-            loop_until_bit_is_set(EIFR, INTF4);
-            if (bit_is_clear(EIFR, INTF5)) {
-                DataInterface::setLowerDataLinesDirection(0xFF);
-                DataInterface::setUpperDataLinesDirection(0xFF);
-                EIFR = 0b0111'0000;
-                doIOOperation<true>();
-                break;
-            }
+        loop_until_bit_is_set(EIFR, INTF4);
+        if (bit_is_set(EIFR, INTF5)) {
+            DataInterface::setLowerDataLinesDirection(0);
+            DataInterface::setUpperDataLinesDirection(0);
             EIFR = 0b0111'0000;
             doIOOperation<false>();
+            break;
         }
+        EIFR = 0b0111'0000;
+        doIOOperation<true>();
+    }
+    // write
+    while (true) {
+        loop_until_bit_is_set(EIFR, INTF4);
+        if (bit_is_clear(EIFR, INTF5)) {
+            DataInterface::setLowerDataLinesDirection(0xFF);
+            DataInterface::setUpperDataLinesDirection(0xFF);
+            EIFR = 0b0111'0000;
+            doIOOperation<true>();
+            break;
+        }
+        EIFR = 0b0111'0000;
+        doIOOperation<false>();
     }
 }
 

@@ -1033,6 +1033,15 @@ struct CacheLine {
         } bits;
     } flags;
     uint8_t line[16] = { 0 };
+    constexpr bool valid() const noexcept {
+        return flags.bits.valid;
+    }
+    constexpr bool dirty() const noexcept {
+        return flags.bits.dirty;
+    }
+    constexpr bool needsCacheLineReplacement() noexcept {
+        return flags.reg == 4;
+    }
 };
 CacheLine onboardCache[256];
 void
@@ -1049,13 +1058,55 @@ setupMemoryConnection() noexcept {
     }
     /// @todo wait for information from the memory connection
 }
+void
+writeToSerialConnection(uint32_t address, uint8_t* storage, uint8_t count) {
+
+}
+void
+readFromSerialConnection(uint32_t address, uint8_t* storage, uint8_t count) {
+
+}
+void
+tryWriteCacheLine(CacheLine& line) {
+    if (line.needsCacheLineReplacement()) {
+        writeToSerialConnection(line.key, line.line, 16);
+        // do the replacement
+        line.flags.bits.dirty = false;
+    }
+}
+void
+readCacheLine(CacheLine& line, uint32_t alignedAddress) {
+    readFromSerialConnection(alignedAddress, line.line, 16);
+    line.key = alignedAddress;
+    line.flags.bits.valid = true;
+    line.flags.bits.dirty = false;
+}
+void
+replaceCacheLine(CacheLine& line, uint32_t alignedAddress) {
+    if (line.key != alignedAddress) {
+        tryWriteCacheLine(line);
+        readCacheLine(line, alignedAddress);
+    }
+}
+CacheLine& 
+getCacheLine(uint32_t address) {
+    uint32_t alignedAddress = address & 0xFFFF'FFF0;
+    uint8_t index = static_cast<uint8_t>(alignedAddress >> 4);
+    auto& line = onboardCache[index];
+    replaceCacheLine(line, alignedAddress);
+    return line;
+}
 uint8_t* 
 getWriteCacheLine(uint32_t address) {
-    return nullptr;
+    uint8_t offset = address & 0x0000'000F;
+    auto& line = getCacheLine(address);
+    return line.line + offset;
 }
 const uint8_t*
 getReadCacheLine(uint32_t address) {
-    return nullptr;
+    uint8_t offset = address & 0x0000'000F;
+    auto& line = getCacheLine(address);
+    return line.line + offset;
 }
 
 

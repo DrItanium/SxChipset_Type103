@@ -1183,8 +1183,8 @@ WriteOperationBypass:
 }
 void 
 loop() {
-    // read
-    //while (true) {
+    while (true) {
+        //read
         while (true) {
             loop_until_bit_is_set(EIFR, INTF4);
             if (bit_is_set(EIFR, INTF5)) {
@@ -1210,7 +1210,7 @@ loop() {
             EIFR = 0b0111'0000;
             doIOOperation<false>();
         }
-    //}
+    }
 }
 
 

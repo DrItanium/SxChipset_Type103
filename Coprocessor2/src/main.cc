@@ -73,6 +73,8 @@ loop() {
 
 void
 serialEvent8() {
-
+    uint8_t header[2];
+    Serial8.readBytes(header, 2);
+    auto [size, opcode] = header;
 }
 

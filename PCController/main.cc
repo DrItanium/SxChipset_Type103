@@ -184,6 +184,12 @@ int main(int argc, char** argv) {
                     case 1: // write 16-byte cache line (write data from the i960)
                         systemRam.write(header.address, header.data, 16);
                         break;
+                    case 2:
+                        buf[0] = 1;
+                        buf[1] = 0x55;
+                        std::cout << "New Connection Request Made!" << std::endl;
+                        boost::asio::write(port, boost::asio::buffer(buf), boost::asio::transfer_exactly(2));
+                        break;
                     default:
                         break;
                 }

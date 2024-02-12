@@ -1,6 +1,6 @@
 /*
 i960SxChipset_Type103
-Copyright (c) 2022, Joshua Scoggins
+Copyright (c) 2022-2024, Joshua Scoggins
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SD.h>
-
+constexpr auto READY_OUT = 36;
+constexpr auto READY_IN = 37;
 uint8_t* memoryBegin = nullptr;
 uint8_t* memoryEnd = nullptr;
 constexpr auto ExternalMemoryBaseAddress = 0x7000'0000;
@@ -33,6 +34,9 @@ size_t memorySizeInBytes = 0;
 extern "C" uint8_t external_psram_size;
 void 
 setup() {
+    pinMode(READY_OUT, OUTPUT);
+    digitalWrite(READY_OUT, LOW);
+    pinMode(READY_IN, INPUT);
     Serial.begin(115'200);
     while (!Serial);
     Serial8.begin(500'000);
@@ -55,6 +59,8 @@ setup() {
     } else {
         Serial.println(F("External Memory Not Available"));
     }
+    digitalWrite(READY_OUT, HIGH);
+    while (digitalRead(READY_IN) == LOW);
 }
 
 

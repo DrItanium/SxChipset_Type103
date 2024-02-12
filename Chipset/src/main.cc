@@ -1076,7 +1076,6 @@ readCacheLine(CacheLine& line, uint32_t alignedAddress) {
     line.key = alignedAddress;
     line.flags.bits.valid = true;
     line.flags.bits.dirty = false;
-    while (!MemoryConnection.available());
     MemoryConnection.readBytes(line.line, 16);
     drainStream(MemoryConnection);
 }
@@ -1112,6 +1111,7 @@ getReadCacheLine(uint32_t address) {
 }
 
 volatile bool foundExternalMemoryConnection = false;
+constexpr uint8_t outputBuffer[2] { 1, 2, };
 void
 setupMemoryConnection() noexcept {
     MemoryConnection.begin(115'200);
@@ -1124,8 +1124,22 @@ setupMemoryConnection() noexcept {
             a.line[i] = 0;
         }
     }
-
-    /// @todo wait for the memory connection to come up
+    uint8_t resultantBuffer[2];
+    for (int i = 0; i < 32; ++i) {
+        MemoryConnection.write(outputBuffer, 2);
+        auto count = MemoryConnection.readBytes(resultantBuffer, 2);
+        if (count == 2) {
+            if (resultantBuffer[0] == 0x1 && resultantBuffer[1] == 0x55) {
+                foundExternalMemoryConnection = true;
+                break;
+            }
+        }
+    }
+    if (!foundExternalMemoryConnection) {
+        Serial.println(F("No External Memory Connection Found!"));
+    } else {
+        Serial.println(F("External Memory Connection Found!"));
+    }
 }
 
 

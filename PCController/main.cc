@@ -171,32 +171,24 @@ int main(int argc, char** argv) {
                 continue; 
             }
             auto size = static_cast<uint8_t>(buf[0]);
-
-            numRead = boost::asio::read(port, boost::asio::buffer(buf), boost::asio::transfer_exactly(size), ec);
-            if (ec) {
+            numRead = boost::asio::read(port, boost::asio::buffer(buf), boost::asio::transfer_exactly(size), error);
+            if (error) {
                 // An error occurred
             } else {
-                RequestHeader header = *reinterpret_cast<RequestHeader>(buf.data());
+                RequestHeader header = *reinterpret_cast<RequestHeader*>(buf.data());
                 switch (header.opcode) {
-                    case 0: // read cache line (send data to the i960)
-                    case 1: // write cache line (write data from the i960)
+                    case 0: // read 16-byte cache line (send data to the i960)
+                        systemRam.read(header.address, header.data, 16);
+                        boost::asio::write(port, boost::asio::buffer(header.data));
+                        break;
+                    case 1: // write 16-byte cache line (write data from the i960)
+                        systemRam.write(header.address, header.data, 16);
+                        break;
                     default:
                         break;
                 }
             }
-
-#if 0
-            RequestHeader header = *reinterpret_cast<RequestHeader*>(buf.data());
-            switch (header.opcode) {
-                case 2: // store operation
-                    systemRam.write(header.address, header.data, header.length);
-                    break;
-                default:
-                    break;
-            }
-#endif
         }
-        
         return 0;
     } catch (const boost::program_options::error& ex) {
         std::cerr << ex.what() << std::endl;

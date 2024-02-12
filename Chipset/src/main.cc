@@ -292,6 +292,90 @@ pullCPUOutOfReset() noexcept {
     ControlSignals.ctl.data.reset = 1;
 }
 
+struct CacheLine {
+    union {
+        uint8_t reg;
+        struct {
+            uint8_t dirty : 1;
+            uint8_t valid : 1;
+        } bits;
+    } flags;
+    uint32_t key = 0;
+    uint8_t line[16] = { 0 };
+    constexpr bool valid() const noexcept {
+        return flags.bits.valid;
+    }
+    constexpr bool dirty() const noexcept {
+        return flags.bits.dirty;
+    }
+    constexpr bool needsCacheLineReplacement() const noexcept {
+        return flags.reg == 4;
+    }
+    constexpr bool matches(uint32_t address) const noexcept {
+        return valid() && key == address;
+    }
+};
+CacheLine onboardCache[256];
+void
+tryWriteCacheLine(CacheLine& line) {
+    if (line.needsCacheLineReplacement()) {
+        constexpr uint8_t size = sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint8_t[16]);
+        MemoryConnection.write(size);
+        MemoryConnection.write(1);
+        MemoryConnection.write(reinterpret_cast<char*>(&line.key), sizeof(uint32_t));
+        MemoryConnection.write(line.line, 16);
+        // do the replacement
+        line.flags.bits.dirty = false;
+    }
+}
+
+void
+drainStream(Stream& connection) {
+    while (connection.available()) {
+        (void)connection.read();
+    }
+}
+void
+readCacheLine(CacheLine& line, uint32_t alignedAddress) {
+    //readFromSerialConnection(alignedAddress, line.line, 16);
+    constexpr uint8_t size = sizeof(uint32_t) + sizeof(uint8_t);
+    MemoryConnection.write(size);
+    MemoryConnection.write(0);
+    MemoryConnection.write(reinterpret_cast<char*>(&alignedAddress), sizeof(uint32_t));
+    line.key = alignedAddress;
+    line.flags.bits.valid = true;
+    line.flags.bits.dirty = false;
+    MemoryConnection.readBytes(line.line, 16);
+    drainStream(MemoryConnection);
+}
+
+void
+replaceCacheLine(CacheLine& line, uint32_t alignedAddress) {
+    if (line.key != alignedAddress) {
+        tryWriteCacheLine(line);
+        readCacheLine(line, alignedAddress);
+    }
+}
+CacheLine& 
+getCacheLine(uint32_t address) {
+    uint32_t alignedAddress = address & 0xFFFF'FFF0;
+    uint8_t index = static_cast<uint8_t>(alignedAddress >> 4);
+    auto& line = onboardCache[index];
+    if (!line.matches(alignedAddress)) {
+        replaceCacheLine(line, alignedAddress);
+    }
+    return line;
+}
+template<bool isReadOperation>
+uint8_t* 
+getCacheLineContents(uint32_t address) {
+    uint8_t offset = address & 0x0000'000F;
+    auto& line = getCacheLine(address);
+    if constexpr (!isReadOperation) {
+        line.flags.bits.dirty = true;
+    }
+    return &line.line[offset];
+}
 
 
 template<uint8_t index>
@@ -933,9 +1017,11 @@ doIO() noexcept {
 template<bool isReadOperation>
 void
 doExternalCommunication() noexcept {
-    doNothing<isReadOperation>();
+    uint32_t address = AddressLinesInterface.view32.data;
+    auto* line = getCacheLineContents<isReadOperation>(address);
+    MemoryInterface::doOperation<isReadOperation>(line);
 }
-template<bool isReadOperation>
+template<bool isReadOperation, bool externalCommunicationSupported>
 FORCE_INLINE
 inline
 void
@@ -952,7 +1038,11 @@ doIOOperation() noexcept {
             doIO<isReadOperation>();
             break;
         default:
-            doExternalCommunication<isReadOperation>();
+            if constexpr (externalCommunicationSupported) {
+                doExternalCommunication<isReadOperation>();
+            } else {
+                doNothing<isReadOperation>();
+            }
             break;
     }
 }
@@ -1023,92 +1113,6 @@ setupCLK1() noexcept {
     timer3.TCCRxB = 0b00'0'01'001;
 }
 
-struct CacheLine {
-    union {
-        uint8_t reg;
-        struct {
-            uint8_t dirty : 1;
-            uint8_t valid : 1;
-        } bits;
-    } flags;
-    uint32_t key = 0;
-    uint8_t line[16] = { 0 };
-    constexpr bool valid() const noexcept {
-        return flags.bits.valid;
-    }
-    constexpr bool dirty() const noexcept {
-        return flags.bits.dirty;
-    }
-    constexpr bool needsCacheLineReplacement() const noexcept {
-        return flags.reg == 4;
-    }
-    constexpr bool matches(uint32_t address) const noexcept {
-        return valid() && key == address;
-    }
-};
-CacheLine onboardCache[256];
-void
-tryWriteCacheLine(CacheLine& line) {
-    if (line.needsCacheLineReplacement()) {
-        constexpr uint8_t size = sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint8_t[16]);
-        MemoryConnection.write(size);
-        MemoryConnection.write(1);
-        MemoryConnection.write(reinterpret_cast<char*>(&line.key), sizeof(uint32_t));
-        MemoryConnection.write(line.line, 16);
-        // do the replacement
-        line.flags.bits.dirty = false;
-    }
-}
-
-void
-drainStream(Stream& connection) {
-    while (connection.available()) {
-        (void)connection.read();
-    }
-}
-void
-readCacheLine(CacheLine& line, uint32_t alignedAddress) {
-    //readFromSerialConnection(alignedAddress, line.line, 16);
-    constexpr uint8_t size = sizeof(uint32_t) + sizeof(uint8_t);
-    MemoryConnection.write(size);
-    MemoryConnection.write(0);
-    MemoryConnection.write(reinterpret_cast<char*>(&alignedAddress), sizeof(uint32_t));
-    line.key = alignedAddress;
-    line.flags.bits.valid = true;
-    line.flags.bits.dirty = false;
-    MemoryConnection.readBytes(line.line, 16);
-    drainStream(MemoryConnection);
-}
-
-void
-replaceCacheLine(CacheLine& line, uint32_t alignedAddress) {
-    if (line.key != alignedAddress) {
-        tryWriteCacheLine(line);
-        readCacheLine(line, alignedAddress);
-    }
-}
-CacheLine& 
-getCacheLine(uint32_t address) {
-    uint32_t alignedAddress = address & 0xFFFF'FFF0;
-    uint8_t index = static_cast<uint8_t>(alignedAddress >> 4);
-    auto& line = onboardCache[index];
-    if (!line.matches(alignedAddress)) {
-        replaceCacheLine(line, alignedAddress);
-    }
-    return line;
-}
-uint8_t* 
-getWriteCacheLine(uint32_t address) {
-    uint8_t offset = address & 0x0000'000F;
-    auto& line = getCacheLine(address);
-    return line.line + offset;
-}
-const uint8_t*
-getReadCacheLine(uint32_t address) {
-    uint8_t offset = address & 0x0000'000F;
-    auto& line = getCacheLine(address);
-    return line.line + offset;
-}
 
 volatile bool foundExternalMemoryConnection = false;
 constexpr uint8_t outputBuffer[2] { 1, 2, };
@@ -1255,6 +1259,7 @@ setup() {
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
 }
+template<bool allowMemoryConnection>
 [[noreturn]]
 void
 executionBody() {
@@ -1266,11 +1271,11 @@ executionBody() {
                 DataInterface::setLowerDataLinesDirection(0);
                 DataInterface::setUpperDataLinesDirection(0);
                 EIFR = 0b0111'0000;
-                doIOOperation<false>();
+                doIOOperation<false, allowMemoryConnection>();
                 break;
             }
             EIFR = 0b0111'0000;
-            doIOOperation<true>();
+            doIOOperation<true, allowMemoryConnection>();
         }
         // write
         while (true) {
@@ -1279,17 +1284,21 @@ executionBody() {
                 DataInterface::setLowerDataLinesDirection(0xFF);
                 DataInterface::setUpperDataLinesDirection(0xFF);
                 EIFR = 0b0111'0000;
-                doIOOperation<true>();
+                doIOOperation<true, allowMemoryConnection>();
                 break;
             }
             EIFR = 0b0111'0000;
-            doIOOperation<false>();
+            doIOOperation<false, allowMemoryConnection>();
         }
     }
 }
 void 
 loop() {
-    executionBody();
+    if (foundExternalMemoryConnection) {
+        executionBody<true>();
+    } else {
+        executionBody<false>();
+    }
 }
 
 

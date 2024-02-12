@@ -177,12 +177,30 @@ int main(int argc, char** argv) {
             } else {
                 RequestHeader header = *reinterpret_cast<RequestHeader*>(buf.data());
                 switch (header.opcode) {
-                    case 0: // read 16-byte cache line (send data to the i960)
-                        systemRam.read(header.address, header.data, 16);
-                        boost::asio::write(port, boost::asio::buffer(header.data));
+                    case 0: {
+                                // read 16-byte cache line (send data to the i960)
+                                systemRam.read(header.address, header.data, 16);
+                                if (verbose) {
+                                    std::cout << "opcode: read16" << std::endl;
+                                    std::cout << "\t0x" << std::hex << header.address << std::endl;
+                                    for (int i = 0; i <  16; ++i) {
+                                        std::cout << "\t\t0x" << std::hex << static_cast<int>(header.data[i]) << std::endl;
+                                    }
+                                }
+                                boost::asio::write(port, boost::asio::buffer(header.data));
+                            }
                         break;
-                    case 1: // write 16-byte cache line (write data from the i960)
-                        systemRam.write(header.address, header.data, 16);
+                    case 1: {
+                                // write 16-byte cache line (write data from the i960)
+                                if (verbose) {
+                                    std::cout << "opcode: write16" << std::endl;
+                                    std::cout << "\t0x" << std::hex << header.address << std::endl;
+                                    for (int i = 0; i <  16; ++i) {
+                                        std::cout << "\t\t0x" << std::hex << static_cast<int>(header.data[i]) << std::endl;
+                                    }
+                                }
+                                systemRam.write(header.address, header.data, 16);
+                            }
                         break;
                     case 2:
                         buf[0] = 1;

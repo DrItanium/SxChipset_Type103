@@ -1114,10 +1114,7 @@ getReadCacheLine(uint32_t address) {
 volatile bool foundExternalMemoryConnection = false;
 void
 setupMemoryConnection() noexcept {
-    pinMode(Pin::TellCoprocessor2Ready, OUTPUT);
-    pinMode(Pin::Coprocessor2IsReady, INPUT);
-    digitalWrite<Pin::TellCoprocessor2Ready, LOW>();
-    MemoryConnection.begin(500'000);
+    MemoryConnection.begin(115'200);
     // clear the cache
     for (auto & a : onboardCache) {
         a.key = 0;
@@ -1128,8 +1125,6 @@ setupMemoryConnection() noexcept {
         }
     }
 
-    digitalWrite<Pin::TellCoprocessor2Ready, HIGH>();
-    while(digitalRead<Pin::Coprocessor2IsReady>() == LOW);
     /// @todo wait for the memory connection to come up
 }
 

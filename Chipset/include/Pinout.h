@@ -61,9 +61,7 @@ Count = NUM_DIGITAL_PINS,
 #endif
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
-    TellCoprocessor2Ready = PortH7, 
     ONE_SHOT_READY = PortH6, // OC2B
-    Coprocessor2IsReady = PortH2,
     BE0 = PortG3,
     BE1 = PortG4,
     BLAST = PortG5,

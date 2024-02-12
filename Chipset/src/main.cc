@@ -1024,7 +1024,6 @@ setupCLK1() noexcept {
 }
 
 struct CacheLine {
-    uint32_t key = 0;
     union {
         uint8_t reg;
         struct {
@@ -1032,6 +1031,7 @@ struct CacheLine {
             uint8_t valid : 1;
         } bits;
     } flags;
+    uint32_t key = 0;
     uint8_t line[16] = { 0 };
     constexpr bool valid() const noexcept {
         return flags.bits.valid;
@@ -1039,48 +1039,48 @@ struct CacheLine {
     constexpr bool dirty() const noexcept {
         return flags.bits.dirty;
     }
-    constexpr bool needsCacheLineReplacement() noexcept {
+    constexpr bool needsCacheLineReplacement() const noexcept {
         return flags.reg == 4;
+    }
+    constexpr bool matches(uint32_t address) const noexcept {
+        return valid() && key == address;
     }
 };
 CacheLine onboardCache[256];
 void
-setupMemoryConnection() noexcept {
-    MemoryConnection.begin(500'000);
-    // clear the cache
-    for (auto & a : onboardCache) {
-        a.key = 0;
-        a.flags.bits.valid = false;
-        a.flags.bits.dirty = false;
-        for (int i = 0; i < 16; ++i) {
-            a.line[i] = 0;
-        }
-    }
-    /// @todo wait for information from the memory connection
-}
-void
-writeToSerialConnection(uint32_t address, uint8_t* storage, uint8_t count) {
-
-}
-void
-readFromSerialConnection(uint32_t address, uint8_t* storage, uint8_t count) {
-
-}
-void
 tryWriteCacheLine(CacheLine& line) {
     if (line.needsCacheLineReplacement()) {
-        writeToSerialConnection(line.key, line.line, 16);
+        constexpr uint8_t size = sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint8_t[16]);
+        MemoryConnection.write(size);
+        MemoryConnection.write(1);
+        MemoryConnection.write(reinterpret_cast<char*>(&line.key), sizeof(uint32_t));
+        MemoryConnection.write(line.line, 16);
         // do the replacement
         line.flags.bits.dirty = false;
     }
 }
+
+void
+drainStream(Stream& connection) {
+    while (connection.available()) {
+        (void)connection.read();
+    }
+}
 void
 readCacheLine(CacheLine& line, uint32_t alignedAddress) {
-    readFromSerialConnection(alignedAddress, line.line, 16);
+    //readFromSerialConnection(alignedAddress, line.line, 16);
+    constexpr uint8_t size = sizeof(uint32_t) + sizeof(uint8_t);
+    MemoryConnection.write(size);
+    MemoryConnection.write(0);
+    MemoryConnection.write(reinterpret_cast<char*>(&alignedAddress), sizeof(uint32_t));
     line.key = alignedAddress;
     line.flags.bits.valid = true;
     line.flags.bits.dirty = false;
+    while (!MemoryConnection.available());
+    MemoryConnection.readBytes(line.line, 16);
+    drainStream(MemoryConnection);
 }
+
 void
 replaceCacheLine(CacheLine& line, uint32_t alignedAddress) {
     if (line.key != alignedAddress) {
@@ -1093,7 +1093,9 @@ getCacheLine(uint32_t address) {
     uint32_t alignedAddress = address & 0xFFFF'FFF0;
     uint8_t index = static_cast<uint8_t>(alignedAddress >> 4);
     auto& line = onboardCache[index];
-    replaceCacheLine(line, alignedAddress);
+    if (!line.matches(alignedAddress)) {
+        replaceCacheLine(line, alignedAddress);
+    }
     return line;
 }
 uint8_t* 
@@ -1107,6 +1109,23 @@ getReadCacheLine(uint32_t address) {
     uint8_t offset = address & 0x0000'000F;
     auto& line = getCacheLine(address);
     return line.line + offset;
+}
+
+volatile bool foundExternalMemoryConnection = false;
+void
+setupMemoryConnection() noexcept {
+    MemoryConnection.begin(500'000);
+    // clear the cache
+    for (auto & a : onboardCache) {
+        a.key = 0;
+        a.flags.bits.valid = false;
+        a.flags.bits.dirty = false;
+        for (int i = 0; i < 16; ++i) {
+            a.line[i] = 0;
+        }
+    }
+
+    /// @todo wait for the memory connection to come up
 }
 
 

@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
         port.set_option(flow);
         std::cout << "Connection Established to " << serialPortPath << std::endl;
         struct [[gnu::packed]] RequestHeader {
-            uint8_t length;
+            //uint8_t length;
             uint8_t opcode;
             uint32_t address;
             uint8_t data[16];
@@ -166,10 +166,26 @@ int main(int argc, char** argv) {
         for (;;) {
             std::array<char, 256> buf;
             boost::system::error_code error;
-            size_t len = port.read_some(boost::asio::buffer(buf), error);
-            if (len == 0) {
+            auto numRead = boost::asio::read(port, boost::asio::buffer(buf, 1), error);
+            if (numRead == 0) {
                 continue; 
             }
+            auto size = static_cast<uint8_t>(buf[0]);
+
+            numRead = boost::asio::read(port, boost::asio::buffer(buf), boost::asio::transfer_exactly(size), ec);
+            if (ec) {
+                // An error occurred
+            } else {
+                RequestHeader header = *reinterpret_cast<RequestHeader>(buf.data());
+                switch (header.opcode) {
+                    case 0: // read cache line (send data to the i960)
+                    case 1: // write cache line (write data from the i960)
+                    default:
+                        break;
+                }
+            }
+
+#if 0
             RequestHeader header = *reinterpret_cast<RequestHeader*>(buf.data());
             switch (header.opcode) {
                 case 2: // store operation
@@ -178,6 +194,7 @@ int main(int argc, char** argv) {
                 default:
                     break;
             }
+#endif
         }
         
         return 0;

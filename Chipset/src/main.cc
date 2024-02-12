@@ -309,7 +309,7 @@ struct CacheLine {
         return flags.bits.dirty;
     }
     constexpr bool needsCacheLineReplacement() const noexcept {
-        return flags.reg == 4;
+        return valid() && dirty();
     }
     constexpr bool matches(uint32_t address) const noexcept {
         return valid() && key == address;
@@ -351,10 +351,8 @@ readCacheLine(CacheLine& line, uint32_t alignedAddress) {
 
 void
 replaceCacheLine(CacheLine& line, uint32_t alignedAddress) {
-    if (line.key != alignedAddress) {
-        tryWriteCacheLine(line);
-        readCacheLine(line, alignedAddress);
-    }
+    tryWriteCacheLine(line);
+    readCacheLine(line, alignedAddress);
 }
 CacheLine& 
 getCacheLine(uint32_t address) {
@@ -1149,6 +1147,15 @@ setupMemoryConnection() noexcept {
         Serial.println(F("No External Memory Connection Found!"));
     } else {
         Serial.println(F("External Memory Connection Found!"));
+        Serial.println(F("Testing out cache communication layer"));
+        constexpr uint32_t ShiftCount = 1024 << 4;
+        for (uint32_t i = 0; i < ShiftCount; i += 16) {
+            auto& line = getCacheLine(i);
+            line.flags.bits.dirty = true;
+            for (int i = 0;i < 16; ++i) {
+                line.line[i] = i;
+            }
+        }
     }
 }
 

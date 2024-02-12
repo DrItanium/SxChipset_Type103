@@ -61,6 +61,7 @@ setup() {
     }
     digitalWrite(READY_OUT, HIGH);
     while (digitalRead(READY_IN) == LOW);
+    Serial.println(F("Connection Ready!"));
 }
 
 

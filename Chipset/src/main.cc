@@ -1015,6 +1015,7 @@ doIO() noexcept {
 #endif
 }
 template<bool isReadOperation>
+inline
 void
 doExternalCommunication() noexcept {
     uint32_t address = AddressLinesInterface.view32.data;
@@ -1118,6 +1119,7 @@ volatile bool foundExternalMemoryConnection = false;
 constexpr uint8_t outputBuffer[2] { 1, 2, };
 void
 setupMemoryConnection() noexcept {
+    Serial.print(F("Setting up memory cache"));
     MemoryConnection.begin(115'200);
     // clear the cache
     for (auto & a : onboardCache) {
@@ -1128,8 +1130,11 @@ setupMemoryConnection() noexcept {
             a.line[i] = 0;
         }
     }
+    Serial.println(F("DONE"));
+    Serial.print(F("Looking to see if memory connection is available"));
     uint8_t resultantBuffer[2];
     for (int i = 0; i < 32; ++i) {
+        Serial.print(F("."));
         MemoryConnection.write(outputBuffer, 2);
         auto count = MemoryConnection.readBytes(resultantBuffer, 2);
         if (count == 2) {
@@ -1139,6 +1144,7 @@ setupMemoryConnection() noexcept {
             }
         }
     }
+    Serial.println(F("DONE"));
     if (!foundExternalMemoryConnection) {
         Serial.println(F("No External Memory Connection Found!"));
     } else {

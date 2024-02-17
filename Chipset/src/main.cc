@@ -1147,15 +1147,6 @@ setupMemoryConnection() noexcept {
         Serial.println(F("No External Memory Connection Found!"));
     } else {
         Serial.println(F("External Memory Connection Found!"));
-        Serial.println(F("Testing out cache communication layer"));
-        constexpr uint32_t ShiftCount = 1024 << 4;
-        for (uint32_t i = 0; i < ShiftCount; i += 16) {
-            auto& line = getCacheLine(i);
-            line.flags.bits.dirty = true;
-            for (int i = 0;i < 16; ++i) {
-                line.line[i] = i;
-            }
-        }
     }
 }
 
@@ -1174,9 +1165,6 @@ setup() {
     setupMemoryConnection();
     ExternalPeripheralConnection.begin(500'000);
     ExternalPeripheralConnection2.begin(500'000);
-    if constexpr (EnableTransactionDebug) {
-        DebugConsole.begin(500'000);
-    }
     SPI.begin();
     // power down the ADC
     // currently we can't use them

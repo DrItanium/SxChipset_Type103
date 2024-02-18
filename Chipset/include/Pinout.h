@@ -73,6 +73,10 @@ Count = NUM_DIGITAL_PINS,
     ExternalMemoryOperation = PortE6,
     MemoryConfigurationIOExpanderEnable = PortD4,
 
+    Reset = PortD5,
+    WR = PortD6,
+    //Fail = PortD7,
+
 };
 enum class Port : byte {
     // stop at mega2560 tier

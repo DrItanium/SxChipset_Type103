@@ -283,11 +283,11 @@ X(5);
 
 void 
 putCPUInReset() noexcept {
-    ControlSignals.ctl.data.reset = 0;
+    digitalWrite<Pin::Reset, LOW>();
 }
 void 
 pullCPUOutOfReset() noexcept {
-    ControlSignals.ctl.data.reset = 1;
+    digitalWrite<Pin::Reset, HIGH>();
 }
 
 struct CacheLine {
@@ -1177,7 +1177,9 @@ setup() {
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BLAST, INPUT);
-
+    pinMode(Pin::WR, INPUT);
+    pinMode(Pin::Reset, OUTPUT);
+    digitalWrite<Pin::Reset, LOW>();
     // set these up ahead of time
 
     // setup bank capture to read in address lines
@@ -1195,7 +1197,7 @@ setup() {
     AddressLinesInterface.view32.data = 0;
     DataInterface::configureInterface();
     MemoryInterface::configure();
-    ControlSignals.view32.direction = 0b10000000'11111110'00000000'00010001;
+    ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000001;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     putCPUInReset();
     Serial.println(F("i960 Chipset"));

@@ -42,9 +42,7 @@ constexpr bool PerformMemoryImageInstallation = true;
 constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
 constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 auto& DebugConsole = Serial;
-auto& MemoryConnection = Serial2;
-auto& ExternalPeripheralConnection = Serial1;
-auto& ExternalPeripheralConnection2 = Serial3;
+auto& MemoryConnection = Serial1;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
     return true;
@@ -1163,8 +1161,6 @@ setup() {
     randomSeed(seed);
     Serial.begin(115200);
     setupMemoryConnection();
-    ExternalPeripheralConnection.begin(500'000);
-    ExternalPeripheralConnection2.begin(500'000);
     SPI.begin();
     // power down the ADC
     // currently we can't use them

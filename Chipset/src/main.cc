@@ -1177,11 +1177,13 @@ setup() {
     pinMode(Pin::BE0, INPUT);
     pinMode(Pin::BE1, INPUT);
     pinMode(Pin::BLAST, INPUT);
-    pinMode(Pin::WR, INPUT);
     pinMode(Pin::Reset, OUTPUT);
     digitalWrite<Pin::Reset, LOW>();
     // set these up ahead of time
-
+    pinMode(Pin::Lock, INPUT);
+    pinMode(Pin::HOLD, OUTPUT);
+    digitalWrite<Pin::HOLD, LOW>();
+    pinMode(Pin::HLDA, INPUT);
     // setup bank capture to read in address lines
     pinMode(Pin::LED, OUTPUT);
     digitalWrite<Pin::LED, LOW>();
@@ -1197,7 +1199,7 @@ setup() {
     AddressLinesInterface.view32.data = 0;
     DataInterface::configureInterface();
     MemoryInterface::configure();
-    ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000001;
+    ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000000;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     putCPUInReset();
     Serial.println(F("i960 Chipset"));

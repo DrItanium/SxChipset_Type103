@@ -61,6 +61,9 @@ Count = NUM_DIGITAL_PINS,
 #endif
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
+    HLDA = PortB6,
+    HOLD = PortB7,
+
     ONE_SHOT_READY = PortH6, // OC2B
     BE0 = PortG3,
     BE1 = PortG4,
@@ -73,9 +76,10 @@ Count = NUM_DIGITAL_PINS,
     ExternalMemoryOperation = PortE6,
     MemoryConfigurationIOExpanderEnable = PortD4,
 
+    Lock = PortD4,
     Reset = PortD5,
-    WR = PortD6,
-    //Fail = PortD7,
+
+
 
 };
 enum class Port : byte {

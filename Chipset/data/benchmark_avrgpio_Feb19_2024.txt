@@ -1,0 +1,22 @@
+Only the lowest 8 bits of the EBI are manipulated by the AVR
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     55.6425      0.2516
+     2     -3.8192e-14     37.3111      0.1876
+     3     -1.7902e-13     63.1532      0.2692
+     4     -2.7744e-13     52.5273      0.2856
+     5      1.0579e-12    108.5850      0.2671
+     6     -2.0101e-13    109.1565      0.2657
+     7      6.2528e-13     61.5415      0.1950
+     8     -5.7265e-13    106.5344      0.2816
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7253
+   MFLOPS(1)       =     0.2082
+   MFLOPS(2)       =     0.2393
+   MFLOPS(3)       =     0.2621
+   MFLOPS(4)       =     0.2746
+

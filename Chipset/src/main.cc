@@ -178,17 +178,9 @@ struct DataInterface {
         UnderlyingDataInterface::configureInterface();
     }
     FORCE_INLINE static inline uint16_t getData() noexcept {
-        auto result = makeWord(UnderlyingDataInterface::getUpperDataByte(), UnderlyingDataInterface::getLowerDataByte());
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.print(F("getData: 0x"));
-            DebugConsole.println(result, HEX);
-        }
-        return result;
+        return makeWord(UnderlyingDataInterface::getUpperDataByte(), UnderlyingDataInterface::getLowerDataByte());
     }
     FORCE_INLINE static inline void setData(uint16_t value) noexcept {
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.printf(F("setData: 0x%x\n"), value);
-        }
         UnderlyingDataInterface::setLowerDataByte(value);
         UnderlyingDataInterface::setUpperDataByte(static_cast<uint8_t>(value >> 8));
     }
@@ -199,33 +191,15 @@ struct DataInterface {
         UnderlyingDataInterface::setUpperDataLinesDirection(value);
     }
     static uint8_t getLowerDataByte() noexcept { 
-        auto result = UnderlyingDataInterface::getLowerDataByte();
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.print(F("getLowerDataByte: 0x"));
-            DebugConsole.println(result, HEX);
-        } 
-        return result;
+        return UnderlyingDataInterface::getLowerDataByte();
     }
     static uint8_t getUpperDataByte() noexcept { 
-        auto result = UnderlyingDataInterface::getUpperDataByte();
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.print(F("getUpperDataByte: 0x"));
-            DebugConsole.println(result, HEX);
-        } 
-        return result;
+        return UnderlyingDataInterface::getUpperDataByte();
     }
     static void setLowerDataByte(uint8_t value) noexcept { 
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.print(F("setLowerDataByte: 0x"));
-            DebugConsole.println(value, HEX);
-        } 
         UnderlyingDataInterface::setLowerDataByte(value);
     }
     static void setUpperDataByte(uint8_t value) noexcept { 
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.print(F("setUpperDataByte: 0x"));
-            DebugConsole.println(value, HEX);
-        } 
         UnderlyingDataInterface::setUpperDataByte(value);
     }
 };
@@ -375,9 +349,6 @@ template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
     static_assert(index < 2, "Invalid index provided to setDataByte, must be less than 2");
     if constexpr (index < 2) {
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.printf(F("setDataByte<%d>(%x)\n"), index, value);
-        }
         if constexpr (index == 0) {
             DataInterface::setLowerDataByte(value);
         } else {
@@ -390,9 +361,6 @@ template<uint8_t index>
 inline uint8_t getDataByte() noexcept {
     static_assert(index < 2, "Invalid index provided to getDataByte, must be less than 4");
     if constexpr (index < 2) {
-        if constexpr (EnableTransactionDebug) {
-            DebugConsole.printf(F("getDataByte<%d>()\n"), index);
-        }
         if constexpr (index == 0) {
             return DataInterface::getLowerDataByte();
         } else {
@@ -407,7 +375,7 @@ enum class IBUSMemoryViewKind {
     EightBit,
 };
 
-constexpr auto MemoryViewKind = IBUSMemoryViewKind::SixteenK;
+constexpr auto MemoryViewKind = IBUSMemoryViewKind::EightBit;
 
 template<IBUSMemoryViewKind kind>
 struct MemoryInterfaceBackend {
@@ -626,7 +594,7 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uintptr_t MemoryWindowBaseAddress = 0xFF00;
+    static constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
     static constexpr auto TransferBufferSize = 256;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
@@ -638,34 +606,36 @@ private:
         DataInterface::setLowerDataByte(lo);
         DataInterface::setUpperDataByte(hi);
     }
-    static DataRegister8 computeTransactionAddress() {
+    static DataRegister8 computeTransactionAddress() noexcept {
         return memoryPointer<uint8_t>(static_cast<uint16_t>(AddressLinesInterface.view8.data[0]) | MemoryWindowBaseAddress);
     }
 public:
     static void configure() noexcept {
     }
+    [[gnu::noinline]]
     static void installMemoryImage(File& theFirmware) {
-        auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
+        volatile auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
         int counter = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize, ++counter) {
             // just modify the bank as we go along
             AddressLinesInterface.view32.data = address;
             theFirmware.read(const_cast<uint8_t*>(theBuffer), TransferBufferSize);
-            if (counter % 16 == 0) {
-                Serial.print(F("."));
+            if ((counter % 32) == 0) {
+                Serial.print('.');
             }
         }
+        Serial.println(F("DONE"));
         if constexpr (EnableTransactionDebug) {
             AddressLinesInterface.view32.data = 0;
-            for (int i = 0; i < 32; ++i) {
-                DebugConsole.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
+            {
+                for (int i = 0; i < 32; ++i) {
+                    DebugConsole.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
+                }
             }
         }
     }
 private:
     template<uint8_t baseIndex>
-    FORCE_INLINE 
-    inline
     static 
     void doReadSingular(DataRegister8 view) noexcept {
         auto lo = view[baseIndex + 0];
@@ -674,7 +644,7 @@ private:
         DataInterface::setUpperDataByte(hi);
     }
 public:
-    FORCE_INLINE inline static void doReadOperation(DataRegister8 view) noexcept {
+    static void doReadOperation(DataRegister8 view) noexcept {
         doReadSingular<0>(view);
         if (isBurstLast()) {
             signalReady<0>();
@@ -721,7 +691,7 @@ public:
         signalReady<0>();
     }
     template<bool isReadOperation>
-    FORCE_INLINE inline static void doOperation(DataRegister8 view) noexcept {
+    static void doOperation(DataRegister8 view) noexcept {
         if constexpr (isReadOperation) {
             doReadOperation(view);
         } else {
@@ -729,10 +699,10 @@ public:
         }
     }
     template<bool isReadOperation>
-    FORCE_INLINE inline static void doOperation() noexcept {
+    static void doOperation() noexcept {
         doOperation<isReadOperation>(computeTransactionAddress());
     }
-    FORCE_INLINE inline static void doWriteOperation(DataRegister8 view) noexcept {
+    static void doWriteOperation(DataRegister8 view) noexcept {
         auto body = [&view]() {
             // we can pull the data off the bus and 
             // request the next set of data from the i960 while we are stashing

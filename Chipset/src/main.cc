@@ -404,6 +404,7 @@ inline uint8_t getDataByte() noexcept {
 }
 enum class IBUSMemoryViewKind {
     SixteenK,
+    EightBit,
 };
 
 constexpr auto MemoryViewKind = IBUSMemoryViewKind::SixteenK;
@@ -449,6 +450,201 @@ private:
 public:
     static void configure() noexcept {
         //getDirectionRegister<Port::IBUS_Bank>() = 0;
+    }
+    static void installMemoryImage(File& theFirmware) {
+        auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
+        for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize) {
+            // just modify the bank as we go along
+            AddressLinesInterface.view32.data = address;
+            theFirmware.read(const_cast<uint8_t*>(theBuffer), TransferBufferSize);
+            Serial.print(F("."));
+        }
+        if constexpr (EnableTransactionDebug) {
+            AddressLinesInterface.view32.data = 0;
+            for (int i = 0; i < 32; ++i) {
+                DebugConsole.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
+            }
+        }
+    }
+private:
+    template<uint8_t baseIndex>
+    FORCE_INLINE 
+    inline
+    static 
+    void doReadSingular(DataRegister8 view) noexcept {
+        auto lo = view[baseIndex + 0];
+        auto hi = view[baseIndex + 1];
+        DataInterface::setLowerDataByte(lo);
+        DataInterface::setUpperDataByte(hi);
+    }
+public:
+    FORCE_INLINE inline static void doReadOperation(DataRegister8 view) noexcept {
+        doReadSingular<0>(view);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady<0>();
+        doReadSingular<2>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<4>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<6>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<8>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<10>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<12>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<14>(view);
+        signalReady<0>();
+    }
+    template<bool isReadOperation>
+    FORCE_INLINE inline static void doOperation(DataRegister8 view) noexcept {
+        if constexpr (isReadOperation) {
+            doReadOperation(view);
+        } else {
+            doWriteOperation(view);
+        }
+    }
+    template<bool isReadOperation>
+    FORCE_INLINE inline static void doOperation() noexcept {
+        doOperation<isReadOperation>(computeTransactionAddress());
+    }
+    FORCE_INLINE inline static void doWriteOperation(DataRegister8 view) noexcept {
+        auto body = [&view]() {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        };
+        auto whenDone = [&view]() {
+            view[0] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                view[1] = getDataByte<1>();
+            }
+            signalReady<0>();
+        };
+        if (isBurstLast()) {
+            if (digitalRead<Pin::BE0>() == LOW) {
+                view[0] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                view[1] = getDataByte<1>();
+            }
+            signalReady<0>();
+        } else {
+            if (digitalRead<Pin::BE0>() == LOW) {
+                view[0] = getDataByte<0>();
+            }
+            auto hi = getDataByte<1>();
+            signalReady<0>();
+            view[1] = hi;
+            view += 2;
+            insertCustomNopCount<2>(); // insert delay to make sure that
+                                       // isBurstLast is updated, replace with
+                                       // more operations if found
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            whenDone();
+        }
+    }
+};
+
+template<>
+struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
+    using Self = MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit>;
+    MemoryInterfaceBackend() = delete;
+    ~MemoryInterfaceBackend() = delete;
+    MemoryInterfaceBackend(const Self&) = delete;
+    MemoryInterfaceBackend(Self&&) = delete;
+    Self& operator=(const Self&) = delete;
+    Self& operator=(Self&&) = delete;
+private:
+    static constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
+    static constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
+    static constexpr auto TransferBufferSize = 256;
+    static void doSingleReadOperation(DataRegister8 view) {
+        auto lo = view[0];
+        auto hi = view[1];
+        if constexpr (EnableTransactionDebug) {
+            auto value = makeWord(hi, lo);
+            DebugConsole.printf(F("doReadOperation: 0x%x\n"), value);
+        }
+        DataInterface::setLowerDataByte(lo);
+        DataInterface::setUpperDataByte(hi);
+    }
+    static DataRegister8 computeTransactionAddress() {
+        return memoryPointer<uint8_t>((AddressLinesInterface.view8.data[0]) | MemoryWindowBaseAddress);
+    }
+public:
+    static void configure() noexcept {
     }
     static void installMemoryImage(File& theFirmware) {
         auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);

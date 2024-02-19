@@ -432,7 +432,6 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK> {
     Self& operator=(Self&&) = delete;
 private:
     static constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
-    static constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
     static constexpr auto TransferBufferSize = 16384;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
@@ -627,8 +626,7 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
-    static constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
+    static constexpr uintptr_t MemoryWindowBaseAddress = 0xFF00;
     static constexpr auto TransferBufferSize = 256;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
@@ -641,18 +639,21 @@ private:
         DataInterface::setUpperDataByte(hi);
     }
     static DataRegister8 computeTransactionAddress() {
-        return memoryPointer<uint8_t>((AddressLinesInterface.view8.data[0]) | MemoryWindowBaseAddress);
+        return memoryPointer<uint8_t>(static_cast<uint16_t>(AddressLinesInterface.view8.data[0]) | MemoryWindowBaseAddress);
     }
 public:
     static void configure() noexcept {
     }
     static void installMemoryImage(File& theFirmware) {
         auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
-        for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize) {
+        int counter = 0;
+        for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize, ++counter) {
             // just modify the bank as we go along
             AddressLinesInterface.view32.data = address;
             theFirmware.read(const_cast<uint8_t*>(theBuffer), TransferBufferSize);
-            Serial.print(F("."));
+            if (counter % 16 == 0) {
+                Serial.print(F("."));
+            }
         }
         if constexpr (EnableTransactionDebug) {
             AddressLinesInterface.view32.data = 0;

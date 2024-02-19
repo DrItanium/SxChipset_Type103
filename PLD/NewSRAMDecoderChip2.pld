@@ -4,12 +4,12 @@ NewSRAMDecoderChip2
 NC  M5   M6   M7   PC0  PC1  PC2  PC3  PC4  PC5 IA8 GND
 IA9 IA10 IA11 IA12 IA13 EA13 EA12 EA11 EA10 EA9 EA8 VCC
 
-EA8  = /M7 * /M6 * IA8 + /M7 * M6 * PC0 + M7 * PC0 
-EA9  = /M7 * /M6 * IA9 + /M7 * M6 * /M5 * IA9 + /M7 * M6 * M5 * PC1 + M7 * PC1
-EA10 = /M7 * IA10 + M7 * PC2 
-EA11 = /M7 * IA11 + M7 * /M6 * /M5 * IA11 + M7 * /M6 * M5 * PC3 + M7 * M6 * PC3
-EA12 = /M7 * IA12 + M7 * /M6 * IA12 + M7 * M6 * PC4
-EA13 = /M7 * IA13 + M7 * /M6 * IA13 + M7 * M6 * /M5 * IA13 + M7 * M6 * M5 * PC5
+EA8 = /M5 * IA8 + M5 * PC0
+EA9 = /M5 * IA9 + M5 * PC1
+EA10 = /M5 * IA10 + M5 * PC2
+EA11 = /M5 * IA11 + M5 * PC3
+EA12 = /M5 * IA12 + M5 * PC4
+EA13 = /M5 * IA13 + M5 * PC5
 
 DESCRIPTION
 
@@ -17,13 +17,6 @@ This is a configurable muxing chip which allows one to configure what lines are
 connected to EBI.[A8-A13]. A14 and A15 are always connected to the
 corresponding i960 address lines. The configuration is selecting between AVR
 lines and i960 lines.
-M5:M7 are the configuration bits with the following layout
-0b000 -> All Address lines come from the i960
-0b001 -> All Address lines come from the i960
-0b010 -> Address Lines 9, 10, 11, 12, and 13 come from the i960
-0b011 -> Address Lines 10, 11, 12, and 13 come from the i960
-0b100 -> Address Lines 11, 12, and 13 come from the i960
-0b101 -> Address Lines 12 and 13 come from the i960
-0b110 -> Address Line 13 comes from the i960
-0b111 -> All Address lines come from the AVR
 
+If M5 is low then map the i960 address lines into [A8:A13]
+If M5 is high then map the avr address lines int [A8:A13]

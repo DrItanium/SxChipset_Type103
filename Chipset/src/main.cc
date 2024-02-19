@@ -36,11 +36,8 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
 FsFile disk0;
-constexpr auto TransferBufferSize = 16384;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
-constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
-constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
 auto& DebugConsole = Serial;
 auto& MemoryConnection = Serial1;
 constexpr bool transactionDebugEnabled() noexcept {
@@ -433,6 +430,9 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
+    static constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
+    static constexpr uintptr_t MemoryWindowMask = MemoryWindowBaseAddress - 1;
+    static constexpr auto TransferBufferSize = 16384;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
         auto hi = view[1];
@@ -450,13 +450,12 @@ public:
     static void configure() noexcept {
         //getDirectionRegister<Port::IBUS_Bank>() = 0;
     }
-    template<auto BufferSize>
     static void installMemoryImage(File& theFirmware) {
         auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
-        for (uint32_t address = 0; address < theFirmware.size(); address += BufferSize) {
+        for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize) {
             // just modify the bank as we go along
             AddressLinesInterface.view32.data = address;
-            theFirmware.read(const_cast<uint8_t*>(theBuffer), BufferSize);
+            theFirmware.read(const_cast<uint8_t*>(theBuffer), TransferBufferSize);
             Serial.print(F("."));
         }
         if constexpr (EnableTransactionDebug) {
@@ -1045,7 +1044,7 @@ doIOOperation() noexcept {
 }
 #undef I960_Signal_Switch
 
-template<uint32_t maxFileSize = MaximumBootImageFileSize, auto BufferSize = TransferBufferSize>
+template<uint32_t maxFileSize = MaximumBootImageFileSize>
 [[gnu::noinline]]
 void
 installMemoryImage() noexcept {
@@ -1065,7 +1064,7 @@ installMemoryImage() noexcept {
         }
     } else {
         Serial.println(F("TRANSFERRING!!"));
-        MemoryInterface::installMemoryImage<BufferSize>(theFirmware);
+        MemoryInterface::installMemoryImage(theFirmware);
         Serial.println(F("DONE!"));
         theFirmware.close();
     }

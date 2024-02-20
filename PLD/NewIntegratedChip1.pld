@@ -1,21 +1,20 @@
 GAL16V8
 NewIntegratedChip1
 
-IWR IRD IA8 IA9 IA10 IA11 IA12 IA13 IA14 GND
-PC7 S3  S2  S1  S0   EBI  IOX  IEN  XEN  VCC
+IWR IRD IA8 IA9 NC NC  NC  NC  NC GND
+NC S3  S2  S1  S0 EBI IOX IEN XEN  VCC
 
 /EBI = /IWR * IRD + IWR * /IRD
-/XEN = PC7 * /IA14 * IWR * /IRD + PC7 * /IA14 * /IWR * IRD
-/IEN = PC7 * IA14 * IWR * /IRD + PC7 * IA14 * /IWR * IRD
-  S0 = /PC7 * /IA14 * IWR * /IRD + /PC7 * /IA14 * /IWR * IRD
-/IOX = /PC7 * IA14 * IWR * /IRD + /PC7 * IA14 * /IWR * IRD
+S0 = /IA9 * /IA8 * /IWR * IRD + /IA9 * /IA8 * IWR * /IRD
+/IEN = /IA9 * IA8 * /IWR * IRD + /IA9 * IA8 * IWR * /IRD
+/IOX = IA9 * /IA8 * /IWR * IRD + IA9 * /IA8 * IWR * /IRD
+/XEN = IA9 * IA8 * /IWR * IRD + IA9 * IA8 * IWR * /IRD
 
 DESCRIPTION
 
-
-PG0 ^ PG1 -> /EBI
-0b11xxxxxx & /EBI -> /IBUS
-0b10xxxxxx & /EBI -> /XBUS
-0b01xxxxxx & /EBI -> /IOX
-0b00xxxxxx & /EBI -> S0
+using a 10-bit bus
+0bxxxxxx00 & /EBI -> S0
+0bxxxxxx01 & /EBI -> /IBUS
+0bxxxxxx10 & /EBI -> /IOX
+0bxxxxxx11 & /EBI -> /XBUS
 

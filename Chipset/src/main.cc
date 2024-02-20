@@ -55,8 +55,6 @@ constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 [[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
 [[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
-[[gnu::address(0x8000)]] inline volatile uint8_t XBusWindow[64][256];
-[[gnu::address(0x4000)]] inline volatile uint8_t IOXBusWindow[64][256];
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -594,7 +592,7 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
+    static constexpr uintptr_t MemoryWindowBaseAddress = 0xFF00;
     static constexpr auto TransferBufferSize = 256;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
@@ -624,7 +622,6 @@ public:
                 Serial.print('.');
             }
         }
-        Serial.println(F("DONE"));
         if constexpr (EnableTransactionDebug) {
             AddressLinesInterface.view32.data = 0;
             {
@@ -1137,44 +1134,7 @@ FORCE_INLINE
 inline
 void 
 doIO() noexcept { 
-#if 0
-        switch (AddressLinesInterface.view8.data[1]) {
-            case 0x00:
-                doCoreIO<isReadOperation>();
-                break;
-#define Block1K(offset)  \
-                X((offset + 0x00)); \
-                X((offset + 0x01)); \
-                X((offset + 0x02)); \
-                X((offset + 0x03))
-#define Block2K(offset)  \
-                Block1K((offset + 0x00)); \
-                Block1K((offset + 0x04)) 
-#define Block4K(offset)  \
-                Block2K((offset + 0x00)); \
-                Block2K((offset + 0x08))
-#define Block16K(offset) \
-                Block4K((offset + 0x00)); \
-                Block4K((offset + 0x10)); \
-                Block4K((offset + 0x20)); \
-                Block4K((offset + 0x30))
-#define X(id) case (0x40 + id) : MemoryInterface::doOperation<isReadOperation>(&IOXBusWindow[id][AddressLinesInterface.view8.data[0]]); break
-                //Block16K(0);
-#undef X
-#define X(id) case (0x80 + id) : MemoryInterface::doOperation<isReadOperation>(&XBusWindow[id][AddressLinesInterface.view8.data[0]]); break
-                //Block16K(0);
-#undef X
-#undef Block16K
-#undef Block4K
-#undef Block2K
-#undef Block1K
-            default:
-                doNothing<isReadOperation>();
-                break;
-        } 
-#else
         doCoreIO<isReadOperation>();
-#endif
 }
 template<bool isReadOperation>
 inline

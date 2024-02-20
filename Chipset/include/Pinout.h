@@ -93,7 +93,6 @@ enum class Port : byte {
     ExecutionState = D,
     DataLinesLower = F,
     DataLinesUpper = K,
-    EBI_Upper = C,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

@@ -1293,8 +1293,6 @@ setup() {
     PRR0 = 0b0000'0001; // deactivate ADC
     setupCLK1();
     setupReadySignal();
-    getDirectionRegister<Port::EBI_Upper>() = 0xFF;
-    getOutputRegister<Port::EBI_Upper>() = 0;
     
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);

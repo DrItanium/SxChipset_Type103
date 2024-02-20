@@ -1255,7 +1255,8 @@ setupMemoryConnection() noexcept {
     Serial.println(F("DONE"));
     Serial.print(F("Looking to see if memory connection is available"));
     uint8_t resultantBuffer[2];
-    for (int i = 0; i < 32; ++i) {
+    constexpr auto NumRetries = 4;
+    for (int i = 0; i < NumRetries; ++i) {
         Serial.print(F("."));
         MemoryConnection.write(outputBuffer, 2);
         auto count = MemoryConnection.readBytes(resultantBuffer, 2);
@@ -1293,6 +1294,8 @@ setup() {
     PRR0 = 0b0000'0001; // deactivate ADC
     setupCLK1();
     setupReadySignal();
+    getDirectionRegister<Port::C>() = 0xFF;
+    getOutputRegister<Port::C>() = 0;
     
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);

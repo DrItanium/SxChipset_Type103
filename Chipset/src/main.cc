@@ -51,10 +51,10 @@ constexpr bool transactionDebugEnabled() noexcept {
 constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 
 
-[[gnu::address(0x2200)]] inline volatile CH351 AddressLinesInterface;
-[[gnu::address(0x2208)]] inline volatile CH351 DataLinesInterface;
-[[gnu::address(0x2210)]] inline volatile CH351 ControlSignals;
-[[gnu::address(0x2218)]] inline volatile CH351 XBusBank;
+[[gnu::address(0x8000)]] inline volatile CH351 AddressLinesInterface;
+[[gnu::address(0x8008)]] inline volatile CH351 DataLinesInterface;
+[[gnu::address(0x8010)]] inline volatile CH351 ControlSignals;
+[[gnu::address(0x8018)]] inline volatile CH351 XBusBank;
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -397,7 +397,7 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
+    static constexpr uintptr_t MemoryWindowBaseAddress = 0b1111'1101'0000'0000;
     static constexpr auto TransferBufferSize = 16384;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
@@ -1317,7 +1317,7 @@ setup() {
     pinMode(Pin::ExternalMemoryOperation, INPUT);
     pinMode(Pin::WriteTransaction, INPUT);
     // setup the EBI
-    XMCRB=0b0'0000'000;
+    XMCRB=0b0'0000'110;
     XMCRA=0b1'010'01'01;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s

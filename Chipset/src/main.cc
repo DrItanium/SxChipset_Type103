@@ -397,7 +397,7 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::SixteenK> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uintptr_t MemoryWindowBaseAddress = 0b1111'1101'0000'0000;
+    static constexpr uintptr_t MemoryWindowBaseAddress = 0xC000;
     static constexpr auto TransferBufferSize = 16384;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
@@ -592,7 +592,7 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uintptr_t MemoryWindowBaseAddress = 0xFF00;
+    static constexpr uintptr_t MemoryWindowBaseAddress = 0xFD00;
     static constexpr auto TransferBufferSize = 256;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
@@ -1293,7 +1293,8 @@ setup() {
     PRR0 = 0b0000'0001; // deactivate ADC
     setupCLK1();
     setupReadySignal();
-
+    getDirectionRegister<Port::EBI_Upper>() = 0xFF;
+    getOutputRegister<Port::EBI_Upper>() = 0;
     
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);

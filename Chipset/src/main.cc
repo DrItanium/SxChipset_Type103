@@ -581,7 +581,6 @@ public:
         }
     }
 };
-
 template<>
 struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
     using Self = MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit>;
@@ -597,15 +596,26 @@ private:
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
         auto hi = view[1];
-        if constexpr (EnableTransactionDebug) {
-            auto value = makeWord(hi, lo);
-            DebugConsole.printf(F("doReadOperation: 0x%x\n"), value);
-        }
         DataInterface::setLowerDataByte(lo);
         DataInterface::setUpperDataByte(hi);
     }
     static DataRegister8 computeTransactionAddress() noexcept {
-        return memoryPointer<uint8_t>(static_cast<uint16_t>(AddressLinesInterface.view8.data[0]) | MemoryWindowBaseAddress);
+        // this allows me to save an instruction on AVR processors
+        // we force set the register pair to lower half and then just assign
+        // the upper half to 0xFD
+        union {
+            uint8_t halves[2];
+            uint16_t whole;
+        } thingy;
+        thingy.halves[0] = AddressLinesInterface.view8.data[0];
+        thingy.halves[1] = 0xFD;
+        return memoryPointer<uint8_t>(thingy.whole);
+
+        // the more compact version of this code 
+        //return memoryPointer<uint8_t>(static_cast<uint16_t>(AddressLinesInterface.view8.data[0]) | MemoryWindowBaseAddress);
+        // yields three instructions due to the fact that the upper half is
+        // cleared and then or'd with 0xFD
+        
     }
 public:
     static void configure() noexcept {

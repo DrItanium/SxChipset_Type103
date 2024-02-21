@@ -1235,12 +1235,19 @@ setupCLK1() noexcept {
     timer3.TCCRxA = 0b01'00'00'00;
     timer3.TCCRxB = 0b00'0'01'001;
 }
-
-
-volatile bool foundExternalMemoryConnection = false;
+inline void clearFoundExternalMemoryConnection() {
+    bitClear(GPIOR0, 0);
+}
+inline void setFoundExternalMemoryConnection() {
+    bitSet(GPIOR0, 0);
+}
+inline bool foundExternalMemoryConnection() noexcept {
+    return bit_is_set(GPIOR0, 0);
+}
 constexpr uint8_t outputBuffer[2] { 1, 2, };
 void
 setupMemoryConnection() noexcept {
+    clearFoundExternalMemoryConnection();
     Serial.print(F("Setting up memory cache"));
     MemoryConnection.begin(115'200);
     // clear the cache
@@ -1262,13 +1269,13 @@ setupMemoryConnection() noexcept {
         auto count = MemoryConnection.readBytes(resultantBuffer, 2);
         if (count == 2) {
             if (resultantBuffer[0] == 0x1 && resultantBuffer[1] == 0x55) {
-                foundExternalMemoryConnection = true;
+                setFoundExternalMemoryConnection();
                 break;
             }
         }
     }
     Serial.println(F("DONE"));
-    if (!foundExternalMemoryConnection) {
+    if (!foundExternalMemoryConnection()) {
         Serial.println(F("No External Memory Connection Found!"));
     } else {
         Serial.println(F("External Memory Connection Found!"));
@@ -1393,7 +1400,7 @@ executionBody() {
 }
 void 
 loop() {
-    if (foundExternalMemoryConnection) {
+    if (foundExternalMemoryConnection()) {
         executionBody<true>();
     } else {
         executionBody<false>();

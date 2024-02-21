@@ -591,7 +591,8 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uintptr_t MemoryWindowBaseAddress = 0xFD00;
+    static constexpr uint8_t MemoryWindowUpperHalf = 0xFD;
+    static constexpr uintptr_t MemoryWindowBaseAddress = (static_cast<uint16_t>(MemoryWindowUpperHalf) << 8);
     static constexpr auto TransferBufferSize = 256;
     static void doSingleReadOperation(DataRegister8 view) {
         auto lo = view[0];
@@ -608,7 +609,7 @@ private:
             uint16_t whole;
         } thingy;
         thingy.halves[0] = AddressLinesInterface.view8.data[0];
-        thingy.halves[1] = 0xFD;
+        thingy.halves[1] = MemoryWindowUpperHalf;
         return memoryPointer<uint8_t>(thingy.whole);
 
         // the more compact version of this code 

@@ -1300,14 +1300,13 @@ doCoreIO() noexcept {
 }
 
 template<bool isReadOperation>
-FORCE_INLINE
-inline
+[[gnu::noinline]]
 void 
 doIO() noexcept { 
         doCoreIO<isReadOperation>();
 }
 template<bool isReadOperation>
-inline
+[[gnu::noinline]]
 void
 doExternalCommunication() noexcept {
     uint32_t address = AddressLinesInterface.view32.data;
@@ -1536,6 +1535,7 @@ setup() {
     pullCPUOutOfReset();
 }
 template<bool allowMemoryConnection>
+[[gnu::noinline]]
 [[noreturn]]
 void
 executionBody() {

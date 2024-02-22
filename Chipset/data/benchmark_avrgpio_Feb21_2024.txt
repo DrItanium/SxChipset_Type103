@@ -1,0 +1,26 @@
+10-bit bus with GPIOR0 used for memory connection found flag and eliminating an
+instruction when making the transaction address at the assembly level
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     55.3374      0.2530
+     2     -3.8192e-14     36.7650      0.1904
+     3     -1.7902e-13     62.9117      0.2702
+     4     -2.7744e-13     52.1678      0.2875
+     5      1.0579e-12    108.0427      0.2684
+     6     -2.0101e-13    108.5138      0.2672
+     7      6.2528e-13     61.3900      0.1955
+     8     -5.7265e-13    106.1223      0.2827
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7256
+   MFLOPS(1)       =     0.2108
+   MFLOPS(2)       =     0.2403
+   MFLOPS(3)       =     0.2633
+   MFLOPS(4)       =     0.2760
+
+
+
+

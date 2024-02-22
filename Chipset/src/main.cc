@@ -607,6 +607,7 @@ private:
         union {
             uint8_t halves[2];
             uint16_t whole;
+            DataRegister8 ptr;
         } thingy;
         thingy.halves[0] = AddressLinesInterface.view8.data[0];
         thingy.halves[1] = MemoryWindowUpperHalf;
@@ -698,6 +699,66 @@ public:
         doReadSingular<14>(view);
         signalReady<0>();
     }
+    static void doReadOperation() noexcept {
+        union {
+            uint8_t halves[2];
+            uint16_t whole;
+            DataRegister8 ptr;
+        } thingy;
+        // setup the Z register as fast as possible
+        asm volatile (
+                "lds %0, 0x8000\n\t"
+                "ldi %1, 0xFD\n\t"
+                : "=z" (thingy.halves[0]) ,
+                  "=z" (thingy.halves[1])
+                :
+                );
+        auto view = thingy.ptr;
+        doReadSingular<0>(view);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady<0>();
+        doReadSingular<2>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<4>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<6>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<8>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<10>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<12>(view);
+        if (isBurstLast()) { 
+            signalReady<0>();
+            return;
+        } 
+        signalReady<0>();
+        doReadSingular<14>(view);
+        signalReady<0>();
+    }
     template<bool isReadOperation>
     static void doOperation(DataRegister8 view) noexcept {
         if constexpr (isReadOperation) {
@@ -708,9 +769,107 @@ public:
     }
     template<bool isReadOperation>
     static void doOperation() noexcept {
-        doOperation<isReadOperation>(computeTransactionAddress());
+        if constexpr (isReadOperation) {
+            doReadOperation();
+        } else {
+            doWriteOperation();
+        }
+
     }
     static void doWriteOperation(DataRegister8 view) noexcept {
+        auto body = [&view]() {
+            // we can pull the data off the bus and 
+            // request the next set of data from the i960 while we are stashing
+            // the current data
+            auto lo = getDataByte<0>();
+            auto hi = getDataByte<1>();
+            // we can drop the wait states because the store process will be
+            // taking place while the ready signal is being propagated
+            signalReady<0>();
+            // we do not need to check the enable signals because we already
+            // know that we are going to be continuing execution of this
+            // transaction. Thus we can ignore them and just do stores.
+            //
+            // If we are burst last then we only have to check BE1 because we
+            // "flow" into the end of the transaction.
+            view[0] = lo;
+            view[1] = hi;
+            view += 2;
+        };
+        auto whenDone = [&view]() {
+            view[0] = getDataByte<0>();
+            if (digitalRead<Pin::BE1>() == LOW) {
+                view[1] = getDataByte<1>();
+            }
+            signalReady<0>();
+        };
+        if (isBurstLast()) {
+            if (digitalRead<Pin::BE0>() == LOW) {
+                view[0] = getDataByte<0>();
+            }
+            if (digitalRead<Pin::BE1>() == LOW) {
+                view[1] = getDataByte<1>();
+            }
+            signalReady<0>();
+        } else {
+            if (digitalRead<Pin::BE0>() == LOW) {
+                view[0] = getDataByte<0>();
+            }
+            auto hi = getDataByte<1>();
+            signalReady<0>();
+            view[1] = hi;
+            view += 2;
+            insertCustomNopCount<2>(); // insert delay to make sure that
+                                       // isBurstLast is updated, replace with
+                                       // more operations if found
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            if (isBurstLast()) {
+                whenDone();
+                return;
+            }
+            body();
+            whenDone();
+        }
+    }
+    static void doWriteOperation() noexcept {
+        union {
+            uint8_t halves[2];
+            uint16_t whole;
+            DataRegister8 ptr;
+        } thingy;
+        // setup the Z register as fast as possible
+        asm volatile (
+                "lds %0, 0x8000\n\t"
+                "ldi %1, 0xFD\n\t"
+                : "=z" (thingy.halves[0]) ,
+                  "=z" (thingy.halves[1])
+                :
+                );
+        auto view = thingy.ptr;
         auto body = [&view]() {
             // we can pull the data off the bus and 
             // request the next set of data from the i960 while we are stashing

@@ -768,7 +768,7 @@ public:
         }
     }
     template<bool isReadOperation>
-    static void doOperation() noexcept {
+    inline static void doOperation() noexcept {
         if constexpr (isReadOperation) {
             doReadOperation();
         } else {
@@ -776,7 +776,7 @@ public:
         }
 
     }
-    static void doWriteOperation(DataRegister8 view) noexcept {
+    inline static void doWriteOperation(DataRegister8 view) noexcept {
         auto body = [&view]() {
             // we can pull the data off the bus and 
             // request the next set of data from the i960 while we are stashing

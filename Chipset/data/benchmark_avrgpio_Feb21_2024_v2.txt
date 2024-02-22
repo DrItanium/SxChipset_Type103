@@ -1,0 +1,22 @@
+Use inline assembler to compute Z register as fast as possible. (Plus all of the changes from the previous benchmark)
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     55.1229      0.2540
+     2     -3.8192e-14     36.6572      0.1910
+     3     -1.7902e-13     62.4781      0.2721
+     4     -2.7744e-13     51.9596      0.2887
+     5      1.0579e-12    107.7313      0.2692
+     6     -2.0101e-13    108.1355      0.2682
+     7      6.2528e-13     60.9693      0.1968
+     8     -5.7265e-13    105.7811      0.2836
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7248
+   MFLOPS(1)       =     0.2116
+   MFLOPS(2)       =     0.2415
+   MFLOPS(3)       =     0.2644
+   MFLOPS(4)       =     0.2771
+

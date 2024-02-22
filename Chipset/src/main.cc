@@ -32,6 +32,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "Setup.h"
 
+extern "C" [[noreturn]] void ExecutionBodyWithMemoryConnection();
+extern "C" [[noreturn]] void ExecutionBodyWithoutMemoryConnection();
+extern "C" [[gnu::used]] void doIOReadOperation();
+extern "C" [[gnu::used]] void doIOWriteOperation();
+extern "C" [[gnu::used]] void doExternalCommunicationReadOperation();
+extern "C" [[gnu::used]] void doExternalCommunicationWriteOperation();
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
@@ -40,6 +46,7 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 auto& DebugConsole = Serial;
 auto& MemoryConnection = Serial1;
+constexpr bool UseInlineAssemblyRoutine = true;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
     return true;
@@ -1298,20 +1305,36 @@ doCoreIO() noexcept {
     } 
     signalReady<0>(); 
 }
-
 template<bool isReadOperation>
-[[gnu::noinline]]
+inline
 void 
 doIO() noexcept { 
-        doCoreIO<isReadOperation>();
+    doCoreIO<isReadOperation>();
+}
+
+void 
+doIOReadOperation() {
+    doIO<true>();
+}
+void 
+doIOWriteOperation() {
+    doIO<false>();
 }
 template<bool isReadOperation>
-[[gnu::noinline]]
+inline
 void
 doExternalCommunication() noexcept {
     uint32_t address = AddressLinesInterface.view32.data;
     auto* line = getCacheLineContents<isReadOperation>(address);
     MemoryInterface::doOperation<isReadOperation>(line);
+}
+void 
+doExternalCommunicationReadOperation() {
+    doExternalCommunication<true>();
+}
+void 
+doExternalCommunicationWriteOperation() {
+    doExternalCommunication<false>();
 }
 template<bool isReadOperation, bool externalCommunicationSupported>
 FORCE_INLINE
@@ -1570,10 +1593,18 @@ executionBody() {
 }
 void 
 loop() {
+    if constexpr (UseInlineAssemblyRoutine) {
+        if (foundExternalMemoryConnection()) {
+            ExecutionBodyWithMemoryConnection();
+        } else {
+            ExecutionBodyWithoutMemoryConnection();
+        }
+    } else {
     if (foundExternalMemoryConnection()) {
         executionBody<true>();
     } else {
         executionBody<false>();
+    }
     }
 }
 

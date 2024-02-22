@@ -5,11 +5,19 @@ __SREG__ = 0x3f
 __RAMPZ__ = 0x3b
 __tmp_reg__ = 0
 __zero_reg__ = 1
-AddressLinesInterface=0x8000
-MemoryWindowUpper=0xFD
-.global _ExecutionBodyWithMemoryConnection
-.global _ExecutionBodyWithoutMemoryConnection
-_ExecutionBodyWithoutMemoryConnection:
+DDRF = 0x10
+DDRK = 263
+EIFR = 0x1c
+PING = 0x12
+AddressLinesInterface = 0x8000
+MemoryWindowUpper = 0xFD
+.global ExecutionBodyWithMemoryConnection
+.global ExecutionBodyWithoutMemoryConnection
+.global doIOReadOperation
+.global doIOWriteOperation
+.global doExternalCommunicationReadOperation
+.global doExternalCommunicationWriteOperation
+ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */
 /* stack size = 0 */
@@ -18,20 +26,20 @@ _ExecutionBodyWithoutMemoryConnection:
 	ldi r28,lo8(-3)
 	ldi r17,lo8(-1)
 .L563:
-	sbis 0x1c,4
+	sbis EIFR,4
 	rjmp .L563
-	sbis 0x1c,5
+	sbis EIFR,5
 	rjmp .L564
-	out 0x10,__zero_reg__
-	sts 263,__zero_reg__
-	out 0x1c,r29
+	out DDRF,__zero_reg__
+	sts DDRK,__zero_reg__
+	out EIFR,r29
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq .L634
 	cpi r24,lo8(-2)
 	brne .+2
 	rjmp .L635
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L668
 .L602:
 	sts 178,r28
@@ -99,7 +107,7 @@ _ExecutionBodyWithoutMemoryConnection:
 	rjmp .L669
 	rjmp .L668
 .L635:
-	call _Z4doIOILb0EEvv
+	call doIOWriteOperation 
 	rjmp .L618
 .L636:
 	sbic 0x12,3
@@ -154,7 +162,7 @@ _ExecutionBodyWithoutMemoryConnection:
 	std Z+5,r24
 	rjmp .L668
 .L605:
-	call _Z4doIOILb1EEvv
+	call doIOReadOperation
 	rjmp .L563
 .L621:
 /* #APP */
@@ -317,7 +325,7 @@ _ExecutionBodyWithoutMemoryConnection:
 	lds r24,262
 	std Z+15,r24
 	rjmp .L668
-_ExecutionBodyWithMemoryConnection:
+ExecutionBodyWithMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */
 /* stack size = 0 */
@@ -339,7 +347,7 @@ _ExecutionBodyWithMemoryConnection:
 .L970:
 	cpi r24,lo8(-2)
 	brne .L992
-	call _Z4doIOILb0EEvv
+	call doIOWriteOperation 
 .L880:
 	sbis 0x1c,4
 	rjmp .L880
@@ -381,7 +389,7 @@ _ExecutionBodyWithMemoryConnection:
 	sts 178,r29
 	rjmp .L880
 .L992:
-	call _Z23doExternalCommunicationILb0EEvv
+	call doExternalCommunicationWriteOperation
 	rjmp .L880
 .L993:
 	out 0x10,r17
@@ -395,7 +403,7 @@ _ExecutionBodyWithMemoryConnection:
 	cpi r24,lo8(-2)
 	breq .+2
 	rjmp .L994
-	call _Z4doIOILb1EEvv
+	call doIOReadOperation 
 	rjmp .L829
 .L895:
 	sbic 0x12,3
@@ -457,7 +465,7 @@ _ExecutionBodyWithMemoryConnection:
 	std Z+15,r24
 	rjmp .L924
 .L994:
-	call _Z23doExternalCommunicationILb1EEvv
+	call doExternalCommunicationReadOperation
 	rjmp .L829
 .L882:
 /* #APP */

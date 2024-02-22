@@ -11,6 +11,7 @@ EIFR = 0x1c
 PING = 0x12
 AddressLinesInterface = 0x8000
 MemoryWindowUpper = 0xFD
+TCNT2 = 0xb2
 .global ExecutionBodyWithMemoryConnection
 .global ExecutionBodyWithoutMemoryConnection
 .global doIOReadOperation
@@ -42,14 +43,14 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING,5
 	rjmp .L668
 .L602:
-	sts 178,r28
+	sts TCNT2,r28
 	nop
 	nop
 	nop
 	nop
 	nop
 	nop
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L602
 	rjmp .L668
 .L634:
@@ -60,9 +61,9 @@ ExecutionBodyWithoutMemoryConnection:
 	
  ;  0 "" 2
 /* #NOAPP */
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L636
-	sbic 0x12,3
+	sbic PING,3
 	rjmp .L637
 	in r24,0xf
 	st Z,r24
@@ -72,11 +73,11 @@ ExecutionBodyWithoutMemoryConnection:
 	std Z+1,r24
 	nop
 	nop
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L642
 	in r24,0xf
 	std Z+2,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L668
 	lds r24,262
 	std Z+3,r24
@@ -93,7 +94,7 @@ ExecutionBodyWithoutMemoryConnection:
 	breq .L634
 	cpi r24,lo8(-2)
 	breq .L635
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L668
 .L669:
 	sts 178,r28
@@ -103,19 +104,19 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L669
 	rjmp .L668
 .L635:
 	call doIOWriteOperation 
 	rjmp .L618
 .L636:
-	sbic 0x12,3
+	sbic PING,3
 	rjmp .L571
 	in r24,0xf
 	st Z,r24
 .L571:
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L668
 	lds r24,262
 	std Z+1,r24
@@ -131,7 +132,7 @@ ExecutionBodyWithoutMemoryConnection:
 	breq .L605
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 .L632:
 	sts 178,r28
@@ -141,7 +142,7 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L632
 .L728:
 	sts 178,r28
@@ -152,11 +153,11 @@ ExecutionBodyWithoutMemoryConnection:
 	sts 178,r28
 	std Z+2,r25
 	std Z+3,r24
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L645
 	in r24,0xf
 	std Z+4,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L668
 	lds r24,262
 	std Z+5,r24
@@ -176,49 +177,49 @@ ExecutionBodyWithoutMemoryConnection:
 	ldd r24,Z+1
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 	sts 178,r28
 	ldd r25,Z+2
 	ldd r24,Z+3
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 	sts 178,r28
 	ldd r25,Z+4
 	ldd r24,Z+5
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 	sts 178,r28
 	ldd r25,Z+6
 	ldd r24,Z+7
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 	sts 178,r28
 	ldd r25,Z+8
 	ldd r24,Z+9
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 	sts 178,r28
 	ldd r25,Z+10
 	ldd r24,Z+11
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 	sts 178,r28
 	ldd r25,Z+12
 	ldd r24,Z+13
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 	sts 178,r28
 	ldd r25,Z+14
@@ -238,7 +239,7 @@ ExecutionBodyWithoutMemoryConnection:
 	rjmp .L605
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L728
 .L617:
 	sts 178,r28
@@ -248,7 +249,7 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L617
 	sts 178,r28
 	rjmp .L563
@@ -258,11 +259,11 @@ ExecutionBodyWithoutMemoryConnection:
 	sts 178,r28
 	std Z+4,r25
 	std Z+5,r24
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L649
 	in r24,0xf
 	std Z+6,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L668
 	lds r24,262
 	std Z+7,r24
@@ -273,11 +274,11 @@ ExecutionBodyWithoutMemoryConnection:
 	sts 178,r28
 	std Z+6,r25
 	std Z+7,r24
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L653
 	in r24,0xf
 	std Z+8,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L668
 	lds r24,262
 	std Z+9,r24
@@ -288,11 +289,11 @@ ExecutionBodyWithoutMemoryConnection:
 	sts 178,r28
 	std Z+8,r25
 	std Z+9,r24
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L657
 	in r24,0xf
 	std Z+10,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L668
 	lds r24,262
 	std Z+11,r24
@@ -303,11 +304,11 @@ ExecutionBodyWithoutMemoryConnection:
 	sts 178,r28
 	std Z+10,r25
 	std Z+11,r24
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L661
 	in r24,0xf
 	std Z+12,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L668
 	lds r24,262
 	std Z+13,r24
@@ -320,7 +321,7 @@ ExecutionBodyWithoutMemoryConnection:
 	std Z+13,r24
 	in r24,0xf
 	std Z+14,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L668
 	lds r24,262
 	std Z+15,r24
@@ -365,9 +366,9 @@ ExecutionBodyWithMemoryConnection:
 	
  ;  0 "" 2
 /* #NOAPP */
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L895
-	sbic 0x12,3
+	sbic PING,3
 	rjmp .L896
 	in r24,0xf
 	st Z,r24
@@ -377,11 +378,11 @@ ExecutionBodyWithMemoryConnection:
 	std Z+1,r24
 	nop
 	nop
-	sbic 0x12,5
+	sbic PING,5
 	rjmp .L901
 	in r24,0xf
 	std Z+2,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L924
 	lds r24,262
 	std Z+3,r24
@@ -406,12 +407,12 @@ ExecutionBodyWithMemoryConnection:
 	call doIOReadOperation 
 	rjmp .L829
 .L895:
-	sbic 0x12,3
+	sbic PING,3
 	rjmp .L898
 	in r24,0xf
 	st Z,r24
 .L898:
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L924
 	lds r24,262
 	std Z+1,r24
@@ -422,35 +423,35 @@ ExecutionBodyWithMemoryConnection:
 	sts 178,r29
 	std Z+2,r25
 	std Z+3,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L995
 	in r25,0xf
 	lds r24,262
 	sts 178,r29
 	std Z+4,r25
 	std Z+5,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L996
 	in r25,0xf
 	lds r24,262
 	sts 178,r29
 	std Z+6,r25
 	std Z+7,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L997
 	in r25,0xf
 	lds r24,262
 	sts 178,r29
 	std Z+8,r25
 	std Z+9,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L998
 	in r25,0xf
 	lds r24,262
 	sts 178,r29
 	std Z+10,r25
 	std Z+11,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L999
 	in r25,0xf
 	lds r24,262
@@ -459,7 +460,7 @@ ExecutionBodyWithMemoryConnection:
 	std Z+13,r24
 	in r24,0xf
 	std Z+14,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L924
 	lds r24,262
 	std Z+15,r24
@@ -479,49 +480,49 @@ ExecutionBodyWithMemoryConnection:
 	ldd r24,Z+1
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L967
 	sts 178,r29
 	ldd r25,Z+2
 	ldd r24,Z+3
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L967
 	sts 178,r29
 	ldd r25,Z+4
 	ldd r24,Z+5
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L967
 	sts 178,r29
 	ldd r25,Z+6
 	ldd r24,Z+7
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L967
 	sts 178,r29
 	ldd r25,Z+8
 	ldd r24,Z+9
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L967
 	sts 178,r29
 	ldd r25,Z+10
 	ldd r24,Z+11
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L967
 	sts 178,r29
 	ldd r25,Z+12
 	ldd r24,Z+13
 	out 0x11,r25
 	sts 264,r24
-	sbis 0x12,5
+	sbis PING,5
 	rjmp .L967
 	sts 178,r29
 	ldd r25,Z+14
@@ -534,7 +535,7 @@ ExecutionBodyWithMemoryConnection:
 .L995:
 	in r24,0xf
 	std Z+4,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L924
 	lds r24,262
 	std Z+5,r24
@@ -542,7 +543,7 @@ ExecutionBodyWithMemoryConnection:
 .L996:
 	in r24,0xf
 	std Z+6,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L924
 	lds r24,262
 	std Z+7,r24
@@ -550,7 +551,7 @@ ExecutionBodyWithMemoryConnection:
 .L997:
 	in r24,0xf
 	std Z+8,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L924
 	lds r24,262
 	std Z+9,r24
@@ -558,7 +559,7 @@ ExecutionBodyWithMemoryConnection:
 .L998:
 	in r24,0xf
 	std Z+10,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L924
 	lds r24,262
 	std Z+11,r24
@@ -566,7 +567,7 @@ ExecutionBodyWithMemoryConnection:
 .L999:
 	in r24,0xf
 	std Z+12,r24
-	sbic 0x12,4
+	sbic PING,4
 	rjmp .L924
 	lds r24,262
 	std Z+13,r24

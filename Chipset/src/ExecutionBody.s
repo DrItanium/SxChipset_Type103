@@ -94,6 +94,14 @@ ExecutionBodyWithoutMemoryConnection:
 /* stack size = 0 */
 	setupRegisterConstants
 	rjmp ReadTransactionStart ; jump into the top of the invocation loop
+DoNothing_ReadOperation:
+	out PORTF, __zero_reg__
+	sts PORTK, __zero_reg__
+	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart
+1:
+	signalReady
+	delay6cycles
+	sbicrj PING, 5, 1b
 FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 ReadTransactionStart:
@@ -172,8 +180,7 @@ ShiftFromWriteToRead:
 	call doIOReadOperation
 	rjmp ReadTransactionStart
 1:
-	call readOperation_DoNothing
-	rjmp ReadTransactionStart
+	rjmp DoNothing_ReadOperation
 .L642:
 	in r25,PINF
 	lds r24,PINK
@@ -248,8 +255,7 @@ PrimaryReadTransaction:
 	call doIOReadOperation
 	rjmp ReadTransactionStart
 1:
-	call readOperation_DoNothing
-	rjmp ReadTransactionStart
+	rjmp DoNothing_ReadOperation
 .L645:
 	in r25,PINF
 	lds r24,PINK

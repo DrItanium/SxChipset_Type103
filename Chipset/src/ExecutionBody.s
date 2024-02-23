@@ -141,12 +141,12 @@ ShiftFromWriteToRead:
 	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
 doNothingLoop2:
 	signalReady 
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	rjmp compaction7
+compaction7:
+	rjmp compaction8
+compaction8:
+	rjmp compaction9
+compaction9:
 	sbicrj PING,5, doNothingLoop2
 .L642:
 	in r25,0xf
@@ -229,12 +229,12 @@ gotoFallback2:
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 doNothingLoop3:
 	signalReady 
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	rjmp compaction10
+compaction10:
+	rjmp compaction11
+compaction11:
+	rjmp compaction12
+compaction12:
 	sbicrj PING,5, doNothingLoop3
 	rjmp FirstSignalReady_ThenReadTransactionStart
 .L645:

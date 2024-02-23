@@ -67,6 +67,20 @@ __iospace_sec_reg__ = 2
 .endm
 
 .text
+
+readOperation_DoNothing:
+	out PORTF,__zero_reg__
+	sts PORTK,__zero_reg__
+writeOperation_DoNothing:
+	sbisrj PING, 5, readOperation_DoNothing_Done ; if BLAST is low then we are done and just return
+readOperation_DoNothing_LoopBody:
+	signalReady
+	delay6cycles
+	sbicrj PING, 5, readOperation_DoNothing_LoopBody
+readOperation_DoNothing_Done:
+	signalReady
+	ret
+	
 ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */
@@ -93,12 +107,8 @@ ReadTransactionStart:
 	call doIOWriteOperation
 	rjmp WriteTransactionStart
 1:
-	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
-doNothingLoop0:
-	signalReady 
-	delay6cycles
-	sbicrj PING,5, doNothingLoop0
-	rjmp SignalReady_ThenWriteTransactionStart
+	call writeOperation_DoNothing
+	rjmp WriteTransactionStart
 doWriteTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
@@ -132,12 +142,8 @@ WriteTransactionStart:
 	call doIOWriteOperation 
 	rjmp WriteTransactionStart
 1:
-	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
-doNothingWriteLoop0:
-	signalReady 
-	delay6cycles
-	sbicrj PING,5, doNothingWriteLoop0
-	rjmp SignalReady_ThenWriteTransactionStart
+	call writeOperation_DoNothing
+	rjmp WriteTransactionStart
 do16BitReadOperation:
 	sbicrj PING,3, SkipOverStoringToBE0_WriteTransaction
 	in r24,PINF
@@ -159,14 +165,8 @@ ShiftFromWriteToRead:
 	call doIOReadOperation
 	rjmp ReadTransactionStart
 1:
-	out 0x11,__zero_reg__
-	sts PORTK,__zero_reg__
-	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
-doNothingLoop2:
-	signalReady 
-	delay6cycles
-	sbicrj PING,5, doNothingLoop2
-	rjmp FirstSignalReady_ThenReadTransactionStart
+	call readOperation_DoNothing
+	rjmp ReadTransactionStart
 .L642:
 	in r25,PINF
 	lds r24,PINK
@@ -241,14 +241,8 @@ PrimaryReadTransaction:
 	call doIOReadOperation
 	rjmp ReadTransactionStart
 1:
-	out 0x11,__zero_reg__
-	sts PORTK,__zero_reg__
-	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
-doNothingLoop3:
-	signalReady 
-	delay6cycles
-	sbicrj PING,5, doNothingLoop3
-	rjmp FirstSignalReady_ThenReadTransactionStart
+	call readOperation_DoNothing
+	rjmp ReadTransactionStart
 .L645:
 	in r25,PINF
 	lds r24,PINK

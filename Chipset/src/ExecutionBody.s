@@ -12,6 +12,7 @@ PING = 0x12
 AddressLinesInterface = 0x8000
 MemoryWindowUpper = 0xFD
 TCNT2 = 0xb2
+__memory_window_upper_reg__ = 6
 __rdy_signal_count_reg__ = 5
 __eifr_mask_reg__ = 4
 __direction_ff_reg__ = 3
@@ -41,6 +42,8 @@ __iospace_sec_reg__ = 2
 	mov __iospace_sec_reg__, r16
 	ser r16
 	mov __direction_ff_reg__, r16 ; 0xff
+	ldi r16, MemoryWindowUpper
+	mov __memory_window_upper_reg__, r16
 .endm
 .global ExecutionBodyWithoutMemoryConnection
 .global ExecutionBodyWithMemoryConnection

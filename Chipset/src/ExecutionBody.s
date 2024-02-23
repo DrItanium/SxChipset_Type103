@@ -65,6 +65,7 @@ ReadTransactionStart:
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	out EIFR,__eifr_mask_reg__
+; we need to use cpse instead of breq to allow for better jumping destination
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq doReadTransaction_Primary ; equals zero

@@ -60,8 +60,9 @@ ReadTransactionStart:
 	tst r24
 	breq .L634 ; equals zero
 	cpi r24,lo8(-2) ; 0xFE
-	brne .+2
+	brne gotoFallback0
 	rjmp performIOWriteCall
+gotoFallback0:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
@@ -74,12 +75,7 @@ doNothingLoop0:
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 .L634:
-/* #APP */
- ;  871 "src/main.cc" 1
  computeTransactionWindow
-	
- ;  0 "" 2
-/* #NOAPP */
 	sbisrj PING,5, .L636
 	sbicrj PING,3, SkipOverStoringToBE0
 	in r24,0xf
@@ -88,8 +84,8 @@ SkipOverStoringToBE0:
 	lds r24,262
 	signalReady 
 	std Z+1,r24
-	nop
-	nop
+	rjmp delayJump0
+delayJump0:
 	sbicrj PING, 5, .L642
 	in r24,0xf
 	std Z+2,r24
@@ -138,7 +134,7 @@ ShiftFromWriteToRead:
 	tst r24
 	breq DoReadIntermediateFromWrite
 	cpi r24,lo8(-2)
-	breq .L605
+	breq doIOReadThenJumpToReadTransaction
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
 	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
@@ -164,7 +160,7 @@ doNothingLoop2:
 	lds r24,262
 	std Z+5,r24
 	rjmp SignalReady_ThenWriteTransactionStart
-.L605:
+doIOReadThenJumpToReadTransaction: # .L605
 	call doIOReadOperation
 	rjmp ReadTransactionStart
 DoReadIntermediateFromWrite: 
@@ -224,7 +220,7 @@ DoReadIntermediateFromWrite:
 	rjmp DoReadIntermediateFromWrite
 	cpi r24,lo8(-2)
 	brne .+2
-	rjmp .L605
+	rjmp doIOReadThenJumpToReadTransaction
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart

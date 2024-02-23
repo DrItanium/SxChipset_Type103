@@ -141,9 +141,7 @@ ShiftFromWriteToRead:
 	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
 doNothingLoop2:
 	signalReady 
-	delay2cycles
-	delay2cycles
-	delay2cycles
+	delay6cycles
 	sbicrj PING,5, doNothingLoop2
 .L642:
 	in r25,0xf
@@ -226,9 +224,7 @@ gotoFallback2:
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 doNothingLoop3:
 	signalReady 
-	delay2cycles
-	delay2cycles
-	delay2cycles
+	delay6cycles
 	sbicrj PING,5, doNothingLoop3
 	rjmp FirstSignalReady_ThenReadTransactionStart
 .L645:

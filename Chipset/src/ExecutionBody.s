@@ -138,7 +138,7 @@ SignalReady_ThenWriteTransactionStart:
 	breq .L605
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
-	sbisrj PING, 5, .L728
+	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
 .L632:
 	signalReady 
 	nop
@@ -149,8 +149,6 @@ SignalReady_ThenWriteTransactionStart:
 	nop
 	sbic PING,5
 	rjmp .L632
-.L728:
-	rjmp FirstSignalReady_ThenReadTransactionStart
 .L642:
 	in r25,0xf
 	lds r24,262
@@ -180,50 +178,43 @@ SignalReady_ThenWriteTransactionStart:
 	ldd r24,Z+1
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Z+2
 	ldd r24,Z+3
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Z+4
 	ldd r24,Z+5
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Z+6
 	ldd r24,Z+7
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Z+8
 	ldd r24,Z+9
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Z+10
 	ldd r24,Z+11
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Z+12
 	ldd r24,Z+13
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Z+14
 	ldd r24,Z+15
@@ -241,7 +232,7 @@ SignalReady_ThenWriteTransactionStart:
 	rjmp .L605
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
-	sbisrj PING,5, .L728
+	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 .L617:
 	signalReady 
 	nop

@@ -66,12 +66,12 @@ gotoFallback0:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	rjmp compaction3
+compaction3:
+	rjmp compaction4
+compaction4:
+	rjmp compaction5
+compaction5:
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 doReadTransaction_Primary:
@@ -84,8 +84,8 @@ SkipOverStoringToBE0:
 	lds r24,262
 	signalReady 
 	std Z+1,r24
-	nop
-	nop
+	rjmp compaction6
+compaction6:
 	sbicrj PING, 5, .L642
 ; so we end here and continue on
 	in r24,0xf
@@ -107,12 +107,12 @@ WriteTransactionStart:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingWriteLoop0:
 	signalReady 
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+	rjmp compaction0
+compaction0:
+	rjmp compaction1
+compaction1:
+	rjmp compaction2
+compaction2:
 	sbicrj PING,5, doNothingWriteLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 performIOWriteCall:

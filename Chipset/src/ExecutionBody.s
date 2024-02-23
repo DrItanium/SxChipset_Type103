@@ -15,6 +15,31 @@ TCNT2 = 0xb2
 .macro signalReady name
 sts TCNT2, \name 
 .endm
+.macro JumpIfBlastLow dest
+	sbis PING, 5
+	rjmp \dest
+.endm
+.macro JumpIfBlastHigh dest
+	sbic PING, 5
+	rjmp \dest
+.endm
+.macro JumpIfBE0Low dest
+	sbis PING, 3
+	rjmp \dest
+.endm
+.macro JumpIfBE0High dest
+	sbic PING, 3
+	rjmp \dest
+.endm
+.macro JumpIfBE1Low dest
+	sbis PING, 4
+	rjmp \dest
+.endm
+.macro JumpIfBE1High dest
+	sbic PING, 4
+	rjmp \dest
+.endm
+
 .global ExecutionBodyWithMemoryConnection
 .global ExecutionBodyWithoutMemoryConnection
 .global doIOReadOperation
@@ -43,8 +68,7 @@ ExecutionBodyWithoutMemoryConnection:
 	cpi r24,lo8(-2)
 	brne .+2
 	rjmp .L635
-	sbis PING,5
-	rjmp .L668
+	JumpIfBlastLow .L668
 .L602:
 	signalReady r28
 	nop
@@ -53,8 +77,7 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	sbic PING,5
-	rjmp .L602
+	JumpIfBlastHigh .L602
 	rjmp .L668
 .L634:
 /* #APP */
@@ -64,10 +87,8 @@ ExecutionBodyWithoutMemoryConnection:
 	
  ;  0 "" 2
 /* #NOAPP */
-	sbis PING,5
-	rjmp .L636
-	sbic PING,3
-	rjmp .L637
+ 	JumpIfBlastLow .L636
+	JumpIfBE1High .L637
 	in r24,0xf
 	st Z,r24
 .L637:
@@ -76,8 +97,7 @@ ExecutionBodyWithoutMemoryConnection:
 	std Z+1,r24
 	nop
 	nop
-	sbic PING,5
-	rjmp .L642
+	JumpIfBlastHigh .L642
 	in r24,0xf
 	std Z+2,r24
 	sbic PING,4

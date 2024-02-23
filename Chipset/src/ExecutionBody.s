@@ -58,7 +58,7 @@ ReadTransactionStart:
 	out EIFR,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	breq .L634 ; equals zero
+	breq doReadTransaction_Primary ; equals zero
 	cpi r24,lo8(-2) ; 0xFE
 	brne gotoFallback0
 	rjmp performIOWriteCall
@@ -74,9 +74,9 @@ doNothingLoop0:
 	nop
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
-.L634:
- computeTransactionWindow
-	sbisrj PING,5, .L636
+doReadTransaction_Primary:
+	computeTransactionWindow
+	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	sbicrj PING,3, SkipOverStoringToBE0
 	in r24,0xf
 	st Z,r24
@@ -100,7 +100,7 @@ WriteTransactionStart:
 	out EIFR,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	breq .L634
+	breq doReadTransaction_Primary
 	cpi r24,lo8(-2)
 	breq performIOWriteCall
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
@@ -117,7 +117,7 @@ doNothingWriteLoop0:
 performIOWriteCall:
 	call doIOWriteOperation 
 	rjmp WriteTransactionStart
-.L636:
+do16BitReadOperation:
 	sbicrj PING,3, SkipOverStoringToBE0_WriteTransaction
 	in r24,0xf
 	st Z,r24

@@ -89,7 +89,7 @@ ReadTransactionStart:
 									; total is 2 cycles when it isn't true and three cycles when it is
 									; must keep the operation local though...
 	cp r24, __iospace_sec_reg__   ; is this equal to 0xFE
-	brne 1f						  ; 
+	brne 1f						  ; If they aren't equal then jump over and goto the do nothing action
 	call doIOWriteOperation
 	rjmp WriteTransactionStart
 1:
@@ -112,7 +112,7 @@ doWriteTransaction_Primary:
 	std Y+1,r24
 	delay2cycles
 	sbicrj PING, 5, .L642
-; so we end here and continue on
+	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	in r24,PINF
 	std Y+2,r24
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart

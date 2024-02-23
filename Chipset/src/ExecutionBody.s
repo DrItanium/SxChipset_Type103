@@ -45,6 +45,11 @@ __direction_ff_reg__ = 17
 	rjmp 1f
 1:
 .endm
+.macro delay6cycles
+	lpm ; tmp_reg is used implicity, who cares what we get back
+	lpm ; tmp_reg is used implicity, who cares what we get back
+.endm
+
 .text
 ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
@@ -70,9 +75,7 @@ gotoFallback0:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
-	delay2cycles
-	delay2cycles
-	delay2cycles
+	delay6cycles
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 doReadTransaction_Primary:
@@ -109,9 +112,7 @@ WriteTransactionStart:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingWriteLoop0:
 	signalReady 
-	delay2cycles
-	delay2cycles
-	delay2cycles
+	delay6cycles
 	sbicrj PING,5, doNothingWriteLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 performIOWriteCall:

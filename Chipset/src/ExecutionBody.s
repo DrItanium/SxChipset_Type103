@@ -12,9 +12,10 @@ PING = 0x12
 AddressLinesInterface = 0x8000
 MemoryWindowUpper = 0xFD
 TCNT2 = 0xb2
-__rdy_signal_count_reg__ = 28
-__eifr_mask_reg__ = 29
-__direction_ff_reg__ = 17
+__rdy_signal_count_reg__ = 5
+__eifr_mask_reg__ = 4
+__direction_ff_reg__ = 3
+__iospace_sec_reg__ = 2
 .macro signalReady 
 	sts TCNT2, __rdy_signal_count_reg__
 .endm
@@ -31,9 +32,15 @@ __direction_ff_reg__ = 17
 	ldi r31, MemoryWindowUpper
 .endm
 .macro setupRegisterConstants
-	ldi __eifr_mask_reg__,lo8(112)
-	ldi __rdy_signal_count_reg__,lo8(-3) ; load the ready signal amount
-	ldi __direction_ff_reg__,lo8(-1) ; direction
+; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
+	ldi r16, lo8(112)
+	mov __eifr_mask_reg__, r16
+	ldi r16, lo8(-3)
+	mov __rdy_signal_count_reg__, r16 ; load the ready signal amount
+	ldi r16, lo8(-2)
+	mov __iospace_sec_reg__, r16
+	ser r16
+	mov __direction_ff_reg__, r16 ; 0xff
 .endm
 .global ExecutionBodyWithoutMemoryConnection
 .global ExecutionBodyWithMemoryConnection
@@ -69,7 +76,7 @@ ReadTransactionStart:
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq doReadTransaction_Primary ; equals zero
-	cpi r24,lo8(-2) ; 0xFE
+	cp r24, __iospace_sec_reg__
 	brne gotoFallback0
 	rjmp performIOWriteCall
 gotoFallback0:
@@ -108,7 +115,7 @@ WriteTransactionStart:
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq doReadTransaction_Primary
-	cpi r24,lo8(-2)
+	cp r24, __iospace_sec_reg__
 	breq performIOWriteCall
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingWriteLoop0:
@@ -135,7 +142,7 @@ ShiftFromWriteToRead:
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq DoReadIntermediateFromWrite
-	cpi r24,lo8(-2)
+	cp r24, __iospace_sec_reg__
 	breq doIOReadThenJumpToReadTransaction
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
@@ -216,7 +223,7 @@ readToWriteTransaction:
 	brne gotoFallback1
 	rjmp DoReadIntermediateFromWrite
 gotoFallback1:
-	cpi r24,lo8(-2)
+	cp r24, __iospace_sec_reg__
 	brne gotoFallback2
 	rjmp doIOReadThenJumpToReadTransaction
 gotoFallback2:
@@ -311,7 +318,7 @@ ExecutionBodyWithMemoryConnection:
 	tst r24
 	breq .L893
 .L970:
-	cpi r24,lo8(-2)
+	cp r24, __iospace_sec_reg__
 	brne .L992
 	call doIOWriteOperation 
 .L880:
@@ -358,7 +365,7 @@ ExecutionBodyWithMemoryConnection:
 	tst r24
 	brne .+2
 	rjmp .L882
-	cpi r24,lo8(-2)
+	cp r24,__iospace_sec_reg__
 	breq .+2
 	rjmp .L994
 	call doIOReadOperation 

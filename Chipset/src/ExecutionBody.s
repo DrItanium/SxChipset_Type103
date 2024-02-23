@@ -77,10 +77,10 @@ doNothingLoop0:
  ;  0 "" 2
 /* #NOAPP */
 	sbisrj PING,5, .L636
-	sbicrj PING,3, .L637
+	sbicrj PING,3, SkipOverStoringToBE0
 	in r24,0xf
 	st Z,r24
-.L637:
+SkipOverStoringToBE0:
 	lds r24,262
 	signalReady 
 	std Z+1,r24
@@ -96,7 +96,7 @@ SignalReady_ThenWriteTransactionStart:
 	signalReady 
 WriteTransactionStart:
 	sbisrj EIFR,4, WriteTransactionStart
-	sbisrj EIFR,5, .L749
+	sbisrj EIFR,5, ShiftFromWriteToRead 
 	out EIFR,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
@@ -118,27 +118,27 @@ performIOWriteCall:
 	call doIOWriteOperation 
 	rjmp WriteTransactionStart
 .L636:
-	sbicrj PING,3, .L571
+	sbicrj PING,3, SkipOverStoringToBE0_WriteTransaction
 	in r24,0xf
 	st Z,r24
-.L571:
+SkipOverStoringToBE0_WriteTransaction:
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+1,r24
 	rjmp SignalReady_ThenWriteTransactionStart
-.L749:
+ShiftFromWriteToRead:
 	out 0x10,__direction_ff_reg__
 	sts 263,__direction_ff_reg__
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	breq .L621
+	breq DoReadIntermediateFromWrite
 	cpi r24,lo8(-2)
 	breq .L605
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
 	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
-.L632:
+doNothingLoop2:
 	signalReady 
 	nop
 	nop
@@ -146,7 +146,7 @@ performIOWriteCall:
 	nop
 	nop
 	nop
-	sbicrj PING,5, .L632
+	sbicrj PING,5, doNothingLoop2
 .L642:
 	in r25,0xf
 	lds r24,262
@@ -163,13 +163,8 @@ performIOWriteCall:
 .L605:
 	call doIOReadOperation
 	rjmp ReadTransactionStart
-.L621:
-/* #APP */
- ;  715 "src/main.cc" 1
- computeTransactionWindow
-	
- ;  0 "" 2
-/* #NOAPP */
+DoReadIntermediateFromWrite: 
+	computeTransactionWindow
 	ld r25,Z
 	ldd r24,Z+1
 	out 0x11,r25
@@ -222,14 +217,14 @@ performIOWriteCall:
 	lds r24,AddressLinesInterface+3
 	tst r24
 	brne .+2
-	rjmp .L621
+	rjmp DoReadIntermediateFromWrite
 	cpi r24,lo8(-2)
 	brne .+2
 	rjmp .L605
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
-.L617:
+doNothingLoop3:
 	signalReady 
 	nop
 	nop
@@ -237,7 +232,7 @@ performIOWriteCall:
 	nop
 	nop
 	nop
-	sbicrj PING,5, .L617
+	sbicrj PING,5, doNothingLoop3
 	rjmp FirstSignalReady_ThenReadTransactionStart
 .L645:
 	in r25,0xf
@@ -303,6 +298,10 @@ performIOWriteCall:
 	lds r24,262
 	std Z+15,r24
 	rjmp SignalReady_ThenWriteTransactionStart
+
+
+
+
 ExecutionBodyWithMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */

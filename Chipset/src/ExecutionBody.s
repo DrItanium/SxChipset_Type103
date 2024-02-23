@@ -76,15 +76,16 @@ ExecutionBodyWithoutMemoryConnection:
 FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 ReadTransactionStart:
-	sbisrj EIFR,4, ReadTransactionStart
-	sbisrj EIFR,5, readToWriteTransaction 
+	sbisrj EIFR,4, ReadTransactionStart ; keep waiting
+	sbisrj EIFR,5, PrimaryReadTransaction  ; 
+; start setting up for a write operation here
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	out EIFR,__eifr_mask_reg__
 ; we need to use cpse instead of breq to allow for better jumping destination
 	lds r24,AddressLinesInterface+3
 	tst r24
-	breq doReadTransaction_Primary ; equals zero
+	breq doWriteTransaction_Primary ; equals zero
 	cp r24, __iospace_sec_reg__
 	brne 1f 
 	rjmp performIOWriteCall
@@ -95,7 +96,7 @@ doNothingLoop0:
 	delay6cycles
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
-doReadTransaction_Primary:
+doWriteTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	sbicrj PING,3, SkipOverStoringToBE0
@@ -123,7 +124,7 @@ WriteTransactionStart:
 	out EIFR,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	breq doReadTransaction_Primary
+	breq doWriteTransaction_Primary
 	cp r24, __iospace_sec_reg__
 	breq performIOWriteCall
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
@@ -150,7 +151,7 @@ ShiftFromWriteToRead:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	breq DoReadIntermediateFromWrite
+	breq ReadStreamingOperation 
 	cp r24, __iospace_sec_reg__
 	breq doIOReadThenJumpToReadTransaction
 	out 0x11,__zero_reg__
@@ -176,7 +177,7 @@ doNothingLoop2:
 doIOReadThenJumpToReadTransaction: # .L605
 	call doIOReadOperation
 	rjmp ReadTransactionStart
-DoReadIntermediateFromWrite: 
+ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
 	ldd r24,Y+1
@@ -225,12 +226,12 @@ DoReadIntermediateFromWrite:
 	out 0x11,r25
 	sts PORTK,r24
 	rjmp FirstSignalReady_ThenReadTransactionStart
-readToWriteTransaction:
+PrimaryReadTransaction:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
 	brne 1f
-	rjmp DoReadIntermediateFromWrite
+	rjmp ReadStreamingOperation 
 1:
 	cp r24, __iospace_sec_reg__
 	brne 1f

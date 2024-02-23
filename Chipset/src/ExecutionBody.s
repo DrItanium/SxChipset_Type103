@@ -5,8 +5,12 @@ __SREG__ = 0x3f
 __RAMPZ__ = 0x3b
 __tmp_reg__ = 0
 __zero_reg__ = 1
+PORTF = 0x11
 DDRF = 0x10
+PINF = 0x0F
+PINK = 262
 DDRK = 263
+PORTK = 264
 EIFR = 0x1c
 PING = 0x12
 AddressLinesInterface = 0x8000
@@ -96,19 +100,19 @@ doReadTransaction_Primary:
 	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	sbicrj PING,3, SkipOverStoringToBE0
 ; singular operation
-	in r24,0xf
+	in r24,PINF
 	st Y,r24
 SkipOverStoringToBE0:
-	lds r24,262
+	lds r24,PINK
 	signalReady 
 	std Y+1,r24
 	delay2cycles
 	sbicrj PING, 5, .L642
 ; so we end here and continue on
-	in r24,0xf
+	in r24,PINF
 	std Y+2,r24
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,262
+	lds r24,PINK
 	std Y+3,r24
 
 SignalReady_ThenWriteTransactionStart:
@@ -133,11 +137,11 @@ performIOWriteCall:
 	rjmp WriteTransactionStart
 do16BitReadOperation:
 	sbicrj PING,3, SkipOverStoringToBE0_WriteTransaction
-	in r24,0xf
+	in r24,PINF
 	st Y,r24
 SkipOverStoringToBE0_WriteTransaction:
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,262
+	lds r24,PINK
 	std Y+1,r24
 	rjmp SignalReady_ThenWriteTransactionStart
 ShiftFromWriteToRead:
@@ -150,23 +154,23 @@ ShiftFromWriteToRead:
 	cp r24, __iospace_sec_reg__
 	breq doIOReadThenJumpToReadTransaction
 	out 0x11,__zero_reg__
-	sts 264,__zero_reg__
+	sts PORTK,__zero_reg__
 	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
 doNothingLoop2:
 	signalReady 
 	delay6cycles
 	sbicrj PING,5, doNothingLoop2
 .L642:
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady 
 	std Y+2,r25
 	std Y+3,r24
 	sbicrj PING,5, .L645
-	in r24,0xf
+	in r24,PINF
 	std Y+4,r24
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,262
+	lds r24,PINK
 	std Y+5,r24
 	rjmp SignalReady_ThenWriteTransactionStart
 doIOReadThenJumpToReadTransaction: # .L605
@@ -177,49 +181,49 @@ DoReadIntermediateFromWrite:
 	ld r25,Y
 	ldd r24,Y+1
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+2
 	ldd r24,Y+3
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+4
 	ldd r24,Y+5
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+6
 	ldd r24,Y+7
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+8
 	ldd r24,Y+9
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+10
 	ldd r24,Y+11
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+12
 	ldd r24,Y+13
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+14
 	ldd r24,Y+15
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	rjmp FirstSignalReady_ThenReadTransactionStart
 readToWriteTransaction:
 	out 0x1c,__eifr_mask_reg__
@@ -233,7 +237,7 @@ gotoFallback1:
 	rjmp doIOReadThenJumpToReadTransaction
 gotoFallback2:
 	out 0x11,__zero_reg__
-	sts 264,__zero_reg__
+	sts PORTK,__zero_reg__
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 doNothingLoop3:
 	signalReady 
@@ -241,67 +245,67 @@ doNothingLoop3:
 	sbicrj PING,5, doNothingLoop3
 	rjmp FirstSignalReady_ThenReadTransactionStart
 .L645:
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+4,r25
 	std Y+5,r24
 	sbicrj PING,5, .L649
-	in r24,0xf
+	in r24,PINF
 	std Y+6,r24
 	sbicrj PING,4,SignalReady_ThenWriteTransactionStart
-	lds r24,262
+	lds r24,PINK
 	std Y+7,r24
 	rjmp SignalReady_ThenWriteTransactionStart
 .L649:
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+6,r25
 	std Y+7,r24
 	sbicrj PING,5, .L653
-	in r24,0xf
+	in r24,PINF
 	std Y+8,r24
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,262
+	lds r24,PINK
 	std Y+9,r24
 	rjmp SignalReady_ThenWriteTransactionStart
 .L653:
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+8,r25
 	std Y+9,r24
 	sbicrj PING,5, .L657
-	in r24,0xf
+	in r24,PINF
 	std Y+10,r24
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,262
+	lds r24,PINK
 	std Y+11,r24
 	rjmp SignalReady_ThenWriteTransactionStart
 .L657:
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+10,r25
 	std Y+11,r24
 	sbicrj PING,5, .L661
-	in r24,0xf
+	in r24,PINF
 	std Y+12,r24
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,262
+	lds r24,PINK
 	std Y+13,r24
 	rjmp SignalReady_ThenWriteTransactionStart
 .L661:
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+12,r25
 	std Y+13,r24
-	in r24,0xf
+	in r24,PINF
 	std Y+14,r24
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,262
+	lds r24,PINK
 	std Y+15,r24
 	rjmp SignalReady_ThenWriteTransactionStart
 
@@ -342,18 +346,18 @@ ExecutionBodyWithMemoryConnection:
 /* #NOAPP */
 	sbisrj PING,5, .L895
 	sbicrj PING,3, .L896
-	in r24,0xf
+	in r24,PINF
 	st Y,r24
 .L896:
-	lds r24,262
+	lds r24,PINK
 	signalReady
 	std Y+1,r24
 	delay2cycles
 	sbicrj PING,5, .L901
-	in r24,0xf
+	in r24,PINF
 	std Y+2,r24
 	sbicrj PING,4, .L924
-	lds r24,262
+	lds r24,PINK
 	std Y+3,r24
 .L924:
 	signalReady
@@ -377,53 +381,53 @@ ExecutionBodyWithMemoryConnection:
 	rjmp .L829
 .L895:
 	sbicrj PING,3, .L898
-	in r24,0xf
+	in r24,PINF
 	st Y,r24
 .L898:
 	sbicrj PING,4, .L924
-	lds r24,262
+	lds r24,PINK
 	std Y+1,r24
 	rjmp .L924
 .L901:
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+2,r25
 	std Y+3,r24
 	sbisrj PING,5, .L995
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+4,r25
 	std Y+5,r24
 	sbisrj PING,5, .L996
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+6,r25
 	std Y+7,r24
 	sbisrj PING,5, .L997
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+8,r25
 	std Y+9,r24
 	sbisrj PING,5, .L998
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+10,r25
 	std Y+11,r24
 	sbisrj PING,5, .L999
-	in r25,0xf
-	lds r24,262
+	in r25,PINF
+	lds r24,PINK
 	signalReady
 	std Y+12,r25
 	std Y+13,r24
-	in r24,0xf
+	in r24,PINF
 	std Y+14,r24
 	sbicrj PING,4, .L924
-	lds r24,262
+	lds r24,PINK
 	std Y+15,r24
 	rjmp .L924
 .L994:
@@ -439,84 +443,84 @@ computeTransactionWindow
 	ld r25,Y
 	ldd r24,Y+1
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Y+2
 	ldd r24,Y+3
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Y+4
 	ldd r24,Y+5
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Y+6
 	ldd r24,Y+7
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Y+8
 	ldd r24,Y+9
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Y+10
 	ldd r24,Y+11
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Y+12
 	ldd r24,Y+13
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 	sbisrj PING, 5, .L967
 	signalReady
 	ldd r25,Y+14
 	ldd r24,Y+15
 	out 0x11,r25
-	sts 264,r24
+	sts PORTK,r24
 .L967:
 	signalReady
 	rjmp .L829
 .L995:
-	in r24,0xf
+	in r24,PINF
 	std Y+4,r24
 	sbicrj PING,4, .L924
-	lds r24,262
+	lds r24,PINK
 	std Y+5,r24
 	rjmp .L924
 .L996:
-	in r24,0xf
+	in r24,PINF
 	std Y+6,r24
 	sbicrj PING,4, .L924
-	lds r24,262
+	lds r24,PINK
 	std Y+7,r24
 	rjmp .L924
 .L997:
-	in r24,0xf
+	in r24,PINF
 	std Y+8,r24
 	sbicrj PING,4, .L924
-	lds r24,262
+	lds r24,PINK
 	std Y+9,r24
 	rjmp .L924
 .L998:
-	in r24,0xf
+	in r24,PINF
 	std Y+10,r24
 	sbicrj PING,4, .L924
-	lds r24,262
+	lds r24,PINK
 	std Y+11,r24
 	rjmp .L924
 .L999:
-	in r24,0xf
+	in r24,PINF
 	std Y+12,r24
 	sbicrj PING,4, .L924
-	lds r24,262
+	lds r24,PINK
 	std Y+13,r24
 	rjmp .L924

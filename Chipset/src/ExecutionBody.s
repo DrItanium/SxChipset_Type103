@@ -84,18 +84,21 @@ ReadTransactionStart:
 	out EIFR,__eifr_mask_reg__
 ; we need to use cpse instead of breq to allow for better jumping destination
 	lds r24,AddressLinesInterface+3
-	tst r24
-	breq doWriteTransaction_Primary ; equals zero
-	cpse r24, __iospace_sec_reg__ ; skip if the two values are equal (so jump to the "else" clause)
-	rjmp 1f						  ; not 0xFE so we want to do nothing
-	rjmp performIOWriteCall
-1:
+	cp r24, __zero_reg__ ; are we looking at zero? If not then check 0xFE later on (1 cycle)
+	breq doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
+									; total is 2 cycles when it isn't true and three cycles when it is
+									; must keep the operation local though...
+	cp r24, __iospace_sec_reg__   ; is this equal to 0xFE
+	breq performIOWriteCall 	  ; do the io jump 
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
 	delay6cycles
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
+performIOWriteCall:
+	call doIOWriteOperation 
+	rjmp WriteTransactionStart
 doWriteTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
@@ -132,9 +135,6 @@ doNothingWriteLoop0:
 	delay6cycles
 	sbicrj PING,5, doNothingWriteLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
-performIOWriteCall:
-	call doIOWriteOperation 
-	rjmp WriteTransactionStart
 do16BitReadOperation:
 	sbicrj PING,3, SkipOverStoringToBE0_WriteTransaction
 	in r24,PINF

@@ -66,12 +66,12 @@ gotoFallback0:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
-	rjmp compaction3
-compaction3:
-	rjmp compaction4
-compaction4:
-	rjmp compaction5
-compaction5:
+	rjmp 1f 
+1:
+	rjmp 1f 
+1:
+	rjmp 1f 
+1:
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 doReadTransaction_Primary:

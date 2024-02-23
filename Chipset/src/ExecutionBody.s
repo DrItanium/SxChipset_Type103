@@ -30,7 +30,11 @@ __direction_ff_reg__ = 17
 	lds r30, AddressLinesInterface
 	ldi r31, MemoryWindowUpper
 .endm
-
+.macro setupRegisterConstants
+	ldi __eifr_mask_reg__,lo8(112)
+	ldi __rdy_signal_count_reg__,lo8(-3) ; load the ready signal amount
+	ldi __direction_ff_reg__,lo8(-1) ; direction
+.endm
 .global ExecutionBodyWithoutMemoryConnection
 .global ExecutionBodyWithMemoryConnection
 .global doIOReadOperation
@@ -42,9 +46,7 @@ ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */
 /* stack size = 0 */
-	ldi __eifr_mask_reg__,lo8(112)
-	ldi __rdy_signal_count_reg__,lo8(-3) ; load the ready signal amount
-	ldi __direction_ff_reg__,lo8(-1) ; direction
+	setupRegisterConstants
 	rjmp ReadTransactionStart ; jump into the top of the invocation loop
 FirstSignalReady_ThenReadTransactionStart:
 	signalReady
@@ -308,9 +310,7 @@ ExecutionBodyWithMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */
 /* stack size = 0 */
-	ldi __eifr_mask_reg__,lo8(112)
-	ldi __rdy_signal_count_reg__,lo8(-3)
-	ldi __direction_ff_reg__,lo8(-1)
+	setupRegisterConstants
 .L829:
 	sbisrj EIFR,4, .L829
 	sbisrj EIFR,5, .L987

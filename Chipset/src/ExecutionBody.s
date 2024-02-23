@@ -70,6 +70,9 @@ __iospace_sec_reg__ = 2
 	out EIFR, __eifr_mask_reg__
 .endm
 
+.macro cpz reg
+	cp \reg, __zero_reg__
+.endm
 .text
 
 readOperation_DoNothing:
@@ -102,7 +105,7 @@ ReadTransactionStart:
 	clearEIFR
 ; we need to use cpse instead of breq to allow for better jumping destination
 	lds r24,AddressLinesInterface+3
-	cp r24, __zero_reg__ ; are we looking at zero? If not then check 0xFE later on (1 cycle)
+	cpz r24  ; are we looking at zero? If not then check 0xFE later on (1 cycle)
 	breq doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
 									; total is 2 cycles when it isn't true and three cycles when it is
 									; must keep the operation local though...
@@ -115,7 +118,7 @@ ReadTransactionStart:
 	rjmp WriteTransactionStart
 doWriteTransaction_Primary:
 	computeTransactionWindow
-	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
+	sbisrj PING,5, do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	sbicrj PING,3, 1f 
 ; singular operation
 	in r24,PINF
@@ -148,7 +151,7 @@ WriteTransactionStart:
 1:
 	call writeOperation_DoNothing
 	rjmp WriteTransactionStart
-do16BitReadOperation:
+do16BitWriteOperation:
 	sbicrj PING,3, 1f 
 	in r24,PINF
 	st Y,r24
@@ -162,7 +165,7 @@ ShiftFromWriteToRead:
 	sts 263,__direction_ff_reg__
 	clearEIFR
 	lds r24,AddressLinesInterface+3
-	cp r24, __zero_reg__
+	cpz r24
 	breq ReadStreamingOperation 
 	cp r24, __iospace_sec_reg__
 	brne 1f
@@ -236,7 +239,7 @@ ReadStreamingOperation:
 PrimaryReadTransaction:
 	clearEIFR
 	lds r24,AddressLinesInterface+3
-	cp r24, __zero_reg__
+	cpz r24
 	brne 1f
 	rjmp ReadStreamingOperation 
 1:
@@ -328,7 +331,7 @@ ExecutionBodyWithMemoryConnection:
 	sts 263,__zero_reg__
 	clearEIFR
 	lds r24,AddressLinesInterface+3
-	cp r24, __zero_reg__
+	cpz r24
 	breq .L893
 .L970:
 	cp r24, __iospace_sec_reg__
@@ -375,7 +378,7 @@ ExecutionBodyWithMemoryConnection:
 .L987:
 	clearEIFR
 	lds r24,AddressLinesInterface+3
-	cp r24, __zero_reg__
+	cpz r24
 	brne 1f
 	rjmp .L882
 1:

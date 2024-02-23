@@ -52,7 +52,7 @@ FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 ReadTransactionStart:
 	sbisrj EIFR,4, ReadTransactionStart
-	sbisrj EIFR,5, .L564
+	sbisrj EIFR,5, readToWriteTransaction 
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	out EIFR,__eifr_mask_reg__
@@ -87,6 +87,7 @@ SkipOverStoringToBE0:
 	nop
 	nop
 	sbicrj PING, 5, .L642
+; so we end here and continue on
 	in r24,0xf
 	std Z+2,r24
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
@@ -212,7 +213,7 @@ DoReadIntermediateFromWrite:
 	out 0x11,r25
 	sts 264,r24
 	rjmp FirstSignalReady_ThenReadTransactionStart
-.L564:
+readToWriteTransaction:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24

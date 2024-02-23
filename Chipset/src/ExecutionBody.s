@@ -15,8 +15,8 @@ TCNT2 = 0xb2
 __rdy_signal_count_reg__ = 28
 __eifr_mask_reg__ = 29
 __direction_ff_reg__ = 17
-.macro signalReady name
-	sts TCNT2, \name 
+.macro signalReady 
+	sts TCNT2, __rdy_signal_count_reg__
 .endm
 .macro sbisrj a, b, dest
 	sbis \a, \b
@@ -57,7 +57,7 @@ ExecutionBodyWithoutMemoryConnection:
 	rjmp .L635
 	sbisrj PING,5, .L668
 .L602:
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	nop
 	nop
 	nop
@@ -79,7 +79,7 @@ ExecutionBodyWithoutMemoryConnection:
 	st Z,r24
 .L637:
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	std Z+1,r24
 	nop
 	nop
@@ -90,7 +90,7 @@ ExecutionBodyWithoutMemoryConnection:
 	lds r24,262
 	std Z+3,r24
 .L668:
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 .L618:
 	sbisrj EIFR,4, .L618
 	sbisrj EIFR,5, .L749
@@ -103,7 +103,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING,5
 	rjmp .L668
 .L669:
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	nop
 	nop
 	nop
@@ -137,7 +137,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sts 264,__zero_reg__
 	sbisrj PING, 5, .L728
 .L632:
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	nop
 	nop
 	nop
@@ -147,12 +147,12 @@ ExecutionBodyWithoutMemoryConnection:
 	sbic PING,5
 	rjmp .L632
 .L728:
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	rjmp .L563
 .L642:
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	std Z+2,r25
 	std Z+3,r24
 	sbic PING,5
@@ -180,54 +180,54 @@ ExecutionBodyWithoutMemoryConnection:
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	ldd r25,Z+2
 	ldd r24,Z+3
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	ldd r25,Z+4
 	ldd r24,Z+5
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	ldd r25,Z+6
 	ldd r24,Z+7
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	ldd r25,Z+8
 	ldd r24,Z+9
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	ldd r25,Z+10
 	ldd r24,Z+11
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	ldd r25,Z+12
 	ldd r24,Z+13
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	ldd r25,Z+14
 	ldd r24,Z+15
 	out 0x11,r25
 	sts 264,r24
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	rjmp .L563
 .L564:
 	out 0x1c,__eifr_mask_reg__
@@ -243,7 +243,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING,5
 	rjmp .L728
 .L617:
-	signalReady __rdy_signal_count_reg__
+	signalReady 
 	nop
 	nop
 	nop
@@ -251,12 +251,12 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	sbicrj PING,5, .L617
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	rjmp .L563
 .L645:
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+4,r25
 	std Z+5,r24
 	sbic PING,5
@@ -271,7 +271,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L649:
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+6,r25
 	std Z+7,r24
 	sbic PING,5
@@ -286,7 +286,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L653:
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+8,r25
 	std Z+9,r24
 	sbic PING,5
@@ -301,7 +301,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L657:
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+10,r25
 	std Z+11,r24
 	sbic PING,5
@@ -316,7 +316,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L661:
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+12,r25
 	std Z+13,r24
 	in r24,0xf
@@ -368,7 +368,7 @@ ExecutionBodyWithMemoryConnection:
 	st Z,r24
 .L896:
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+1,r24
 	nop
 	nop
@@ -379,7 +379,7 @@ ExecutionBodyWithMemoryConnection:
 	lds r24,262
 	std Z+3,r24
 .L924:
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	rjmp .L880
 .L992:
 	call doExternalCommunicationWriteOperation
@@ -410,40 +410,40 @@ ExecutionBodyWithMemoryConnection:
 .L901:
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+2,r25
 	std Z+3,r24
 	sbisrj PING,5, .L995
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+4,r25
 	std Z+5,r24
 	sbisrj PING,5, .L996
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+6,r25
 	std Z+7,r24
 	sbis PING,5
 	rjmp .L997
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+8,r25
 	std Z+9,r24
 	sbis PING,5
 	rjmp .L998
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+10,r25
 	std Z+11,r24
 	sbis PING,5
 	rjmp .L999
 	in r25,0xf
 	lds r24,262
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	std Z+12,r25
 	std Z+13,r24
 	in r24,0xf
@@ -469,51 +469,51 @@ computeTransactionWindow
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	ldd r25,Z+2
 	ldd r24,Z+3
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	ldd r25,Z+4
 	ldd r24,Z+5
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	ldd r25,Z+6
 	ldd r24,Z+7
 	out 0x11,r25
 	sts 264,r24
 	sbisrj PING,5, .L967
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	ldd r25,Z+8
 	ldd r24,Z+9
 	out 0x11,r25
 	sts 264,r24
 	sbisrj PING,5, .L967
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	ldd r25,Z+10
 	ldd r24,Z+11
 	out 0x11,r25
 	sts 264,r24
 	sbisrj PING,5, .L967
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	ldd r25,Z+12
 	ldd r24,Z+13
 	out 0x11,r25
 	sts 264,r24
 	sbisrj PING, 5, .L967
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	ldd r25,Z+14
 	ldd r24,Z+15
 	out 0x11,r25
 	sts 264,r24
 .L967:
-	signalReady __rdy_signal_count_reg__
+	signalReady
 	rjmp .L829
 .L995:
 	in r24,0xf

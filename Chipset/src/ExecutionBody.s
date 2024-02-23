@@ -89,16 +89,16 @@ ReadTransactionStart:
 									; total is 2 cycles when it isn't true and three cycles when it is
 									; must keep the operation local though...
 	cp r24, __iospace_sec_reg__   ; is this equal to 0xFE
-	breq performIOWriteCall 	  ; do the io jump 
+	brne 1f						  ; 
+	call doIOWriteOperation
+	rjmp WriteTransactionStart
+1:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
 	delay6cycles
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
-performIOWriteCall:
-	call doIOWriteOperation 
-	rjmp WriteTransactionStart
 doWriteTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
@@ -128,7 +128,10 @@ WriteTransactionStart:
 	tst r24
 	breq doWriteTransaction_Primary
 	cp r24, __iospace_sec_reg__
-	breq performIOWriteCall
+	brne 1f
+	call doIOWriteOperation 
+	rjmp WriteTransactionStart
+1:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingWriteLoop0:
 	signalReady 

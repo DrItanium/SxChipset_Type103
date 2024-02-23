@@ -103,8 +103,7 @@ WriteTransactionStart:
 	breq .L634
 	cpi r24,lo8(-2)
 	breq performIOWriteCall
-	sbis PING,5
-	rjmp SignalReady_ThenWriteTransactionStart
+	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingWriteLoop0:
 	signalReady 
 	nop
@@ -147,20 +146,17 @@ performIOWriteCall:
 	nop
 	nop
 	nop
-	sbic PING,5
-	rjmp .L632
+	sbicrj PING,5, .L632
 .L642:
 	in r25,0xf
 	lds r24,262
 	signalReady 
 	std Z+2,r25
 	std Z+3,r24
-	sbic PING,5
-	rjmp .L645
+	sbicrj PING,5, .L645
 	in r24,0xf
 	std Z+4,r24
-	sbic PING,4
-	rjmp SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+5,r24
 	rjmp SignalReady_ThenWriteTransactionStart
@@ -404,22 +400,19 @@ ExecutionBodyWithMemoryConnection:
 	signalReady
 	std Z+6,r25
 	std Z+7,r24
-	sbis PING,5
-	rjmp .L997
+	sbisrj PING,5, .L997
 	in r25,0xf
 	lds r24,262
 	signalReady
 	std Z+8,r25
 	std Z+9,r24
-	sbis PING,5
-	rjmp .L998
+	sbisrj PING,5, .L998
 	in r25,0xf
 	lds r24,262
 	signalReady
 	std Z+10,r25
 	std Z+11,r24
-	sbis PING,5
-	rjmp .L999
+	sbisrj PING,5, .L999
 	in r25,0xf
 	lds r24,262
 	signalReady
@@ -427,8 +420,7 @@ ExecutionBodyWithMemoryConnection:
 	std Z+13,r24
 	in r24,0xf
 	std Z+14,r24
-	sbic PING,4
-	rjmp .L924
+	sbicrj PING,4, .L924
 	lds r24,262
 	std Z+15,r24
 	rjmp .L924
@@ -446,22 +438,19 @@ computeTransactionWindow
 	ldd r24,Z+1
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L967
+	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Z+2
 	ldd r24,Z+3
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L967
+	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Z+4
 	ldd r24,Z+5
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L967
+	sbisrj PING,5, .L967
 	signalReady
 	ldd r25,Z+6
 	ldd r24,Z+7

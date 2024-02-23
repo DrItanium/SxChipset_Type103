@@ -13,38 +13,16 @@ AddressLinesInterface = 0x8000
 MemoryWindowUpper = 0xFD
 TCNT2 = 0xb2
 .macro signalReady name
-sts TCNT2, \name 
+	sts TCNT2, \name 
 .endm
-.macro JumpIfBlastLow dest
-	sbis PING, 5
+.macro sbisrj a, b, dest
+	sbis \a, \b
 	rjmp \dest
 .endm
-.macro JumpIfBlastHigh dest
-	sbic PING, 5
+.macro sbicrj a, b, dest
+	sbic \a, \b
 	rjmp \dest
 .endm
-.macro JumpIfBE0Low dest
-	sbis PING, 3
-	rjmp \dest
-.endm
-.macro JumpIfBE0High dest
-	sbic PING, 3
-	rjmp \dest
-.endm
-.macro JumpIfBE1Low dest
-	sbis PING, 4
-	rjmp \dest
-.endm
-.macro JumpIfBE1High dest
-	sbic PING, 4
-	rjmp \dest
-.endm
-
-.macro sbisrj a0, a1, dest
-	sbis \a0, \a1
-	rjmp \dest
-.endm
-
 .global ExecutionBodyWithMemoryConnection
 .global ExecutionBodyWithoutMemoryConnection
 .global doIOReadOperation
@@ -60,8 +38,10 @@ ExecutionBodyWithoutMemoryConnection:
 	ldi r28,lo8(-3) ; load the ready signal amount
 	ldi r17,lo8(-1) ; direction
 .L563:
-	sbisrj EIFR, 4, .L563
-	sbisrj EIFR, 5, .L564
+	sbis EIFR,4
+	rjmp .L563
+	sbis EIFR,5
+	rjmp .L564
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	out EIFR,r29
@@ -71,7 +51,8 @@ ExecutionBodyWithoutMemoryConnection:
 	cpi r24,lo8(-2)
 	brne .+2
 	rjmp .L635
-	JumpIfBlastLow .L668
+	sbis PING,5
+	rjmp .L668
 .L602:
 	signalReady r28
 	nop
@@ -80,7 +61,8 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	JumpIfBlastHigh .L602
+	sbic PING,5
+	rjmp .L602
 	rjmp .L668
 .L634:
 /* #APP */
@@ -90,8 +72,10 @@ ExecutionBodyWithoutMemoryConnection:
 	
  ;  0 "" 2
 /* #NOAPP */
- 	JumpIfBlastLow .L636
-	JumpIfBE1High .L637
+	sbis PING,5
+	rjmp .L636
+	sbic PING,3
+	rjmp .L637
 	in r24,0xf
 	st Z,r24
 .L637:
@@ -100,21 +84,18 @@ ExecutionBodyWithoutMemoryConnection:
 	std Z+1,r24
 	nop
 	nop
-	JumpIfBlastHigh .L642
+	sbicrj PING, 5, .L642
 	in r24,0xf
 	std Z+2,r24
-	sbic PING,4
-	rjmp .L668
+	sbicrj PING,4, .L668
 	lds r24,262
 	std Z+3,r24
 .L668:
 	signalReady r28
 .L618:
-	sbis 0x1c,4
-	rjmp .L618
-	sbis 0x1c,5
-	rjmp .L749
-	out 0x1c,r29
+	sbisrj EIFR,4, .L618
+	sbisrj EIFR,5, .L749
+	out EIFR,r29
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq .L634
@@ -130,17 +111,17 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	JumpIfBlastHigh .L669
+	sbicrj PING,5, .L669
 	rjmp .L668
 .L635:
 	call doIOWriteOperation 
 	rjmp .L618
 .L636:
-	JumpIfBE0High .L571
+	sbicrj PING,3, .L571
 	in r24,0xf
 	st Z,r24
 .L571:
-	JumpIfBE1High .L668
+	sbicrj PING,4, .L668
 	lds r24,262
 	std Z+1,r24
 	rjmp .L668

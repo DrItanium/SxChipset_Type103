@@ -84,8 +84,8 @@ SkipOverStoringToBE0:
 	lds r24,262
 	signalReady 
 	std Z+1,r24
-	rjmp delayJump0
-delayJump0:
+	nop
+	nop
 	sbicrj PING, 5, .L642
 	in r24,0xf
 	std Z+2,r24
@@ -216,11 +216,13 @@ DoReadIntermediateFromWrite:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	brne .+2
+	brne gotoFallback1
 	rjmp DoReadIntermediateFromWrite
+gotoFallback1:
 	cpi r24,lo8(-2)
-	brne .+2
+	brne gotoFallback2
 	rjmp doIOReadThenJumpToReadTransaction
+gotoFallback2:
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart

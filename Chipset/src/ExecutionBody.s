@@ -322,6 +322,7 @@ ExecutionBodyWithMemoryConnection:
 /* frame size = 0 */
 /* stack size = 0 */
 	setupRegisterConstants
+
 .L829:
 	sbisrj EIFR,4, .L829
 	sbisrj EIFR,5, .L987

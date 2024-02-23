@@ -75,6 +75,9 @@ __iospace_sec_reg__ = 2
 .endm
 .text
 
+readOperation_DoNothing:
+	out PORTF, __zero_reg__
+	sts PORTK, __zero_reg__
 writeOperation_DoNothing:
 	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
 1:
@@ -91,14 +94,6 @@ ExecutionBodyWithoutMemoryConnection:
 /* stack size = 0 */
 	setupRegisterConstants
 	rjmp ReadTransactionStart ; jump into the top of the invocation loop
-DoNothing_ReadOperation:
-	out PORTF, __zero_reg__
-	sts PORTK, __zero_reg__
-	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart
-1:
-	signalReady
-	delay6cycles
-	sbicrj PING, 5, 1b
 FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 ReadTransactionStart:
@@ -177,7 +172,8 @@ ShiftFromWriteToRead:
 	call doIOReadOperation
 	rjmp ReadTransactionStart
 1:
-	rjmp DoNothing_ReadOperation
+	call readOperation_DoNothing
+	rjmp ReadTransactionStart
 .L642:
 	in r25,PINF
 	lds r24,PINK
@@ -252,7 +248,8 @@ PrimaryReadTransaction:
 	call doIOReadOperation
 	rjmp ReadTransactionStart
 1:
-	rjmp DoNothing_ReadOperation
+	call readOperation_DoNothing
+	rjmp ReadTransactionStart
 .L645:
 	in r25,PINF
 	lds r24,PINK

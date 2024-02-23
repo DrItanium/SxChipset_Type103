@@ -43,20 +43,23 @@ ExecutionBodyWithoutMemoryConnection:
 	ldi __eifr_mask_reg__,lo8(112)
 	ldi __rdy_signal_count_reg__,lo8(-3) ; load the ready signal amount
 	ldi __direction_ff_reg__,lo8(-1) ; direction
-.L563:
-	sbisrj EIFR,4, .L563
+	rjmp ReadTransactionStart ; jump into the top of the invocation loop
+FirstSignalReady_ThenReadTransactionStart:
+	signalReady
+ReadTransactionStart:
+	sbisrj EIFR,4, ReadTransactionStart
 	sbisrj EIFR,5, .L564
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	out EIFR,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	breq .L634
-	cpi r24,lo8(-2)
+	breq .L634 ; equals zero
+	cpi r24,lo8(-2) ; 0xFE
 	brne .+2
 	rjmp .L635
-	sbisrj PING,5, .L668
-.L602:
+	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
+doNothingLoop0:
 	signalReady 
 	nop
 	nop
@@ -64,8 +67,8 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	sbicrj PING,5, .L602
-	rjmp .L668
+	sbicrj PING,5, doNothingLoop0
+	rjmp SignalReady_ThenWriteTransactionStart
 .L634:
 /* #APP */
  ;  871 "src/main.cc" 1
@@ -86,10 +89,10 @@ ExecutionBodyWithoutMemoryConnection:
 	sbicrj PING, 5, .L642
 	in r24,0xf
 	std Z+2,r24
-	sbicrj PING,4, .L668
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+3,r24
-.L668:
+SignalReady_ThenWriteTransactionStart:
 	signalReady 
 .L618:
 	sbisrj EIFR,4, .L618
@@ -101,7 +104,7 @@ ExecutionBodyWithoutMemoryConnection:
 	cpi r24,lo8(-2)
 	breq .L635
 	sbis PING,5
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 .L669:
 	signalReady 
 	nop
@@ -111,7 +114,7 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	sbicrj PING,5, .L669
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 .L635:
 	call doIOWriteOperation 
 	rjmp .L618
@@ -120,10 +123,10 @@ ExecutionBodyWithoutMemoryConnection:
 	in r24,0xf
 	st Z,r24
 .L571:
-	sbicrj PING,4, .L668
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+1,r24
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 .L749:
 	out 0x10,__direction_ff_reg__
 	sts 263,__direction_ff_reg__
@@ -147,8 +150,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbic PING,5
 	rjmp .L632
 .L728:
-	signalReady 
-	rjmp .L563
+	rjmp FirstSignalReady_ThenReadTransactionStart
 .L642:
 	in r25,0xf
 	lds r24,262
@@ -160,13 +162,13 @@ ExecutionBodyWithoutMemoryConnection:
 	in r24,0xf
 	std Z+4,r24
 	sbic PING,4
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+5,r24
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 .L605:
 	call doIOReadOperation
-	rjmp .L563
+	rjmp ReadTransactionStart
 .L621:
 /* #APP */
  ;  715 "src/main.cc" 1
@@ -227,8 +229,7 @@ ExecutionBodyWithoutMemoryConnection:
 	ldd r24,Z+15
 	out 0x11,r25
 	sts 264,r24
-	signalReady 
-	rjmp .L563
+	rjmp FirstSignalReady_ThenReadTransactionStart
 .L564:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
@@ -240,8 +241,7 @@ ExecutionBodyWithoutMemoryConnection:
 	rjmp .L605
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING,5, .L728
 .L617:
 	signalReady 
 	nop
@@ -251,68 +251,59 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	sbicrj PING,5, .L617
-	signalReady
-	rjmp .L563
+	rjmp FirstSignalReady_ThenReadTransactionStart
 .L645:
 	in r25,0xf
 	lds r24,262
 	signalReady
 	std Z+4,r25
 	std Z+5,r24
-	sbic PING,5
-	rjmp .L649
+	sbicrj PING,5, .L649
 	in r24,0xf
 	std Z+6,r24
-	sbic PING,4
-	rjmp .L668
+	sbicrj PING,4,SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+7,r24
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 .L649:
 	in r25,0xf
 	lds r24,262
 	signalReady
 	std Z+6,r25
 	std Z+7,r24
-	sbic PING,5
-	rjmp .L653
+	sbicrj PING,5, .L653
 	in r24,0xf
 	std Z+8,r24
-	sbic PING,4
-	rjmp .L668
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+9,r24
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 .L653:
 	in r25,0xf
 	lds r24,262
 	signalReady
 	std Z+8,r25
 	std Z+9,r24
-	sbic PING,5
-	rjmp .L657
+	sbicrj PING,5, .L657
 	in r24,0xf
 	std Z+10,r24
-	sbic PING,4
-	rjmp .L668
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+11,r24
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 .L657:
 	in r25,0xf
 	lds r24,262
 	signalReady
 	std Z+10,r25
 	std Z+11,r24
-	sbic PING,5
-	rjmp .L661
+	sbicrj PING,5, .L661
 	in r24,0xf
 	std Z+12,r24
-	sbic PING,4
-	rjmp .L668
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+13,r24
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 .L661:
 	in r25,0xf
 	lds r24,262
@@ -321,11 +312,10 @@ ExecutionBodyWithoutMemoryConnection:
 	std Z+13,r24
 	in r24,0xf
 	std Z+14,r24
-	sbic PING,4
-	rjmp .L668
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+15,r24
-	rjmp .L668
+	rjmp SignalReady_ThenWriteTransactionStart
 ExecutionBodyWithMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */
@@ -334,10 +324,8 @@ ExecutionBodyWithMemoryConnection:
 	ldi __rdy_signal_count_reg__,lo8(-3)
 	ldi __direction_ff_reg__,lo8(-1)
 .L829:
-	sbis 0x1c,4
-	rjmp .L829
-	sbis 0x1c,5
-	rjmp .L987
+	sbisrj EIFR,4, .L829
+	sbisrj EIFR,5, .L987
 	out 0x10,__zero_reg__
 	sts 263,__zero_reg__
 	out 0x1c,__eifr_mask_reg__

@@ -78,14 +78,15 @@ doReadTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	sbicrj PING,3, SkipOverStoringToBE0
+; singular operation
 	in r24,0xf
 	st Z,r24
 SkipOverStoringToBE0:
 	lds r24,262
 	signalReady 
 	std Z+1,r24
-	rjmp compaction6
-compaction6:
+	rjmp 1f 
+1:
 	sbicrj PING, 5, .L642
 ; so we end here and continue on
 	in r24,0xf
@@ -93,6 +94,7 @@ compaction6:
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,262
 	std Z+3,r24
+
 SignalReady_ThenWriteTransactionStart:
 	signalReady 
 WriteTransactionStart:
@@ -107,12 +109,12 @@ WriteTransactionStart:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingWriteLoop0:
 	signalReady 
-	rjmp compaction0
-compaction0:
-	rjmp compaction1
-compaction1:
-	rjmp compaction2
-compaction2:
+	rjmp 1f 
+1:
+	rjmp 1f 
+1:
+	rjmp 1f 
+1:
 	sbicrj PING,5, doNothingWriteLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 performIOWriteCall:
@@ -141,12 +143,12 @@ ShiftFromWriteToRead:
 	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
 doNothingLoop2:
 	signalReady 
-	rjmp compaction7
-compaction7:
-	rjmp compaction8
-compaction8:
-	rjmp compaction9
-compaction9:
+	rjmp 1f 
+1:
+	rjmp 1f 
+1:
+	rjmp 1f 
+1:
 	sbicrj PING,5, doNothingLoop2
 .L642:
 	in r25,0xf
@@ -229,12 +231,12 @@ gotoFallback2:
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 doNothingLoop3:
 	signalReady 
-	rjmp compaction10
-compaction10:
-	rjmp compaction11
-compaction11:
-	rjmp compaction12
-compaction12:
+	rjmp 1f
+1:
+	rjmp 1f 
+1:
+	rjmp 1f
+1:
 	sbicrj PING,5, doNothingLoop3
 	rjmp FirstSignalReady_ThenReadTransactionStart
 .L645:

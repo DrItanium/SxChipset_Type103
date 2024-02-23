@@ -99,11 +99,11 @@ doNothingLoop0:
 doWriteTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, do16BitReadOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
-	sbicrj PING,3, SkipOverStoringToBE0
+	sbicrj PING,3, 1f 
 ; singular operation
 	in r24,PINF
 	st Y,r24
-SkipOverStoringToBE0:
+1:
 	lds r24,PINK
 	signalReady 
 	std Y+1,r24
@@ -115,7 +115,6 @@ SkipOverStoringToBE0:
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+3,r24
-
 SignalReady_ThenWriteTransactionStart:
 	signalReady 
 WriteTransactionStart:

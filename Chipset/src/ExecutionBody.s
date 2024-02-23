@@ -377,11 +377,13 @@ ExecutionBodyWithMemoryConnection:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	brne .+2
+	brne 1f
 	rjmp .L882
+1:
 	cp r24,__iospace_sec_reg__
-	breq .+2
+	breq 1f
 	rjmp .L994
+1:
 	call doIOReadOperation 
 	rjmp .L829
 .L895:

@@ -40,6 +40,11 @@ sts TCNT2, \name
 	rjmp \dest
 .endm
 
+.macro sbisrj a0, a1, dest
+	sbis \a0, \a1
+	rjmp \dest
+.endm
+
 .global ExecutionBodyWithMemoryConnection
 .global ExecutionBodyWithoutMemoryConnection
 .global doIOReadOperation
@@ -55,10 +60,8 @@ ExecutionBodyWithoutMemoryConnection:
 	ldi r28,lo8(-3) ; load the ready signal amount
 	ldi r17,lo8(-1) ; direction
 .L563:
-	sbis EIFR,4
-	rjmp .L563
-	sbis EIFR,5
-	rjmp .L564
+	sbisrj EIFR, 4, .L563
+	sbisrj EIFR, 5, .L564
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	out EIFR,r29
@@ -127,20 +130,17 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	sbic PING,5
-	rjmp .L669
+	JumpIfBlastHigh .L669
 	rjmp .L668
 .L635:
 	call doIOWriteOperation 
 	rjmp .L618
 .L636:
-	sbic PING,3
-	rjmp .L571
+	JumpIfBE0High .L571
 	in r24,0xf
 	st Z,r24
 .L571:
-	sbic PING,4
-	rjmp .L668
+	JumpIfBE1High .L668
 	lds r24,262
 	std Z+1,r24
 	rjmp .L668

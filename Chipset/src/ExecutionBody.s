@@ -12,6 +12,9 @@ PING = 0x12
 AddressLinesInterface = 0x8000
 MemoryWindowUpper = 0xFD
 TCNT2 = 0xb2
+.macro signalReady name
+sts TCNT2, \name 
+.endm
 .global ExecutionBodyWithMemoryConnection
 .global ExecutionBodyWithoutMemoryConnection
 .global doIOReadOperation
@@ -24,8 +27,8 @@ ExecutionBodyWithoutMemoryConnection:
 /* stack size = 0 */
 .L__stack_usage = 0
 	ldi r29,lo8(112)
-	ldi r28,lo8(-3)
-	ldi r17,lo8(-1)
+	ldi r28,lo8(-3) ; load the ready signal amount
+	ldi r17,lo8(-1) ; direction
 .L563:
 	sbis EIFR,4
 	rjmp .L563
@@ -43,7 +46,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING,5
 	rjmp .L668
 .L602:
-	sts TCNT2,r28
+	signalReady r28
 	nop
 	nop
 	nop
@@ -69,7 +72,7 @@ ExecutionBodyWithoutMemoryConnection:
 	st Z,r24
 .L637:
 	lds r24,262
-	sts 178,r28
+	signalReady r28
 	std Z+1,r24
 	nop
 	nop
@@ -82,7 +85,7 @@ ExecutionBodyWithoutMemoryConnection:
 	lds r24,262
 	std Z+3,r24
 .L668:
-	sts 178,r28
+	signalReady r28
 .L618:
 	sbis 0x1c,4
 	rjmp .L618
@@ -97,7 +100,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING,5
 	rjmp .L668
 .L669:
-	sts 178,r28
+	signalReady r28
 	nop
 	nop
 	nop
@@ -135,7 +138,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING,5
 	rjmp .L728
 .L632:
-	sts 178,r28
+	signalReady r28
 	nop
 	nop
 	nop
@@ -145,12 +148,12 @@ ExecutionBodyWithoutMemoryConnection:
 	sbic PING,5
 	rjmp .L632
 .L728:
-	sts 178,r28
+	signalReady r28
 	rjmp .L563
 .L642:
 	in r25,0xf
 	lds r24,262
-	sts 178,r28
+	signalReady r28
 	std Z+2,r25
 	std Z+3,r24
 	sbic PING,5
@@ -168,8 +171,8 @@ ExecutionBodyWithoutMemoryConnection:
 .L621:
 /* #APP */
  ;  715 "src/main.cc" 1
-	lds r30, 0x8000
-	ldi r31, 0xFD
+	lds r30, AddressLinesInterface
+	ldi r31, MemoryWindowUpper
 	
  ;  0 "" 2
 /* #NOAPP */
@@ -179,54 +182,54 @@ ExecutionBodyWithoutMemoryConnection:
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	sts 178,r28
+	signalReady r28
 	ldd r25,Z+2
 	ldd r24,Z+3
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	sts 178,r28
+	signalReady r28
 	ldd r25,Z+4
 	ldd r24,Z+5
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	sts 178,r28
+	signalReady r28
 	ldd r25,Z+6
 	ldd r24,Z+7
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	sts 178,r28
+	signalReady r28
 	ldd r25,Z+8
 	ldd r24,Z+9
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	sts 178,r28
+	signalReady r28
 	ldd r25,Z+10
 	ldd r24,Z+11
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	sts 178,r28
+	signalReady r28
 	ldd r25,Z+12
 	ldd r24,Z+13
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L728
-	sts 178,r28
+	signalReady r28
 	ldd r25,Z+14
 	ldd r24,Z+15
 	out 0x11,r25
 	sts 264,r24
-	sts 178,r28
+	signalReady r28
 	rjmp .L563
 .L564:
 	out 0x1c,r29
@@ -242,7 +245,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING,5
 	rjmp .L728
 .L617:
-	sts 178,r28
+	signalReady r28
 	nop
 	nop
 	nop
@@ -251,12 +254,12 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	sbic PING,5
 	rjmp .L617
-	sts 178,r28
+	signalReady r28
 	rjmp .L563
 .L645:
 	in r25,0xf
 	lds r24,262
-	sts 178,r28
+	signalReady r28
 	std Z+4,r25
 	std Z+5,r24
 	sbic PING,5
@@ -271,7 +274,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L649:
 	in r25,0xf
 	lds r24,262
-	sts 178,r28
+	signalReady r28
 	std Z+6,r25
 	std Z+7,r24
 	sbic PING,5
@@ -286,7 +289,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L653:
 	in r25,0xf
 	lds r24,262
-	sts 178,r28
+	signalReady r28
 	std Z+8,r25
 	std Z+9,r24
 	sbic PING,5
@@ -301,7 +304,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L657:
 	in r25,0xf
 	lds r24,262
-	sts 178,r28
+	signalReady r28
 	std Z+10,r25
 	std Z+11,r24
 	sbic PING,5
@@ -316,7 +319,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L661:
 	in r25,0xf
 	lds r24,262
-	sts 178,r28
+	signalReady r28
 	std Z+12,r25
 	std Z+13,r24
 	in r24,0xf
@@ -374,7 +377,7 @@ ExecutionBodyWithMemoryConnection:
 	st Z,r24
 .L896:
 	lds r24,262
-	sts 178,r29
+	signalReady r29
 	std Z+1,r24
 	nop
 	nop
@@ -387,7 +390,7 @@ ExecutionBodyWithMemoryConnection:
 	lds r24,262
 	std Z+3,r24
 .L924:
-	sts 178,r29
+	signalReady r29
 	rjmp .L880
 .L992:
 	call doExternalCommunicationWriteOperation
@@ -420,42 +423,42 @@ ExecutionBodyWithMemoryConnection:
 .L901:
 	in r25,0xf
 	lds r24,262
-	sts 178,r29
+	signalReady r29
 	std Z+2,r25
 	std Z+3,r24
 	sbis PING,5
 	rjmp .L995
 	in r25,0xf
 	lds r24,262
-	sts 178,r29
+	signalReady r29
 	std Z+4,r25
 	std Z+5,r24
 	sbis PING,5
 	rjmp .L996
 	in r25,0xf
 	lds r24,262
-	sts 178,r29
+	signalReady r29
 	std Z+6,r25
 	std Z+7,r24
 	sbis PING,5
 	rjmp .L997
 	in r25,0xf
 	lds r24,262
-	sts 178,r29
+	signalReady r29
 	std Z+8,r25
 	std Z+9,r24
 	sbis PING,5
 	rjmp .L998
 	in r25,0xf
 	lds r24,262
-	sts 178,r29
+	signalReady r29
 	std Z+10,r25
 	std Z+11,r24
 	sbis PING,5
 	rjmp .L999
 	in r25,0xf
 	lds r24,262
-	sts 178,r29
+	signalReady r29
 	std Z+12,r25
 	std Z+13,r24
 	in r24,0xf
@@ -482,55 +485,55 @@ ExecutionBodyWithMemoryConnection:
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	sts 178,r29
+	signalReady r29
 	ldd r25,Z+2
 	ldd r24,Z+3
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	sts 178,r29
+	signalReady r29
 	ldd r25,Z+4
 	ldd r24,Z+5
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	sts 178,r29
+	signalReady r29
 	ldd r25,Z+6
 	ldd r24,Z+7
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	sts 178,r29
+	signalReady r29
 	ldd r25,Z+8
 	ldd r24,Z+9
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	sts 178,r29
+	signalReady r29
 	ldd r25,Z+10
 	ldd r24,Z+11
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	sts 178,r29
+	signalReady r29
 	ldd r25,Z+12
 	ldd r24,Z+13
 	out 0x11,r25
 	sts 264,r24
 	sbis PING,5
 	rjmp .L967
-	sts 178,r29
+	signalReady r29
 	ldd r25,Z+14
 	ldd r24,Z+15
 	out 0x11,r25
 	sts 264,r24
 .L967:
-	sts 178,r29
+	signalReady r29
 	rjmp .L829
 .L995:
 	in r24,0xf

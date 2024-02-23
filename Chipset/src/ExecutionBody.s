@@ -66,6 +66,10 @@ __iospace_sec_reg__ = 2
 	lpm ; tmp_reg is used implicity, who cares what we get back
 .endm
 
+.macro clearEIFR
+	out EIFR, __eifr_mask_reg__
+.endm
+
 .text
 
 readOperation_DoNothing:
@@ -95,7 +99,7 @@ ReadTransactionStart:
 ; start setting up for a write operation here
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
-	out EIFR,__eifr_mask_reg__
+	clearEIFR
 ; we need to use cpse instead of breq to allow for better jumping destination
 	lds r24,AddressLinesInterface+3
 	cp r24, __zero_reg__ ; are we looking at zero? If not then check 0xFE later on (1 cycle)
@@ -133,7 +137,7 @@ SignalReady_ThenWriteTransactionStart:
 WriteTransactionStart:
 	sbisrj EIFR,4, WriteTransactionStart
 	sbisrj EIFR,5, ShiftFromWriteToRead 
-	out EIFR,__eifr_mask_reg__
+	clearEIFR
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq doWriteTransaction_Primary
@@ -156,7 +160,7 @@ SkipOverStoringToBE0_WriteTransaction:
 ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__
 	sts 263,__direction_ff_reg__
-	out 0x1c,__eifr_mask_reg__
+	clearEIFR
 	lds r24,AddressLinesInterface+3
 	cp r24, __zero_reg__
 	breq ReadStreamingOperation 
@@ -230,7 +234,7 @@ ReadStreamingOperation:
 	sts PORTK,r24
 	rjmp FirstSignalReady_ThenReadTransactionStart
 PrimaryReadTransaction:
-	out 0x1c,__eifr_mask_reg__
+	clearEIFR
 	lds r24,AddressLinesInterface+3
 	cp r24, __zero_reg__
 	brne 1f
@@ -322,7 +326,7 @@ ExecutionBodyWithMemoryConnection:
 	sbisrj EIFR,5, .L987
 	out DDRF,__zero_reg__
 	sts 263,__zero_reg__
-	out 0x1c,__eifr_mask_reg__
+	clearEIFR
 	lds r24,AddressLinesInterface+3
 	cp r24, __zero_reg__
 	breq .L893
@@ -333,7 +337,7 @@ ExecutionBodyWithMemoryConnection:
 .L880:
 	sbisrj 0x1c,4, .L880
 	sbisrj 0x1c,5, .L993
-	out 0x1c,__eifr_mask_reg__
+	clearEIFR
 	lds r24,AddressLinesInterface+3
 	cpse r24,__zero_reg__
 	rjmp .L970
@@ -369,7 +373,7 @@ ExecutionBodyWithMemoryConnection:
 	out DDRF,__direction_ff_reg__
 	sts 263,__direction_ff_reg__
 .L987:
-	out 0x1c,__eifr_mask_reg__
+	clearEIFR
 	lds r24,AddressLinesInterface+3
 	cp r24, __zero_reg__
 	brne 1f

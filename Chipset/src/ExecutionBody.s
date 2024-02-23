@@ -152,7 +152,10 @@ ShiftFromWriteToRead:
 	cp r24, __zero_reg__
 	breq ReadStreamingOperation 
 	cp r24, __iospace_sec_reg__
-	breq doIOReadThenJumpToReadTransaction
+	brne 1f
+	call doIOReadOperation
+	rjmp ReadTransactionStart
+1:
 	out 0x11,__zero_reg__
 	sts PORTK,__zero_reg__
 	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
@@ -174,9 +177,6 @@ doNothingLoop2:
 	lds r24,PINK
 	std Y+5,r24
 	rjmp SignalReady_ThenWriteTransactionStart
-doIOReadThenJumpToReadTransaction: # .L605
-	call doIOReadOperation
-	rjmp ReadTransactionStart
 ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
@@ -229,13 +229,14 @@ ReadStreamingOperation:
 PrimaryReadTransaction:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
-	tst r24
+	cp r24, __zero_reg__
 	brne 1f
 	rjmp ReadStreamingOperation 
 1:
 	cp r24, __iospace_sec_reg__
 	brne 1f
-	rjmp doIOReadThenJumpToReadTransaction
+	call doIOReadOperation
+	rjmp ReadTransactionStart
 1:
 	out 0x11,__zero_reg__
 	sts PORTK,__zero_reg__

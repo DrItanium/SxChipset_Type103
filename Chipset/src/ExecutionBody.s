@@ -15,6 +15,7 @@ EIFR = 0x1c
 PING = 0x12
 AddressLinesInterface = 0x8000
 MemoryWindowUpper = 0xFD
+IOSpaceHighest = 0xFE
 TCNT2 = 0xb2
 __rdy_signal_count_reg__ = 5
 __eifr_mask_reg__ = 4
@@ -43,7 +44,7 @@ __iospace_sec_reg__ = 2
 	mov __eifr_mask_reg__, r16
 	ldi r16, lo8(-3)
 	mov __rdy_signal_count_reg__, r16 ; load the ready signal amount
-	ldi r16, lo8(-2)
+	ldi r16, IOSpaceHighest
 	mov __iospace_sec_reg__, r16
 	ser r16
 	mov __direction_ff_reg__, r16 ; 0xff
@@ -51,12 +52,6 @@ __iospace_sec_reg__ = 2
 	clr r28
 	ldi r29, MemoryWindowUpper
 .endm
-.global ExecutionBodyWithoutMemoryConnection
-.global ExecutionBodyWithMemoryConnection
-.global doIOReadOperation
-.global doIOWriteOperation
-.global doExternalCommunicationReadOperation
-.global doExternalCommunicationWriteOperation
 .macro delay2cycles 
 	rjmp 1f
 1:
@@ -71,8 +66,14 @@ __iospace_sec_reg__ = 2
 .endm
 
 .macro cpz reg
-	cp \reg, __zero_reg__
+	cpi \reg, 0x00
 .endm
+.global ExecutionBodyWithoutMemoryConnection
+.global ExecutionBodyWithMemoryConnection
+.global doIOReadOperation
+.global doIOWriteOperation
+.global doExternalCommunicationReadOperation
+.global doExternalCommunicationWriteOperation
 .text
 
 readOperation_DoNothing:

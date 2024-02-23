@@ -86,8 +86,8 @@ ReadTransactionStart:
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq doWriteTransaction_Primary ; equals zero
-	cp r24, __iospace_sec_reg__
-	brne 1f 
+	cpse r24, __iospace_sec_reg__ ; skip if the two values are equal (so jump to the "else" clause)
+	rjmp 1f						  ; not 0xFE so we want to do nothing
 	rjmp performIOWriteCall
 1:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart

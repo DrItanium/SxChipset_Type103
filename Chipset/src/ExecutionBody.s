@@ -23,6 +23,10 @@ TCNT2 = 0xb2
 	sbic \a, \b
 	rjmp \dest
 .endm
+.macro computeTransactionWindow
+	lds r30, AddressLinesInterface
+	ldi r31, MemoryWindowUpper
+.endm
 .global ExecutionBodyWithMemoryConnection
 .global ExecutionBodyWithoutMemoryConnection
 .global doIOReadOperation
@@ -38,10 +42,8 @@ ExecutionBodyWithoutMemoryConnection:
 	ldi r28,lo8(-3) ; load the ready signal amount
 	ldi r17,lo8(-1) ; direction
 .L563:
-	sbis EIFR,4
-	rjmp .L563
-	sbis EIFR,5
-	rjmp .L564
+	sbisrj EIFR,4, .L563
+	sbisrj EIFR,5, .L564
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	out EIFR,r29
@@ -51,8 +53,7 @@ ExecutionBodyWithoutMemoryConnection:
 	cpi r24,lo8(-2)
 	brne .+2
 	rjmp .L635
-	sbis PING,5
-	rjmp .L668
+	sbisrj PING,5, .L668
 .L602:
 	signalReady r28
 	nop
@@ -61,21 +62,17 @@ ExecutionBodyWithoutMemoryConnection:
 	nop
 	nop
 	nop
-	sbic PING,5
-	rjmp .L602
+	sbicrj PING,5, .L602
 	rjmp .L668
 .L634:
 /* #APP */
  ;  871 "src/main.cc" 1
-	lds r30, AddressLinesInterface
-	ldi r31, MemoryWindowUpper
+ computeTransactionWindow
 	
  ;  0 "" 2
 /* #NOAPP */
-	sbis PING,5
-	rjmp .L636
-	sbic PING,3
-	rjmp .L637
+	sbisrj PING,5, .L636
+	sbicrj PING,3, .L637
 	in r24,0xf
 	st Z,r24
 .L637:
@@ -171,8 +168,7 @@ ExecutionBodyWithoutMemoryConnection:
 .L621:
 /* #APP */
  ;  715 "src/main.cc" 1
-	lds r30, AddressLinesInterface
-	ldi r31, MemoryWindowUpper
+ computeTransactionWindow
 	
  ;  0 "" 2
 /* #NOAPP */
@@ -364,8 +360,7 @@ ExecutionBodyWithMemoryConnection:
 .L893:
 /* #APP */
  ;  871 "src/main.cc" 1
-	lds r30, 0x8000
-	ldi r31, 0xFD
+ computeTransactionWindow
 	
  ;  0 "" 2
 /* #NOAPP */
@@ -474,8 +469,7 @@ ExecutionBodyWithMemoryConnection:
 .L882:
 /* #APP */
  ;  715 "src/main.cc" 1
-	lds r30, 0x8000
-	ldi r31, 0xFD
+computeTransactionWindow
 	
  ;  0 "" 2
 /* #NOAPP */

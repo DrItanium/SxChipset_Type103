@@ -149,10 +149,10 @@ WriteTransactionStart:
 	call writeOperation_DoNothing
 	rjmp WriteTransactionStart
 do16BitReadOperation:
-	sbicrj PING,3, SkipOverStoringToBE0_WriteTransaction
+	sbicrj PING,3, 1f 
 	in r24,PINF
 	st Y,r24
-SkipOverStoringToBE0_WriteTransaction:
+1:
 	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+1,r24

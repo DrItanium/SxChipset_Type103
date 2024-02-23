@@ -57,7 +57,7 @@ ReadTransactionStart:
 	breq .L634 ; equals zero
 	cpi r24,lo8(-2) ; 0xFE
 	brne .+2
-	rjmp .L635
+	rjmp performIOWriteCall
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
@@ -94,18 +94,18 @@ doNothingLoop0:
 	std Z+3,r24
 SignalReady_ThenWriteTransactionStart:
 	signalReady 
-.L618:
-	sbisrj EIFR,4, .L618
+WriteTransactionStart:
+	sbisrj EIFR,4, WriteTransactionStart
 	sbisrj EIFR,5, .L749
 	out EIFR,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
 	breq .L634
 	cpi r24,lo8(-2)
-	breq .L635
+	breq performIOWriteCall
 	sbis PING,5
 	rjmp SignalReady_ThenWriteTransactionStart
-.L669:
+doNothingWriteLoop0:
 	signalReady 
 	nop
 	nop
@@ -113,11 +113,11 @@ SignalReady_ThenWriteTransactionStart:
 	nop
 	nop
 	nop
-	sbicrj PING,5, .L669
+	sbicrj PING,5, doNothingWriteLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
-.L635:
+performIOWriteCall:
 	call doIOWriteOperation 
-	rjmp .L618
+	rjmp WriteTransactionStart
 .L636:
 	sbicrj PING,3, .L571
 	in r24,0xf

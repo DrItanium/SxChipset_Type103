@@ -41,6 +41,9 @@ __iospace_sec_reg__ = 2
 	mov __iospace_sec_reg__, r16
 	ser r16
 	mov __direction_ff_reg__, r16 ; 0xff
+; setup index register Y to be the actual memory window, that way we can only update the lower half
+	clr r28
+	ldi r29, MemoryWindowUpper
 .endm
 .global ExecutionBodyWithoutMemoryConnection
 .global ExecutionBodyWithMemoryConnection

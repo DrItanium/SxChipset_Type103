@@ -161,6 +161,7 @@ doNothingLoop2:
 	signalReady 
 	delay6cycles
 	sbicrj PING,5, doNothingLoop2
+	rjmp FirstSignalReady_ThenReadTransactionStart
 .L642:
 	in r25,PINF
 	lds r24,PINK

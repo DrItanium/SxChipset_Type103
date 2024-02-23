@@ -41,6 +41,10 @@ __direction_ff_reg__ = 17
 .global doIOWriteOperation
 .global doExternalCommunicationReadOperation
 .global doExternalCommunicationWriteOperation
+.macro delay2cycles 
+	rjmp 1f
+1:
+.endm
 .text
 ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
@@ -66,12 +70,9 @@ gotoFallback0:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
-	rjmp 1f 
-1:
-	rjmp 1f 
-1:
-	rjmp 1f 
-1:
+	delay2cycles
+	delay2cycles
+	delay2cycles
 	sbicrj PING,5, doNothingLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 doReadTransaction_Primary:
@@ -85,8 +86,7 @@ SkipOverStoringToBE0:
 	lds r24,262
 	signalReady 
 	std Z+1,r24
-	rjmp 1f 
-1:
+	delay2cycles
 	sbicrj PING, 5, .L642
 ; so we end here and continue on
 	in r24,0xf
@@ -109,12 +109,9 @@ WriteTransactionStart:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingWriteLoop0:
 	signalReady 
-	rjmp 1f 
-1:
-	rjmp 1f 
-1:
-	rjmp 1f 
-1:
+	delay2cycles
+	delay2cycles
+	delay2cycles
 	sbicrj PING,5, doNothingWriteLoop0
 	rjmp SignalReady_ThenWriteTransactionStart
 performIOWriteCall:
@@ -143,12 +140,9 @@ ShiftFromWriteToRead:
 	sbisrj PING, 5, FirstSignalReady_ThenReadTransactionStart 
 doNothingLoop2:
 	signalReady 
-	rjmp 1f 
-1:
-	rjmp 1f 
-1:
-	rjmp 1f 
-1:
+	delay2cycles
+	delay2cycles
+	delay2cycles
 	sbicrj PING,5, doNothingLoop2
 .L642:
 	in r25,0xf
@@ -231,12 +225,9 @@ gotoFallback2:
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 doNothingLoop3:
 	signalReady 
-	rjmp 1f
-1:
-	rjmp 1f 
-1:
-	rjmp 1f
-1:
+	delay2cycles
+	delay2cycles
+	delay2cycles
 	sbicrj PING,5, doNothingLoop3
 	rjmp FirstSignalReady_ThenReadTransactionStart
 .L645:
@@ -347,8 +338,7 @@ ExecutionBodyWithMemoryConnection:
 	lds r24,262
 	signalReady
 	std Z+1,r24
-	nop
-	nop
+	delay2cycles
 	sbicrj PING,5, .L901
 	in r24,0xf
 	std Z+2,r24

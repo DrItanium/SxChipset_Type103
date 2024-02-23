@@ -145,7 +145,7 @@ SkipOverStoringToBE0_WriteTransaction:
 	std Y+1,r24
 	rjmp SignalReady_ThenWriteTransactionStart
 ShiftFromWriteToRead:
-	out 0x10,__direction_ff_reg__
+	out DDRF,__direction_ff_reg__
 	sts 263,__direction_ff_reg__
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
@@ -320,7 +320,7 @@ ExecutionBodyWithMemoryConnection:
 .L829:
 	sbisrj EIFR,4, .L829
 	sbisrj EIFR,5, .L987
-	out 0x10,__zero_reg__
+	out DDRF,__zero_reg__
 	sts 263,__zero_reg__
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
@@ -366,7 +366,7 @@ ExecutionBodyWithMemoryConnection:
 	call doExternalCommunicationWriteOperation
 	rjmp .L880
 .L993:
-	out 0x10,__direction_ff_reg__
+	out DDRF,__direction_ff_reg__
 	sts 263,__direction_ff_reg__
 .L987:
 	out 0x1c,__eifr_mask_reg__

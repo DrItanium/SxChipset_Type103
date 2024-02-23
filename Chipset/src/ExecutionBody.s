@@ -329,7 +329,7 @@ ExecutionBodyWithMemoryConnection:
 	sts 263,__zero_reg__
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
-	tst r24
+	cp r24, __zero_reg__
 	breq .L893
 .L970:
 	cp r24, __iospace_sec_reg__
@@ -376,13 +376,14 @@ ExecutionBodyWithMemoryConnection:
 .L987:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
-	tst r24
+	cp r24, __zero_reg__
 	brne 1f
 	rjmp .L882
 1:
 	cp r24,__iospace_sec_reg__
 	breq 1f
-	rjmp .L994
+	call doExternalCommunicationReadOperation
+	rjmp .L829
 1:
 	call doIOReadOperation 
 	rjmp .L829
@@ -437,9 +438,6 @@ ExecutionBodyWithMemoryConnection:
 	lds r24,PINK
 	std Y+15,r24
 	rjmp .L924
-.L994:
-	call doExternalCommunicationReadOperation
-	rjmp .L829
 .L882:
 /* #APP */
  ;  715 "src/main.cc" 1

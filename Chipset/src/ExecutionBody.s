@@ -136,8 +136,7 @@ ExecutionBodyWithoutMemoryConnection:
 	breq .L605
 	out 0x11,__zero_reg__
 	sts 264,__zero_reg__
-	sbis PING,5
-	rjmp .L728
+	sbisrj PING, 5, .L728
 .L632:
 	signalReady r28
 	nop
@@ -505,29 +504,25 @@ ExecutionBodyWithMemoryConnection:
 	ldd r24,Z+7
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L967
+	sbisrj PING,5, .L967
 	signalReady r29
 	ldd r25,Z+8
 	ldd r24,Z+9
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L967
+	sbisrj PING,5, .L967
 	signalReady r29
 	ldd r25,Z+10
 	ldd r24,Z+11
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L967
+	sbisrj PING,5, .L967
 	signalReady r29
 	ldd r25,Z+12
 	ldd r24,Z+13
 	out 0x11,r25
 	sts 264,r24
-	sbis PING,5
-	rjmp .L967
+	sbisrj PING, 5, .L967
 	signalReady r29
 	ldd r25,Z+14
 	ldd r24,Z+15
@@ -539,40 +534,35 @@ ExecutionBodyWithMemoryConnection:
 .L995:
 	in r24,0xf
 	std Z+4,r24
-	sbic PING,4
-	rjmp .L924
+	sbicrj PING,4, .L924
 	lds r24,262
 	std Z+5,r24
 	rjmp .L924
 .L996:
 	in r24,0xf
 	std Z+6,r24
-	sbic PING,4
-	rjmp .L924
+	sbicrj PING,4, .L924
 	lds r24,262
 	std Z+7,r24
 	rjmp .L924
 .L997:
 	in r24,0xf
 	std Z+8,r24
-	sbic PING,4
-	rjmp .L924
+	sbicrj PING,4, .L924
 	lds r24,262
 	std Z+9,r24
 	rjmp .L924
 .L998:
 	in r24,0xf
 	std Z+10,r24
-	sbic PING,4
-	rjmp .L924
+	sbicrj PING,4, .L924
 	lds r24,262
 	std Z+11,r24
 	rjmp .L924
 .L999:
 	in r24,0xf
 	std Z+12,r24
-	sbic PING,4
-	rjmp .L924
+	sbicrj PING,4, .L924
 	lds r24,262
 	std Z+13,r24
 	rjmp .L924

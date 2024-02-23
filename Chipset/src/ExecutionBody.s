@@ -86,9 +86,9 @@ ReadTransactionStart:
 	tst r24
 	breq doReadTransaction_Primary ; equals zero
 	cp r24, __iospace_sec_reg__
-	brne gotoFallback0
+	brne 1f 
 	rjmp performIOWriteCall
-gotoFallback0:
+1:
 	sbisrj PING,5, SignalReady_ThenWriteTransactionStart
 doNothingLoop0:
 	signalReady 
@@ -229,13 +229,13 @@ readToWriteTransaction:
 	out 0x1c,__eifr_mask_reg__
 	lds r24,AddressLinesInterface+3
 	tst r24
-	brne gotoFallback1
+	brne 1f
 	rjmp DoReadIntermediateFromWrite
-gotoFallback1:
+1:
 	cp r24, __iospace_sec_reg__
-	brne gotoFallback2
+	brne 1f
 	rjmp doIOReadThenJumpToReadTransaction
-gotoFallback2:
+1:
 	out 0x11,__zero_reg__
 	sts PORTK,__zero_reg__
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart

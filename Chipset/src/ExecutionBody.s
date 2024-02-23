@@ -30,12 +30,14 @@ __direction_ff_reg__ = 17
 	lds r30, AddressLinesInterface
 	ldi r31, MemoryWindowUpper
 .endm
-.global ExecutionBodyWithMemoryConnection
+
 .global ExecutionBodyWithoutMemoryConnection
+.global ExecutionBodyWithMemoryConnection
 .global doIOReadOperation
 .global doIOWriteOperation
 .global doExternalCommunicationReadOperation
 .global doExternalCommunicationWriteOperation
+.text
 ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */

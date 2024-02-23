@@ -75,16 +75,13 @@ __iospace_sec_reg__ = 2
 .endm
 .text
 
-readOperation_DoNothing:
-	out PORTF,__zero_reg__
-	sts PORTK,__zero_reg__
 writeOperation_DoNothing:
-	sbisrj PING, 5, readOperation_DoNothing_Done ; if BLAST is low then we are done and just return
-readOperation_DoNothing_LoopBody:
+	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
+1:
 	signalReady
 	delay6cycles
-	sbicrj PING, 5, readOperation_DoNothing_LoopBody
-readOperation_DoNothing_Done:
+	sbicrj PING, 5, 1b 
+2:
 	signalReady
 	ret
 	

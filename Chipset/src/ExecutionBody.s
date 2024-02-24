@@ -164,17 +164,6 @@ do16BitWriteOperation:
 ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__
 	sts 263,__direction_ff_reg__
-	clearEIFR
-	lds r24,AddressLinesInterface+3
-	cpz r24
-	breq ReadStreamingOperation 
-	cp r24, __iospace_sec_reg__
-	brne 1f
-	call doIOReadOperation
-	rjmp ReadTransactionStart
-1:
-	call readOperation_DoNothing
-	rjmp ReadTransactionStart
 PrimaryReadTransaction:
 	clearEIFR
 	lds r24,AddressLinesInterface+3

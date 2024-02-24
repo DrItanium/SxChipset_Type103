@@ -175,19 +175,6 @@ ShiftFromWriteToRead:
 1:
 	call readOperation_DoNothing
 	rjmp ReadTransactionStart
-.L642:
-	in r25,PINF
-	lds r24,PINK
-	signalReady 
-	std Y+2,r25
-	std Y+3,r24
-	sbicrj PING,5, .L645
-	in r24,PINF
-	std Y+4,r24
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+5,r24
-	rjmp SignalReady_ThenWriteTransactionStart
 ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
@@ -251,6 +238,19 @@ PrimaryReadTransaction:
 1:
 	call readOperation_DoNothing
 	rjmp ReadTransactionStart
+.L642:
+	in r25,PINF
+	lds r24,PINK
+	signalReady 
+	std Y+2,r25
+	std Y+3,r24
+	sbicrj PING,5, .L645
+	in r24,PINF
+	std Y+4,r24
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
+	lds r24,PINK
+	std Y+5,r24
+	rjmp SignalReady_ThenWriteTransactionStart
 .L645:
 	in r25,PINF
 	lds r24,PINK

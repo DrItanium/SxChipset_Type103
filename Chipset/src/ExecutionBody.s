@@ -175,6 +175,18 @@ ShiftFromWriteToRead:
 1:
 	call readOperation_DoNothing
 	rjmp ReadTransactionStart
+PrimaryReadTransaction:
+	clearEIFR
+	lds r24,AddressLinesInterface+3
+	cpz r24
+	breq ReadStreamingOperation
+	cp r24, __iospace_sec_reg__
+	brne 1f
+	call doIOReadOperation
+	rjmp ReadTransactionStart
+1:
+	call readOperation_DoNothing
+	rjmp ReadTransactionStart
 ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
@@ -224,20 +236,6 @@ ReadStreamingOperation:
 	out 0x11,r25
 	sts PORTK,r24
 	rjmp FirstSignalReady_ThenReadTransactionStart
-PrimaryReadTransaction:
-	clearEIFR
-	lds r24,AddressLinesInterface+3
-	cpz r24
-	brne 1f
-	rjmp ReadStreamingOperation 
-1:
-	cp r24, __iospace_sec_reg__
-	brne 1f
-	call doIOReadOperation
-	rjmp ReadTransactionStart
-1:
-	call readOperation_DoNothing
-	rjmp ReadTransactionStart
 .L642:
 	in r25,PINF
 	lds r24,PINK

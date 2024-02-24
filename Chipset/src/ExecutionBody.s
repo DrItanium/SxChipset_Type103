@@ -103,6 +103,19 @@ ReadTransactionStart:
 ; start setting up for a write operation here
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
+	clearEIFR
+; we need to use cpse instead of breq to allow for better jumping destination
+	lds r24,AddressLinesInterface+3
+	cpz r24  ; are we looking at zero? If not then check 0xFE later on (1 cycle)
+	breq doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
+									; total is 2 cycles when it isn't true and three cycles when it is
+									; must keep the operation local though...
+	cp r24, __iospace_sec_reg__   ; is this equal to 0xFE
+	brne 1f						  ; If they aren't equal then jump over and goto the do nothing action
+	call doIOWriteOperation
+	rjmp WriteTransactionStart
+1:
+	call writeOperation_DoNothing
 	rjmp WriteTransactionStart
 doWriteTransaction_Primary:
 	computeTransactionWindow

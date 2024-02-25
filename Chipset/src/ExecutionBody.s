@@ -235,10 +235,10 @@ WOMC_do16BitWriteOperation:
 	std Y+5,r24
 	sbicrj PING,5, .L649
 	in r24,PINF
+	lds r25, PINK
+	sbis PING, 4
+	std Y+7,r25
 	std Y+6,r24
-	sbicrj PING,4,WOMC_SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+7,r24
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L649:
 	in r25,PINF

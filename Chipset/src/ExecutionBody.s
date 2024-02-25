@@ -245,10 +245,10 @@ WOMC_WriteTransactionStart:
 	std Y+7,r24
 	sbicrj PING,5, .L653
 	in r24,PINF
+	lds r25, PINK
+	sbis PING, 4
+	std Y+9,r25
 	std Y+8,r24
-	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+9,r24
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L653:
 	in r25,PINF
@@ -258,10 +258,10 @@ WOMC_WriteTransactionStart:
 	std Y+9,r24
 	sbicrj PING,5, .L657
 	in r24,PINF
+	lds r25,PINK
+	sbis PING, 4
+	std Y+11,r25
 	std Y+10,r24
-	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+11,r24
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L657:
 	in r25,PINF
@@ -271,10 +271,10 @@ WOMC_WriteTransactionStart:
 	std Y+11,r24
 	sbicrj PING,5, .L661
 	in r24,PINF
+	lds r25,PINK
+	sbis PING,4
+	std Y+13,r25
 	std Y+12,r24
-	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+13,r24
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L661:
 	in r25,PINF

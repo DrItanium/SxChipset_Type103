@@ -107,6 +107,7 @@ FirstSignalReady_ThenReadTransactionStart:
 ReadTransactionStart:
 	sbisrj EIFR,4, ReadTransactionStart ; keep waiting
 	sbisrj EIFR,5, PrimaryReadTransaction  ; 
+ReadToWriteTransaction:
 ; start setting up for a write operation here
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__

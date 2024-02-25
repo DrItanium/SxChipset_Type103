@@ -243,14 +243,7 @@ WOMC_WriteTransactionStart:
 	signalReady
 	std Y+6,r25
 	std Y+7,r24
-	sbicrj PING,5, .L653
-	in r24,PINF
-	lds r25, PINK
-	sbis PING, 4
-	std Y+9,r25
-	std Y+8,r24
-	rjmp WOMC_SignalReady_ThenWriteTransactionStart
-.L653:
+	sbisrj PING,5, WOMC_WriteBytes8_and_9_End
 	in r25,PINF
 	lds r24,PINK
 	signalReady
@@ -294,6 +287,13 @@ WOMC_WriteBytes4_and_5_End:
 	sbis PING, 4
 	std Y+5,r25
 	std Y+4,r24
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
+WOMC_WriteBytes8_and_9_End:
+	in r24,PINF
+	lds r25,PINK
+	sbis PING, 4
+	std Y+9,r25
+	std Y+8,r24
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 WOMC_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	; Change the direction to output

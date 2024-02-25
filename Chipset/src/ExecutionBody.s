@@ -89,16 +89,6 @@ WOMC_writeOperation_DoNothing:
 2:
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 
-WOMC_readOperation_DoNothing:
-	out PORTF, __zero_reg__
-	sts PORTK, __zero_reg__
-	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
-1:
-	signalReady
-	delay6cycles
-	sbicrj PING, 5, 1b 
-2:
-	rjmp WOMC_FirstSignalReady_ThenReadTransactionStart
 	
 ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
@@ -106,6 +96,14 @@ ExecutionBodyWithoutMemoryConnection:
 /* stack size = 0 */
 	setupRegisterConstants
 	rjmp WOMC_ReadTransactionStart ; jump into the top of the invocation loop
+WOMC_readOperation_DoNothing:
+	out PORTF, __zero_reg__
+	sts PORTK, __zero_reg__
+	sbisrj PING, 5, WOMC_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
+1:
+	signalReady
+	delay6cycles
+	sbicrj PING, 5, 1b 
 WOMC_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 WOMC_ReadTransactionStart:

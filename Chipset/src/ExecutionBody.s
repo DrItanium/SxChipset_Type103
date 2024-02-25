@@ -110,7 +110,6 @@ WOMC_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 WOMC_ReadTransactionStart:
 	sbisrj EIFR,4, WOMC_ReadTransactionStart ; keep waiting
-	;sbisrj EIFR,5, WOMC_PrimaryReadTransaction  ; jumping over to the read operation code is a cycle slower (1 + 2), fallthrough is 2 cycles
 	sbicrj EIFR,5, WOMC_ShiftFromReadToWrite; 
 WOMC_PrimaryReadTransaction:
 	clearEIFR						; Waiting for next memory transaction
@@ -228,14 +227,7 @@ WOMC_do16BitWriteOperation:
 	signalReady 
 	std Y+2,r25
 	std Y+3,r24
-	sbicrj PING,5, .L645
-	in r24,PINF
-	std Y+4,r24
-	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+5,r24
-	rjmp WOMC_SignalReady_ThenWriteTransactionStart
-.L645:
+	sbisrj PING,5, WOMC_WriteBytes4_and_5_End
 	in r25,PINF
 	lds r24,PINK
 	signalReady
@@ -298,6 +290,13 @@ WOMC_do16BitWriteOperation:
 	sbis PING, 4
 	std Y+15,r25
 	std Y+14,r24
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
+WOMC_WriteBytes4_and_5_End:
+	in r24,PINF
+	lds r25,PINK
+	sbis PING, 4
+	std Y+5,r25
+	std Y+4,r24
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 WOMC_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	; Change the direction to output

@@ -180,54 +180,50 @@ PrimaryReadTransaction:
 	rjmp ReadTransactionStart		; And we are done :)
 1:
 	rjmp readOperation_DoNothing    ; Do nothing
+.macro StoreToDataPort lo,hi
+	out PORTF, \lo
+	sts PORTK, \hi
+.endm
 ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
 	ldd r24,Y+1
-	out PORTF,r25
-	sts PORTK,r24
+	StoreToDataPort r25,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+2
 	ldd r24,Y+3
-	out PORTF,r25
-	sts PORTK,r24
+	StoreToDataPort r25, r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+4
 	ldd r24,Y+5
-	out PORTF,r25
-	sts PORTK,r24
+	StoreToDataPort r25, r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+6
 	ldd r24,Y+7
-	out PORTF,r25
-	sts PORTK,r24
+	StoreToDataPort r25, r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+8
 	ldd r24,Y+9
-	out PORTF,r25
-	sts PORTK,r24
+	StoreToDataPort r25, r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+10
 	ldd r24,Y+11
-	out PORTF,r25
-	sts PORTK,r24
+	StoreToDataPort r25, r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+12
 	ldd r24,Y+13
-	out PORTF,r25
-	sts PORTK,r24
+	StoreToDataPort r25, r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+14
 	ldd r24,Y+15
-	out PORTF,r25
-	sts PORTK,r24
+	StoreToDataPort r25, r24
 	rjmp FirstSignalReady_ThenReadTransactionStart
 .L642:
 	in r25,PINF

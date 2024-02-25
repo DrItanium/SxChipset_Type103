@@ -175,18 +175,16 @@ WOMC_ShiftFromReadToWrite:
 2:
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 WOMC_do16BitWriteOperation:
-	sbis PING, 3 	   ; Is BE0 LOW?
-	st Y, r24		   ; Yes, so store to the EBI
 	sbis PING, 4 	   ; Is BE1 LOW?
 	std Y+1, r25	   ; Yes, so store to the EBI
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart			 ; And we are done
 WOMC_doWriteTransaction_Primary:
 	computeTransactionWindow
 	in r24,PINF 											; Load lower byte from F
+	sbis PING, 3 	   ; Is BE0 LOW?
+	st Y, r24		   ; Yes, so store to the EBI
 	lds r25,PINK											; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	sbisrj PING,5, WOMC_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
-	sbis PING, 3 											; Don't store the lower byte to the EBI if it set
-	st Y,r24												; store the lower byte
 	signalReady 											
 	std Y+1,r25												; Store the upper byte to the EBI
 	delay2cycles											; it takes 6 cycles (AVR) to trigger the ready signal, the std to the EBI with a one cycle delay takes four cycles (AVR) so we need to wait two more cycles to align everything

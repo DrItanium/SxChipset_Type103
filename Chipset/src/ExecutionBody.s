@@ -294,10 +294,10 @@ WOMC_do16BitWriteOperation:
 	std Y+12,r25
 	std Y+13,r24
 	in r24,PINF
+	lds r25, PINK
+	sbis PING, 4
+	std Y+15,r25
 	std Y+14,r24
-	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+15,r24
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 WOMC_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	; Change the direction to output

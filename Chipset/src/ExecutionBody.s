@@ -184,49 +184,49 @@ ReadStreamingOperation:
 	computeTransactionWindow
 	ld r25,Y
 	ldd r24,Y+1
-	out 0x11,r25
+	out PORTF,r25
 	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+2
 	ldd r24,Y+3
-	out 0x11,r25
+	out PORTF,r25
 	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+4
 	ldd r24,Y+5
-	out 0x11,r25
+	out PORTF,r25
 	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+6
 	ldd r24,Y+7
-	out 0x11,r25
+	out PORTF,r25
 	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+8
 	ldd r24,Y+9
-	out 0x11,r25
+	out PORTF,r25
 	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+10
 	ldd r24,Y+11
-	out 0x11,r25
+	out PORTF,r25
 	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+12
 	ldd r24,Y+13
-	out 0x11,r25
+	out PORTF,r25
 	sts PORTK,r24
 	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+14
 	ldd r24,Y+15
-	out 0x11,r25
+	out PORTF,r25
 	sts PORTK,r24
 	rjmp FirstSignalReady_ThenReadTransactionStart
 .L642:

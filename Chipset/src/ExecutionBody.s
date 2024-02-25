@@ -76,9 +76,6 @@ __iospace_sec_reg__ = 2
 .global doExternalCommunicationWriteOperation
 .text
 
-readOperation_DoNothing:
-	out PORTF, __zero_reg__
-	sts PORTK, __zero_reg__
 writeOperation_DoNothing:
 	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
 1:
@@ -86,8 +83,18 @@ writeOperation_DoNothing:
 	delay6cycles
 	sbicrj PING, 5, 1b 
 2:
+	rjmp SignalReady_ThenWriteTransactionStart
+
+readOperation_DoNothing:
+	out PORTF, __zero_reg__
+	sts PORTK, __zero_reg__
+	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
+1:
 	signalReady
-	ret
+	delay6cycles
+	sbicrj PING, 5, 1b 
+2:
+	rjmp FirstSignalReady_ThenReadTransactionStart
 	
 ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
@@ -115,8 +122,7 @@ ReadTransactionStart:
 	call doIOWriteOperation
 	rjmp WriteTransactionStart
 1:
-	call writeOperation_DoNothing
-	rjmp WriteTransactionStart
+	rjmp writeOperation_DoNothing ; jump to do nothing
 doWriteTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
@@ -150,8 +156,7 @@ WriteTransactionStart:
 	call doIOWriteOperation 
 	rjmp WriteTransactionStart
 1:
-	call writeOperation_DoNothing
-	rjmp WriteTransactionStart
+	rjmp writeOperation_DoNothing
 do16BitWriteOperation:
 	sbicrj PING,3, 1f  ; Are we saving the lower byte?
 	in r24,PINF		   ; we are, so get the data from the data port
@@ -162,20 +167,19 @@ do16BitWriteOperation:
 	std Y+1,r24											 ; Store to the EBI
 	rjmp SignalReady_ThenWriteTransactionStart			 ; And we are done
 ShiftFromWriteToRead:
-	out DDRF,__direction_ff_reg__
-	sts DDRK,__direction_ff_reg__
+	out DDRF,__direction_ff_reg__	; Change the direction to output
+	sts DDRK,__direction_ff_reg__   ; Change the direction to output
 PrimaryReadTransaction:
-	clearEIFR
-	lds r24,AddressLinesInterface+3
-	cpz r24
-	breq ReadStreamingOperation
-	cp r24, __iospace_sec_reg__
-	brne 1f
-	call doIOReadOperation
-	rjmp ReadTransactionStart
+	clearEIFR						; Waiting for next memory transaction
+	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
+	cpz r24							; Zero?
+	breq ReadStreamingOperation     ; If so then start the read streaming operation
+	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
+	brne 1f							; If it is not, then we do nothing
+	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
+	rjmp ReadTransactionStart		; And we are done :)
 1:
-	call readOperation_DoNothing
-	rjmp ReadTransactionStart
+	rjmp readOperation_DoNothing    ; Do nothing
 ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y

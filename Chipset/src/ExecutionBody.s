@@ -185,19 +185,19 @@ WOMC_doWriteTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, WOMC_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	in r24,PINF 											; Load lower byte from F
-	sbis PING, 3 											; Don't store to the EBI if it set
-	st Y,r24
-	lds r24,PINK
-	signalReady 
-	std Y+1,r24
-	delay2cycles
+	sbis PING, 3 											; Don't store the lower byte to the EBI if it set
+	st Y,r24												; store the lower byte
+	lds r24,PINK											; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
+	signalReady 											
+	std Y+1,r24												; Store the upper byte to the EBI
+	delay2cycles											; it takes 6 cycles (AVR) to trigger the ready signal, the std to the EBI with a one cycle delay takes four cycles (AVR) so we need to wait two more cycles to align everything
 	sbicrj PING, 5, .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
-	in r24,PINF
-	std Y+2,r24
-	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+3,r24
+	in r24,PINF			  ; load the lower byte
+	std Y+2,r24			  ; save it without checking BE0 since we flowed into this part of the transaction
+	lds r24, PINK		  ; Loading the port doesn't take much time so just do it regardless
+	sbis PING, 4		  ; if BE1 is set then skip over the store
+	std Y+3,r24			  ; Store to memory if applicable (this is the expensive part)
 WOMC_SignalReady_ThenWriteTransactionStart:
 	signalReady 
 WOMC_WriteTransactionStart:

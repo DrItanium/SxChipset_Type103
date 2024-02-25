@@ -1,0 +1,24 @@
+Fallthrough on unaligned 4 and 5 byte burst writes to continue, more expensive
+if we end on unaligned write operation
+
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     54.7361      0.2558
+     2     -3.8192e-14     35.9964      0.1945
+     3     -1.7902e-13     61.9984      0.2742
+     4     -2.7744e-13     51.5859      0.2908
+     5      1.0579e-12    107.2151      0.2705
+     6     -2.0101e-13    107.4567      0.2699
+     7      6.2528e-13     60.4691      0.1984
+     8     -5.7265e-13    105.2161      0.2851
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7244
+   MFLOPS(1)       =     0.2149
+   MFLOPS(2)       =     0.2433
+   MFLOPS(3)       =     0.2661
+   MFLOPS(4)       =     0.2789
+

@@ -104,12 +104,10 @@ WOMC_PrimaryReadTransaction:
 	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
 	cpz r24							; Zero?
 	breq WOMC_ReadStreamingOperation     ; If so then start the read streaming operation
-	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
-	brne 1f							; If it is not, then we do nothing
-	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
-	rjmp WOMC_ReadTransactionStart		; And we are done :)
-1:
-	rjmp WOMC_readOperation_DoNothing    ; Do nothing
+	cp r24, __iospace_sec_reg__		     ; Nope, so check to see if it is the IO space
+	brne WOMC_readOperation_DoNothing	 ; If it is not, then we do nothing
+	call doIOReadOperation			     ; It is so call doIOReadOperation, back to c++
+	rjmp WOMC_ReadTransactionStart		 ; And we are done :)
 WOMC_ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
@@ -167,12 +165,11 @@ WOMC_ShiftFromReadToWrite:
 	call doIOWriteOperation 
 	rjmp WOMC_WriteTransactionStart
 1:
-	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
+	sbisrj PING, 5, WOMC_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
 	sbicrj PING, 5, 1b 
-2:
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 WOMC_do16BitWriteOperation:
 	sbis PING, 4 	   ; Is BE1 LOW?
@@ -202,7 +199,7 @@ WOMC_WriteTransactionStart:
 	sbisrj EIFR,5, WOMC_ShiftFromWriteToRead 
 	clearEIFR
 	lds r24,AddressLinesInterface+3
-	tst r24
+	cpz r24
 	breq WOMC_doWriteTransaction_Primary
 	cp r24, __iospace_sec_reg__
 	brne 1f

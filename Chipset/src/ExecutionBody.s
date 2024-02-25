@@ -153,14 +153,14 @@ WriteTransactionStart:
 	call writeOperation_DoNothing
 	rjmp WriteTransactionStart
 do16BitWriteOperation:
-	sbicrj PING,3, 1f 
-	in r24,PINF
-	st Y,r24
+	sbicrj PING,3, 1f  ; Are we saving the lower byte?
+	in r24,PINF		   ; we are, so get the data from the data port
+	st Y,r24		   ; Store to the EBI
 1:
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
-	lds r24,PINK
-	std Y+1,r24
-	rjmp SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4, SignalReady_ThenWriteTransactionStart ; check to see if we should write to the upper byte
+	lds r24,PINK										 ; We should so load from the upper data port
+	std Y+1,r24											 ; Store to the EBI
+	rjmp SignalReady_ThenWriteTransactionStart			 ; And we are done
 ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__
 	sts DDRK,__direction_ff_reg__

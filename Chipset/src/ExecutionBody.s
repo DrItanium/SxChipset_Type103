@@ -182,13 +182,13 @@ WOMC_ShiftFromReadToWrite:
 	rjmp WOMC_writeOperation_DoNothing ; jump to do nothing
 WOMC_doWriteTransaction_Primary:
 	computeTransactionWindow
-	sbisrj PING,5, WOMC_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	in r24,PINF 											; Load lower byte from F
+	lds r25,PINK											; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
+	sbisrj PING,5, WOMC_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	sbis PING, 3 											; Don't store the lower byte to the EBI if it set
 	st Y,r24												; store the lower byte
-	lds r24,PINK											; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	signalReady 											
-	std Y+1,r24												; Store the upper byte to the EBI
+	std Y+1,r25												; Store the upper byte to the EBI
 	delay2cycles											; it takes 6 cycles (AVR) to trigger the ready signal, the std to the EBI with a one cycle delay takes four cycles (AVR) so we need to wait two more cycles to align everything
 	sbicrj PING, 5, .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
@@ -213,13 +213,10 @@ WOMC_WriteTransactionStart:
 1:
 	rjmp WOMC_writeOperation_DoNothing
 WOMC_do16BitWriteOperation:
-	sbicrj PING,3, 1f  ; Are we saving the lower byte?
-	in r24,PINF		   ; we are, so get the data from the data port
-	st Y,r24		   ; Store to the EBI
-1:
-	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart ; check to see if we should write to the upper byte
-	lds r24,PINK										 ; We should so load from the upper data port
-	std Y+1,r24											 ; Store to the EBI
+	sbis PING, 3 	   ; Is BE0 LOW?
+	st Y, r24		   ; Yes, so store to the EBI
+	sbis PING, 4 	   ; Is BE1 LOW?
+	std Y+1, r25	   ; Yes, so store to the EBI
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart			 ; And we are done
 .L642:
 	in r25,PINF

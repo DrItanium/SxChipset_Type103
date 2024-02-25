@@ -305,7 +305,14 @@ WOMC_ShiftFromWriteToRead:
 	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
 	rjmp WOMC_ReadTransactionStart		; And we are done :)
 1:
-	rjmp WOMC_readOperation_DoNothing    ; Do nothing
+	out PORTF, __zero_reg__
+	sts PORTK, __zero_reg__
+	sbisrj PING, 5, WOMC_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
+1:
+	signalReady
+	delay6cycles
+	sbicrj PING, 5, 1b 
+	rjmp WOMC_FirstSignalReady_ThenReadTransactionStart
 WOMC_ReadStreamingOperation2: 
 	computeTransactionWindow
 	ld r25,Y

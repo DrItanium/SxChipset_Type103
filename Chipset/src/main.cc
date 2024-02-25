@@ -943,31 +943,6 @@ void
 doExternalCommunicationWriteOperation() {
     doExternalCommunication<false>();
 }
-template<bool isReadOperation, bool externalCommunicationSupported>
-FORCE_INLINE
-inline
-void
-doIOOperation() noexcept {
-    switch (AddressLinesInterface.view8.data[3]) {
-        case 0x00:
-            // we don't need to worry about the upper 16-bits of the bus like we
-            // used to. In this improved design, there is no need to keep track of
-            // where we are starting. Instead, we can easily just do the check as
-            // needed
-            MemoryInterface::doOperation<isReadOperation>();
-            break;
-        case 0xFE:
-            doIO<isReadOperation>();
-            break;
-        default:
-            if constexpr (externalCommunicationSupported) {
-                doExternalCommunication<isReadOperation>();
-            } else {
-                doNothing<isReadOperation>();
-            }
-            break;
-    }
-}
 #undef I960_Signal_Switch
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize>

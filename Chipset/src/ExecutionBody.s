@@ -180,6 +180,12 @@ WOMC_ShiftFromReadToWrite:
 	rjmp WOMC_WriteTransactionStart
 1:
 	rjmp WOMC_writeOperation_DoNothing ; jump to do nothing
+WOMC_do16BitWriteOperation:
+	sbis PING, 3 	   ; Is BE0 LOW?
+	st Y, r24		   ; Yes, so store to the EBI
+	sbis PING, 4 	   ; Is BE1 LOW?
+	std Y+1, r25	   ; Yes, so store to the EBI
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart			 ; And we are done
 WOMC_doWriteTransaction_Primary:
 	computeTransactionWindow
 	in r24,PINF 											; Load lower byte from F
@@ -195,7 +201,7 @@ WOMC_doWriteTransaction_Primary:
 	in r24,PINF			  ; load the lower byte
 	lds r25, PINK		  ; Loading the port doesn't take much time so just do it regardless
 	sbis PING, 4		  ; if BE1 is set then skip over the store
-	std Y+3,r24			  ; Store to memory if applicable (this is the expensive part)
+	std Y+3,r25			  ; Store to memory if applicable (this is the expensive part)
 	std Y+2,r24			  ; save it without checking BE0 since we flowed into this part of the transaction
 WOMC_SignalReady_ThenWriteTransactionStart:
 	signalReady 
@@ -212,12 +218,6 @@ WOMC_WriteTransactionStart:
 	rjmp WOMC_WriteTransactionStart
 1:
 	rjmp WOMC_writeOperation_DoNothing
-WOMC_do16BitWriteOperation:
-	sbis PING, 3 	   ; Is BE0 LOW?
-	st Y, r24		   ; Yes, so store to the EBI
-	sbis PING, 4 	   ; Is BE1 LOW?
-	std Y+1, r25	   ; Yes, so store to the EBI
-	rjmp WOMC_SignalReady_ThenWriteTransactionStart			 ; And we are done
 .L642:
 	in r25,PINF
 	lds r24,PINK

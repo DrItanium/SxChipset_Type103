@@ -1,0 +1,23 @@
+Eliminate jump instructions in write operations and skip over the expensive EBI operations instead
+Saves instructions and potentially time as well?
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     54.8344      0.2553
+     2     -3.8192e-14     36.0598      0.1941
+     3     -1.7902e-13     62.0721      0.2739
+     4     -2.7744e-13     51.6582      0.2904
+     5      1.0579e-12    107.2697      0.2703
+     6     -2.0101e-13    107.6415      0.2694
+     7      6.2528e-13     60.5481      0.1982
+     8     -5.7265e-13    105.2999      0.2849
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7244
+   MFLOPS(1)       =     0.2145
+   MFLOPS(2)       =     0.2429
+   MFLOPS(3)       =     0.2658
+   MFLOPS(4)       =     0.2786
+

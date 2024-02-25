@@ -68,6 +68,10 @@ __iospace_sec_reg__ = 2
 .macro cpz reg
 	cpi \reg, 0x00
 .endm
+.macro StoreToDataPort lo,hi
+	out PORTF, \lo
+	sts PORTK, \hi
+.endm
 .global ExecutionBodyWithoutMemoryConnection
 .global ExecutionBodyWithMemoryConnection
 .global doIOReadOperation
@@ -106,8 +110,61 @@ WOMC_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 WOMC_ReadTransactionStart:
 	sbisrj EIFR,4, WOMC_ReadTransactionStart ; keep waiting
-	sbisrj EIFR,5, WOMC_PrimaryReadTransaction  ; 
-WOMC_ReadToWriteTransaction:
+	;sbisrj EIFR,5, WOMC_PrimaryReadTransaction  ; jumping over to the read operation code is a cycle slower (1 + 2), fallthrough is 2 cycles
+	sbicrj EIFR,5, WOMC_ShiftFromReadToWrite; 
+WOMC_PrimaryReadTransaction:
+	clearEIFR						; Waiting for next memory transaction
+	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
+	cpz r24							; Zero?
+	breq WOMC_ReadStreamingOperation     ; If so then start the read streaming operation
+	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
+	brne 1f							; If it is not, then we do nothing
+	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
+	rjmp WOMC_ReadTransactionStart		; And we are done :)
+1:
+	rjmp WOMC_readOperation_DoNothing    ; Do nothing
+WOMC_ReadStreamingOperation: 
+	computeTransactionWindow
+	ld r25,Y
+	ldd r24,Y+1
+	StoreToDataPort r25,r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+2
+	ldd r24,Y+3
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+4
+	ldd r24,Y+5
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+6
+	ldd r24,Y+7
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+8
+	ldd r24,Y+9
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+10
+	ldd r24,Y+11
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+12
+	ldd r24,Y+13
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+14
+	ldd r24,Y+15
+	StoreToDataPort r25, r24
+	rjmp WOMC_FirstSignalReady_ThenReadTransactionStart
+WOMC_ShiftFromReadToWrite:
 ; start setting up for a write operation here
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
@@ -170,22 +227,17 @@ WOMC_do16BitWriteOperation:
 WOMC_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	; Change the direction to output
 	sts DDRK,__direction_ff_reg__   ; Change the direction to output
-WOMC_PrimaryReadTransaction:
 	clearEIFR						; Waiting for next memory transaction
 	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
 	cpz r24							; Zero?
-	breq WOMC_ReadStreamingOperation     ; If so then start the read streaming operation
+	breq WOMC_ReadStreamingOperation2     ; If so then start the read streaming operation
 	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
 	brne 1f							; If it is not, then we do nothing
 	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
 	rjmp WOMC_ReadTransactionStart		; And we are done :)
 1:
 	rjmp WOMC_readOperation_DoNothing    ; Do nothing
-.macro StoreToDataPort lo,hi
-	out PORTF, \lo
-	sts PORTK, \hi
-.endm
-WOMC_ReadStreamingOperation: 
+WOMC_ReadStreamingOperation2: 
 	computeTransactionWindow
 	ld r25,Y
 	ldd r24,Y+1

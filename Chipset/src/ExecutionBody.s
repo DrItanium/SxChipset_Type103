@@ -76,16 +76,16 @@ __iospace_sec_reg__ = 2
 .global doExternalCommunicationWriteOperation
 .text
 
-writeOperation_DoNothing:
+WOMC_writeOperation_DoNothing:
 	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
 	sbicrj PING, 5, 1b 
 2:
-	rjmp SignalReady_ThenWriteTransactionStart
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 
-readOperation_DoNothing:
+WOMC_readOperation_DoNothing:
 	out PORTF, __zero_reg__
 	sts PORTK, __zero_reg__
 	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
@@ -94,20 +94,20 @@ readOperation_DoNothing:
 	delay6cycles
 	sbicrj PING, 5, 1b 
 2:
-	rjmp FirstSignalReady_ThenReadTransactionStart
+	rjmp WOMC_FirstSignalReady_ThenReadTransactionStart
 	
 ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */
 /* stack size = 0 */
 	setupRegisterConstants
-	rjmp ReadTransactionStart ; jump into the top of the invocation loop
-FirstSignalReady_ThenReadTransactionStart:
+	rjmp WOMC_ReadTransactionStart ; jump into the top of the invocation loop
+WOMC_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
-ReadTransactionStart:
-	sbisrj EIFR,4, ReadTransactionStart ; keep waiting
-	sbisrj EIFR,5, PrimaryReadTransaction  ; 
-ReadToWriteTransaction:
+WOMC_ReadTransactionStart:
+	sbisrj EIFR,4, WOMC_ReadTransactionStart ; keep waiting
+	sbisrj EIFR,5, WOMC_PrimaryReadTransaction  ; 
+WOMC_ReadToWriteTransaction:
 ; start setting up for a write operation here
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
@@ -115,18 +115,18 @@ ReadToWriteTransaction:
 ; we need to use cpse instead of breq to allow for better jumping destination
 	lds r24,AddressLinesInterface+3
 	cpz r24  ; are we looking at zero? If not then check 0xFE later on (1 cycle)
-	breq doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
+	breq WOMC_doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
 									; total is 2 cycles when it isn't true and three cycles when it is
 									; must keep the operation local though...
 	cp r24, __iospace_sec_reg__   ; is this equal to 0xFE
 	brne 1f						  ; If they aren't equal then jump over and goto the do nothing action
-	call doIOWriteOperation
-	rjmp WriteTransactionStart
+	call doIOWriteOperation 
+	rjmp WOMC_WriteTransactionStart
 1:
-	rjmp writeOperation_DoNothing ; jump to do nothing
-doWriteTransaction_Primary:
+	rjmp WOMC_writeOperation_DoNothing ; jump to do nothing
+WOMC_doWriteTransaction_Primary:
 	computeTransactionWindow
-	sbisrj PING,5, do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
+	sbisrj PING,5, WOMC_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	sbicrj PING,3, 1f 
 ; singular operation
 	in r24,PINF
@@ -140,92 +140,92 @@ doWriteTransaction_Primary:
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	in r24,PINF
 	std Y+2,r24
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+3,r24
-SignalReady_ThenWriteTransactionStart:
+WOMC_SignalReady_ThenWriteTransactionStart:
 	signalReady 
-WriteTransactionStart:
-	sbisrj EIFR,4, WriteTransactionStart
-	sbisrj EIFR,5, ShiftFromWriteToRead 
+WOMC_WriteTransactionStart:
+	sbisrj EIFR,4, WOMC_WriteTransactionStart
+	sbisrj EIFR,5, WOMC_ShiftFromWriteToRead 
 	clearEIFR
 	lds r24,AddressLinesInterface+3
 	tst r24
-	breq doWriteTransaction_Primary
+	breq WOMC_doWriteTransaction_Primary
 	cp r24, __iospace_sec_reg__
 	brne 1f
 	call doIOWriteOperation 
-	rjmp WriteTransactionStart
+	rjmp WOMC_WriteTransactionStart
 1:
-	rjmp writeOperation_DoNothing
-do16BitWriteOperation:
+	rjmp WOMC_writeOperation_DoNothing
+WOMC_do16BitWriteOperation:
 	sbicrj PING,3, 1f  ; Are we saving the lower byte?
 	in r24,PINF		   ; we are, so get the data from the data port
 	st Y,r24		   ; Store to the EBI
 1:
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart ; check to see if we should write to the upper byte
+	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart ; check to see if we should write to the upper byte
 	lds r24,PINK										 ; We should so load from the upper data port
 	std Y+1,r24											 ; Store to the EBI
-	rjmp SignalReady_ThenWriteTransactionStart			 ; And we are done
-ShiftFromWriteToRead:
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart			 ; And we are done
+WOMC_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	; Change the direction to output
 	sts DDRK,__direction_ff_reg__   ; Change the direction to output
-PrimaryReadTransaction:
+WOMC_PrimaryReadTransaction:
 	clearEIFR						; Waiting for next memory transaction
 	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
 	cpz r24							; Zero?
-	breq ReadStreamingOperation     ; If so then start the read streaming operation
+	breq WOMC_ReadStreamingOperation     ; If so then start the read streaming operation
 	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
 	brne 1f							; If it is not, then we do nothing
 	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
-	rjmp ReadTransactionStart		; And we are done :)
+	rjmp WOMC_ReadTransactionStart		; And we are done :)
 1:
-	rjmp readOperation_DoNothing    ; Do nothing
+	rjmp WOMC_readOperation_DoNothing    ; Do nothing
 .macro StoreToDataPort lo,hi
 	out PORTF, \lo
 	sts PORTK, \hi
 .endm
-ReadStreamingOperation: 
+WOMC_ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
 	ldd r24,Y+1
 	StoreToDataPort r25,r24
-	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+2
 	ldd r24,Y+3
 	StoreToDataPort r25, r24
-	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+4
 	ldd r24,Y+5
 	StoreToDataPort r25, r24
-	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+6
 	ldd r24,Y+7
 	StoreToDataPort r25, r24
-	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+8
 	ldd r24,Y+9
 	StoreToDataPort r25, r24
-	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+10
 	ldd r24,Y+11
 	StoreToDataPort r25, r24
-	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+12
 	ldd r24,Y+13
 	StoreToDataPort r25, r24
-	sbisrj PING,5, FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+14
 	ldd r24,Y+15
 	StoreToDataPort r25, r24
-	rjmp FirstSignalReady_ThenReadTransactionStart
+	rjmp WOMC_FirstSignalReady_ThenReadTransactionStart
 .L642:
 	in r25,PINF
 	lds r24,PINK
@@ -235,10 +235,10 @@ ReadStreamingOperation:
 	sbicrj PING,5, .L645
 	in r24,PINF
 	std Y+4,r24
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+5,r24
-	rjmp SignalReady_ThenWriteTransactionStart
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L645:
 	in r25,PINF
 	lds r24,PINK
@@ -248,10 +248,10 @@ ReadStreamingOperation:
 	sbicrj PING,5, .L649
 	in r24,PINF
 	std Y+6,r24
-	sbicrj PING,4,SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4,WOMC_SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+7,r24
-	rjmp SignalReady_ThenWriteTransactionStart
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L649:
 	in r25,PINF
 	lds r24,PINK
@@ -261,10 +261,10 @@ ReadStreamingOperation:
 	sbicrj PING,5, .L653
 	in r24,PINF
 	std Y+8,r24
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+9,r24
-	rjmp SignalReady_ThenWriteTransactionStart
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L653:
 	in r25,PINF
 	lds r24,PINK
@@ -274,10 +274,10 @@ ReadStreamingOperation:
 	sbicrj PING,5, .L657
 	in r24,PINF
 	std Y+10,r24
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+11,r24
-	rjmp SignalReady_ThenWriteTransactionStart
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L657:
 	in r25,PINF
 	lds r24,PINK
@@ -287,10 +287,10 @@ ReadStreamingOperation:
 	sbicrj PING,5, .L661
 	in r24,PINF
 	std Y+12,r24
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+13,r24
-	rjmp SignalReady_ThenWriteTransactionStart
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L661:
 	in r25,PINF
 	lds r24,PINK
@@ -299,10 +299,10 @@ ReadStreamingOperation:
 	std Y+13,r24
 	in r24,PINF
 	std Y+14,r24
-	sbicrj PING,4, SignalReady_ThenWriteTransactionStart
+	sbicrj PING,4, WOMC_SignalReady_ThenWriteTransactionStart
 	lds r24,PINK
 	std Y+15,r24
-	rjmp SignalReady_ThenWriteTransactionStart
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 
 
 

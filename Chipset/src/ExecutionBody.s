@@ -80,16 +80,6 @@ __iospace_sec_reg__ = 2
 .global doExternalCommunicationWriteOperation
 .text
 
-WOMC_writeOperation_DoNothing:
-	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
-1:
-	signalReady
-	delay6cycles
-	sbicrj PING, 5, 1b 
-2:
-	rjmp WOMC_SignalReady_ThenWriteTransactionStart
-
-	
 ExecutionBodyWithoutMemoryConnection:
 /* prologue: function */
 /* frame size = 0 */
@@ -177,7 +167,13 @@ WOMC_ShiftFromReadToWrite:
 	call doIOWriteOperation 
 	rjmp WOMC_WriteTransactionStart
 1:
-	rjmp WOMC_writeOperation_DoNothing ; jump to do nothing
+	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
+1:
+	signalReady
+	delay6cycles
+	sbicrj PING, 5, 1b 
+2:
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 WOMC_do16BitWriteOperation:
 	sbis PING, 3 	   ; Is BE0 LOW?
 	st Y, r24		   ; Yes, so store to the EBI
@@ -215,7 +211,13 @@ WOMC_WriteTransactionStart:
 	call doIOWriteOperation 
 	rjmp WOMC_WriteTransactionStart
 1:
-	rjmp WOMC_writeOperation_DoNothing
+	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
+1:
+	signalReady
+	delay6cycles
+	sbicrj PING, 5, 1b 
+2:
+	rjmp WOMC_SignalReady_ThenWriteTransactionStart
 .L642:
 	in r25,PINF
 	lds r24,PINK

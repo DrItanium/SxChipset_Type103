@@ -193,10 +193,10 @@ WOMC_doWriteTransaction_Primary:
 	sbicrj PING, 5, .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	in r24,PINF			  ; load the lower byte
-	std Y+2,r24			  ; save it without checking BE0 since we flowed into this part of the transaction
-	lds r24, PINK		  ; Loading the port doesn't take much time so just do it regardless
+	lds r25, PINK		  ; Loading the port doesn't take much time so just do it regardless
 	sbis PING, 4		  ; if BE1 is set then skip over the store
 	std Y+3,r24			  ; Store to memory if applicable (this is the expensive part)
+	std Y+2,r24			  ; save it without checking BE0 since we flowed into this part of the transaction
 WOMC_SignalReady_ThenWriteTransactionStart:
 	signalReady 
 WOMC_WriteTransactionStart:

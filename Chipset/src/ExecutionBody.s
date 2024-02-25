@@ -184,16 +184,14 @@ WOMC_ShiftFromReadToWrite:
 WOMC_doWriteTransaction_Primary:
 	computeTransactionWindow
 	sbisrj PING,5, WOMC_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
-	sbicrj PING,3, 1f 
-; singular operation
-	in r24,PINF
+	in r24,PINF 											; Load lower byte from F
+	sbis PING, 3 											; Don't store to the EBI if it set
 	st Y,r24
-1:
 	lds r24,PINK
 	signalReady 
 	std Y+1,r24
 	delay2cycles
-	sbicrj PING, 5, .L642
+	sbicrj PING, 5, .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	in r24,PINF
 	std Y+2,r24

@@ -224,60 +224,6 @@ WOMC_do16BitWriteOperation:
 	lds r24,PINK										 ; We should so load from the upper data port
 	std Y+1,r24											 ; Store to the EBI
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart			 ; And we are done
-WOMC_ShiftFromWriteToRead:
-	out DDRF,__direction_ff_reg__	; Change the direction to output
-	sts DDRK,__direction_ff_reg__   ; Change the direction to output
-	clearEIFR						; Waiting for next memory transaction
-	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
-	cpz r24							; Zero?
-	breq WOMC_ReadStreamingOperation2     ; If so then start the read streaming operation
-	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
-	brne 1f							; If it is not, then we do nothing
-	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
-	rjmp WOMC_ReadTransactionStart		; And we are done :)
-1:
-	rjmp WOMC_readOperation_DoNothing    ; Do nothing
-WOMC_ReadStreamingOperation2: 
-	computeTransactionWindow
-	ld r25,Y
-	ldd r24,Y+1
-	StoreToDataPort r25,r24
-	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd r25,Y+2
-	ldd r24,Y+3
-	StoreToDataPort r25, r24
-	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd r25,Y+4
-	ldd r24,Y+5
-	StoreToDataPort r25, r24
-	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd r25,Y+6
-	ldd r24,Y+7
-	StoreToDataPort r25, r24
-	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd r25,Y+8
-	ldd r24,Y+9
-	StoreToDataPort r25, r24
-	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd r25,Y+10
-	ldd r24,Y+11
-	StoreToDataPort r25, r24
-	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd r25,Y+12
-	ldd r24,Y+13
-	StoreToDataPort r25, r24
-	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd r25,Y+14
-	ldd r24,Y+15
-	StoreToDataPort r25, r24
-	rjmp WOMC_FirstSignalReady_ThenReadTransactionStart
 .L642:
 	in r25,PINF
 	lds r24,PINK
@@ -355,6 +301,60 @@ WOMC_ReadStreamingOperation2:
 	lds r24,PINK
 	std Y+15,r24
 	rjmp WOMC_SignalReady_ThenWriteTransactionStart
+WOMC_ShiftFromWriteToRead:
+	out DDRF,__direction_ff_reg__	; Change the direction to output
+	sts DDRK,__direction_ff_reg__   ; Change the direction to output
+	clearEIFR						; Waiting for next memory transaction
+	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
+	cpz r24							; Zero?
+	breq WOMC_ReadStreamingOperation2     ; If so then start the read streaming operation
+	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
+	brne 1f							; If it is not, then we do nothing
+	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
+	rjmp WOMC_ReadTransactionStart		; And we are done :)
+1:
+	rjmp WOMC_readOperation_DoNothing    ; Do nothing
+WOMC_ReadStreamingOperation2: 
+	computeTransactionWindow
+	ld r25,Y
+	ldd r24,Y+1
+	StoreToDataPort r25,r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+2
+	ldd r24,Y+3
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+4
+	ldd r24,Y+5
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+6
+	ldd r24,Y+7
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+8
+	ldd r24,Y+9
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+10
+	ldd r24,Y+11
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+12
+	ldd r24,Y+13
+	StoreToDataPort r25, r24
+	sbisrj PING,5, WOMC_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd r25,Y+14
+	ldd r24,Y+15
+	StoreToDataPort r25, r24
+	rjmp WOMC_FirstSignalReady_ThenReadTransactionStart
 
 
 

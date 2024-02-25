@@ -46,7 +46,6 @@ constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 auto& DebugConsole = Serial;
 auto& MemoryConnection = Serial1;
-constexpr bool UseInlineAssemblyRoutine = true;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
     return true;
@@ -58,10 +57,9 @@ constexpr bool transactionDebugEnabled() noexcept {
 constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 
 
-[[gnu::address(0x8000)]] inline volatile CH351 AddressLinesInterface;
-[[gnu::address(0x8008)]] inline volatile CH351 DataLinesInterface;
-[[gnu::address(0x8010)]] inline volatile CH351 ControlSignals;
-[[gnu::address(0x8018)]] inline volatile CH351 XBusBank;
+[[gnu::address(0xFC00)]] inline volatile CH351 AddressLinesInterface;
+[[gnu::address(0xFC08)]] inline volatile CH351 DataLinesInterface;
+[[gnu::address(0xFC10)]] inline volatile CH351 ControlSignals;
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -75,7 +73,6 @@ struct ViewIs final {
 };
 enum class DataPortInterfaceKind {
     None,
-    IOExpander,
     AVRGPIO,
 };
 
@@ -127,44 +124,11 @@ struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
     }
 };
 
-template<>
-struct DataPortInterface<DataPortInterfaceKind::IOExpander> {
-    static constexpr bool Valid = true;
-    static constexpr auto InterfaceKind = DataPortInterfaceKind::IOExpander;
-    using Self = DataPortInterface<InterfaceKind>;
-    DataPortInterface() = delete;
-    ~DataPortInterface() = delete;
-    DataPortInterface(const Self&) = delete;
-    DataPortInterface(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
-    static void setLowerDataLinesDirection(uint8_t value) noexcept {
-        DataLinesInterface.view8.direction[0] = value;
-    }
-    static void setUpperDataLinesDirection(uint8_t value) noexcept {
-        DataLinesInterface.view8.direction[1] = value;
-    }
-    static inline uint8_t getLowerDataByte() noexcept { return DataLinesInterface.view8.data[0]; }
-    static inline uint8_t getUpperDataByte() noexcept { return DataLinesInterface.view8.data[1]; }
-    static inline void setLowerDataByte(uint8_t value) noexcept { DataLinesInterface.view8.data[0] = value; }
-    static inline void setUpperDataByte(uint8_t value) noexcept { DataLinesInterface.view8.data[1] = value; }
-    static void configureInterface() noexcept {
-        DataLinesInterface.view32.direction = 0x0000'FFFF;
-        DataLinesInterface.view32.data = 0;
-        getDirectionRegister<Port::DataLinesUpper>() = 0;
-        getDirectionRegister<Port::DataLinesLower>() = 0;
-    }
-};
-
 
 template<DataPortInterfaceKind kind>
 constexpr auto isValidKind_v = DataPortInterface<kind>::Valid;
 constexpr auto getDataPortKind() noexcept { 
-#ifdef DATA_INTERFACE_PORT_IS_CH351
-    return DataPortInterfaceKind::IOExpander;
-#else
     return DataPortInterfaceKind::AVRGPIO;
-#endif
 }
 constexpr auto DataPortKind = getDataPortKind();
 static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
@@ -1392,11 +1356,6 @@ installMemoryImage() noexcept {
     SPI.endTransaction();
 }
 
-CPUKind 
-getInstalledCPUKind() noexcept { 
-    //return static_cast<CPUKind>((getInputRegister<Port::CTL960>() >> 5) & 0b111);
-    return static_cast<CPUKind>(ControlSignals.ctl.data.cfg);
-}
 void 
 setupReadySignal() noexcept {
     pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
@@ -1557,54 +1516,12 @@ setup() {
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
 }
-template<bool allowMemoryConnection>
-[[gnu::noinline]]
-[[noreturn]]
-void
-executionBody() {
-    while (true) {
-        //read
-        while (true) {
-            loop_until_bit_is_set(EIFR, INTF4);
-            if (bit_is_set(EIFR, INTF5)) {
-                DataInterface::setLowerDataLinesDirection(0);
-                DataInterface::setUpperDataLinesDirection(0);
-                EIFR = 0b0111'0000;
-                doIOOperation<false, allowMemoryConnection>();
-                break;
-            }
-            EIFR = 0b0111'0000;
-            doIOOperation<true, allowMemoryConnection>();
-        }
-        // write
-        while (true) {
-            loop_until_bit_is_set(EIFR, INTF4);
-            if (bit_is_clear(EIFR, INTF5)) {
-                DataInterface::setLowerDataLinesDirection(0xFF);
-                DataInterface::setUpperDataLinesDirection(0xFF);
-                EIFR = 0b0111'0000;
-                doIOOperation<true, allowMemoryConnection>();
-                break;
-            }
-            EIFR = 0b0111'0000;
-            doIOOperation<false, allowMemoryConnection>();
-        }
-    }
-}
 void 
 loop() {
-    if constexpr (UseInlineAssemblyRoutine) {
-        if (foundExternalMemoryConnection()) {
-            ExecutionBodyWithMemoryConnection();
-        } else {
-            ExecutionBodyWithoutMemoryConnection();
-        }
-    } else {
     if (foundExternalMemoryConnection()) {
-        executionBody<true>();
+        ExecutionBodyWithMemoryConnection();
     } else {
-        executionBody<false>();
-    }
+        ExecutionBodyWithoutMemoryConnection();
     }
 }
 

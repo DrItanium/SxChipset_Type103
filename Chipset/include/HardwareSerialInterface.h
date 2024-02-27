@@ -24,6 +24,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #ifndef I960_HARDWARE_SERIAL_INTERFACE__
 #define I960_HARDWARE_SERIAL_INTERFACE__
+#include <Arduino.h>
 class HardwareSerialInterface {
     public:
         HardwareSerialInterface(HardwareSerial& ser) : _interface(ser) { }

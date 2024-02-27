@@ -39,7 +39,6 @@ extern "C" [[noreturn]] void ExecutionBodyWithoutMemoryConnection();
 extern "C" [[gnu::used]] void doIOReadOperation();
 extern "C" [[gnu::used]] void doIOWriteOperation();
 using DataRegister8 = volatile uint8_t*;
-using DataRegister16 = volatile uint16_t*;
 SdFs SD;
 FsFile disk0;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
@@ -145,10 +144,10 @@ struct DataInterface {
     static void configureInterface() noexcept {
         UnderlyingDataInterface::configureInterface();
     }
-    FORCE_INLINE static inline uint16_t getData() noexcept {
+    static inline uint16_t getData() noexcept {
         return makeWord(UnderlyingDataInterface::getUpperDataByte(), UnderlyingDataInterface::getLowerDataByte());
     }
-    FORCE_INLINE static inline void setData(uint16_t value) noexcept {
+    static inline void setData(uint16_t value) noexcept {
         UnderlyingDataInterface::setLowerDataByte(value);
         UnderlyingDataInterface::setUpperDataByte(static_cast<uint8_t>(value >> 8));
     }
@@ -486,7 +485,6 @@ using MemoryInterface = MemoryInterfaceBackend<MemoryViewKind>;
     } \
     signalReady()
 template<bool isReadOperation>
-FORCE_INLINE
 inline
 void
 doNothing() {
@@ -500,7 +498,6 @@ doNothing() {
 }
 
 template<bool isReadOperation>
-FORCE_INLINE
 inline 
 void
 doCoreIO() noexcept {

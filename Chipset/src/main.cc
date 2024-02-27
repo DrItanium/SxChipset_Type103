@@ -32,12 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "Setup.h"
 
-extern "C" [[noreturn]] void ExecutionBodyWithMemoryConnection();
 extern "C" [[noreturn]] void ExecutionBodyWithoutMemoryConnection();
 extern "C" [[gnu::used]] void doIOReadOperation();
 extern "C" [[gnu::used]] void doIOWriteOperation();
-extern "C" [[gnu::used]] void doExternalCommunicationReadOperation();
-extern "C" [[gnu::used]] void doExternalCommunicationWriteOperation();
 using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
@@ -229,90 +226,6 @@ void
 pullCPUOutOfReset() noexcept {
     digitalWrite<Pin::Reset, HIGH>();
 }
-
-struct CacheLine {
-    union {
-        uint8_t reg;
-        struct {
-            uint8_t dirty : 1;
-            uint8_t valid : 1;
-        } bits;
-    } flags;
-    uint32_t key = 0;
-    uint8_t line[16] = { 0 };
-    constexpr bool valid() const noexcept {
-        return flags.bits.valid;
-    }
-    constexpr bool dirty() const noexcept {
-        return flags.bits.dirty;
-    }
-    constexpr bool needsCacheLineReplacement() const noexcept {
-        return valid() && dirty();
-    }
-    constexpr bool matches(uint32_t address) const noexcept {
-        return valid() && key == address;
-    }
-};
-CacheLine onboardCache[256];
-void
-tryWriteCacheLine(CacheLine& line) {
-    if (line.needsCacheLineReplacement()) {
-        constexpr uint8_t size = sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint8_t[16]);
-        MemoryConnection.write(size);
-        MemoryConnection.write(1);
-        MemoryConnection.write(reinterpret_cast<char*>(&line.key), sizeof(uint32_t));
-        MemoryConnection.write(line.line, 16);
-        // do the replacement
-        line.flags.bits.dirty = false;
-    }
-}
-
-void
-drainStream(Stream& connection) {
-    while (connection.available()) {
-        (void)connection.read();
-    }
-}
-void
-readCacheLine(CacheLine& line, uint32_t alignedAddress) {
-    //readFromSerialConnection(alignedAddress, line.line, 16);
-    constexpr uint8_t size = sizeof(uint32_t) + sizeof(uint8_t);
-    MemoryConnection.write(size);
-    MemoryConnection.write(0);
-    MemoryConnection.write(reinterpret_cast<char*>(&alignedAddress), sizeof(uint32_t));
-    line.key = alignedAddress;
-    line.flags.bits.valid = true;
-    line.flags.bits.dirty = false;
-    MemoryConnection.readBytes(line.line, 16);
-    drainStream(MemoryConnection);
-}
-
-void
-replaceCacheLine(CacheLine& line, uint32_t alignedAddress) {
-    tryWriteCacheLine(line);
-    readCacheLine(line, alignedAddress);
-}
-CacheLine& 
-getCacheLine(uint32_t address) {
-    uint32_t alignedAddress = address & 0xFFFF'FFF0;
-    uint8_t index = static_cast<uint8_t>(alignedAddress >> 4);
-    auto& line = onboardCache[index];
-    if (!line.matches(alignedAddress)) {
-        replaceCacheLine(line, alignedAddress);
-    }
-    return line;
-}
-template<bool isReadOperation>
-uint8_t* 
-getCacheLineContents(uint32_t address) {
-    uint8_t offset = address & 0x0000'000F;
-    auto& line = getCacheLine(address);
-    if constexpr (!isReadOperation) {
-        line.flags.bits.dirty = true;
-    }
-    return &line.line[offset];
-}
-
 
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
@@ -927,22 +840,6 @@ void
 doIOWriteOperation() {
     doIO<false>();
 }
-template<bool isReadOperation>
-inline
-void
-doExternalCommunication() noexcept {
-    uint32_t address = AddressLinesInterface.view32.data;
-    auto* line = getCacheLineContents<isReadOperation>(address);
-    MemoryInterface::doOperation<isReadOperation>(line);
-}
-void 
-doExternalCommunicationReadOperation() {
-    doExternalCommunication<true>();
-}
-void 
-doExternalCommunicationWriteOperation() {
-    doExternalCommunication<false>();
-}
 #undef I960_Signal_Switch
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize>
@@ -1004,53 +901,6 @@ setupCLK1() noexcept {
     timer3.TCCRxA = 0b01'00'00'00;
     timer3.TCCRxB = 0b00'0'01'001;
 }
-inline void clearFoundExternalMemoryConnection() {
-    bitClear(GPIOR0, 0);
-}
-inline void setFoundExternalMemoryConnection() {
-    bitSet(GPIOR0, 0);
-}
-inline bool foundExternalMemoryConnection() noexcept {
-    return bit_is_set(GPIOR0, 0);
-}
-constexpr uint8_t outputBuffer[2] { 1, 2, };
-void
-setupMemoryConnection() noexcept {
-    clearFoundExternalMemoryConnection();
-    Serial.print(F("Setting up memory cache"));
-    MemoryConnection.begin(115'200);
-    // clear the cache
-    for (auto & a : onboardCache) {
-        a.key = 0;
-        a.flags.bits.valid = false;
-        a.flags.bits.dirty = false;
-        for (int i = 0; i < 16; ++i) {
-            a.line[i] = 0;
-        }
-    }
-    Serial.println(F("DONE"));
-    Serial.print(F("Looking to see if memory connection is available"));
-    uint8_t resultantBuffer[2];
-    constexpr auto NumRetries = 4;
-    for (int i = 0; i < NumRetries; ++i) {
-        Serial.print(F("."));
-        MemoryConnection.write(outputBuffer, 2);
-        auto count = MemoryConnection.readBytes(resultantBuffer, 2);
-        if (count == 2) {
-            if (resultantBuffer[0] == 0x1 && resultantBuffer[1] == 0x55) {
-                setFoundExternalMemoryConnection();
-                break;
-            }
-        }
-    }
-    Serial.println(F("DONE"));
-    if (!foundExternalMemoryConnection()) {
-        Serial.println(F("No External Memory Connection Found!"));
-    } else {
-        Serial.println(F("External Memory Connection Found!"));
-    }
-}
-
 
 void
 setup() {
@@ -1063,7 +913,6 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(115200);
-    setupMemoryConnection();
     SPI.begin();
     // power down the ADC
     // currently we can't use them
@@ -1136,11 +985,7 @@ setup() {
 }
 void 
 loop() {
-    if (foundExternalMemoryConnection()) {
-        ExecutionBodyWithMemoryConnection();
-    } else {
-        ExecutionBodyWithoutMemoryConnection();
-    }
+    ExecutionBodyWithoutMemoryConnection();
 }
 
 

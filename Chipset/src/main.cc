@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SdFat.h>
 #include <Wire.h>
+#include <ArduinoJson.h>
 
 
 #include "Detect.h"
@@ -841,6 +842,35 @@ doIOWriteOperation() {
     doIO<false>();
 }
 #undef I960_Signal_Switch
+class HardwareSerialInterface {
+    public:
+        HardwareSerialInterface(HardwareSerial& ser) : _interface(ser) { }
+        const auto& getInterface() const noexcept { return _interface; }
+        auto& getInterface() noexcept { return _interface; }
+        void setBaud(uint32_t value) noexcept { _baud = value; }
+        constexpr auto getBaud() const noexcept { return _baud; }
+        void setConfig(uint8_t value) noexcept { _cfg = value; }
+        constexpr auto getConfig() const noexcept { return _cfg; }
+        void 
+        begin(uint32_t baud, uint8_t cfg) noexcept {
+            setBaud(baud);
+            setConfig(cfg);
+            begin();
+        }
+        void
+        begin() noexcept {
+            _interface.begin(_baud, _cfg);
+        }
+
+    private:
+        HardwareSerial& _interface;
+        uint32_t _baud;
+        uint8_t _cfg = SERIAL_8N1;
+};
+HardwareSerialInterface sface0(Serial);
+HardwareSerialInterface sface1(Serial1);
+HardwareSerialInterface sface2(Serial2);
+HardwareSerialInterface sface3(Serial3);
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize>
 [[gnu::noinline]]

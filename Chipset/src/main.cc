@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
+#include <Wire.h>
 
 
 #include "Detect.h"
@@ -912,6 +913,7 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(115200);
+    Wire.begin();
     SPI.begin();
     // power down the ADC
     // currently we can't use them

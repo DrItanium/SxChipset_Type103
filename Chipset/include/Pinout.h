@@ -1,6 +1,6 @@
 /*
 i960SxChipset_Type103
-Copyright (c) 2022, Joshua Scoggins
+Copyright (c) 2022-2024, Joshua Scoggins
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

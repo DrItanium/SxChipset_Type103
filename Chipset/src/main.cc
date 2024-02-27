@@ -42,7 +42,6 @@ FsFile disk0;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 auto& DebugConsole = Serial;
-auto& MemoryConnection = Serial1;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
     return true;

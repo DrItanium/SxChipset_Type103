@@ -225,12 +225,11 @@ ExecutionBodyWithoutMemoryConnection:
 	call doIOWriteOperation 
 	rjmp .LWOMC_WriteTransactionStart
 1:
-	sbisrj PING, 5, 2f ; if BLAST is low then we are done and just return
+	sbisrj PING, 5, .LWOMC_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
 	sbicrj PING, 5, 1b 
-2:
 	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
 .L642:
 	in r25,PINF

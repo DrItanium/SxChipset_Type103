@@ -320,14 +320,7 @@ ExecutionBodyWithoutMemoryConnection:
 	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
 	rjmp .LWOMC_ReadTransactionStart		; And we are done :)
 1:
-	out PORTF, __zero_reg__
-	sts PORTK, __zero_reg__
-	sbisrj PING, 5, .LWOMC_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
-1:
-	signalReady
-	delay6cycles
-	sbicrj PING, 5, 1b 
-	rjmp .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	rjmp .LWOMC_readOperation_DoNothing
 .LWOMC_ReadStreamingOperation2: 
 	computeTransactionWindow
 	ld r25,Y

@@ -905,6 +905,20 @@ setupCLK1() noexcept {
 }
 
 void
+holdBus() noexcept {
+    digitalWrite<Pin::HOLD, HIGH>();
+}
+void
+releaseBus() noexcept {
+    digitalWrite<Pin::HOLD, LOW>();
+}
+
+bool
+busHeld() noexcept {
+    return digitalRead<Pin::HLDA>() == HIGH;
+}
+
+void
 setup() {
     int32_t seed = 0;
 #define X(value) seed += analogRead(value) 
@@ -922,8 +936,6 @@ setup() {
     PRR0 = 0b0000'0001; // deactivate ADC
     setupCLK1();
     setupReadySignal();
-    getDirectionRegister<Port::C>() = 0xFF;
-    getOutputRegister<Port::C>() = 0;
     
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
@@ -947,7 +959,7 @@ setup() {
     pinMode(Pin::ExternalMemoryOperation, INPUT);
     pinMode(Pin::WriteTransaction, INPUT);
     // setup the EBI
-    XMCRB=0b0'0000'110;
+    XMCRB=0b0'0000'000;
     XMCRA=0b1'010'01'01;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s

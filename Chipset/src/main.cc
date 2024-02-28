@@ -55,9 +55,9 @@ constexpr bool transactionDebugEnabled() noexcept {
 constexpr bool EnableTransactionDebug = transactionDebugEnabled();
 
 
-[[gnu::address(0xFC00)]] inline volatile CH351 AddressLinesInterface;
-[[gnu::address(0xFC08)]] inline volatile CH351 DataLinesInterface;
-[[gnu::address(0xFC10)]] inline volatile CH351 ControlSignals;
+[[gnu::address(0x2300)]] inline volatile CH351 AddressLinesInterface;
+[[gnu::address(0x2308)]] inline volatile CH351 DataLinesInterface;
+[[gnu::address(0x2310)]] inline volatile CH351 ControlSignals;
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -281,7 +281,7 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uint8_t MemoryWindowUpperHalf = 0xFD;
+    static constexpr uint8_t MemoryWindowUpperHalf = 0x22;
     static constexpr uintptr_t MemoryWindowBaseAddress = (static_cast<uint16_t>(MemoryWindowUpperHalf) << 8);
     static constexpr auto TransferBufferSize = 256;
     static void doSingleReadOperation(DataRegister8 view) {
@@ -293,7 +293,7 @@ private:
     static DataRegister8 computeTransactionAddress() noexcept {
         // this allows me to save an instruction on AVR processors
         // we force set the register pair to lower half and then just assign
-        // the upper half to 0xFD
+        // the upper half to 0x22
         union {
             uint8_t halves[2];
             uint16_t whole;
@@ -306,7 +306,7 @@ private:
         // the more compact version of this code 
         //return memoryPointer<uint8_t>(static_cast<uint16_t>(AddressLinesInterface.view8.data[0]) | MemoryWindowBaseAddress);
         // yields three instructions due to the fact that the upper half is
-        // cleared and then or'd with 0xFD
+        // cleared and then or'd with 0x22
         
     }
 public:

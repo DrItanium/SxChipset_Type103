@@ -214,9 +214,7 @@ struct TimerDescriptor< index > {  \
 }; \
 constexpr TimerDescriptor< index > timer ## index 
 X(1);
-X(3);
 X(4);
-X(5);
 #undef X
 
 void 
@@ -698,9 +696,6 @@ doCoreIO() noexcept {
 #ifdef TCCR4A
                           X(timer4, 0x20);
 #endif
-//#ifdef TCCR5A
-//                          X(timer5, 0x30);
-//#endif
 #undef X
         case 0x40: {
                        if constexpr (isReadOperation) {
@@ -900,8 +895,18 @@ setupCLK1() noexcept {
     // configure PE3 to be CLK1
     pinMode<Pin::CLK1>(OUTPUT);
     digitalWrite<Pin::CLK1, LOW>();
-    timer3.TCCRxA = 0b01'00'00'00;
-    timer3.TCCRxB = 0b00'0'01'001;
+    TCCR3A = 0b01'00'00'00;
+    TCCR3B = 0b00'0'01'001;
+}
+void 
+setupTimer5Test() noexcept {
+    TCCR5A = 0b00'00'00'00; // Normal timer mode
+    TIMSK5 = 0b00'0'0'000'1; // overflow interrupt enable
+    TCCR5B = 0b00'0'00'001; // activate clkIO/1
+}
+
+ISR(TIMER5_OVF_vect) {
+
 }
 
 void

@@ -698,9 +698,9 @@ doCoreIO() noexcept {
 #ifdef TCCR4A
                           X(timer4, 0x20);
 #endif
-#ifdef TCCR5A
-                          X(timer5, 0x30);
-#endif
+//#ifdef TCCR5A
+//                          X(timer5, 0x30);
+//#endif
 #undef X
         case 0x40: {
                        if constexpr (isReadOperation) {

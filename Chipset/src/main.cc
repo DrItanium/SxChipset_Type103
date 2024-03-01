@@ -903,16 +903,9 @@ setupTimer5Test() noexcept {
     TIMSK5 = 0b00'0'0'000'1; // overflow interrupt enable
     TCNT5 = 0; // zero out the timer
     TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
-    TCCR4A = 0b00'00'00'01; // Normal timer mode
-    TIMSK4 = 0b00'0'0'000'1; // overflow interrupt enable
-    TCNT4 = 0; // zero out the timer
-    TCCR4B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
 
 ISR(TIMER5_OVF_vect) {
-
-}
-ISR(TIMER4_OVF_vect) {
 
 }
 

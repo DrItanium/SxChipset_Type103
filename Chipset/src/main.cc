@@ -900,12 +900,27 @@ setupCLK1() noexcept {
 void 
 setupTimer5Test() noexcept {
     TCCR5A = 0b00'00'00'01; // Normal timer mode
-    TIMSK5 = 0b00'0'0'000'1; // overflow interrupt enable
     TCNT5 = 0; // zero out the timer
+    OCR5A = 0xFFFF;
+    OCR5B = 0x8000;
+    OCR5C = 0xC000;
+    TIMSK5 = 0b00'0'0'111'1; // overflow interrupt enable
     TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
 
 ISR(TIMER5_OVF_vect) {
+
+}
+
+ISR(TIMER5_COMPA_vect) {
+
+}
+
+ISR(TIMER5_COMPB_vect) {
+
+}
+
+ISR(TIMER5_COMPC_vect) {
 
 }
 

@@ -903,34 +903,24 @@ setupTimer4Test() noexcept {
     OCR4A = 0xFFFF;
     OCR4B = 0x8000;
     OCR4C = 0xC000;
-    TIMSK4 = 0b00'0'0'111'1; // overflow interrupt enable plus the comparison
+    TIMSK4 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
                              // interrupts
     TCCR4B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
-void
-engageHold() noexcept {
-    bitSet(GPIOR0, 0);
-}
-void
-disengageHold() noexcept {
-    bitClear(GPIOR0, 0);
-}
-bool
-holdEngaged() noexcept {
-    return bit_is_set(GPIOR0, 0);
-}
-void
+
+inline void
 holdBus() noexcept {
-    if (!holdEngaged()) {
+    if (bit_is_clear(GPIOR0, 0)) {
         digitalWrite<Pin::HOLD, HIGH>();
-        engageHold();
+        bitSet(GPIOR0, 0);
     }
 }
-void
+
+inline void
 releaseBus() noexcept {
-    if (holdEngaged()) {
+    if (bit_is_set(GPIOR0, 0)) {
         digitalWrite<Pin::HOLD, LOW>();
-        disengageHold();
+        bitClear(GPIOR0, 0);
     }
 }
 ISR(TIMER4_OVF_vect) {
@@ -938,19 +928,6 @@ ISR(TIMER4_OVF_vect) {
         holdBus();
     }
 }
-
-ISR(TIMER4_COMPA_vect) {
-
-}
-
-ISR(TIMER4_COMPB_vect) {
-
-}
-
-ISR(TIMER4_COMPC_vect) {
-
-}
-
 
 ISR(INT0_vect) {
     {

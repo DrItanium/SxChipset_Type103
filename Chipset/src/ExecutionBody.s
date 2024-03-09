@@ -94,81 +94,81 @@ __iospace_sec_reg__ = 2
 	out PORTF, \lo
 	sts PORTK, \hi
 .endm
-.global ExecutionBodyWithoutMemoryConnection
+.global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
 .text
 
-ExecutionBodyWithoutMemoryConnection:
+ExecutionBody:
 /* prologue: function */
 /* frame size = 0 */
 /* stack size = 0 */
 	setupRegisterConstants
-	rjmp .LWOMC_ReadTransactionStart ; jump into the top of the invocation loop
-.LWOMC_readOperation_DoNothing:
+	rjmp .LXB_ReadTransactionStart ; jump into the top of the invocation loop
+.LXB_readOperation_DoNothing:
 	out PORTF, __zero_reg__
 	sts PORTK, __zero_reg__
-	sbisrj PING, 5, .LWOMC_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
+	sbisrj PING, 5, .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
 	sbicrj PING, 5, 1b 
-.LWOMC_FirstSignalReady_ThenReadTransactionStart:
+.LXB_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
-.LWOMC_ReadTransactionStart:
-	sbisrj EIFR,4, .LWOMC_ReadTransactionStart ; keep waiting
-	sbicrj EIFR,5, .LWOMC_ShiftFromReadToWrite; 
-.LWOMC_PrimaryReadTransaction:
+.LXB_ReadTransactionStart:
+	sbisrj EIFR,4, .LXB_ReadTransactionStart ; keep waiting
+	sbicrj EIFR,5, .LXB_ShiftFromReadToWrite; 
+.LXB_PrimaryReadTransaction:
 	clearEIFR						; Waiting for next memory transaction
 	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
 	cpz r24							; Zero?
-	breq .LWOMC_ReadStreamingOperation     ; If so then start the read streaming operation
+	breq .LXB_ReadStreamingOperation     ; If so then start the read streaming operation
 	cp r24, __iospace_sec_reg__		     ; Nope, so check to see if it is the IO space
-	brne .LWOMC_readOperation_DoNothing	 ; If it is not, then we do nothing
+	brne .LXB_readOperation_DoNothing	 ; If it is not, then we do nothing
 	call doIOReadOperation			     ; It is so call doIOReadOperation, back to c++
-	rjmp .LWOMC_ReadTransactionStart		 ; And we are done :)
-.LWOMC_ReadStreamingOperation: 
+	rjmp .LXB_ReadTransactionStart		 ; And we are done :)
+.LXB_ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
 	ldd r24,Y+1
 	StoreToDataPort r25,r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+2
 	ldd r24,Y+3
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+4
 	ldd r24,Y+5
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+6
 	ldd r24,Y+7
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+8
 	ldd r24,Y+9
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+10
 	ldd r24,Y+11
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+12
 	ldd r24,Y+13
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+14
 	ldd r24,Y+15
 	StoreToDataPort r25, r24
-	rjmp .LWOMC_FirstSignalReady_ThenReadTransactionStart
-.LWOMC_ShiftFromReadToWrite:
+	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
+.LXB_ShiftFromReadToWrite:
 ; start setting up for a write operation here
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
@@ -176,31 +176,31 @@ ExecutionBodyWithoutMemoryConnection:
 ; we need to use cpse instead of breq to allow for better jumping destination
 	lds r24,AddressLinesInterface+3
 	cpz r24  ; are we looking at zero? If not then check 0xFE later on (1 cycle)
-	breq .LWOMC_doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
+	breq .LXB_doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
 									; total is 2 cycles when it isn't true and three cycles when it is
 									; must keep the operation local though...
 	cp r24, __iospace_sec_reg__   ; is this equal to 0xFE
 	brne 1f						  ; If they aren't equal then jump over and goto the do nothing action
 	call doIOWriteOperation 
-	rjmp .LWOMC_WriteTransactionStart
+	rjmp .LXB_WriteTransactionStart
 1:
-	sbisrj PING, 5, .LWOMC_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
+	sbisrj PING, 5, .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
 	sbicrj PING, 5, 1b 
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
-.LWOMC_do16BitWriteOperation:
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_do16BitWriteOperation:
 	sbis PING, 4 	   ; Is BE1 LOW?
 	std Y+1, r25	   ; Yes, so store to the EBI
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart			 ; And we are done
-.LWOMC_doWriteTransaction_Primary:
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart			 ; And we are done
+.LXB_doWriteTransaction_Primary:
 	computeTransactionWindow
 	in r24,PINF 											; Load lower byte from F
 	sbis PING, 3 	   ; Is BE0 LOW?
 	st Y, r24		   ; Yes, so store to the EBI
 	lds r25,PINK											; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
-	sbisrj PING,5, .LWOMC_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
+	sbisrj PING,5, .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 											
 	std Y+1,r25												; Store the upper byte to the EBI
 	delay2cycles											; it takes 6 cycles (AVR) to trigger the ready signal, the std to the EBI with a one cycle delay takes four cycles (AVR) so we need to wait two more cycles to align everything
@@ -211,33 +211,33 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING, 4		  ; if BE1 is set then skip over the store
 	std Y+3,r25			  ; Store to memory if applicable (this is the expensive part)
 	std Y+2,r24			  ; save it without checking BE0 since we flowed into this part of the transaction
-.LWOMC_SignalReady_ThenWriteTransactionStart:
+.LXB_SignalReady_ThenWriteTransactionStart:
 	signalReady 
-.LWOMC_WriteTransactionStart:
-	sbisrj EIFR,4, .LWOMC_WriteTransactionStart
-	sbisrj EIFR,5, .LWOMC_ShiftFromWriteToRead 
+.LXB_WriteTransactionStart:
+	sbisrj EIFR,4, .LXB_WriteTransactionStart
+	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
 	clearEIFR
 	lds r24,AddressLinesInterface+3
 	cpz r24
-	breq .LWOMC_doWriteTransaction_Primary
+	breq .LXB_doWriteTransaction_Primary
 	cp r24, __iospace_sec_reg__
 	brne 1f
 	call doIOWriteOperation 
-	rjmp .LWOMC_WriteTransactionStart
+	rjmp .LXB_WriteTransactionStart
 1:
-	sbisrj PING, 5, .LWOMC_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
+	sbisrj PING, 5, .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
 	sbicrj PING, 5, 1b 
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L642:
 	in r25,PINF
 	lds r24,PINK
 	signalReady 
 	std Y+2,r25
 	std Y+3,r24
-	sbisrj PING,5, .LWOMC_WriteBytes4_and_5_End
+	sbisrj PING,5, .LXB_WriteBytes4_and_5_End
 	in r25,PINF
 	lds r24,PINK
 	signalReady
@@ -249,14 +249,14 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING, 4
 	std Y+7,r25
 	std Y+6,r24
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L649:
 	in r25,PINF
 	lds r24,PINK
 	signalReady
 	std Y+6,r25
 	std Y+7,r24
-	sbisrj PING,5, .LWOMC_WriteBytes8_and_9_End
+	sbisrj PING,5, .LXB_WriteBytes8_and_9_End
 	in r25,PINF
 	lds r24,PINK
 	signalReady
@@ -268,7 +268,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING, 4
 	std Y+11,r25
 	std Y+10,r24
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L657:
 	in r25,PINF
 	lds r24,PINK
@@ -281,7 +281,7 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING,4
 	std Y+13,r25
 	std Y+12,r24
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L661:
 	in r25,PINF
 	lds r24,PINK
@@ -293,72 +293,72 @@ ExecutionBodyWithoutMemoryConnection:
 	sbis PING, 4
 	std Y+15,r25
 	std Y+14,r24
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
-.LWOMC_WriteBytes4_and_5_End:
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_WriteBytes4_and_5_End:
 	in r24,PINF
 	lds r25,PINK
 	sbis PING, 4
 	std Y+5,r25
 	std Y+4,r24
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
-.LWOMC_WriteBytes8_and_9_End:
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_WriteBytes8_and_9_End:
 	in r24,PINF
 	lds r25,PINK
 	sbis PING, 4
 	std Y+9,r25
 	std Y+8,r24
-	rjmp .LWOMC_SignalReady_ThenWriteTransactionStart
-.LWOMC_ShiftFromWriteToRead:
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	; Change the direction to output
 	sts DDRK,__direction_ff_reg__   ; Change the direction to output
 	clearEIFR						; Waiting for next memory transaction
 	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
 	cpz r24							; Zero?
-	breq .LWOMC_ReadStreamingOperation2     ; If so then start the read streaming operation
+	breq .LXB_ReadStreamingOperation2     ; If so then start the read streaming operation
 	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
 	brne 1f							; If it is not, then we do nothing
 	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
-	rjmp .LWOMC_ReadTransactionStart		; And we are done :)
+	rjmp .LXB_ReadTransactionStart		; And we are done :)
 1:
-	rjmp .LWOMC_readOperation_DoNothing
-.LWOMC_ReadStreamingOperation2: 
+	rjmp .LXB_readOperation_DoNothing
+.LXB_ReadStreamingOperation2: 
 	computeTransactionWindow
 	ld r25,Y
 	ldd r24,Y+1
 	StoreToDataPort r25,r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+2
 	ldd r24,Y+3
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+4
 	ldd r24,Y+5
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+6
 	ldd r24,Y+7
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+8
 	ldd r24,Y+9
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+10
 	ldd r24,Y+11
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+12
 	ldd r24,Y+13
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+14
 	ldd r24,Y+15
 	StoreToDataPort r25, r24
-	rjmp .LWOMC_FirstSignalReady_ThenReadTransactionStart
+	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart

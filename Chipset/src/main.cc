@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Setup.h"
 #include "HardwareSerialInterface.h"
 
-extern "C" [[noreturn]] void ExecutionBodyWithoutMemoryConnection();
+extern "C" [[noreturn]] void ExecutionBody();
 extern "C" [[gnu::used]] void doIOReadOperation();
 extern "C" [[gnu::used]] void doIOWriteOperation();
 using DataRegister8 = volatile uint8_t*;
@@ -1028,7 +1028,7 @@ setup() {
 }
 void 
 loop() {
-    ExecutionBodyWithoutMemoryConnection();
+    ExecutionBody();
 }
 
 

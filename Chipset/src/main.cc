@@ -996,8 +996,6 @@ setup() {
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     GPIOR0 = 0;
     putCPUInReset();
-    Serial.println(F("i960 Chipset"));
-    Serial.println(F("(C) 2019-2023 Joshua Scoggins"));
     Serial.println(F("Looking for an SD Card!"));
     {
         while (!SD.begin(static_cast<int>(Pin::SD_EN))) {

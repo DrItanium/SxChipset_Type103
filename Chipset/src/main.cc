@@ -1024,8 +1024,8 @@ setup() {
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
     // attach interrupts
-    EICRA = 0b00'00'00'00; // falling edge on INT0 but no trigger at this
-                           // point, trigger on low
+    EICRA = 0b00'00'00'11; // rising edge on INT0 but no trigger at this
+                           // point, trigger on high
     EICRB = 0b1010'1010; // falling edge on the upper four interrupts
                          // don't enable the interrupt handler
     pullCPUOutOfReset();

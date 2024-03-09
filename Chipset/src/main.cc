@@ -923,7 +923,7 @@ releaseBus() noexcept {
     }
 }
 ISR(TIMER4_OVF_vect) {
-    if (digitalRead<Pin::LOCK>() == HIGH) {
+    if (digitalRead<Pin::Lock>() == HIGH) {
         holdBus();
     }
 }

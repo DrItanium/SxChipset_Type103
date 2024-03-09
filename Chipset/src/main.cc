@@ -897,15 +897,15 @@ setupCLK1() noexcept {
     TCCR3B = 0b00'0'01'001;
 }
 void 
-setupTimer5Test() noexcept {
-    TCCR5A = 0b00'00'00'01; // Normal timer mode
-    TCNT5 = 0; // zero out the timer
-    OCR5A = 0xFFFF;
-    OCR5B = 0x8000;
-    OCR5C = 0xC000;
-    TIMSK5 = 0b00'0'0'111'1; // overflow interrupt enable plus the comparison
+setupTimer4Test() noexcept {
+    TCCR4A = 0b00'00'00'01; // Normal timer mode
+    TCNT4 = 0; // zero out the timer
+    OCR4A = 0xFFFF;
+    OCR4B = 0x8000;
+    OCR4C = 0xC000;
+    TIMSK4 = 0b00'0'0'111'1; // overflow interrupt enable plus the comparison
                              // interrupts
-    TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
+    TCCR4B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
 volatile bool holdEngaged = false;
 void
@@ -922,19 +922,21 @@ releaseBus() noexcept {
         holdEngaged = false;
     }
 }
-ISR(TIMER5_OVF_vect) {
-    holdBus();
+ISR(TIMER4_OVF_vect) {
+    if (digitalRead<Pin::LOCK>() == HIGH) {
+        holdBus();
+    }
 }
 
-ISR(TIMER5_COMPA_vect) {
+ISR(TIMER4_COMPA_vect) {
 
 }
 
-ISR(TIMER5_COMPB_vect) {
+ISR(TIMER4_COMPB_vect) {
 
 }
 
-ISR(TIMER5_COMPC_vect) {
+ISR(TIMER4_COMPC_vect) {
 
 }
 
@@ -970,7 +972,7 @@ setup() {
     PRR0 = 0b0000'0001; // deactivate ADC
     setupCLK1();
     setupReadySignal();
-    setupTimer5Test();
+    setupTimer4Test();
     
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);

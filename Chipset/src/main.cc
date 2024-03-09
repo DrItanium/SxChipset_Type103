@@ -907,19 +907,30 @@ setupTimer4Test() noexcept {
                              // interrupts
     TCCR4B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
-volatile bool holdEngaged = false;
+void
+engageHold() noexcept {
+    bitSet(GPIOR0, 0);
+}
+void
+disengageHold() noexcept {
+    bitClear(GPIOR0, 0);
+}
+bool
+holdEngaged() noexcept {
+    return bit_is_set(GPIOR0, 0);
+}
 void
 holdBus() noexcept {
-    if (!holdEngaged) {
+    if (!holdEngaged()) {
         digitalWrite<Pin::HOLD, HIGH>();
-        holdEngaged = true;
+        engageHold();
     }
 }
 void
 releaseBus() noexcept {
-    if (holdEngaged) {
+    if (holdEngaged()) {
         digitalWrite<Pin::HOLD, LOW>();
-        holdEngaged = false;
+        disengageHold();
     }
 }
 ISR(TIMER4_OVF_vect) {
@@ -1006,6 +1017,7 @@ setup() {
     MemoryInterface::configure();
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000000;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
+    GPIOR0 = 0;
     putCPUInReset();
     Serial.println(F("i960 Chipset"));
     Serial.println(F("(C) 2019-2023 Joshua Scoggins"));

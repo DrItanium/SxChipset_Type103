@@ -25,7 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
-#include <Wire.h>
 #include <ArduinoJson.h>
 
 
@@ -907,9 +906,20 @@ setupTimer5Test() noexcept {
     TIMSK5 = 0b00'0'0'111'1; // overflow interrupt enable
     TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
-
+void
+holdBus() noexcept {
+    digitalWrite<Pin::HOLD, HIGH>();
+}
+void
+releaseBus() noexcept {
+    digitalWrite<Pin::HOLD, LOW>();
+}
+volatile bool holdEngaged = false;
 ISR(TIMER5_OVF_vect) {
-
+    if (!holdEngaged) {
+        holdBus();
+        holdEngaged = true;
+    }
 }
 
 ISR(TIMER5_COMPA_vect) {
@@ -924,18 +934,18 @@ ISR(TIMER5_COMPC_vect) {
 
 }
 
-void
-holdBus() noexcept {
-    digitalWrite<Pin::HOLD, HIGH>();
-}
-void
-releaseBus() noexcept {
-    digitalWrite<Pin::HOLD, LOW>();
-}
 
-bool
-busHeld() noexcept {
-    return digitalRead<Pin::HLDA>() == HIGH;
+ISR(INT0_vect) {
+    AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
+    AddressLinesInterface.view32.data = 0;
+    {
+        // code goes here
+        // if we get here then it is a legit operation
+        // at the end we want to revert all of our direction changes as well
+    }
+    AddressLinesInterface.view32.direction = 0;
+    releaseBus();
+    holdEngaged = false;
 }
 
 void
@@ -949,7 +959,6 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(115200);
-    Wire.begin();
     SPI.begin();
     // power down the ADC
     // currently we can't use them
@@ -1015,9 +1024,13 @@ setup() {
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
     // attach interrupts
+    EICRA = 0b00'00'00'00; // falling edge on INT0 but no trigger at this
+                           // point, trigger on low
     EICRB = 0b1010'1010; // falling edge on the upper four interrupts
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
+    bitSet(EIMSK, INT0); // only activate after we have pulled the cpu out of
+                         // reset
 }
 void 
 loop() {

@@ -61,7 +61,7 @@ Count = NUM_DIGITAL_PINS,
 #endif
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
-    HLDA = PortB6,
+    HLDA = PortD0,
     HOLD = PortB7,
 
     ONE_SHOT_READY = PortH6, // OC2B

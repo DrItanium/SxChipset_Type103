@@ -90,6 +90,9 @@ __iospace_sec_reg__ = 2
 .macro cpz reg
 	cpi \reg, 0x00
 .endm
+.macro cpiospace reg
+	cp \reg, __iospace_sec_reg__
+.endm
 .macro StoreToDataPort lo,hi
 	out PORTF, \lo
 	sts PORTK, \hi
@@ -123,7 +126,7 @@ ExecutionBody:
 	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
 	cpz r24							; Zero?
 	breq .LXB_ReadStreamingOperation     ; If so then start the read streaming operation
-	cp r24, __iospace_sec_reg__		     ; Nope, so check to see if it is the IO space
+	cpiospace r24						 ; Nope, so check to see if it is the IO space
 	brne .LXB_readOperation_DoNothing	 ; If it is not, then we do nothing
 	call doIOReadOperation			     ; It is so call doIOReadOperation, back to c++
 	rjmp .LXB_ReadTransactionStart		 ; And we are done :)
@@ -179,8 +182,8 @@ ExecutionBody:
 	breq .LXB_doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
 									; total is 2 cycles when it isn't true and three cycles when it is
 									; must keep the operation local though...
-	cp r24, __iospace_sec_reg__   ; is this equal to 0xFE
-	brne 1f						  ; If they aren't equal then jump over and goto the do nothing action
+	cpiospace r24 					; is this equal to 0xFE
+	brne 1f							; If they aren't equal then jump over and goto the do nothing action
 	call doIOWriteOperation 
 	rjmp .LXB_WriteTransactionStart
 1:
@@ -220,7 +223,7 @@ ExecutionBody:
 	lds r24,AddressLinesInterface+3
 	cpz r24
 	breq .LXB_doWriteTransaction_Primary
-	cp r24, __iospace_sec_reg__
+	cpiospace r24
 	brne 1f
 	call doIOWriteOperation 
 	rjmp .LXB_WriteTransactionStart
@@ -309,15 +312,15 @@ ExecutionBody:
 	std Y+8,r24
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_ShiftFromWriteToRead:
-	out DDRF,__direction_ff_reg__	; Change the direction to output
-	sts DDRK,__direction_ff_reg__   ; Change the direction to output
-	clearEIFR						; Waiting for next memory transaction
-	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
-	cpz r24							; Zero?
+	out DDRF,__direction_ff_reg__	      ; Change the direction to output
+	sts DDRK,__direction_ff_reg__         ; Change the direction to output
+	clearEIFR						      ; Waiting for next memory transaction
+	lds r24,AddressLinesInterface+3       ; Get the upper most byte to determine where to go
+	cpz r24							      ; Zero?
 	breq .LXB_ReadStreamingOperation2     ; If so then start the read streaming operation
-	cp r24, __iospace_sec_reg__		; Nope, so check to see if it is the IO space
-	brne 1f							; If it is not, then we do nothing
-	call doIOReadOperation			; It is so call doIOReadOperation, back to c++
+	cpiospace r24 						  ; Nope, so check to see if it is the IO space
+	brne 1f								  ; If it is not, then we do nothing
+	call doIOReadOperation				  ; It is so call doIOReadOperation, back to c++
 	rjmp .LXB_ReadTransactionStart		; And we are done :)
 1:
 	rjmp .LXB_readOperation_DoNothing

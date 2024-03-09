@@ -900,52 +900,44 @@ void
 setupTimer5Test() noexcept {
     TCCR5A = 0b00'00'00'01; // Normal timer mode
     TCNT5 = 0; // zero out the timer
-    OCR5A = 0xFFFF;
-    OCR5B = 0x8000;
-    OCR5C = 0xC000;
-    TIMSK5 = 0b00'0'0'111'1; // overflow interrupt enable
+    //OCR5A = 0xFFFF;
+    //OCR5B = 0x8000;
+    //OCR5C = 0xC000;
+    TIMSK5 = 0b00'0'0'000'1; // overflow interrupt enable
     TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
+volatile bool holdEngaged = false;
+
 void
 holdBus() noexcept {
-    digitalWrite<Pin::HOLD, HIGH>();
-}
-void
-releaseBus() noexcept {
-    digitalWrite<Pin::HOLD, LOW>();
-}
-volatile bool holdEngaged = false;
-ISR(TIMER5_OVF_vect) {
     if (!holdEngaged) {
-        holdBus();
+        digitalWrite<Pin::HOLD, HIGH>();
         holdEngaged = true;
     }
 }
-
-ISR(TIMER5_COMPA_vect) {
-
+void
+releaseBus() noexcept {
+    if (holdEngaged) {
+        digitalWrite<Pin::HOLD, LOW>();
+        holdEngaged = false;
+    }
 }
-
-ISR(TIMER5_COMPB_vect) {
-
+ISR(TIMER5_OVF_vect) {
+    holdBus();
 }
-
-ISR(TIMER5_COMPC_vect) {
-
-}
-
 
 ISR(INT0_vect) {
-    AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
-    AddressLinesInterface.view32.data = 0;
     {
-        // code goes here
-        // if we get here then it is a legit operation
-        // at the end we want to revert all of our direction changes as well
+        AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
+        AddressLinesInterface.view32.data = 0;
+        {
+            // code goes here
+            // if we get here then it is a legit operation
+            // at the end we want to revert all of our direction changes as well
+        }
+        AddressLinesInterface.view32.direction = 0;
     }
-    AddressLinesInterface.view32.direction = 0;
     releaseBus();
-    holdEngaged = false;
 }
 
 void

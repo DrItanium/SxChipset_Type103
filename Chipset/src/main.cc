@@ -42,6 +42,7 @@ SdFs SD;
 FsFile disk0;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
+constexpr bool EnableRegularHoldSignal = true;
 auto& DebugConsole = Serial;
 constexpr bool transactionDebugEnabled() noexcept {
 #ifdef TRANSACTION_DEBUG
@@ -903,7 +904,7 @@ setupTimer4Test() noexcept {
     OCR4A = 0xFFFF;
     OCR4B = 0x8000;
     OCR4C = 0xC000;
-    if constexpr (EnableTransactionDebug) {
+    if constexpr (EnableRegularHoldSignal) {
         TIMSK4 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
                                  // interrupts
     } else {
@@ -911,7 +912,6 @@ setupTimer4Test() noexcept {
     }
     TCCR4B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
-constexpr bool EnableRegularHoldSignal = false;
 inline void
 holdBus() noexcept {
     if (bit_is_clear(GPIOR0, 0)) {

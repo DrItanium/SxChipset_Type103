@@ -254,16 +254,16 @@ ExecutionBody:
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 .LXB_doWriteTransaction_Primary:
 	computeTransactionWindow
+	getLowDataByte960                  							; Load lower byte from
+	sbis PING, 3 	                   							; Is BE0 LOW?
+	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
-	getLowDataByte960                  ; Load lower byte from
-	sbis PING, 3 	                   ; Is BE0 LOW?
-	st Y, __low_data_byte960__		   ; Yes, so store to the EBI
-	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
-	signalReady 											
-	std Y+1,__high_data_byte960__												; Store the upper byte to the EBI
-	delay2cycles
-	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
-	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
+	getHighDataByte960                 							; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
+	signalReady 												; first word down, onto the next one
+	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
+	delay2cycles												; wait for the next cycle to start
+	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
+																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getLowDataByte960
 	getHighDataByte960
 	sbis PING, 4		          ; if BE1 is set then skip over the store
@@ -271,24 +271,24 @@ ExecutionBody:
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L642:
-	getLowDataByte960
+	getLowDataByte960			  ; get the next word
 	getHighDataByte960
-	signalReady 
-	std Y+2,__low_data_byte960__
-	std Y+3,__high_data_byte960__
-	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End
-	getLowDataByte960
-	getHighDataByte960
-	signalReady
-	std Y+4,__low_data_byte960__
-	std Y+5,__high_data_byte960__
-	WhenBlastIsHighGoto .L649
-	getLowDataByte960
-	getHighDataByte960
-	sbis PING, 4
-	std Y+7,__high_data_byte960__
-	std Y+6,__low_data_byte960__
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+	signalReady 				  ; start the next word signal and we can use the 6 cycles to get ready
+	std Y+2,__low_data_byte960__  ; use the time to store into memory while the ready signal counter is doing its thing
+	std Y+3,__high_data_byte960__ ; use the time to store into memory while the ready signal counter is doing its thing
+	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End	; We can now safely check if we should terminate execution
+	getLowDataByte960			  ; get the next word (bits 32-47)
+	getHighDataByte960			  ; get the next word
+	signalReady					  ; Start the process for the next word ( at this point we will be at a 64-bit number once this ready goes through)
+	std Y+4,__low_data_byte960__  ; save the word (bits 32-39)
+	std Y+5,__high_data_byte960__ ; save the word (bits 40-47)
+	WhenBlastIsHighGoto .L649	  ; we have more data to transfer
+	getLowDataByte960			  ; start pulling the highest bits of this 64-bit number
+	getHighDataByte960			  ; continue pulling the highest bits of this 64-bit number
+	sbis PING, 4				  ; should we store the highest byte? This is in case the operation is unaligned...
+	std Y+7,__high_data_byte960__ ; We should be saving the value to memory
+	std Y+6,__low_data_byte960__  ; always save the lower byte since we flowed into here
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart ; go back to the top
 .L649:
 	getLowDataByte960
 	getHighDataByte960
@@ -351,33 +351,19 @@ ExecutionBody:
 	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	sbis PING, 4 	   ; Is BE1 LOW?
 	std Y+1, __high_data_byte960__	   ; Yes, so store to the EBI
-	getLowDataByte960
-	sbis PING, 3
-	st Y, __low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart			 ; And we are done
 
-.LXB_ShiftFromReadToWrite_DoIO_Nothing:
-	sbicrj PINE, 2, 1f
-	call doIOWriteOperation 			 ; perform the write operation
-	rjmp .LXB_WriteTransactionStart		 ; restart execution
-1:
-	WhenBlastIsLowGoto .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
-1:
-	signalReady
-	delay6cycles
-	WhenBlastIsHighGoto 1b
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_ShiftFromReadToWrite:
 ; start setting up for a write operation here
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	clearEIFR
-	sbicrj PINE, 6, .LXB_ShiftFromReadToWrite_DoIO_Nothing
+	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
 	computeTransactionWindow
-	WhenBlastIsLowGoto	.LXB_do16BitWriteOperation
 	getLowDataByte960                  ; Load lower byte from
 	sbis PING, 3 	                   ; Is BE0 LOW?
 	st Y, __low_data_byte960__		   ; Yes, so store to the EBI
+	WhenBlastIsLowGoto	.LXB_do16BitWriteOperation
 	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	signalReady 											
 	std Y+1,__high_data_byte960__												; Store the upper byte to the EBI

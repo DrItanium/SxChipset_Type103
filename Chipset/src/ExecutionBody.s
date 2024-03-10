@@ -185,15 +185,11 @@ ExecutionBody:
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 
-.LXB_ShiftFromWriteToRead_CheckIO_Nothing:
-	sbicrj PINE, 2, .LXB_readOperation_DoNothing
-	call doIOReadOperation				  ; It is so call doIOReadOperation, back to c++
-	rjmp .LXB_ReadTransactionStart		; And we are done :)
 .LXB_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	      ; Change the direction to output
 	sts DDRK,__direction_ff_reg__         ; Change the direction to output
 	clearEIFR						      ; Waiting for next memory transaction
-	sbicrj PINE, 6, .LXB_ShiftFromWriteToRead_CheckIO_Nothing
+	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
 	computeTransactionWindow
 	ld __low_data_byte960__,Y
 	ldd __high_data_byte960__,Y+1

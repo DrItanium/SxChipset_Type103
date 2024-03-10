@@ -898,19 +898,19 @@ setupCLK1() noexcept {
     TCCR3B = 0b00'0'01'001;
 }
 void 
-setupTimer4Test() noexcept {
-    TCCR4A = 0b00'00'00'01; // Normal timer mode
-    TCNT4 = 0; // zero out the timer
-    OCR4A = 0xFFFF;
-    OCR4B = 0x8000;
-    OCR4C = 0xC000;
+setupTimer5Test() noexcept {
+    TCCR5A = 0b00'00'00'01; // Normal timer mode
+    TCNT5 = 0; // zero out the timer
+    OCR5A = 0xFFFF;
+    OCR5B = 0x8000;
+    OCR5C = 0xC000;
     if constexpr (EnableRegularHoldSignal) {
-        TIMSK4 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
+        TIMSK5 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
                                  // interrupts
     } else {
-        TIMSK4 = 0;
+        TIMSK5 = 0;
     }
-    TCCR4B = 0b0'0'0'00'011; // divide by 8 prescalar
+    TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
 inline void
 holdBus() noexcept {
@@ -927,7 +927,7 @@ releaseBus() noexcept {
         bitClear(GPIOR0, 0);
     }
 }
-ISR(TIMER4_OVF_vect) {
+ISR(TIMER5_OVF_vect) {
     if constexpr (EnableRegularHoldSignal) {
         if (digitalRead<Pin::Lock>() == HIGH) {
             holdBus();

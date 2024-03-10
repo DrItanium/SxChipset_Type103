@@ -27,21 +27,21 @@ __SREG__ = 0x3f
 __RAMPZ__ = 0x3b
 __tmp_reg__ = 0
 __zero_reg__ = 1
-PORTF = 0x11
-DDRF = 0x10
+PINE = 0x0C
 PINF = 0x0F
+DDRF = 0x10
+PORTF = 0x11
+PING = 0x12
 PINK = 262
 PINL = 0x109
 PINJ = 0x103
 DDRK = 263
 PORTK = 264
 EIFR = 0x1c
-PING = 0x12
 AddressLinesInterface = 0x2300
 MemoryWindowUpper = 0x22
 IOSpaceHighest = 0xFE
 TCNT2 = 0xb2
-__highest_address_byte960__ = 8
 __high_data_byte960__ = 7
 __low_data_byte960__ = 6
 __rdy_signal_count_reg__ = 5
@@ -111,10 +111,6 @@ __iospace_sec_reg__ = 2
 .macro getHighDataByte960
 	lds __high_data_byte960__, PINK
 .endm
-.macro loadHighestAddressByte 
-    ;lds __highest_address_byte960__, AddressLinesInterface+3
-	lds __highest_address_byte960__, PINL
-.endm
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
@@ -127,8 +123,7 @@ ExecutionBody:
 	setupRegisterConstants
 	rjmp .LXB_ReadTransactionStart ; jump into the top of the invocation loop
 .LXB_readOperation_CheckIO_Nothing:
-	cpiospace __highest_address_byte960__ ; Nope, so check to see if it is the IO space
-	brne .LXB_readOperation_DoNothing	  ; If it is not, then we do nothing
+	sbicrj PINE, 2, .LXB_readOperation_DoNothing
 	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
 	rjmp .LXB_ReadTransactionStart		  ; And we are done :)
 .LXB_readOperation_DoNothing:
@@ -146,9 +141,7 @@ ExecutionBody:
 	sbicrj EIFR,5, .LXB_ShiftFromReadToWrite; 
 .LXB_PrimaryReadTransaction:
 	clearEIFR						; Waiting for next memory transaction
-	loadHighestAddressByte ; Get the upper most byte to determine where to go
-	cpz __highest_address_byte960__       ; Zero?
-	brne .LXB_readOperation_CheckIO_Nothing ; if not then jump to checking on io operations
+	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
 	computeTransactionWindow
 	ld __low_data_byte960__,Y
 	ldd __high_data_byte960__,Y+1
@@ -191,19 +184,14 @@ ExecutionBody:
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 
 .LXB_ShiftFromWriteToRead_CheckIO_Nothing:
-	cpiospace __highest_address_byte960__ ; Nope, so check to see if it is the IO space
-	brne 1f								  ; If it is not, then we do nothing
+	sbicrj PINE, 2, .LXB_readOperation_DoNothing
 	call doIOReadOperation				  ; It is so call doIOReadOperation, back to c++
 	rjmp .LXB_ReadTransactionStart		; And we are done :)
-1:
-	rjmp .LXB_readOperation_DoNothing
 .LXB_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	      ; Change the direction to output
 	sts DDRK,__direction_ff_reg__         ; Change the direction to output
 	clearEIFR						      ; Waiting for next memory transaction
-	loadHighestAddressByte 				  ; Get the upper most byte to determine where to go
-	cpz __highest_address_byte960__							      ; Zero?
-	brne .LXB_ShiftFromWriteToRead_CheckIO_Nothing
+	sbicrj PINE, 6, .LXB_ShiftFromWriteToRead_CheckIO_Nothing
 	computeTransactionWindow
 	ld __low_data_byte960__,Y
 	ldd __high_data_byte960__,Y+1
@@ -246,8 +234,7 @@ ExecutionBody:
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 
 .LXB_Write_DoIO_Nothing:
-	cpiospace __highest_address_byte960__ 					     ; is this equal to 0xFE?
-	brne 1f							     ; If they aren't equal then jump over and goto the do nothing action
+	sbicrj PINE, 2, 1f
 	call doIOWriteOperation 			 ; perform the write operation
 	rjmp .LXB_WriteTransactionStart		 ; restart execution
 1:
@@ -262,9 +249,7 @@ ExecutionBody:
 	sbisrj EIFR,4, .LXB_WriteTransactionStart
 	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
 	clearEIFR
-	loadHighestAddressByte
-	cpz __highest_address_byte960__
-	brne .LXB_Write_DoIO_Nothing
+	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 .LXB_doWriteTransaction_Primary:
 	computeTransactionWindow
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
@@ -370,8 +355,7 @@ ExecutionBody:
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart			 ; And we are done
 
 .LXB_ShiftFromReadToWrite_DoIO_Nothing:
-	cpiospace __highest_address_byte960__ 					     ; is this equal to 0xFE?
-	brne 1f							     ; If they aren't equal then jump over and goto the do nothing action
+	sbicrj PINE, 2, 1f
 	call doIOWriteOperation 			 ; perform the write operation
 	rjmp .LXB_WriteTransactionStart		 ; restart execution
 1:
@@ -386,10 +370,7 @@ ExecutionBody:
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	clearEIFR
-; we need to use cpse instead of breq to allow for better jumping destination
-	loadHighestAddressByte
-	cpz __highest_address_byte960__                              ; are we looking at zero? If not then check 0xFE later on (1 cycle)
-	brne .LXB_ShiftFromReadToWrite_DoIO_Nothing ; no, it is a zero so jump (1 or 2 cycles)
+	sbicrj PINE, 6, .LXB_ShiftFromReadToWrite_DoIO_Nothing
 	computeTransactionWindow
 	WhenBlastIsLowGoto	.LXB_do16BitWriteOperation
 	getLowDataByte960                  ; Load lower byte from

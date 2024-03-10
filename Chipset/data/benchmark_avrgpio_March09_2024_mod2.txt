@@ -1,0 +1,22 @@
+Hold pulled on a regular timer but more concise fallthrough work for writes
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     54.6155      0.2563
+     2     -3.8192e-14     35.8166      0.1954
+     3     -1.7902e-13     61.8537      0.2748
+     4     -2.7744e-13     51.4749      0.2914
+     5      1.0579e-12    106.9282      0.2712
+     6     -2.0101e-13    107.1780      0.2706
+     7      6.2528e-13     60.2630      0.1991
+     8     -5.7265e-13    104.9464      0.2859
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7242
+   MFLOPS(1)       =     0.2158
+   MFLOPS(2)       =     0.2439
+   MFLOPS(3)       =     0.2668
+   MFLOPS(4)       =     0.2796
+

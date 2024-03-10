@@ -903,11 +903,15 @@ setupTimer4Test() noexcept {
     OCR4A = 0xFFFF;
     OCR4B = 0x8000;
     OCR4C = 0xC000;
-    TIMSK4 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
-                             // interrupts
+    if constexpr (EnableTransactionDebug) {
+        TIMSK4 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
+                                 // interrupts
+    } else {
+        TIMSK4 = 0;
+    }
     TCCR4B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
-
+constexpr bool EnableRegularHoldSignal = false;
 inline void
 holdBus() noexcept {
     if (bit_is_clear(GPIOR0, 0)) {
@@ -924,23 +928,27 @@ releaseBus() noexcept {
     }
 }
 ISR(TIMER4_OVF_vect) {
-    if (digitalRead<Pin::Lock>() == HIGH) {
-        holdBus();
+    if constexpr (EnableRegularHoldSignal) {
+        if (digitalRead<Pin::Lock>() == HIGH) {
+            holdBus();
+        }
     }
 }
 
 ISR(INT0_vect) {
-    {
-        AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
-        AddressLinesInterface.view32.data = 0;
+    if constexpr (EnableRegularHoldSignal) {
         {
-            // code goes here
-            // if we get here then it is a legit operation
-            // at the end we want to revert all of our direction changes as well
+            AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
+            AddressLinesInterface.view32.data = 0;
+            {
+                // code goes here
+                // if we get here then it is a legit operation
+                // at the end we want to revert all of our direction changes as well
+            }
+            AddressLinesInterface.view32.direction = 0;
         }
-        AddressLinesInterface.view32.direction = 0;
+        releaseBus();
     }
-    releaseBus();
 }
 
 void
@@ -1023,8 +1031,10 @@ setup() {
     EICRB = 0b1010'1010; // falling edge on the upper four interrupts
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
+    if constexpr (EnableRegularHoldSignal) {
     bitSet(EIMSK, INT0); // only activate after we have pulled the cpu out of
                          // reset
+    }
 }
 void 
 loop() {

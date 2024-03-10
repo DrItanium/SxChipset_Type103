@@ -187,6 +187,61 @@ ExecutionBody:
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 
+.LXB_ShiftFromWriteToRead_CheckIO_Nothing:
+	cpiospace __highest_address_byte960__ ; Nope, so check to see if it is the IO space
+	brne 1f								  ; If it is not, then we do nothing
+	call doIOReadOperation				  ; It is so call doIOReadOperation, back to c++
+	rjmp .LXB_ReadTransactionStart		; And we are done :)
+1:
+	rjmp .LXB_readOperation_DoNothing
+.LXB_ShiftFromWriteToRead:
+	out DDRF,__direction_ff_reg__	      ; Change the direction to output
+	sts DDRK,__direction_ff_reg__         ; Change the direction to output
+	clearEIFR						      ; Waiting for next memory transaction
+	lds __highest_address_byte960__,AddressLinesInterface+3       ; Get the upper most byte to determine where to go
+	cpz __highest_address_byte960__							      ; Zero?
+	brne .LXB_ShiftFromWriteToRead_CheckIO_Nothing
+	computeTransactionWindow
+	ld __low_data_byte960__,Y
+	ldd __high_data_byte960__,Y+1
+	StoreToDataPort __low_data_byte960__,__high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+2
+	ldd __high_data_byte960__,Y+3
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+4
+	ldd __high_data_byte960__,Y+5
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+6
+	ldd __high_data_byte960__,Y+7
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+8
+	ldd __high_data_byte960__,Y+9
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+10
+	ldd __high_data_byte960__,Y+11
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+12
+	ldd __high_data_byte960__,Y+13
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+14
+	ldd __high_data_byte960__,Y+15
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
+
 .LXB_Write_DoIO_Nothing:
 	cpiospace __highest_address_byte960__ 					     ; is this equal to 0xFE?
 	brne 1f							     ; If they aren't equal then jump over and goto the do nothing action
@@ -307,60 +362,6 @@ ExecutionBody:
 	sbis PING, 4 	   ; Is BE1 LOW?
 	std Y+1, __high_data_byte960__	   ; Yes, so store to the EBI
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart			 ; And we are done
-.LXB_ShiftFromWriteToRead_CheckIO_Nothing:
-	cpiospace __highest_address_byte960__ ; Nope, so check to see if it is the IO space
-	brne 1f								  ; If it is not, then we do nothing
-	call doIOReadOperation				  ; It is so call doIOReadOperation, back to c++
-	rjmp .LXB_ReadTransactionStart		; And we are done :)
-1:
-	rjmp .LXB_readOperation_DoNothing
-.LXB_ShiftFromWriteToRead:
-	out DDRF,__direction_ff_reg__	      ; Change the direction to output
-	sts DDRK,__direction_ff_reg__         ; Change the direction to output
-	clearEIFR						      ; Waiting for next memory transaction
-	lds __highest_address_byte960__,AddressLinesInterface+3       ; Get the upper most byte to determine where to go
-	cpz __highest_address_byte960__							      ; Zero?
-	brne .LXB_ShiftFromWriteToRead_CheckIO_Nothing
-	computeTransactionWindow
-	ld __low_data_byte960__,Y
-	ldd __high_data_byte960__,Y+1
-	StoreToDataPort __low_data_byte960__,__high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+2
-	ldd __high_data_byte960__,Y+3
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+4
-	ldd __high_data_byte960__,Y+5
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+6
-	ldd __high_data_byte960__,Y+7
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+8
-	ldd __high_data_byte960__,Y+9
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+10
-	ldd __high_data_byte960__,Y+11
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+12
-	ldd __high_data_byte960__,Y+13
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+14
-	ldd __high_data_byte960__,Y+15
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 
 .LXB_ShiftFromReadToWrite_DoIO_Nothing:
 	cpiospace __highest_address_byte960__ 					     ; is this equal to 0xFE?

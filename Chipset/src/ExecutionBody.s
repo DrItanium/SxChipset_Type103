@@ -212,15 +212,14 @@ ExecutionBody:
 	getLowDataByte960                  ; Load lower byte from
 	sbis PING, 3 	                   ; Is BE0 LOW?
 	st Y, __low_data_byte960__		   ; Yes, so store to the EBI
-	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 											
+	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	std Y+1,__high_data_byte960__												; Store the upper byte to the EBI
-	delay2cycles											; it takes 6 cycles (AVR) to trigger the ready signal, the std to the EBI with a one cycle delay takes four cycles (AVR) so we need to wait two more cycles to align everything
 	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
-	in __low_data_byte960__, PINF			  ; load the lower byte
-	lds __high_data_byte960__, PINK		  ; Loading the port doesn't take much time so just do it regardless
+	getLowDataByte960
+	getHighDataByte960
 	sbis PING, 4		          ; if BE1 is set then skip over the store
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
@@ -322,6 +321,7 @@ ExecutionBody:
 	std Y+8,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_do16BitWriteOperation:
+	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	sbis PING, 4 	   ; Is BE1 LOW?
 	std Y+1, __high_data_byte960__	   ; Yes, so store to the EBI
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart			 ; And we are done

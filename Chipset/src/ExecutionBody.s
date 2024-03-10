@@ -123,6 +123,11 @@ ExecutionBody:
 /* stack size = 0 */
 	setupRegisterConstants
 	rjmp .LXB_ReadTransactionStart ; jump into the top of the invocation loop
+.LXB_readOperation_CheckIO_Nothing:
+	cpiospace __highest_address_byte960__ ; Nope, so check to see if it is the IO space
+	brne .LXB_readOperation_DoNothing	  ; If it is not, then we do nothing
+	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
+	rjmp .LXB_ReadTransactionStart		  ; And we are done :)
 .LXB_readOperation_DoNothing:
 	out PORTF, __zero_reg__
 	sts PORTK, __zero_reg__
@@ -140,12 +145,7 @@ ExecutionBody:
 	clearEIFR						; Waiting for next memory transaction
 	lds __highest_address_byte960__, AddressLinesInterface+3 ; Get the upper most byte to determine where to go
 	cpz __highest_address_byte960__       ; Zero?
-	breq .LXB_ReadStreamingOperation      ; If so then start the read streaming operation
-	cpiospace __highest_address_byte960__ ; Nope, so check to see if it is the IO space
-	brne .LXB_readOperation_DoNothing	  ; If it is not, then we do nothing
-	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
-	rjmp .LXB_ReadTransactionStart		  ; And we are done :)
-.LXB_ReadStreamingOperation: 
+	brne .LXB_readOperation_CheckIO_Nothing ; if not then jump to checking on io operations
 	computeTransactionWindow
 	ld __low_data_byte960__,Y
 	ldd __high_data_byte960__,Y+1

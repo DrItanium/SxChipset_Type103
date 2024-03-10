@@ -97,6 +97,12 @@ __iospace_sec_reg__ = 2
 	out PORTF, \lo
 	sts PORTK, \hi
 .endm
+.macro WhenBlastIsLowGoto dest
+	sbisrj PING, 5, \dest
+.endm
+.macro WhenBlastIsHighGoto dest
+	sbicrj PING, 5, \dest
+.endm
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
@@ -111,11 +117,11 @@ ExecutionBody:
 .LXB_readOperation_DoNothing:
 	out PORTF, __zero_reg__
 	sts PORTK, __zero_reg__
-	sbisrj PING, 5, .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
-	sbicrj PING, 5, 1b 
+	WhenBlastIsHighGoto 1b
 .LXB_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 .LXB_ReadTransactionStart:
@@ -135,37 +141,37 @@ ExecutionBody:
 	ld r25,Y
 	ldd r24,Y+1
 	StoreToDataPort r25,r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+2
 	ldd r24,Y+3
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+4
 	ldd r24,Y+5
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+6
 	ldd r24,Y+7
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+8
 	ldd r24,Y+9
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+10
 	ldd r24,Y+11
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+12
 	ldd r24,Y+13
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+14
 	ldd r24,Y+15
@@ -178,20 +184,18 @@ ExecutionBody:
 	clearEIFR
 ; we need to use cpse instead of breq to allow for better jumping destination
 	lds r24,AddressLinesInterface+3
-	cpz r24  ; are we looking at zero? If not then check 0xFE later on (1 cycle)
+	cpz r24                              ; are we looking at zero? If not then check 0xFE later on (1 cycle)
 	breq .LXB_doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
-									; total is 2 cycles when it isn't true and three cycles when it is
-									; must keep the operation local though...
-	cpiospace r24 					; is this equal to 0xFE
-	brne 1f							; If they aren't equal then jump over and goto the do nothing action
-	call doIOWriteOperation 
-	rjmp .LXB_WriteTransactionStart
+	cpiospace r24 					     ; is this equal to 0xFE?
+	brne 1f							     ; If they aren't equal then jump over and goto the do nothing action
+	call doIOWriteOperation 			 ; perform the write operation
+	rjmp .LXB_WriteTransactionStart		 ; restart execution
 1:
-	sbisrj PING, 5, .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
+	WhenBlastIsLowGoto .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
-	sbicrj PING, 5, 1b 
+	WhenBlastIsHighGoto 1b
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_do16BitWriteOperation:
 	sbis PING, 4 	   ; Is BE1 LOW?
@@ -203,11 +207,11 @@ ExecutionBody:
 	sbis PING, 3 	   ; Is BE0 LOW?
 	st Y, r24		   ; Yes, so store to the EBI
 	lds r25,PINK											; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
-	sbisrj PING,5, .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
+	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 											
 	std Y+1,r25												; Store the upper byte to the EBI
 	delay2cycles											; it takes 6 cycles (AVR) to trigger the ready signal, the std to the EBI with a one cycle delay takes four cycles (AVR) so we need to wait two more cycles to align everything
-	sbicrj PING, 5, .L642 ; this is checking blast for the second set of 16-bits not the first
+	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	in r24,PINF			  ; load the lower byte
 	lds r25, PINK		  ; Loading the port doesn't take much time so just do it regardless
@@ -228,11 +232,11 @@ ExecutionBody:
 	call doIOWriteOperation 
 	rjmp .LXB_WriteTransactionStart
 1:
-	sbisrj PING, 5, .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
+	WhenBlastIsLowGoto .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
 	delay6cycles
-	sbicrj PING, 5, 1b 
+	WhenBlastIsHighGoto 1b
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L642:
 	in r25,PINF
@@ -240,13 +244,13 @@ ExecutionBody:
 	signalReady 
 	std Y+2,r25
 	std Y+3,r24
-	sbisrj PING,5, .LXB_WriteBytes4_and_5_End
+	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End
 	in r25,PINF
 	lds r24,PINK
 	signalReady
 	std Y+4,r25
 	std Y+5,r24
-	sbicrj PING,5, .L649
+	WhenBlastIsHighGoto .L649
 	in r24,PINF
 	lds r25, PINK
 	sbis PING, 4
@@ -259,13 +263,13 @@ ExecutionBody:
 	signalReady
 	std Y+6,r25
 	std Y+7,r24
-	sbisrj PING,5, .LXB_WriteBytes8_and_9_End
+	WhenBlastIsLowGoto .LXB_WriteBytes8_and_9_End
 	in r25,PINF
 	lds r24,PINK
 	signalReady
 	std Y+8,r25
 	std Y+9,r24
-	sbicrj PING,5, .L657
+	WhenBlastIsHighGoto .L657
 	in r24,PINF
 	lds r25,PINK
 	sbis PING, 4
@@ -278,7 +282,7 @@ ExecutionBody:
 	signalReady
 	std Y+10,r25
 	std Y+11,r24
-	sbicrj PING,5, .L661
+	WhenBlastIsHighGoto .L661
 	in r24,PINF
 	lds r25,PINK
 	sbis PING,4
@@ -329,37 +333,37 @@ ExecutionBody:
 	ld r25,Y
 	ldd r24,Y+1
 	StoreToDataPort r25,r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+2
 	ldd r24,Y+3
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+4
 	ldd r24,Y+5
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+6
 	ldd r24,Y+7
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+8
 	ldd r24,Y+9
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+10
 	ldd r24,Y+11
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+12
 	ldd r24,Y+13
 	StoreToDataPort r25, r24
-	sbisrj PING,5, .LXB_FirstSignalReady_ThenReadTransactionStart
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd r25,Y+14
 	ldd r24,Y+15

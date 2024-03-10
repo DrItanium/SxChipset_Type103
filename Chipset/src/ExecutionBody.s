@@ -106,6 +106,12 @@ __iospace_sec_reg__ = 2
 .macro WhenBlastIsHighGoto dest
 	sbicrj PING, 5, \dest
 .endm
+.macro getLowDataByte960 
+	in __low_data_byte960__, PINF
+.endm
+.macro getHighDataByte960
+	lds __high_data_byte960__, PINK
+.endm
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
@@ -242,12 +248,6 @@ ExecutionBody:
 	WhenBlastIsHighGoto 1b
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L642:
-.macro getLowDataByte960 
-	in __low_data_byte960__, PINF
-.endm
-.macro getHighDataByte960
-	lds __high_data_byte960__, PINK
-.endm
 	getLowDataByte960
 	getHighDataByte960
 	signalReady 

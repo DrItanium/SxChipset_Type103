@@ -113,6 +113,31 @@ __iospace_sec_reg__ = 2
 .macro getHighDataByte960
 	lds __high_data_byte960__, PINK
 .endm
+.macro FallthroughExecutionBody_WriteOperation
+	signalReady 
+
+1:  sbisrj EIFR,4, 1b
+	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
+	clearEIFR
+	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
+	computeTransactionWindow
+	getLowDataByte960                  							; Load lower byte from
+	sbis PING, 3 	                   							; Is BE0 LOW?
+	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
+	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
+	getHighDataByte960                 							; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
+	signalReady 												; first word down, onto the next one
+	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
+	delay2cycles												; wait for the next cycle to start
+	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
+																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
+	getLowDataByte960
+	getHighDataByte960
+	sbis PING, 4		          ; if BE1 is set then skip over the store
+	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
+	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.endm
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
@@ -265,7 +290,7 @@ ExecutionBody:
 	sbis PING, 4		          ; if BE1 is set then skip over the store
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+	FallthroughExecutionBody_WriteOperation
 .L642:
 	getLowDataByte960			  ; get the next word
 	getHighDataByte960
@@ -284,7 +309,7 @@ ExecutionBody:
 	sbis PING, 4				  ; should we store the highest byte? This is in case the operation is unaligned...
 	std Y+7,__high_data_byte960__ ; We should be saving the value to memory
 	std Y+6,__low_data_byte960__  ; always save the lower byte since we flowed into here
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart ; go back to the top
+	FallthroughExecutionBody_WriteOperation
 .L649:
 	getLowDataByte960
 	getHighDataByte960
@@ -303,7 +328,7 @@ ExecutionBody:
 	sbis PING, 4
 	std Y+11,__high_data_byte960__
 	std Y+10,__low_data_byte960__
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+	FallthroughExecutionBody_WriteOperation
 .L657:
 	getLowDataByte960
 	getHighDataByte960
@@ -316,7 +341,7 @@ ExecutionBody:
 	sbis PING,4
 	std Y+13,__high_data_byte960__
 	std Y+12,__low_data_byte960__
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+	FallthroughExecutionBody_WriteOperation
 .L661:
 	getLowDataByte960
 	getHighDataByte960
@@ -328,26 +353,26 @@ ExecutionBody:
 	sbis PING, 4
 	std Y+15,__high_data_byte960__
 	std Y+14,__low_data_byte960__
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes4_and_5_End:
 	getLowDataByte960
 	getHighDataByte960
 	sbis PING, 4
 	std Y+5,__high_data_byte960__
 	std Y+4,__low_data_byte960__
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes8_and_9_End:
 	getLowDataByte960
 	getHighDataByte960
 	sbis PING, 4
 	std Y+9,__high_data_byte960__
 	std Y+8,__low_data_byte960__
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+	FallthroughExecutionBody_WriteOperation
 .LXB_do16BitWriteOperation:
 	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	sbis PING, 4 	   ; Is BE1 LOW?
 	std Y+1, __high_data_byte960__	   ; Yes, so store to the EBI
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart			 ; And we are done
+	FallthroughExecutionBody_WriteOperation
 
 .LXB_ShiftFromReadToWrite:
 ; start setting up for a write operation here

@@ -1,0 +1,22 @@
+Ressurrect the old space detect pins from the GAL22V10 and do not read the upper most 8 bits of the address (HOLD is on timer5 as well)
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     53.8807      0.2598
+     2     -3.8192e-14     34.8882      0.2006
+     3     -1.7902e-13     60.9315      0.2790
+     4     -2.7744e-13     50.8848      0.2948
+     5      1.0579e-12    105.7728      0.2742
+     6     -2.0101e-13    105.7821      0.2741
+     7      6.2528e-13     59.4771      0.2018
+     8     -5.7265e-13    103.8481      0.2889
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7243
+   MFLOPS(1)       =     0.2209
+   MFLOPS(2)       =     0.2471
+   MFLOPS(3)       =     0.2701
+   MFLOPS(4)       =     0.2831
+

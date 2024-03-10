@@ -1,0 +1,22 @@
+duplicate write operation effort
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     54.6159      0.2563
+     2     -3.8192e-14     35.7110      0.1960
+     3     -1.7902e-13     61.8178      0.2750
+     4     -2.7744e-13     51.4092      0.2918
+     5      1.0579e-12    106.9231      0.2712
+     6     -2.0101e-13    107.1820      0.2706
+     7      6.2528e-13     60.2586      0.1991
+     8     -5.7265e-13    104.9396      0.2859
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7246
+   MFLOPS(1)       =     0.2163
+   MFLOPS(2)       =     0.2440
+   MFLOPS(3)       =     0.2668
+   MFLOPS(4)       =     0.2797
+

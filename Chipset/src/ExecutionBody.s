@@ -186,7 +186,8 @@ ExecutionBody:
 	ldd __high_data_byte960__,Y+15
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
-.LXB_ShiftFromReadToWrite_DoIO_Nothing:
+
+.LXB_Write_DoIO_Nothing:
 	cpiospace __highest_address_byte960__ 					     ; is this equal to 0xFE?
 	brne 1f							     ; If they aren't equal then jump over and goto the do nothing action
 	call doIOWriteOperation 			 ; perform the write operation
@@ -197,16 +198,15 @@ ExecutionBody:
 	signalReady
 	delay6cycles
 	WhenBlastIsHighGoto 1b
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
-.LXB_ShiftFromReadToWrite:
-; start setting up for a write operation here
-	out DDRF,__zero_reg__
-	sts DDRK,__zero_reg__
+.LXB_SignalReady_ThenWriteTransactionStart:
+	signalReady 
+.LXB_WriteTransactionStart:
+	sbisrj EIFR,4, .LXB_WriteTransactionStart
+	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
 	clearEIFR
-; we need to use cpse instead of breq to allow for better jumping destination
 	lds __highest_address_byte960__,AddressLinesInterface+3
-	cpz __highest_address_byte960__                              ; are we looking at zero? If not then check 0xFE later on (1 cycle)
-	brne .LXB_ShiftFromReadToWrite_DoIO_Nothing ; no, it is a zero so jump (1 or 2 cycles)
+	cpz __highest_address_byte960__
+	brne .LXB_Write_DoIO_Nothing
 .LXB_doWriteTransaction_Primary:
 	computeTransactionWindow
 	getLowDataByte960                  ; Load lower byte from
@@ -224,25 +224,6 @@ ExecutionBody:
 	sbis PING, 4		          ; if BE1 is set then skip over the store
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
-.LXB_SignalReady_ThenWriteTransactionStart:
-	signalReady 
-.LXB_WriteTransactionStart:
-	sbisrj EIFR,4, .LXB_WriteTransactionStart
-	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
-	clearEIFR
-	lds __highest_address_byte960__,AddressLinesInterface+3
-	cpz __highest_address_byte960__
-	breq .LXB_doWriteTransaction_Primary
-	cpiospace __highest_address_byte960__
-	brne 1f
-	call doIOWriteOperation 
-	rjmp .LXB_WriteTransactionStart
-1:
-	WhenBlastIsLowGoto .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
-1:
-	signalReady
-	delay6cycles
-	WhenBlastIsHighGoto 1b
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L642:
 	getLowDataByte960
@@ -381,3 +362,41 @@ ExecutionBody:
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 
+.LXB_ShiftFromReadToWrite_DoIO_Nothing:
+	cpiospace __highest_address_byte960__ 					     ; is this equal to 0xFE?
+	brne 1f							     ; If they aren't equal then jump over and goto the do nothing action
+	call doIOWriteOperation 			 ; perform the write operation
+	rjmp .LXB_WriteTransactionStart		 ; restart execution
+1:
+	WhenBlastIsLowGoto .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
+1:
+	signalReady
+	delay6cycles
+	WhenBlastIsHighGoto 1b
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_ShiftFromReadToWrite:
+; start setting up for a write operation here
+	out DDRF,__zero_reg__
+	sts DDRK,__zero_reg__
+	clearEIFR
+; we need to use cpse instead of breq to allow for better jumping destination
+	lds __highest_address_byte960__,AddressLinesInterface+3
+	cpz __highest_address_byte960__                              ; are we looking at zero? If not then check 0xFE later on (1 cycle)
+	brne .LXB_ShiftFromReadToWrite_DoIO_Nothing ; no, it is a zero so jump (1 or 2 cycles)
+	computeTransactionWindow
+	getLowDataByte960                  ; Load lower byte from
+	sbis PING, 3 	                   ; Is BE0 LOW?
+	st Y, __low_data_byte960__		   ; Yes, so store to the EBI
+	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
+	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
+	signalReady 											
+	std Y+1,__high_data_byte960__												; Store the upper byte to the EBI
+	delay2cycles
+	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
+	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
+	getLowDataByte960
+	getHighDataByte960
+	sbis PING, 4		          ; if BE1 is set then skip over the store
+	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
+	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart

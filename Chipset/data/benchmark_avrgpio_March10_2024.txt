@@ -1,0 +1,22 @@
+Eliminate relative jumps when a write operation is finished via code duplication (using macros)
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     53.3578      0.2624
+     2     -3.8192e-14     34.3709      0.2037
+     3     -1.7902e-13     60.3745      0.2816
+     4     -2.7744e-13     50.6332      0.2962
+     5      1.0579e-12    105.2944      0.2754
+     6     -2.0101e-13    105.0733      0.2760
+     7      6.2528e-13     59.0290      0.2033
+     8     -5.7265e-13    103.3609      0.2902
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7236
+   MFLOPS(1)       =     0.2239
+   MFLOPS(2)       =     0.2488
+   MFLOPS(3)       =     0.2718
+   MFLOPS(4)       =     0.2849
+

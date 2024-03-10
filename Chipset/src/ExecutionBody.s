@@ -39,6 +39,9 @@ AddressLinesInterface = 0x2300
 MemoryWindowUpper = 0x22
 IOSpaceHighest = 0xFE
 TCNT2 = 0xb2
+__highest_address_byte960__ = 8
+__high_data_byte960__ = 7
+__low_data_byte960__ = 6
 __rdy_signal_count_reg__ = 5
 __eifr_mask_reg__ = 4
 __direction_ff_reg__ = 3
@@ -88,7 +91,7 @@ __iospace_sec_reg__ = 2
 .endm
 
 .macro cpz reg
-	cpi \reg, 0x00
+	cp \reg, __zero_reg__
 .endm
 .macro cpiospace reg
 	cp \reg, __iospace_sec_reg__
@@ -129,13 +132,13 @@ ExecutionBody:
 	sbicrj EIFR,5, .LXB_ShiftFromReadToWrite; 
 .LXB_PrimaryReadTransaction:
 	clearEIFR						; Waiting for next memory transaction
-	lds r24,AddressLinesInterface+3 ; Get the upper most byte to determine where to go
-	cpz r24							; Zero?
-	breq .LXB_ReadStreamingOperation     ; If so then start the read streaming operation
-	cpiospace r24						 ; Nope, so check to see if it is the IO space
-	brne .LXB_readOperation_DoNothing	 ; If it is not, then we do nothing
-	call doIOReadOperation			     ; It is so call doIOReadOperation, back to c++
-	rjmp .LXB_ReadTransactionStart		 ; And we are done :)
+	lds __highest_address_byte960__, AddressLinesInterface+3 ; Get the upper most byte to determine where to go
+	cpz __highest_address_byte960__       ; Zero?
+	breq .LXB_ReadStreamingOperation      ; If so then start the read streaming operation
+	cpiospace __highest_address_byte960__ ; Nope, so check to see if it is the IO space
+	brne .LXB_readOperation_DoNothing	  ; If it is not, then we do nothing
+	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
+	rjmp .LXB_ReadTransactionStart		  ; And we are done :)
 .LXB_ReadStreamingOperation: 
 	computeTransactionWindow
 	ld r25,Y
@@ -183,10 +186,10 @@ ExecutionBody:
 	sts DDRK,__zero_reg__
 	clearEIFR
 ; we need to use cpse instead of breq to allow for better jumping destination
-	lds r24,AddressLinesInterface+3
-	cpz r24                              ; are we looking at zero? If not then check 0xFE later on (1 cycle)
+	lds __highest_address_byte960__,AddressLinesInterface+3
+	cpz __highest_address_byte960__                              ; are we looking at zero? If not then check 0xFE later on (1 cycle)
 	breq .LXB_doWriteTransaction_Primary ; yes, it is a zero so jump (1 or 2 cycles)
-	cpiospace r24 					     ; is this equal to 0xFE?
+	cpiospace __highest_address_byte960__ 					     ; is this equal to 0xFE?
 	brne 1f							     ; If they aren't equal then jump over and goto the do nothing action
 	call doIOWriteOperation 			 ; perform the write operation
 	rjmp .LXB_WriteTransactionStart		 ; restart execution
@@ -224,10 +227,10 @@ ExecutionBody:
 	sbisrj EIFR,4, .LXB_WriteTransactionStart
 	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
 	clearEIFR
-	lds r24,AddressLinesInterface+3
-	cpz r24
+	lds __highest_address_byte960__,AddressLinesInterface+3
+	cpz __highest_address_byte960__
 	breq .LXB_doWriteTransaction_Primary
-	cpiospace r24
+	cpiospace __highest_address_byte960__
 	brne 1f
 	call doIOWriteOperation 
 	rjmp .LXB_WriteTransactionStart
@@ -319,10 +322,10 @@ ExecutionBody:
 	out DDRF,__direction_ff_reg__	      ; Change the direction to output
 	sts DDRK,__direction_ff_reg__         ; Change the direction to output
 	clearEIFR						      ; Waiting for next memory transaction
-	lds r24,AddressLinesInterface+3       ; Get the upper most byte to determine where to go
-	cpz r24							      ; Zero?
+	lds __highest_address_byte960__,AddressLinesInterface+3       ; Get the upper most byte to determine where to go
+	cpz __highest_address_byte960__							      ; Zero?
 	breq .LXB_ReadStreamingOperation2     ; If so then start the read streaming operation
-	cpiospace r24 						  ; Nope, so check to see if it is the IO space
+	cpiospace __highest_address_byte960__ 						  ; Nope, so check to see if it is the IO space
 	brne 1f								  ; If it is not, then we do nothing
 	call doIOReadOperation				  ; It is so call doIOReadOperation, back to c++
 	rjmp .LXB_ReadTransactionStart		; And we are done :)
@@ -369,3 +372,4 @@ ExecutionBody:
 	ldd r24,Y+15
 	StoreToDataPort r25, r24
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
+

@@ -358,7 +358,7 @@ ExecutionBody:
 	out DDRF,__zero_reg__
 	sts DDRK,__zero_reg__
 	clearEIFR
-	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
+	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getLowDataByte960                  ; Load lower byte from
 	sbis PING, 3 	                   ; Is BE0 LOW?

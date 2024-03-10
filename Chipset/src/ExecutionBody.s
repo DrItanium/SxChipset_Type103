@@ -350,12 +350,40 @@ ExecutionBody:
 	std Y+5,__high_data_byte960__
 	std Y+4,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_WriteBytes6_and_7_End:
+	getLowDataByte960
+	getHighDataByte960
+	sbis PING, 4
+	std Y+7,__high_data_byte960__
+	std Y+6,__low_data_byte960__
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_WriteBytes8_and_9_End:
 	getLowDataByte960
 	getHighDataByte960
 	sbis PING, 4
 	std Y+9,__high_data_byte960__
 	std Y+8,__low_data_byte960__
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_WriteBytes10_and_11_End:
+	getLowDataByte960
+	getHighDataByte960
+	sbis PING, 4
+	std Y+11,__high_data_byte960__
+	std Y+10,__low_data_byte960__
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_WriteBytes12_and_13_End:
+	getLowDataByte960
+	getHighDataByte960
+	sbis PING, 4
+	std Y+13,__high_data_byte960__
+	std Y+12,__low_data_byte960__
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_WriteBytes14_and_15_End:
+	getLowDataByte960
+	getHighDataByte960
+	sbis PING, 4
+	std Y+15,__high_data_byte960__
+	std Y+14,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_do16BitWriteOperation:
 	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)

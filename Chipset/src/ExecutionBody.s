@@ -267,62 +267,62 @@ ExecutionBody:
 	std Y+6,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L649:
-	in r25,PINF
-	lds r24,PINK
+	getLowDataByte960
+	getHighDataByte960
 	signalReady
-	std Y+6,r25
-	std Y+7,r24
+	std Y+6,__low_data_byte960__
+	std Y+7,__high_data_byte960__
 	WhenBlastIsLowGoto .LXB_WriteBytes8_and_9_End
-	in r25,PINF
-	lds r24,PINK
+	getLowDataByte960
+	getHighDataByte960
 	signalReady
-	std Y+8,r25
-	std Y+9,r24
+	std Y+8,__low_data_byte960__
+	std Y+9,__high_data_byte960__
 	WhenBlastIsHighGoto .L657
-	in r24,PINF
-	lds r25,PINK
+	getLowDataByte960
+	getHighDataByte960
 	sbis PING, 4
-	std Y+11,r25
-	std Y+10,r24
+	std Y+11,__high_data_byte960__
+	std Y+10,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L657:
-	in r25,PINF
-	lds r24,PINK
+	getLowDataByte960
+	getHighDataByte960
 	signalReady
-	std Y+10,r25
-	std Y+11,r24
+	std Y+10,__low_data_byte960__
+	std Y+11,__high_data_byte960__
 	WhenBlastIsHighGoto .L661
-	in r24,PINF
-	lds r25,PINK
+	getLowDataByte960
+	getHighDataByte960
 	sbis PING,4
-	std Y+13,r25
-	std Y+12,r24
+	std Y+13,__high_data_byte960__
+	std Y+12,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .L661:
-	in r25,PINF
-	lds r24,PINK
+	getLowDataByte960
+	getHighDataByte960
 	signalReady
-	std Y+12,r25
-	std Y+13,r24
-	in r24,PINF
-	lds r25, PINK
+	std Y+12,__low_data_byte960__
+	std Y+13,__high_data_byte960__
+	getLowDataByte960
+	getHighDataByte960
 	sbis PING, 4
-	std Y+15,r25
-	std Y+14,r24
+	std Y+15,__high_data_byte960__
+	std Y+14,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_WriteBytes4_and_5_End:
-	in r24,PINF
-	lds r25,PINK
+	getLowDataByte960
+	getHighDataByte960
 	sbis PING, 4
-	std Y+5,r25
-	std Y+4,r24
+	std Y+5,__high_data_byte960__
+	std Y+4,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_WriteBytes8_and_9_End:
-	in r24,PINF
-	lds r25,PINK
+	getLowDataByte960
+	getHighDataByte960
 	sbis PING, 4
-	std Y+9,r25
-	std Y+8,r24
+	std Y+9,__high_data_byte960__
+	std Y+8,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .LXB_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	      ; Change the direction to output
@@ -339,43 +339,43 @@ ExecutionBody:
 	rjmp .LXB_readOperation_DoNothing
 .LXB_ReadStreamingOperation2: 
 	computeTransactionWindow
-	ld r25,Y
-	ldd r24,Y+1
-	StoreToDataPort r25,r24
+	ld __low_data_byte960__,Y
+	ldd __high_data_byte960__,Y+1
+	StoreToDataPort __low_data_byte960__,__high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+2
-	ldd r24,Y+3
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+2
+	ldd __high_data_byte960__,Y+3
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+4
-	ldd r24,Y+5
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+4
+	ldd __high_data_byte960__,Y+5
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+6
-	ldd r24,Y+7
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+6
+	ldd __high_data_byte960__,Y+7
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+8
-	ldd r24,Y+9
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+8
+	ldd __high_data_byte960__,Y+9
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+10
-	ldd r24,Y+11
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+10
+	ldd __high_data_byte960__,Y+11
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+12
-	ldd r24,Y+13
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+12
+	ldd __high_data_byte960__,Y+13
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+14
-	ldd r24,Y+15
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+14
+	ldd __high_data_byte960__,Y+15
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 

@@ -898,7 +898,7 @@ setupCLK1() noexcept {
     TCCR3B = 0b00'0'01'001;
 }
 void 
-setupTimer5Test() noexcept {
+setupHoldTimer() noexcept {
     TCCR5A = 0b00'00'00'01; // Normal timer mode
     TCNT5 = 0; // zero out the timer
     OCR5A = 0xFFFF;
@@ -968,7 +968,7 @@ setup() {
     PRR0 = 0b0000'0001; // deactivate ADC
     setupCLK1();
     setupReadySignal();
-    setupTimer4Test();
+    setupHoldTimer();
     
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);

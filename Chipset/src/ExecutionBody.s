@@ -213,9 +213,10 @@ ExecutionBody:
 	sbis PING, 3 	                   ; Is BE0 LOW?
 	st Y, __low_data_byte960__		   ; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
-	signalReady 											
 	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
+	signalReady 											
 	std Y+1,__high_data_byte960__												; Store the upper byte to the EBI
+	delay2cycles
 	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getLowDataByte960

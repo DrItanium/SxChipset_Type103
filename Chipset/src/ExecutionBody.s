@@ -112,7 +112,8 @@ __iospace_sec_reg__ = 2
 	lds __high_data_byte960__, PINK
 .endm
 .macro loadHighestAddressByte 
-	lds __highest_address_byte960__, AddressLinesInterface+3
+; lds __highest_address_byte960__, AddressLinesInterface+3
+	lds __highest_address_byte960__, PINL
 .endm
 .global ExecutionBody
 .global doIOReadOperation

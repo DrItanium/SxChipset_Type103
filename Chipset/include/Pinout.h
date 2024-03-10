@@ -61,23 +61,29 @@ Count = NUM_DIGITAL_PINS,
 #endif
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
-    HLDA = PortD0,
     HOLD = PortB7,
 
-    ONE_SHOT_READY = PortH6, // OC2B
-    BE0 = PortG3,
-    BE1 = PortG4,
-    BLAST = PortG5,
+    HLDA = PortD0,
+    Lock = PortD4,
+    Reset = PortD5,
 
     IsMemorySpaceOperation = PortE2,
     CLK1 = PortE3,
     NewTransaction = PortE4,
     WriteTransaction = PortE5,
     ExternalMemoryOperation = PortE6,
-    MemoryConfigurationIOExpanderEnable = PortD4,
 
-    Lock = PortD4,
-    Reset = PortD5,
+    CLK2 = PortE7, // hardwired for this purpose
+    EBI_WR = PortG0,
+    EBI_RD = PortG1,
+    EBI_ALE = PortG2,
+    BE0 = PortG3,
+    BE1 = PortG4,
+    BLAST = PortG5,
+
+    ONE_SHOT_READY = PortH6, // OC2B
+
+
 
 
 
@@ -91,7 +97,7 @@ enum class Port : byte {
     ExecutionState = D,
     DataLinesLower = F,
     DataLinesUpper = K,
-    AddressLinesHighest = L,
+    AddressLinesLowest = L,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

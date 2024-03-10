@@ -998,8 +998,8 @@ setup() {
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
     AddressLinesInterface.view32.data = 0;
-    getDirectionRegister<Port::AddressLinesHighest>() = 0;
-    getOutputRegister<Port::AddressLinesHighest>() = 0;
+    getDirectionRegister<Port::AddressLinesLowest>() = 0;
+    getOutputRegister<Port::AddressLinesLowest>() = 0;
     DataInterface::configureInterface();
     MemoryInterface::configure();
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000000;

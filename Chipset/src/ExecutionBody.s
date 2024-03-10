@@ -324,20 +324,20 @@ ExecutionBody:
 	std Y+9,__high_data_byte960__
 	std Y+8,__low_data_byte960__
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+.LXB_ShiftFromWriteToRead_CheckIO_Nothing:
+	cpiospace __highest_address_byte960__ ; Nope, so check to see if it is the IO space
+	brne 1f								  ; If it is not, then we do nothing
+	call doIOReadOperation				  ; It is so call doIOReadOperation, back to c++
+	rjmp .LXB_ReadTransactionStart		; And we are done :)
+1:
+	rjmp .LXB_readOperation_DoNothing
 .LXB_ShiftFromWriteToRead:
 	out DDRF,__direction_ff_reg__	      ; Change the direction to output
 	sts DDRK,__direction_ff_reg__         ; Change the direction to output
 	clearEIFR						      ; Waiting for next memory transaction
 	lds __highest_address_byte960__,AddressLinesInterface+3       ; Get the upper most byte to determine where to go
 	cpz __highest_address_byte960__							      ; Zero?
-	breq .LXB_ReadStreamingOperation2     ; If so then start the read streaming operation
-	cpiospace __highest_address_byte960__ 						  ; Nope, so check to see if it is the IO space
-	brne 1f								  ; If it is not, then we do nothing
-	call doIOReadOperation				  ; It is so call doIOReadOperation, back to c++
-	rjmp .LXB_ReadTransactionStart		; And we are done :)
-1:
-	rjmp .LXB_readOperation_DoNothing
-.LXB_ReadStreamingOperation2: 
+	brne .LXB_ShiftFromWriteToRead_CheckIO_Nothing
 	computeTransactionWindow
 	ld __low_data_byte960__,Y
 	ldd __high_data_byte960__,Y+1

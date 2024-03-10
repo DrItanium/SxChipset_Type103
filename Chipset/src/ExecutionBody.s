@@ -31,6 +31,8 @@ PORTF = 0x11
 DDRF = 0x10
 PINF = 0x0F
 PINK = 262
+PINL = 0x109
+PINJ = 0x103
 DDRK = 263
 PORTK = 264
 EIFR = 0x1c
@@ -59,9 +61,6 @@ __iospace_sec_reg__ = 2
 .endm
 .macro computeTransactionWindow
 	lds r28, AddressLinesInterface
-; load into Z
-;	lds r30, AddressLinesInterface
-;	ldi r31, MemoryWindowUpper
 .endm
 .macro setupRegisterConstants
 ; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
@@ -112,6 +111,9 @@ __iospace_sec_reg__ = 2
 .macro getHighDataByte960
 	lds __high_data_byte960__, PINK
 .endm
+.macro loadHighestAddressByte 
+	lds __highest_address_byte960__, AddressLinesInterface+3
+.endm
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
@@ -143,7 +145,7 @@ ExecutionBody:
 	sbicrj EIFR,5, .LXB_ShiftFromReadToWrite; 
 .LXB_PrimaryReadTransaction:
 	clearEIFR						; Waiting for next memory transaction
-	lds __highest_address_byte960__, AddressLinesInterface+3 ; Get the upper most byte to determine where to go
+	loadHighestAddressByte ; Get the upper most byte to determine where to go
 	cpz __highest_address_byte960__       ; Zero?
 	brne .LXB_readOperation_CheckIO_Nothing ; if not then jump to checking on io operations
 	computeTransactionWindow
@@ -198,7 +200,7 @@ ExecutionBody:
 	out DDRF,__direction_ff_reg__	      ; Change the direction to output
 	sts DDRK,__direction_ff_reg__         ; Change the direction to output
 	clearEIFR						      ; Waiting for next memory transaction
-	lds __highest_address_byte960__,AddressLinesInterface+3       ; Get the upper most byte to determine where to go
+	loadHighestAddressByte 				  ; Get the upper most byte to determine where to go
 	cpz __highest_address_byte960__							      ; Zero?
 	brne .LXB_ShiftFromWriteToRead_CheckIO_Nothing
 	computeTransactionWindow
@@ -259,7 +261,7 @@ ExecutionBody:
 	sbisrj EIFR,4, .LXB_WriteTransactionStart
 	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
 	clearEIFR
-	lds __highest_address_byte960__,AddressLinesInterface+3
+	loadHighestAddressByte
 	cpz __highest_address_byte960__
 	brne .LXB_Write_DoIO_Nothing
 .LXB_doWriteTransaction_Primary:
@@ -384,7 +386,7 @@ ExecutionBody:
 	sts DDRK,__zero_reg__
 	clearEIFR
 ; we need to use cpse instead of breq to allow for better jumping destination
-	lds __highest_address_byte960__,AddressLinesInterface+3
+	loadHighestAddressByte
 	cpz __highest_address_byte960__                              ; are we looking at zero? If not then check 0xFE later on (1 cycle)
 	brne .LXB_ShiftFromReadToWrite_DoIO_Nothing ; no, it is a zero so jump (1 or 2 cycles)
 	computeTransactionWindow

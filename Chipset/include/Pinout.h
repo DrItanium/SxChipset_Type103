@@ -88,11 +88,10 @@ enum class Port : byte {
 #include "AVRPorts.def"
 #undef X
     None,
-    //SignalCTL = F,
-    //IBUS_Bank = J,
     ExecutionState = D,
     DataLinesLower = F,
     DataLinesUpper = K,
+    AddressLinesHighest = L,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

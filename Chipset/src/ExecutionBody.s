@@ -141,44 +141,44 @@ ExecutionBody:
 	rjmp .LXB_ReadTransactionStart		  ; And we are done :)
 .LXB_ReadStreamingOperation: 
 	computeTransactionWindow
-	ld r25,Y
-	ldd r24,Y+1
-	StoreToDataPort r25,r24
+	ld __low_data_byte960__,Y
+	ldd __high_data_byte960__,Y+1
+	StoreToDataPort __low_data_byte960__,__high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+2
-	ldd r24,Y+3
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+2
+	ldd __high_data_byte960__,Y+3
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+4
-	ldd r24,Y+5
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+4
+	ldd __high_data_byte960__,Y+5
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+6
-	ldd r24,Y+7
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+6
+	ldd __high_data_byte960__,Y+7
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+8
-	ldd r24,Y+9
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+8
+	ldd __high_data_byte960__,Y+9
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+10
-	ldd r24,Y+11
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+10
+	ldd __high_data_byte960__,Y+11
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+12
-	ldd r24,Y+13
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+12
+	ldd __high_data_byte960__,Y+13
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd r25,Y+14
-	ldd r24,Y+15
-	StoreToDataPort r25, r24
+	ldd __low_data_byte960__,Y+14
+	ldd __high_data_byte960__,Y+15
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 .LXB_ShiftFromReadToWrite:
 ; start setting up for a write operation here

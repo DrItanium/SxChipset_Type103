@@ -122,6 +122,10 @@ __iospace_sec_reg__ = 2
 .macro SkipNextIfBE1High
 	sbis PING, 4
 .endm
+.macro setDataLinesDirection dir
+	out DDRF, \dir
+	sts DDRK, \dir
+.endm
 .macro FallthroughExecutionBody_WriteOperation
 	signalReady 
 
@@ -218,10 +222,8 @@ ExecutionBody:
 	ldd __high_data_byte960__,Y+15
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
-
 .LXB_ShiftFromWriteToRead:
-	out DDRF,__direction_ff_reg__	      ; Change the direction to output
-	sts DDRK,__direction_ff_reg__         ; Change the direction to output
+	setDataLinesDirection __direction_ff_reg__ ; change the direction to output
 	clearEIFR						      ; Waiting for next memory transaction
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
 	computeTransactionWindow
@@ -385,8 +387,7 @@ ExecutionBody:
 
 .LXB_ShiftFromReadToWrite:
 ; start setting up for a write operation here
-	out DDRF,__zero_reg__
-	sts DDRK,__zero_reg__
+	setDataLinesDirection __zero_reg__ 	
 	clearEIFR
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow

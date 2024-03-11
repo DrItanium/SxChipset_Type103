@@ -42,14 +42,12 @@ InternalAddressLinesInterface = PINL
 ExternalAddressLinesInterface = 0x2300
 AddressLinesInterface = InternalAddressLinesInterface
 MemoryWindowUpper = 0x22
-IOSpaceHighest = 0xFE
 TCNT2 = 0xb2
-__high_data_byte960__ = 7
-__low_data_byte960__ = 6
-__rdy_signal_count_reg__ = 5
-__eifr_mask_reg__ = 4
-__direction_ff_reg__ = 3
-__iospace_sec_reg__ = 2
+__high_data_byte960__ = 6
+__low_data_byte960__ = 5
+__rdy_signal_count_reg__ = 4
+__eifr_mask_reg__ = 3
+__direction_ff_reg__ = 2
 .macro signalReady 
 	sts TCNT2, __rdy_signal_count_reg__
 .endm
@@ -70,8 +68,6 @@ __iospace_sec_reg__ = 2
 	mov __eifr_mask_reg__, r16
 	ldi r16, lo8(-3)
 	mov __rdy_signal_count_reg__, r16 ; load the ready signal amount
-	ldi r16, IOSpaceHighest
-	mov __iospace_sec_reg__, r16
 	ser r16
 	mov __direction_ff_reg__, r16 ; 0xff
 ; setup index register Y to be the actual memory window, that way we can only update the lower half
@@ -91,12 +87,6 @@ __iospace_sec_reg__ = 2
 	out EIFR, __eifr_mask_reg__
 .endm
 
-.macro cpz reg
-	cp \reg, __zero_reg__
-.endm
-.macro cpiospace reg
-	cp \reg, __iospace_sec_reg__
-.endm
 .macro StoreToDataPort lo,hi
 	out PORTF, \lo
 	sts PORTK, \hi
@@ -126,6 +116,10 @@ __iospace_sec_reg__ = 2
 	out DDRF, \dir
 	sts DDRK, \dir
 .endm
+.macro getDataWord960
+	getLowDataByte960
+	getHighDataByte960
+.endm
 .macro FallthroughExecutionBody_WriteOperation
 	signalReady 
 
@@ -144,8 +138,7 @@ __iospace_sec_reg__ = 2
 	delay2cycles												; wait for the next cycle to start
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	SkipNextIfBE1High
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
@@ -163,12 +156,12 @@ ExecutionBody:
 	setupRegisterConstants
 	rjmp .LXB_ReadTransactionStart ; jump into the top of the invocation loop
 .LXB_readOperation_CheckIO_Nothing:
-	sbicrj PINE, 2, .LXB_readOperation_DoNothing
+	sbicrj PINE, 2, 1f 
 	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
 	rjmp .LXB_ReadTransactionStart		  ; And we are done :)
-.LXB_readOperation_DoNothing:
-	out PORTF, __zero_reg__
-	sts PORTK, __zero_reg__
+1:
+	out PORTF, __zero_reg__				  ; Make sure that we don't leak previous state because of an open bus condition
+	sts PORTK, __zero_reg__				  ; Make sure that we don't leak previous state because of an open bus condition
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
@@ -296,85 +289,72 @@ ExecutionBody:
 	delay2cycles												; wait for the next cycle to start
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	SkipNextIfBE1High
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	FallthroughExecutionBody_WriteOperation
 .L642:
-	getLowDataByte960			  ; get the next word
-	getHighDataByte960
+	getDataWord960				
 	signalReady 				  ; start the next word signal and we can use the 6 cycles to get ready
 	std Y+2,__low_data_byte960__  ; use the time to store into memory while the ready signal counter is doing its thing
 	std Y+3,__high_data_byte960__ ; use the time to store into memory while the ready signal counter is doing its thing
 	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End	; We can now safely check if we should terminate execution
-	getLowDataByte960			  ; get the next word (bits 32-47)
-	getHighDataByte960			  ; get the next word
+	getDataWord960				
 	signalReady					  ; Start the process for the next word ( at this point we will be at a 64-bit number once this ready goes through)
 	std Y+4,__low_data_byte960__  ; save the word (bits 32-39)
 	std Y+5,__high_data_byte960__ ; save the word (bits 40-47)
 	WhenBlastIsHighGoto .L649	  ; we have more data to transfer
-	getLowDataByte960			  ; start pulling the highest bits of this 64-bit number
-	getHighDataByte960			  ; continue pulling the highest bits of this 64-bit number
+	getDataWord960				
 	SkipNextIfBE1High
 	std Y+7,__high_data_byte960__ ; We should be saving the value to memory
 	std Y+6,__low_data_byte960__  ; always save the lower byte since we flowed into here
 	FallthroughExecutionBody_WriteOperation
 .L649:
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	signalReady
 	std Y+6,__low_data_byte960__
 	std Y+7,__high_data_byte960__
 	WhenBlastIsLowGoto .LXB_WriteBytes8_and_9_End
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	signalReady
 	std Y+8,__low_data_byte960__
 	std Y+9,__high_data_byte960__
 	WhenBlastIsHighGoto .L657
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	SkipNextIfBE1High
 	std Y+11,__high_data_byte960__
 	std Y+10,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .L657:
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	signalReady
 	std Y+10,__low_data_byte960__
 	std Y+11,__high_data_byte960__
 	WhenBlastIsHighGoto .L661
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	SkipNextIfBE1High
 	std Y+13,__high_data_byte960__
 	std Y+12,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .L661:
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	signalReady
 	std Y+12,__low_data_byte960__
 	std Y+13,__high_data_byte960__
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	SkipNextIfBE1High
 	std Y+15,__high_data_byte960__
 	std Y+14,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes4_and_5_End:
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	SkipNextIfBE1High
 	std Y+5,__high_data_byte960__
 	std Y+4,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes8_and_9_End:
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	SkipNextIfBE1High
 	std Y+9,__high_data_byte960__
 	std Y+8,__low_data_byte960__
@@ -401,8 +381,7 @@ ExecutionBody:
 	delay2cycles
 	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
-	getLowDataByte960
-	getHighDataByte960
+	getDataWord960
 	SkipNextIfBE1High
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction

@@ -113,16 +113,25 @@ __iospace_sec_reg__ = 2
 .macro getHighDataByte960
 	lds __high_data_byte960__, PINK
 .endm
+.macro waitForTransaction
+1: sbisrj EIFR, 4, 1b
+.endm
+.macro SkipNextIfBE0High
+	sbis PING, 3
+.endm
+.macro SkipNextIfBE1High
+	sbis PING, 4
+.endm
 .macro FallthroughExecutionBody_WriteOperation
 	signalReady 
 
-1:  sbisrj EIFR,4, 1b
+	waitForTransaction
 	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
 	clearEIFR
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getLowDataByte960                  							; Load lower byte from
-	sbis PING, 3 	                   							; Is BE0 LOW?
+	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	getHighDataByte960                 							; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
@@ -133,7 +142,7 @@ __iospace_sec_reg__ = 2
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getLowDataByte960
 	getHighDataByte960
-	sbis PING, 4		          ; if BE1 is set then skip over the store
+	SkipNextIfBE1High
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
@@ -164,7 +173,7 @@ ExecutionBody:
 .LXB_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 .LXB_ReadTransactionStart:
-	sbisrj EIFR,4, .LXB_ReadTransactionStart ; keep waiting
+	waitForTransaction 
 	sbicrj EIFR,5, .LXB_ShiftFromReadToWrite; 
 .LXB_PrimaryReadTransaction:
 	clearEIFR						; Waiting for next memory transaction
@@ -269,14 +278,14 @@ ExecutionBody:
 .LXB_SignalReady_ThenWriteTransactionStart:
 	signalReady 
 .LXB_WriteTransactionStart:
-	sbisrj EIFR,4, .LXB_WriteTransactionStart
+	waitForTransaction
 	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
 	clearEIFR
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 .LXB_doWriteTransaction_Primary:
 	computeTransactionWindow
 	getLowDataByte960                  							; Load lower byte from
-	sbis PING, 3 	                   							; Is BE0 LOW?
+	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	getHighDataByte960                 							; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
@@ -287,7 +296,7 @@ ExecutionBody:
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getLowDataByte960
 	getHighDataByte960
-	sbis PING, 4		          ; if BE1 is set then skip over the store
+	SkipNextIfBE1High
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	FallthroughExecutionBody_WriteOperation
@@ -306,7 +315,7 @@ ExecutionBody:
 	WhenBlastIsHighGoto .L649	  ; we have more data to transfer
 	getLowDataByte960			  ; start pulling the highest bits of this 64-bit number
 	getHighDataByte960			  ; continue pulling the highest bits of this 64-bit number
-	sbis PING, 4				  ; should we store the highest byte? This is in case the operation is unaligned...
+	SkipNextIfBE1High
 	std Y+7,__high_data_byte960__ ; We should be saving the value to memory
 	std Y+6,__low_data_byte960__  ; always save the lower byte since we flowed into here
 	FallthroughExecutionBody_WriteOperation
@@ -325,7 +334,7 @@ ExecutionBody:
 	WhenBlastIsHighGoto .L657
 	getLowDataByte960
 	getHighDataByte960
-	sbis PING, 4
+	SkipNextIfBE1High
 	std Y+11,__high_data_byte960__
 	std Y+10,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
@@ -338,7 +347,7 @@ ExecutionBody:
 	WhenBlastIsHighGoto .L661
 	getLowDataByte960
 	getHighDataByte960
-	sbis PING,4
+	SkipNextIfBE1High
 	std Y+13,__high_data_byte960__
 	std Y+12,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
@@ -350,27 +359,27 @@ ExecutionBody:
 	std Y+13,__high_data_byte960__
 	getLowDataByte960
 	getHighDataByte960
-	sbis PING, 4
+	SkipNextIfBE1High
 	std Y+15,__high_data_byte960__
 	std Y+14,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes4_and_5_End:
 	getLowDataByte960
 	getHighDataByte960
-	sbis PING, 4
+	SkipNextIfBE1High
 	std Y+5,__high_data_byte960__
 	std Y+4,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes8_and_9_End:
 	getLowDataByte960
 	getHighDataByte960
-	sbis PING, 4
+	SkipNextIfBE1High
 	std Y+9,__high_data_byte960__
 	std Y+8,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_do16BitWriteOperation:
 	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
-	sbis PING, 4 	   ; Is BE1 LOW?
+	SkipNextIfBE1High
 	std Y+1, __high_data_byte960__	   ; Yes, so store to the EBI
 	FallthroughExecutionBody_WriteOperation
 
@@ -382,7 +391,7 @@ ExecutionBody:
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getLowDataByte960                  ; Load lower byte from
-	sbis PING, 3 	                   ; Is BE0 LOW?
+	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   ; Yes, so store to the EBI
 	WhenBlastIsLowGoto	.LXB_do16BitWriteOperation
 	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
@@ -393,7 +402,7 @@ ExecutionBody:
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getLowDataByte960
 	getHighDataByte960
-	sbis PING, 4		          ; if BE1 is set then skip over the store
+	SkipNextIfBE1High
 	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart

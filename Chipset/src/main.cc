@@ -498,7 +498,14 @@ template<bool isReadOperation>
 inline 
 void
 doCoreIO() noexcept {
-    switch (AddressLinesInterface.view8.data[0]) {
+    switch (
+#if 0
+            AddressLinesInterface.view8.data[0]
+#else
+            getInputRegister<Port::AddressLinesLowest>()
+#endif
+            ) {
+    
         case 0: { 
                     if constexpr (isReadOperation) { 
                         DataInterface::setData(static_cast<uint16_t>(F_CPU));

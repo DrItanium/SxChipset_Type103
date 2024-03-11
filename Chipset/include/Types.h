@@ -54,30 +54,6 @@ union SplitWord32 {
     constexpr SplitWord32() : SplitWord32(0) { }
     constexpr SplitWord32(uint16_t lower, uint16_t upper) : halves{lower, upper} { }
     constexpr SplitWord32(uint8_t a, uint8_t b, uint8_t c, uint8_t d) : bytes{a, b, c, d} { }
-    [[nodiscard]] constexpr auto getBankIndex() const noexcept {
-#if 0
-        // the problem is that we are spanning two bytes in the _middle_ of an
-        // address... so we have to treat them separately and merge them
-        // together later on. So far, this seems to be the most optimal
-        // implementation
-#ifndef __BUILTIN_AVR_INSERT_BITS
-        uint8_t lower = static_cast<uint8_t>(bytes[1] >> 6) & 0b11;
-        uint8_t upper = static_cast<uint8_t>(bytes[2] << 2) & 0b1111'1100;
-        return lower | upper;
-#else
-        return __builtin_avr_insert_bits(0xffffff76, bytes[1], 
-                __builtin_avr_insert_bits(0x543210ff, bytes[2], 0));
-#endif
-#else
-        return bankView14.bank;
-#endif
-    }
-    constexpr size_t alignedBankAddress() const noexcept {
-        return 0x4000 | (halves[0] & 0x3FFC);
-    }
-    constexpr size_t unalignedBankAddress() const noexcept {
-        return 0x4000 | (halves[0] & 0x3FFF);
-    }
 };
 static_assert(sizeof(SplitWord32) == sizeof(uint32_t), "SplitWord32 must be the exact same size as a 32-bit unsigned int");
 

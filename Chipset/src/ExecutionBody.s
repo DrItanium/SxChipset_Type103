@@ -120,6 +120,10 @@ __direction_ff_reg__ = 2
 	getLowDataByte960
 	getHighDataByte960
 .endm
+.macro StoreHighByteIfBE1Low offset
+	SkipNextIfBE1High
+	std Y+\offset, __high_data_byte960__
+.endm
 .macro FallthroughExecutionBody_WriteOperation
 	signalReady 
 
@@ -139,8 +143,7 @@ __direction_ff_reg__ = 2
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
-	SkipNextIfBE1High
-	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
+	StoreHighByteIfBE1Low 3
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .endm
@@ -160,8 +163,7 @@ ExecutionBody:
 	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
 	rjmp .LXB_ReadTransactionStart		  ; And we are done :)
 1:
-	out PORTF, __zero_reg__				  ; Make sure that we don't leak previous state because of an open bus condition
-	sts PORTK, __zero_reg__				  ; Make sure that we don't leak previous state because of an open bus condition
+	StoreToDataPort __zero_reg__, __zero_reg__ ; make sure we don't leak previous state because this is a read from an open bus area
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
 1:
 	signalReady
@@ -290,8 +292,7 @@ ExecutionBody:
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
-	SkipNextIfBE1High
-	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
+	StoreHighByteIfBE1Low 3
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	FallthroughExecutionBody_WriteOperation
 .L642:
@@ -306,8 +307,7 @@ ExecutionBody:
 	std Y+5,__high_data_byte960__ ; save the word (bits 40-47)
 	WhenBlastIsHighGoto .L649	  ; we have more data to transfer
 	getDataWord960				
-	SkipNextIfBE1High
-	std Y+7,__high_data_byte960__ ; We should be saving the value to memory
+	StoreHighByteIfBE1Low 7
 	std Y+6,__low_data_byte960__  ; always save the lower byte since we flowed into here
 	FallthroughExecutionBody_WriteOperation
 .L649:
@@ -322,8 +322,7 @@ ExecutionBody:
 	std Y+9,__high_data_byte960__
 	WhenBlastIsHighGoto .L657
 	getDataWord960
-	SkipNextIfBE1High
-	std Y+11,__high_data_byte960__
+	StoreHighByteIfBE1Low 11
 	std Y+10,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .L657:
@@ -333,8 +332,7 @@ ExecutionBody:
 	std Y+11,__high_data_byte960__
 	WhenBlastIsHighGoto .L661
 	getDataWord960
-	SkipNextIfBE1High
-	std Y+13,__high_data_byte960__
+	StoreHighByteIfBE1Low 13
 	std Y+12,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .L661:
@@ -343,26 +341,22 @@ ExecutionBody:
 	std Y+12,__low_data_byte960__
 	std Y+13,__high_data_byte960__
 	getDataWord960
-	SkipNextIfBE1High
-	std Y+15,__high_data_byte960__
+	StoreHighByteIfBE1Low 15
 	std Y+14,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes4_and_5_End:
 	getDataWord960
-	SkipNextIfBE1High
-	std Y+5,__high_data_byte960__
+	StoreHighByteIfBE1Low 5
 	std Y+4,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes8_and_9_End:
 	getDataWord960
-	SkipNextIfBE1High
-	std Y+9,__high_data_byte960__
+	StoreHighByteIfBE1Low 9
 	std Y+8,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_do16BitWriteOperation:
 	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
-	SkipNextIfBE1High
-	std Y+1, __high_data_byte960__	   ; Yes, so store to the EBI
+	StoreHighByteIfBE1Low 1
 	FallthroughExecutionBody_WriteOperation
 
 .LXB_ShiftFromReadToWrite:
@@ -382,7 +376,6 @@ ExecutionBody:
 	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
-	SkipNextIfBE1High
-	std Y+3,__high_data_byte960__ ; Store to memory if applicable (this is the expensive part)
+	StoreHighByteIfBE1Low 3
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart

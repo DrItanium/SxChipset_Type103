@@ -48,19 +48,19 @@ __low_data_byte960__ = 5
 __rdy_signal_count_reg__ = 4
 __eifr_mask_reg__ = 3
 __direction_ff_reg__ = 2
-.macro signalReady 
-	sts TCNT2, __rdy_signal_count_reg__
+.macro signalReady ; 2 cycles itself, 6 cycles after that before next part of transaction
+	sts TCNT2, __rdy_signal_count_reg__  ; this one is special because the store takes two cycles itself
 .endm
-.macro sbisrj a, b, dest
-	sbis \a, \b
-	rjmp \dest
+.macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
+	sbis \a, \b 	; 1 cycle if false, 2 cycles if true
+	rjmp \dest		; 2 cycles
 .endm
-.macro sbicrj a, b, dest
-	sbic \a, \b
-	rjmp \dest
+.macro sbicrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
+	sbic \a, \b		; 1 cycle if false, 2 cycles if true
+	rjmp \dest		; 2 cycles
 .endm
-.macro computeTransactionWindow
-	lds r28, AddressLinesInterface
+.macro computeTransactionWindow ; 2 cycles
+	lds r28, AddressLinesInterface	; 2 cycles internal, 4 cycles external
 .endm
 .macro setupRegisterConstants
 ; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
@@ -74,55 +74,55 @@ __direction_ff_reg__ = 2
 	clr r28
 	ldi r29, MemoryWindowUpper
 .endm
-.macro delay2cycles 
+.macro delay2cycles ; 2 cycles
 	rjmp 1f
 1:
 .endm
-.macro delay6cycles
+.macro delay6cycles ; 6 cycles
 	lpm ; tmp_reg is used implicity, who cares what we get back
 	lpm ; tmp_reg is used implicity, who cares what we get back
 .endm
 
-.macro clearEIFR
-	out EIFR, __eifr_mask_reg__
+.macro clearEIFR ; 1 cycle
+	out EIFR, __eifr_mask_reg__ ; 1 cycle
 .endm
 
-.macro StoreToDataPort lo,hi
-	out PORTF, \lo
-	sts PORTK, \hi
+.macro StoreToDataPort lo,hi ; 3 cycles
+	out PORTF, \lo 	; 1 cycle
+	sts PORTK, \hi	; 2 cycles
 .endm
-.macro WhenBlastIsLowGoto dest
+.macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbisrj PING, 5, \dest
 .endm
-.macro WhenBlastIsHighGoto dest
+.macro WhenBlastIsHighGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbicrj PING, 5, \dest
 .endm
-.macro getLowDataByte960 
+.macro getLowDataByte960  ; 1 cycle
 	in __low_data_byte960__, PINF
 .endm
-.macro getHighDataByte960
+.macro getHighDataByte960 ; 2 cycles
 	lds __high_data_byte960__, PINK
 .endm
-.macro waitForTransaction
+.macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
 1: sbisrj EIFR, 4, 1b
 .endm
-.macro SkipNextIfBE0High
+.macro SkipNextIfBE0High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 3
 .endm
-.macro SkipNextIfBE1High
+.macro SkipNextIfBE1High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 4
 .endm
-.macro setDataLinesDirection dir
-	out DDRF, \dir
-	sts DDRK, \dir
+.macro setDataLinesDirection dir ; 3 cycles
+	out DDRF, \dir ; 1 cycle
+	sts DDRK, \dir ; 2 cycle
 .endm
-.macro getDataWord960
-	getLowDataByte960
-	getHighDataByte960
+.macro getDataWord960 ; 3 cycles
+	getLowDataByte960 ; 1 cycle
+	getHighDataByte960 ; 2 cycles
 .endm
-.macro StoreHighByteIfBE1Low offset
-	SkipNextIfBE1High
-	std Y+\offset, __high_data_byte960__
+.macro StoreHighByteIfBE1Low offset ; 2 cycles when BE1 is HIGH, 5 cycles when BE1 is LOW
+	SkipNextIfBE1High	; 1 cycle when false, 2 cycles when skipping
+	std Y+\offset, __high_data_byte960__ ; 4 cycles
 .endm
 .macro FallthroughExecutionBody_WriteOperation
 	signalReady 
@@ -174,25 +174,33 @@ ExecutionBody:
 .LXB_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 .LXB_ReadTransactionStart:
-	waitForTransaction 
-	sbicrj EIFR,5, .LXB_ShiftFromReadToWrite; 
+	waitForTransaction 										; minimum is 2 cycles for the skip
+	sbicrj EIFR,5, .LXB_ShiftFromReadToWrite 				; 2 cycles skipped, 3 cycles taken
 .LXB_PrimaryReadTransaction:
-	clearEIFR						; Waiting for next memory transaction
-	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
-	computeTransactionWindow
-	ld __low_data_byte960__,Y
-	ldd __high_data_byte960__,Y+1
-	StoreToDataPort __low_data_byte960__,__high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+2
-	ldd __high_data_byte960__,Y+3
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+4
-	ldd __high_data_byte960__,Y+5
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	clearEIFR						; Waiting for next memory transaction (1 cycle avr)
+	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing		   ; 2 cycles (avr) if we skip over, 3 cycles if we take the operation
+	computeTransactionWindow								   ; 2 cycles (avr)
+	ld __low_data_byte960__,Y 		 						   ; 4 cycles (avr)
+	ldd __high_data_byte960__,Y+1   						   ; 4 cycles (avr)
+	StoreToDataPort __low_data_byte960__,__high_data_byte960__ ; 3 cycles (avr)
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; 3 cycles when done, 2 cycles when needing to continue (avr)
+																	  ; if we are done here then the total cycles is 23 cycles => 1150 ns
+	signalReady 											   ; 2 cycles (avr) but also need to wait 6 cycles before the next part of the transaction starts
+	ldd __low_data_byte960__,Y+2							   ; 4 cycles (avr)
+	ldd __high_data_byte960__,Y+3							   ; 4 cycles (avr) (mid way through this operation ready has been signaled) so
+															   ; 	2 (avr) cycles first transaction
+															   ; Total cycles first transaction: 20 + 2 + 4 + 2 + 2 => 30 cycles (avr) => 
+															   ; 	2 (avr) cycles second transaction from the load
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__;    3 (avr) cycles 
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; 3 cycles when done, 2 cycles when needing to continue (avr)
+																	  ; when done we are at 8 cycles for this part and a total of 38 cycles (avr)
+	signalReady 													  ; 2 cycles but there is a 6 cycle delay
+	ldd __low_data_byte960__,Y+4									  ; 4 cycles
+	ldd __high_data_byte960__,Y+5									  ; 2 cycles before ready
+																	  ; total cycles second transaction: 15 cycles (avr), 750ns (avr), this is mostly correct with what I see through the scope
+																	  ; total cycles so far: 45 cycles (avr) 
+																	  ; 2 cycles after into the next transaction
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__		  
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
 	ldd __low_data_byte960__,Y+6

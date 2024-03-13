@@ -147,6 +147,11 @@ __direction_ff_reg__ = 2
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .endm
+.macro DoNothingResponseLoop
+1: signalReady
+   delay6cycles
+   WhenBlastIsHighGoto 1b
+.endm
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
@@ -165,10 +170,7 @@ ExecutionBody:
 1:
 	StoreToDataPort __zero_reg__, __zero_reg__ ; make sure we don't leak previous state because this is a read from an open bus area
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
-1:
-	signalReady
-	delay6cycles
-	WhenBlastIsHighGoto 1b
+	DoNothingResponseLoop
 .LXB_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 .LXB_ReadTransactionStart:
@@ -268,10 +270,7 @@ ExecutionBody:
 	rjmp .LXB_WriteTransactionStart		 ; restart execution
 1:
 	WhenBlastIsLowGoto .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
-1:
-	signalReady
-	delay6cycles
-	WhenBlastIsHighGoto 1b
+	DoNothingResponseLoop
 .LXB_SignalReady_ThenWriteTransactionStart:
 	signalReady 
 .LXB_WriteTransactionStart:

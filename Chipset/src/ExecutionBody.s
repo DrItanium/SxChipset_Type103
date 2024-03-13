@@ -43,6 +43,8 @@ ExternalAddressLinesInterface = 0x2300
 AddressLinesInterface = InternalAddressLinesInterface
 MemoryWindowUpper = 0x22
 TCNT2 = 0xb2
+__highest_data_byte960__ = 8
+__higher_data_byte960__ = 7
 __high_data_byte960__ = 6
 __low_data_byte960__ = 5
 __rdy_signal_count_reg__ = 4
@@ -385,4 +387,4 @@ ExecutionBody:
 	getDataWord960
 	StoreHighByteIfBE1Low 3
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+	FallthroughExecutionBody_WriteOperation

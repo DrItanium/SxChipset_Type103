@@ -23,17 +23,26 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
-#include <SPI.h>
-#include <SD.h>
-constexpr auto READY_OUT = 36;
-constexpr auto READY_IN = 37;
-uint8_t* memoryBegin = nullptr;
-uint8_t* memoryEnd = nullptr;
-constexpr auto ExternalMemoryBaseAddress = 0x7000'0000;
-size_t memorySizeInBytes = 0;
-extern "C" uint8_t external_psram_size;
+#include <PacketSerial.h>
+
+PacketSerial chipsetCommunicationChannel;
+#define RawChipsetCommunicationChannel Serial2
+//#include <SPI.h>
+//#include <SD.h>
+//constexpr auto READY_OUT = 36;
+//constexpr auto READY_IN = 37;
+//uint8_t* memoryBegin = nullptr;
+//uint8_t* memoryEnd = nullptr;
+//constexpr auto ExternalMemoryBaseAddress = 0x7000'0000;
+//size_t memorySizeInBytes = 0;
+//extern "C" uint8_t external_psram_size;
+void
+processChipsetCommunicationChannel(const uint8_t* buffer, size_t size) {
+    
+}
 void 
 setup() {
+#if 0
     pinMode(READY_OUT, OUTPUT);
     digitalWrite(READY_OUT, LOW);
     pinMode(READY_IN, INPUT);
@@ -62,19 +71,25 @@ setup() {
     digitalWrite(READY_OUT, HIGH);
     while (digitalRead(READY_IN) == LOW);
     Serial.println(F("Connection Ready!"));
+#else
+    Serial.begin(115200);
+    RawChipsetCommunicationChannel.begin(115200);
+    chipsetCommunicationChannel.setStream(&RawChipsetCommunicationChannel);
+    chipsetCommunicationChannel.setPacketHandler(processChipsetCommunicationChannel);
+#endif
 }
 
 
 
 void 
 loop() {
-
+    chipsetCommunicationChannel.update();
 }
 
 void
 serialEvent8() {
-    uint8_t header[2];
-    Serial8.readBytes(header, 2);
-    auto [size, opcode] = header;
+//    uint8_t header[2];
+//    Serial8.readBytes(header, 2);
+//    auto [size, opcode] = header;
 }
 

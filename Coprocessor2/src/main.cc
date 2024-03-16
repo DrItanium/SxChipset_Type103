@@ -30,21 +30,15 @@ auto& CommunicationChannel0 = Serial2;
 auto& CommunicationChannel1 = Serial;
 void
 setupClockSource() noexcept {
-    // enable 20MHz clock to be emitted on PA7
+    // take in the 20MHz signal from the board but do not output a signal
     CCP = 0xD8;
-    CLKCTRL.MCLKCTRLA = 0b1000'0000;
-    CCP = 0xD8;
-    // make sure that the 20MHz out runs even when we are in standby
-    CCP = 0xD8;
-    CLKCTRL.OSC20MCTRLA |= 0b0000'0010;
+    CLKCTRL.MCLKCTRLA = 0b0000'0011;
     CCP = 0xD8;
 }
 void 
 setup() {
     setupClockSource();
-    delay(2000);
     // setup the pins
-    pinConfigure(PIN_PA0, PIN_DIR_OUTPUT, PIN_OUT_LOW);
     Console.swap(1);
     CommunicationChannel0.swap(1);
     Console.begin(115200);

@@ -1,0 +1,22 @@
+Reduce jump count by one when inserting more write operation expansions
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     52.5714      0.2663
+     2     -3.8192e-14     33.9747      0.2060
+     3     -1.7902e-13     59.6384      0.2851
+     4     -2.7744e-13     49.8769      0.3007
+     5      1.0579e-12    105.9677      0.2737
+     6     -2.0101e-13    103.3016      0.2807
+     7      6.2528e-13     58.4284      0.2054
+     8     -5.7265e-13    103.8509      0.2889
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7176
+   MFLOPS(1)       =     0.2266
+   MFLOPS(2)       =     0.2512
+   MFLOPS(3)       =     0.2736
+   MFLOPS(4)       =     0.2874
+

@@ -23,73 +23,36 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
-#include <PacketSerial.h>
-
-PacketSerial chipsetCommunicationChannel;
-#define RawChipsetCommunicationChannel Serial2
-//#include <SPI.h>
-//#include <SD.h>
-//constexpr auto READY_OUT = 36;
-//constexpr auto READY_IN = 37;
-//uint8_t* memoryBegin = nullptr;
-//uint8_t* memoryEnd = nullptr;
-//constexpr auto ExternalMemoryBaseAddress = 0x7000'0000;
-//size_t memorySizeInBytes = 0;
-//extern "C" uint8_t external_psram_size;
-void
-processChipsetCommunicationChannel(const uint8_t* buffer, size_t size) {
-    
-}
+#include <Wire.h>
+#include <SPI.h>
+auto& Console = Serial1;
+auto& CommunicationChannel0 = Serial2;
+auto& CommunicationChannel1 = Serial;
 void 
 setup() {
-#if 0
-    pinMode(READY_OUT, OUTPUT);
-    digitalWrite(READY_OUT, LOW);
-    pinMode(READY_IN, INPUT);
-    Serial.begin(115'200);
-    while (!Serial);
-    Serial8.begin(500'000);
-    while (!Serial8);
-    if (SD.begin(BUILTIN_SDCARD)) {
-        Serial.println(F("SD CARD is connected!"));
-    } else {
-        Serial.println(F("SD CARD is not found!"));
-    }
-    Serial.printf(F("EXTMEM Memory Test Size: %d Mbyte\n"), external_psram_size);
-    if (external_psram_size > 0) {
-        memoryBegin = reinterpret_cast<uint8_t*>(ExternalMemoryBaseAddress);
-        memorySizeInBytes = (external_psram_size * (1024 * 1024));
-        memoryEnd = reinterpret_cast<uint8_t*>(ExternalMemoryBaseAddress + memorySizeInBytes);
-        Serial.println(F("External Memory Available"));
-        for (size_t i = 0; i < memorySizeInBytes; ++i) {
-            memoryBegin[i] = 0;
-        }
-        Serial.println(F("External Memory Cleared!"));
-    } else {
-        Serial.println(F("External Memory Not Available"));
-    }
-    digitalWrite(READY_OUT, HIGH);
-    while (digitalRead(READY_IN) == LOW);
-    Serial.println(F("Connection Ready!"));
-#else
-    Serial.begin(115200);
-    RawChipsetCommunicationChannel.begin(115200);
-    chipsetCommunicationChannel.setStream(&RawChipsetCommunicationChannel);
-    chipsetCommunicationChannel.setPacketHandler(processChipsetCommunicationChannel);
-#endif
+    // configure pin output work
+    CCP = 0xD8;
+    CLKCTRL.MCLKCTRLA = 0b1000'0000;
+    CCP = 0xD8;
+    CCP = 0xD8;
+    CLKCTRL.OSC20MCTRLA |= 0b0000'0010;
+    CCP = 0xD8;
+    pinConfigure(PIN_PA0, PIN_DIR_OUTPUT, PIN_OUT_LOW);
+    Console.swap(1);
+    CommunicationChannel0.swap(1);
+    Console.begin(115200);
+    CommunicationChannel0.begin(115200);
+    CommunicationChannel1.begin(115200);
+    Wire.begin();
+    SPI.swap(2);
+    SPI.begin();
+
+    //digitalWriteFast(-1, HIGH);
 }
 
 
 
 void 
 loop() {
-    chipsetCommunicationChannel.update();
-}
-
-void
-serialEvent8() {
-//    uint8_t header[2];
-//    Serial8.readBytes(header, 2);
-//    auto [size, opcode] = header;
 }
 

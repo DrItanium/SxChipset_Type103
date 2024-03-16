@@ -28,31 +28,49 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 auto& Console = Serial1;
 auto& CommunicationChannel0 = Serial2;
 auto& CommunicationChannel1 = Serial;
-void 
-setup() {
-    // configure pin output work
+void
+setupClockSource() noexcept {
+    // enable 20MHz clock to be emitted on PA7
     CCP = 0xD8;
     CLKCTRL.MCLKCTRLA = 0b1000'0000;
     CCP = 0xD8;
+    // make sure that the 20MHz out runs even when we are in standby
     CCP = 0xD8;
     CLKCTRL.OSC20MCTRLA |= 0b0000'0010;
     CCP = 0xD8;
+}
+void 
+setup() {
+    setupClockSource();
+    delay(2000);
+    // setup the pins
     pinConfigure(PIN_PA0, PIN_DIR_OUTPUT, PIN_OUT_LOW);
     Console.swap(1);
     CommunicationChannel0.swap(1);
     Console.begin(115200);
     CommunicationChannel0.begin(115200);
     CommunicationChannel1.begin(115200);
-    Wire.begin();
-    SPI.swap(2);
-    SPI.begin();
-
-    //digitalWriteFast(-1, HIGH);
 }
 
 
 
 void 
 loop() {
+
 }
 
+void
+serialEvent2() {
+    // communication channel 1
+    while (CommunicationChannel0.available()) {
+        auto value = CommunicationChannel0.read();
+    }
+}
+
+void
+serialEvent() {
+    // communication channel 2
+    while (CommunicationChannel1.available()) {
+        auto value = CommunicationChannel1.read();
+    }
+}

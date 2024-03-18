@@ -23,11 +23,10 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
-#include <Wire.h>
-#include <SPI.h>
+#include <PacketSerial.h>
 auto& Console = Serial1;
-auto& CommunicationChannel0 = Serial2;
-auto& CommunicationChannel1 = Serial;
+auto& ChannelTo2560 = Serial2;
+constexpr auto LedPin = LED_BUILTIN;
 void
 setupClockSource() noexcept {
     // take in the 20MHz signal from the board but do not output a signal
@@ -40,31 +39,35 @@ setup() {
     setupClockSource();
     // setup the pins
     Console.swap(1);
-    CommunicationChannel0.swap(1);
+    ChannelTo2560.swap(1);
     Console.begin(115200);
-    CommunicationChannel0.begin(115200);
-    CommunicationChannel1.begin(115200);
+    ChannelTo2560.begin(115200);
+    Console.println("System Up");
+    pinConfigure(LedPin, PIN_DIR_OUTPUT, PIN_OUT_LOW);
+    // setup the other communication channels
 }
 
 
 
 void 
 loop() {
-
+    digitalWriteFast(LedPin, HIGH);
+    delay(1000);
+    digitalWriteFast(LedPin, LOW);
+    delay(1000);
 }
 
 void
 serialEvent2() {
-    // communication channel 1
-    while (CommunicationChannel0.available()) {
-        auto value = CommunicationChannel0.read();
-    }
+
+}
+
+void
+serialEvent1() {
+
 }
 
 void
 serialEvent() {
-    // communication channel 2
-    while (CommunicationChannel1.available()) {
-        auto value = CommunicationChannel1.read();
-    }
+
 }

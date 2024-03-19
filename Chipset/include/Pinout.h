@@ -63,7 +63,7 @@ Count = NUM_DIGITAL_PINS,
     INT0_960_ = PortB5, // OC1A
     HOLD = PortB7,
 
-    HLDA = PortD0,
+    HLDA = PortD3,
     Lock = PortD4,
     Reset = PortD5,
 

@@ -942,7 +942,7 @@ ISR(TIMER5_OVF_vect) {
     }
 }
 
-ISR(INT0_vect) {
+ISR(INT3_vect) {
     if constexpr (EnableRegularHoldSignal) {
         {
             AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
@@ -1035,13 +1035,13 @@ setup() {
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
     // attach interrupts
-    EICRA = 0b00'00'00'11; // rising edge on INT0 but no trigger at this
+    EICRA = 0b11'00'00'00; // rising edge on INT0 but no trigger at this
                            // point, trigger on high
     EICRB = 0b1010'1010; // falling edge on the upper four interrupts
                          // don't enable the interrupt handler
     pullCPUOutOfReset();
     if constexpr (EnableRegularHoldSignal) {
-        bitSet(EIMSK, INT0); // only activate after we have pulled the cpu out of
+        bitSet(EIMSK, INT3); // only activate after we have pulled the cpu out of
                              // reset
     }
 }

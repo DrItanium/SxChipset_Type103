@@ -1047,8 +1047,14 @@ setup() {
 }
 void 
 loop() {
+    // instead of controlling execution directly, we should be using a slight
+    // time slicing design to make sure that we have the ability to process
+    // packets from external chips connected over serial.
     ExecutionBody();
 }
 
 
-
+ISR(INT4_vect) {
+    // we will need to rewrite the execution body to either return or be a
+    // separate task in a greater processing system
+}

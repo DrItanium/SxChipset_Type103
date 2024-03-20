@@ -1053,8 +1053,3 @@ loop() {
     ExecutionBody();
 }
 
-
-ISR(INT4_vect) {
-    // we will need to rewrite the execution body to either return or be a
-    // separate task in a greater processing system
-}

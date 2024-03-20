@@ -43,17 +43,6 @@ FsFile disk0;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr bool EnableRegularHoldSignal = true;
-auto& DebugConsole = Serial;
-constexpr bool transactionDebugEnabled() noexcept {
-#ifdef TRANSACTION_DEBUG
-    return true;
-#else
-    return false;
-#endif
-
-}
-constexpr bool EnableTransactionDebug = transactionDebugEnabled();
-
 
 [[gnu::address(0x2300)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2308)]] inline volatile CH351 DataLinesInterface;
@@ -294,14 +283,6 @@ public:
             theFirmware.read(const_cast<uint8_t*>(theBuffer), TransferBufferSize);
             if ((counter % 32) == 0) {
                 Serial.print('.');
-            }
-        }
-        if constexpr (EnableTransactionDebug) {
-            AddressLinesInterface.view32.data = 0;
-            {
-                for (int i = 0; i < 32; ++i) {
-                    DebugConsole.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
-                }
             }
         }
     }

@@ -40,7 +40,6 @@ PORTK = 264
 EIFR = 0x1c
 InternalAddressLinesInterface = PINL
 ExternalAddressLinesInterface = 0x2300
-ExternalDataLinesInterface = 0x2308
 AddressLinesInterface = InternalAddressLinesInterface
 MemoryWindowUpper = 0x22
 TCNT2 = 0xb2
@@ -89,12 +88,10 @@ __direction_ff_reg__ = 2
 .macro clearEIFR ; 1 cycle
 	out EIFR, __eifr_mask_reg__ ; 1 cycle
 .endm
-.macro DirectDataLines_StoreToDataPort lo,hi
+
+.macro StoreToDataPort lo,hi ; 3 cycles
 	out PORTF, \lo 	; 1 cycle
 	sts PORTK, \hi	; 2 cycles
-.endm
-.macro StoreToDataPort lo,hi ; 3 cycles
-DirectDataLines_StoreToDataPort \lo, \hi
 .endm
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbisrj PING, 5, \dest
@@ -117,12 +114,9 @@ DirectDataLines_StoreToDataPort \lo, \hi
 .macro SkipNextIfBE1High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 4
 .endm
-.macro DirectDataLines_SetDirection dir
+.macro setDataLinesDirection dir ; 3 cycles
 	out DDRF, \dir ; 1 cycle
 	sts DDRK, \dir ; 2 cycle
-.endm
-.macro setDataLinesDirection dir ; 3 cycles
-	DirectDataLines_SetDirection \dir
 .endm
 .macro getDataWord960 ; 3 cycles
 	getLowDataByte960 ; 1 cycle

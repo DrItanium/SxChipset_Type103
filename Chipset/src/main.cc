@@ -281,31 +281,6 @@ private:
     static constexpr uint8_t MemoryWindowUpperHalf = 0x22;
     static constexpr uintptr_t MemoryWindowBaseAddress = (static_cast<uint16_t>(MemoryWindowUpperHalf) << 8);
     static constexpr auto TransferBufferSize = 256;
-    static void doSingleReadOperation(DataRegister8 view) {
-        auto lo = view[0];
-        auto hi = view[1];
-        DataInterface::setLowerDataByte(lo);
-        DataInterface::setUpperDataByte(hi);
-    }
-    static DataRegister8 computeTransactionAddress() noexcept {
-        // this allows me to save an instruction on AVR processors
-        // we force set the register pair to lower half and then just assign
-        // the upper half to 0x22
-        union {
-            uint8_t halves[2];
-            uint16_t whole;
-            DataRegister8 ptr;
-        } thingy;
-        thingy.halves[0] = AddressLinesInterface.view8.data[0];
-        thingy.halves[1] = MemoryWindowUpperHalf;
-        return memoryPointer<uint8_t>(thingy.whole);
-
-        // the more compact version of this code 
-        //return memoryPointer<uint8_t>(static_cast<uint16_t>(AddressLinesInterface.view8.data[0]) | MemoryWindowBaseAddress);
-        // yields three instructions due to the fact that the upper half is
-        // cleared and then or'd with 0x22
-        
-    }
 public:
     static void configure() noexcept {
     }
@@ -328,149 +303,6 @@ public:
                     DebugConsole.printf(F("0x%x: 0x%x\n"), i, theBuffer[i]);
                 }
             }
-        }
-    }
-private:
-    template<uint8_t baseIndex>
-    static 
-    void doReadSingular(DataRegister8 view) noexcept {
-        auto lo = view[baseIndex + 0];
-        auto hi = view[baseIndex + 1];
-        DataInterface::setLowerDataByte(lo);
-        DataInterface::setUpperDataByte(hi);
-    }
-public:
-    static void doReadOperation(DataRegister8 view) noexcept {
-        doReadSingular<0>(view);
-        if (isBurstLast()) {
-            signalReady<0>();
-            return;
-        }
-        signalReady<0>();
-        doReadSingular<2>(view);
-        if (isBurstLast()) { 
-            signalReady<0>();
-            return;
-        } 
-        signalReady<0>();
-        doReadSingular<4>(view);
-        if (isBurstLast()) { 
-            signalReady<0>();
-            return;
-        } 
-        signalReady<0>();
-        doReadSingular<6>(view);
-        if (isBurstLast()) { 
-            signalReady<0>();
-            return;
-        } 
-        signalReady<0>();
-        doReadSingular<8>(view);
-        if (isBurstLast()) { 
-            signalReady<0>();
-            return;
-        } 
-        signalReady<0>();
-        doReadSingular<10>(view);
-        if (isBurstLast()) { 
-            signalReady<0>();
-            return;
-        } 
-        signalReady<0>();
-        doReadSingular<12>(view);
-        if (isBurstLast()) { 
-            signalReady<0>();
-            return;
-        } 
-        signalReady<0>();
-        doReadSingular<14>(view);
-        signalReady<0>();
-    }
-    template<bool isReadOperation>
-    static void doOperation(DataRegister8 view) noexcept {
-        if constexpr (isReadOperation) {
-            doReadOperation(view);
-        } else {
-            doWriteOperation(view);
-        }
-    }
-    inline static void doWriteOperation(DataRegister8 view) noexcept {
-        auto body = [&view]() {
-            // we can pull the data off the bus and 
-            // request the next set of data from the i960 while we are stashing
-            // the current data
-            auto lo = getDataByte<0>();
-            auto hi = getDataByte<1>();
-            // we can drop the wait states because the store process will be
-            // taking place while the ready signal is being propagated
-            signalReady<0>();
-            // we do not need to check the enable signals because we already
-            // know that we are going to be continuing execution of this
-            // transaction. Thus we can ignore them and just do stores.
-            //
-            // If we are burst last then we only have to check BE1 because we
-            // "flow" into the end of the transaction.
-            view[0] = lo;
-            view[1] = hi;
-            view += 2;
-        };
-        auto whenDone = [&view]() {
-            view[0] = getDataByte<0>();
-            if (digitalRead<Pin::BE1>() == LOW) {
-                view[1] = getDataByte<1>();
-            }
-            signalReady<0>();
-        };
-        if (isBurstLast()) {
-            if (digitalRead<Pin::BE0>() == LOW) {
-                view[0] = getDataByte<0>();
-            }
-            if (digitalRead<Pin::BE1>() == LOW) {
-                view[1] = getDataByte<1>();
-            }
-            signalReady<0>();
-        } else {
-            if (digitalRead<Pin::BE0>() == LOW) {
-                view[0] = getDataByte<0>();
-            }
-            auto hi = getDataByte<1>();
-            signalReady<0>();
-            view[1] = hi;
-            view += 2;
-            insertCustomNopCount<2>(); // insert delay to make sure that
-                                       // isBurstLast is updated, replace with
-                                       // more operations if found
-            if (isBurstLast()) {
-                whenDone();
-                return;
-            }
-            body();
-            if (isBurstLast()) {
-                whenDone();
-                return;
-            }
-            body();
-            if (isBurstLast()) {
-                whenDone();
-                return;
-            }
-            body();
-            if (isBurstLast()) {
-                whenDone();
-                return;
-            }
-            body();
-            if (isBurstLast()) {
-                whenDone();
-                return;
-            }
-            body();
-            if (isBurstLast()) {
-                whenDone();
-                return;
-            }
-            body();
-            whenDone();
         }
     }
 };
@@ -699,9 +531,6 @@ doCoreIO() noexcept {
 #ifdef TCCR1A
                           X(timer1, 0x10);
 #endif
-//#ifdef TCCR4A
-//                          X(timer4, 0x20);
-//#endif
 #undef X
         case 0x40: {
                        if constexpr (isReadOperation) {
@@ -841,9 +670,9 @@ doIOWriteOperation() {
     doIO<false>();
 }
 #undef I960_Signal_Switch
-HardwareSerialInterface sface1(Serial1);
-HardwareSerialInterface sface2(Serial2);
-HardwareSerialInterface sface3(Serial3);
+//HardwareSerialInterface sface1(Serial1);
+//HardwareSerialInterface sface2(Serial2);
+//HardwareSerialInterface sface3(Serial3);
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize>
 [[gnu::noinline]]

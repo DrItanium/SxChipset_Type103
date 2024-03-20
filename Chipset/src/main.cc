@@ -47,6 +47,23 @@ constexpr bool EnableRegularHoldSignal = true;
 [[gnu::address(0x2300)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2308)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2310)]] inline volatile CH351 ControlSignals;
+inline 
+void
+holdBus() noexcept {
+    if (bit_is_clear(GPIOR0, 0)) {
+        digitalWrite<Pin::HOLD, HIGH>();
+        bitSet(GPIOR0, 0);
+    }
+}
+
+inline 
+void
+releaseBus() noexcept {
+    if (bit_is_set(GPIOR0, 0)) {
+        digitalWrite<Pin::HOLD, LOW>();
+        bitClear(GPIOR0, 0);
+    }
+}
 
 // allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
@@ -728,21 +745,6 @@ setupHoldTimer() noexcept {
         TIMSK5 = 0;
     }
     TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
-}
-inline void
-holdBus() noexcept {
-    if (bit_is_clear(GPIOR0, 0)) {
-        digitalWrite<Pin::HOLD, HIGH>();
-        bitSet(GPIOR0, 0);
-    }
-}
-
-inline void
-releaseBus() noexcept {
-    if (bit_is_set(GPIOR0, 0)) {
-        digitalWrite<Pin::HOLD, LOW>();
-        bitClear(GPIOR0, 0);
-    }
 }
 ISR(TIMER5_OVF_vect) {
     if constexpr (EnableRegularHoldSignal) {

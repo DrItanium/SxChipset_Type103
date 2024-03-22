@@ -112,7 +112,6 @@ __direction_ff_reg__ = 2
 1:
 	sbicrj EIFR, 4, 2f      ; check to see if we have a transaction to process, if it is clear then we should yield time
 	call processSerialLinks ; process serial events
-	call yield			    ; yield time as well for separate actions
 	rjmp 1b				    ; jump back to the top and see if we are ready again
 2:
 .endm

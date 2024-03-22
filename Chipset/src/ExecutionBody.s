@@ -105,8 +105,18 @@ __direction_ff_reg__ = 2
 .macro getHighDataByte960 ; 2 cycles
 	lds __high_data_byte960__, PINK
 .endm
-.macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
+.macro justWaitForTransaction
 1: sbisrj EIFR, 4, 1b
+.endm
+.macro yieldTimeWhileWaitingForTransactions
+1:
+	sbicrj EIFR, 4, 2f    ; check to see if we have a transaction to process, if it is clear then we should yield time
+	call yield			  ; yield time
+	rjmp 1b				  ; jump back to the top and see if we are ready again
+2:
+.endm
+.macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
+	yieldTimeWhileWaitingForTransactions
 .endm
 .macro SkipNextIfBE0High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 3

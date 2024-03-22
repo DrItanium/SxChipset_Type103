@@ -864,4 +864,9 @@ loop() {
     // packets from external chips connected over serial.
     ExecutionBody();
 }
+extern "C"  {
+    void yield() {
+        serialEventRun();
+    }
+}
 

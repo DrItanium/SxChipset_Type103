@@ -110,9 +110,10 @@ __direction_ff_reg__ = 2
 .endm
 .macro yieldTimeWhileWaitingForTransactions
 1:
-	sbicrj EIFR, 4, 2f    ; check to see if we have a transaction to process, if it is clear then we should yield time
-	call yield			  ; yield time
-	rjmp 1b				  ; jump back to the top and see if we are ready again
+	sbicrj EIFR, 4, 2f      ; check to see if we have a transaction to process, if it is clear then we should yield time
+	call processSerialLinks ; process serial events
+	call yield			    ; yield time as well for separate actions
+	rjmp 1b				    ; jump back to the top and see if we are ready again
 2:
 .endm
 .macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
@@ -167,6 +168,8 @@ __direction_ff_reg__ = 2
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
+.global yield
+.global processSerialLinks
 .text
 
 ExecutionBody:

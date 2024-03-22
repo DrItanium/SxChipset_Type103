@@ -864,9 +864,9 @@ loop() {
     // packets from external chips connected over serial.
     ExecutionBody();
 }
-extern "C"  {
-    void yield() {
-        serialEventRun();
-    }
-}
 
+extern "C"  
+void 
+processSerialLinks() {
+    // for each packet accepting device, we want to call update 
+}

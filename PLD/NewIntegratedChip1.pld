@@ -6,7 +6,7 @@ IA15 S3  S2  S1  S0   EBI  IOX  IEN  XEN  VCC
 
 /EBI = /IWR * IRD + IWR * /IRD
 /XEN = IA15 * /IWR * IRD + IA15 * IWR * /IRD 
-/IOX = /IA15 * IA14 * /IWR * IRD + /IA15 * IA14 * IWR * /IRD
+/IOX = /IA15 *  IA14 * /IWR * IRD + /IA15 * IA14 * IWR * /IRD
 S3   = /IA15 * /IA14 * IA13 * IA12 * /IWR * IRD + /IA15 * /IA14 * IA13 * IA12 * IWR * /IRD
 S2   = /IA15 * /IA14 * IA13 * /IA12 * IA11 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * IA11 * IWR * /IRD
 S1   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 * IWR * /IRD
@@ -16,10 +16,10 @@ S0   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 * /IWR * IRD + /
 DESCRIPTION
 
 using a 16-bit bus
-0x8000-0xFFFF & /EBI -> /XBUS
-0x4000-0x7FFF & /EBI -> /IOX
-0x3000-0x3FFF & /EBI -> S3
-0x2800-0x2FFF & /EBI -> S2
-0x2400-0x27FF & /EBI -> S1
-0x2300-0x23FF & /EBI -> S0
-0x2200-0x22FF & /EBI -> IBUS
+0x8000-0xFFFF & /EBI -> /XBUS (32k)
+0x4000-0x7FFF & /EBI -> /IOX (16k)
+0x3000-0x3FFF & /EBI -> S3 (4k)
+0x2800-0x2FFF & /EBI -> S2 (2k)
+0x2400-0x27FF & /EBI -> S1 (1k)
+0x2300-0x23FF & /EBI -> S0 (256 bytes)
+0x2200-0x22FF & /EBI -> IBUS (256 bytes)

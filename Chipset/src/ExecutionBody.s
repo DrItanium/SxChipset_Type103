@@ -109,6 +109,9 @@ __direction_ff_reg__ = 2
 1: sbisrj EIFR, 4, 1b
 .endm
 .macro yieldTimeWhileWaitingForTransactions
+	delay6cycles			; make sure that we wait around for the current transaction to finish, otherwise there may be chained transactions we miss
+	nop						; add two more cycles to make sure of this fact as well
+	nop						; 
 1:
 	sbicrj EIFR, 4, 2f      ; check to see if we have a transaction to process, if it is clear then we should yield time
 	call processSerialLinks ; process serial events

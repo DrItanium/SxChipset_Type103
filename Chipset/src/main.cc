@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SdFat.h>
 #include <ArduinoJson.h>
+#include <PacketSerial.h>
 
 
 #include "Detect.h"
@@ -668,6 +669,7 @@ doIOWriteOperation() {
     doIO<false>();
 }
 #undef I960_Signal_Switch
+PacketSerial sface2, sface3;
 //HardwareSerialInterface sface1(Serial1);
 //HardwareSerialInterface sface2(Serial2);
 //HardwareSerialInterface sface3(Serial3);

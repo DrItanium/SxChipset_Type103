@@ -111,7 +111,7 @@ __direction_ff_reg__ = 2
 .macro yieldTimeWhileWaitingForTransactions
 1:
 	sbicrj EIFR, 4, 2f      ; check to see if we have a transaction to process, if it is clear then we should yield time
-	call processSerialLinks ; process serial events
+	call processSerialLinks ; process serial links
 	rjmp 1b				    ; jump back to the top and see if we are ready again
 2:
 .endm

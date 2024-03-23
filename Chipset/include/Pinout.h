@@ -66,6 +66,7 @@ Count = NUM_DIGITAL_PINS,
     HLDA = PortD3,
     Lock = PortD4,
     Reset = PortD5,
+    ReadyDirect = PortD6,
 
     IsMemorySpaceOperation = PortE2,
     CLK1 = PortE3,

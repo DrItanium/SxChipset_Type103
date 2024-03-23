@@ -178,7 +178,15 @@ struct DataInterface {
     }
 };
 
+enum class ReadySignalKind : uint8_t {
+    TimerBased,
+    SoftwareGPIO,
+};
+template<ReadySignalKind kind>
+struct UseReadySignalKind final {
 
+};
+constexpr auto TargetReadySignal = ReadySignalKind::TimerBased;
 
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
     return 0xFF - (cycles - 1);
@@ -191,15 +199,26 @@ constexpr uint8_t ReadyCycleStart = ReadyCycleWidth - 1;
 }
 
 template<uint8_t delayAmount = 4>
-[[gnu::always_inline]]
-inline void
-signalReady() noexcept {
+[[gnu::always_inline]] inline void signalReady(UseReadySignalKind<ReadySignalKind::TimerBased>) noexcept {
     // wait for the one shot to go on
     oneShotFire();
     if constexpr (delayAmount > 0) {
         // we need two extra cycles for the blocking nature of TCNT2
         insertCustomNopCount<delayAmount + 2>();
     }
+}
+template<uint8_t delayAmount = 4>
+[[gnu::always_inline]] inline void signalReady(UseReadySignalKind<ReadySignalKind::SoftwareGPIO>) noexcept {
+    toggle<Pin::ReadyDirect>();
+    if constexpr (delayAmount > 0) {
+        insertCustomNopCount<delayAmount>();
+    }
+}
+template<uint8_t delayAmount = 4>
+[[gnu::always_inline]]
+inline void
+signalReady() noexcept {
+    signalReady<delayAmount>(UseReadySignalKind<TargetReadySignal>{});
 }
 
 using Register8 = volatile uint8_t&;
@@ -695,7 +714,6 @@ installMemoryImage() noexcept {
         theFirmware.close();
     }
     // okay so now end reading from the SD Card
-    //SD.end();
     SPI.endTransaction();
 }
 

@@ -770,12 +770,6 @@ ISR(INT3_vect) {
         releaseBus();
     }
 }
-void processSerialLink2(const PacketSerial& sender, const uint8_t* buffer, size_t size) {
-}
-void processSerialLink3(const PacketSerial& sender, const uint8_t* buffer, size_t size) {
-}
-PacketSerial serialLink2;
-PacketSerial serialLink3;
 void
 setup() {
     int32_t seed = 0;
@@ -787,12 +781,6 @@ setup() {
 #undef X
     randomSeed(seed);
     Serial.begin(115200);
-    Serial2.begin(115200);
-    Serial3.begin(115200);
-    serialLink2.setStream(&Serial2);
-    serialLink2.setPacketHandler([](const uint8_t* buffer, size_t size) { processSerialLink2(serialLink2, buffer, size); });
-    serialLink3.setStream(&Serial3);
-    serialLink3.setPacketHandler([](const uint8_t* buffer, size_t size) { processSerialLink3(serialLink3, buffer, size); });
     SPI.begin();
     // power down the ADC
     // currently we can't use them
@@ -875,12 +863,4 @@ loop() {
     // time slicing design to make sure that we have the ability to process
     // packets from external chips connected over serial.
     ExecutionBody();
-}
-
-extern "C"  
-void 
-processSerialLinks() {
-    // for each packet accepting device, we want to call update 
-    serialLink2.update();
-    serialLink3.update();
 }

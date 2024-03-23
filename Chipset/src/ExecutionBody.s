@@ -108,15 +108,8 @@ __direction_ff_reg__ = 2
 .macro justWaitForTransaction
 1: sbisrj EIFR, 4, 1b
 .endm
-.macro yieldTimeWhileWaitingForTransactions
-1:
-	sbicrj EIFR, 4, 2f      ; check to see if we have a transaction to process, if it is clear then we should yield time
-	call processSerialLinks ; process serial links
-	rjmp 1b				    ; jump back to the top and see if we are ready again
-2:
-.endm
 .macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
-	yieldTimeWhileWaitingForTransactions
+	justWaitForTransaction
 .endm
 .macro SkipNextIfBE0High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 3
@@ -167,8 +160,6 @@ __direction_ff_reg__ = 2
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
-.global yield
-.global processSerialLinks
 .text
 
 ExecutionBody:

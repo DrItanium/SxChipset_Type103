@@ -882,11 +882,5 @@ void
 processSerialLinks() {
     // for each packet accepting device, we want to call update 
     serialLink2.update();
-    if (serialLink2.overflow()) {
-
-    }
     serialLink3.update();
-    if (serialLink3.overflow()) {
-
-    }
 }

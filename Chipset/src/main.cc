@@ -669,9 +669,6 @@ doIOWriteOperation() {
     doIO<false>();
 }
 #undef I960_Signal_Switch
-//HardwareSerialInterface sface1(Serial1);
-//HardwareSerialInterface sface2(Serial2);
-//HardwareSerialInterface sface3(Serial3);
 
 template<uint32_t maxFileSize = MaximumBootImageFileSize>
 [[gnu::noinline]]

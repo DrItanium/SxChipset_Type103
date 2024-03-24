@@ -224,7 +224,7 @@ void
 signalReady(UseReadySignalKind<ReadySignalKind::SoftwareGPIO>) noexcept {
     toggle<Pin::ReadyDirect>();
     if constexpr (delayAmount > 0) {
-        insertCustomNopCount<delayAmount>();
+        insertCustomNopCount<delayAmount + 2>();
     }
 }
 template<uint8_t delayAmount = 4>
@@ -754,8 +754,8 @@ setupReadySignal() noexcept {
                                                         // using FastPWM mode
         TCCR2B = _BV(WGM22) | _BV(CS20); // enable the counter and select fastPWM mode 7
     } else if (TargetReadySignal == ReadySignalKind::SoftwareGPIO) {
-        pinMode<Pin::ReadyDirect>(OUTPUT);
         pinMode<Pin::ONE_SHOT_READY>(INPUT);
+        pinMode<Pin::ReadyDirect>(OUTPUT);
         digitalWrite<Pin::ReadyDirect, HIGH>();
     } else {
         Serial.println(F("NO READY SIGNAL SPECIFIED... HALTING"));

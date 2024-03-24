@@ -9,19 +9,19 @@
                           |                 |
                       XI0 |  3           22 | SRST
                           |                 |
-                      XI1 |  4           21 | RZ0
+                      XI1 |  4           21 | RSYNC
                           |                 |
-                      XI2 |  5           20 | RZ1
+                      XI2 |  5           20 | I0
                           |                 |
-                      XI3 |  6           19 | RSYNC
+                      XI3 |  6           19 | I1
                           |                 |
-                      RST |  7           18 | I0
+                      RST |  7           18 | I2
                           |                 |
-                       NC |  8           17 | I1
+                       NC |  8           17 | I3
                           |                 |
-                       NC |  9           16 | I2
+                       NC |  9           16 | RZ0
                           |                 |
-                       NC | 10           15 | I3
+                       NC | 10           15 | RZ1
                           |                 |
                        NC | 11           14 | NC
                           |                 |

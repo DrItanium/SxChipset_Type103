@@ -16,13 +16,13 @@
   12   | GND      | GND
   13   | NC       | Input
   14   | NC       | NC
-  15   | I3       | Output
-  16   | I2       | Output
-  17   | I1       | Output
-  18   | I0       | Output
-  19   | RSYNC    | Output
-  20   | RZ1      | Output
-  21   | RZ0      | Output
+  15   | RZ1      | Output
+  16   | RZ0      | Output
+  17   | I3       | Output
+  18   | I2       | Output
+  19   | I1       | Output
+  20   | I0       | Output
+  21   | RSYNC    | Output
   22   | SRST     | Output
   23   | CLK1     | Output
   24   | VCC      | VCC

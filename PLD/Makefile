@@ -109,7 +109,7 @@ install_NewSRAMDecoderChip2: NewSRAMDecoderChip2.jed
 	minipro -p "ATF22V10CQ(UES)" --write NewSRAMDecoderChip2.jed 
 
 install_NewBasicHardwareChip: NewBasicHardwareChip.jed
-	minipro -p ATF16V8C --write NewBasicHardwareChip.jed
+	minipro -p "ATF22V10CQ(UES)" --write NewBasicHardwareChip.jed
 
 
 

@@ -182,12 +182,21 @@ enum class ReadySignalKind : uint8_t {
     TimerBased,
     SoftwareGPIO,
 };
+constexpr bool valid(ReadySignalKind kind) noexcept {
+    switch (kind) {
+        case ReadySignalKind::TimerBased:
+        case ReadySignalKind::SoftwareGPIO:
+            return true;
+        default:
+            return false;
+    }
+}
 template<ReadySignalKind kind>
 struct UseReadySignalKind final {
 
 };
-constexpr auto TargetReadySignal = ReadySignalKind::TimerBased;
-
+constexpr auto TargetReadySignal = ReadySignalKind::SoftwareGPIO;
+static_assert(valid(TargetReadySignal), "Invalid READY signal handler specified!");
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
     return 0xFF - (cycles - 1);
 }
@@ -207,8 +216,12 @@ template<uint8_t delayAmount = 4>
         insertCustomNopCount<delayAmount + 2>();
     }
 }
+
 template<uint8_t delayAmount = 4>
-[[gnu::always_inline]] inline void signalReady(UseReadySignalKind<ReadySignalKind::SoftwareGPIO>) noexcept {
+[[gnu::always_inline]] 
+inline 
+void 
+signalReady(UseReadySignalKind<ReadySignalKind::SoftwareGPIO>) noexcept {
     toggle<Pin::ReadyDirect>();
     if constexpr (delayAmount > 0) {
         insertCustomNopCount<delayAmount>();
@@ -719,25 +732,37 @@ installMemoryImage() noexcept {
 
 void 
 setupReadySignal() noexcept {
-    pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
-    // taken from https://github.com/bigjosh/TimerShot/blob/master/TimerShot.ino and adapted to work with a mega2560
-    TCCR2B = 0; // disable the counter completely
-    TCNT2 = 0x00; // start counting at the bottom
-    OCR2A = 0; // set TOP to 0. This will keep us from counting because the
-               // counter just keeps resetting back to zero.
+    if constexpr (TargetReadySignal == ReadySignalKind::TimerBased) {
+        pinMode<Pin::ReadyDirect>(INPUT);
+        pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
+        // taken from https://github.com/bigjosh/TimerShot/blob/master/TimerShot.ino and adapted to work with a mega2560
+        TCCR2B = 0; // disable the counter completely
+        TCNT2 = 0x00; // start counting at the bottom
+        OCR2A = 0; // set TOP to 0. This will keep us from counting because the
+                   // counter just keeps resetting back to zero.
 
-               // we break out of this by manually setting TCNT higher than 0,
-               // in which case it will count all the way up to MAX and then
-               // overflow back to 0 and get locked up again.
-    OCR2B = ReadyCycleWidth; // we want two cycles at 20MHz, this also makes new OCR
-                             // values get loaded from the buffer on every clock
-                             // cycle
-                        
-    // we want to generate a falling signal so do Clear OC2B on Compare Match
-    // and set OC2B at BOTTOM
-    TCCR2A = _BV(COM2B1) | _BV(WGM20) | _BV(WGM21); // waveform generation
-                                                    // using FastPWM mode
-    TCCR2B = _BV(WGM22) | _BV(CS20); // enable the counter and select fastPWM mode 7
+                   // we break out of this by manually setting TCNT higher than 0,
+                   // in which case it will count all the way up to MAX and then
+                   // overflow back to 0 and get locked up again.
+        OCR2B = ReadyCycleWidth; // we want two cycles at 20MHz, this also makes new OCR
+                                 // values get loaded from the buffer on every clock
+                                 // cycle
+
+                                 // we want to generate a falling signal so do Clear OC2B on Compare Match
+                                 // and set OC2B at BOTTOM
+        TCCR2A = _BV(COM2B1) | _BV(WGM20) | _BV(WGM21); // waveform generation
+                                                        // using FastPWM mode
+        TCCR2B = _BV(WGM22) | _BV(CS20); // enable the counter and select fastPWM mode 7
+    } else if (TargetReadySignal == ReadySignalKind::SoftwareGPIO) {
+        pinMode<Pin::ReadyDirect>(OUTPUT);
+        pinMode<Pin::ONE_SHOT_READY>(INPUT);
+        digitalWrite<Pin::ReadyDirect, HIGH>();
+    } else {
+        Serial.println(F("NO READY SIGNAL SPECIFIED... HALTING"));
+        while (true) {
+            delay(1000);
+        }
+    }
 }
 void
 setupCLK1() noexcept {

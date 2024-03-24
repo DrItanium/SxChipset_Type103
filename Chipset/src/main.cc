@@ -195,7 +195,7 @@ template<ReadySignalKind kind>
 struct UseReadySignalKind final {
 
 };
-constexpr auto TargetReadySignal = ReadySignalKind::TimerBased;
+constexpr auto TargetReadySignal = ReadySignalKind::SoftwareGPIO;
 static_assert(valid(TargetReadySignal), "Invalid READY signal handler specified!");
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
     return 0xFF - (cycles - 1);

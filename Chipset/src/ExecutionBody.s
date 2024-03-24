@@ -51,14 +51,14 @@ __low_data_byte960__ = 5
 __rdy_signal_count_reg__ = 4
 __eifr_mask_reg__ = 3
 __direction_ff_reg__ = 2
-.macro signalReady_Pin
+.macro signalReady_Pin ; 2 cycles itself, 6 cycles after that before the next part of the transaction
 	sbi PIND, 6 ; toggle the output pin
 .endm
 .macro signalReady_Counter ; 2 cycles itself, 6 cycles after that before next part of transaction
-	sts TCNT2, __rdy_signal_count_reg__  ; this one is special because the store takes two cycles itself
+	sts TCNT2, __rdy_signal_count_reg__  
 .endm
 .macro signalReady
-signalReady_Pin
+signalReady_Counter
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbis \a, \b 	; 1 cycle if false, 2 cycles if true

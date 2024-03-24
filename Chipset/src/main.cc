@@ -195,7 +195,7 @@ template<ReadySignalKind kind>
 struct UseReadySignalKind final {
 
 };
-constexpr auto TargetReadySignal = ReadySignalKind::SoftwareGPIO;
+constexpr auto TargetReadySignal = ReadySignalKind::TimerBased;
 static_assert(valid(TargetReadySignal), "Invalid READY signal handler specified!");
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
     return 0xFF - (cycles - 1);
@@ -212,7 +212,10 @@ template<uint8_t delayAmount = 4>
     // wait for the one shot to go on
     oneShotFire();
     if constexpr (delayAmount > 0) {
-        // we need two extra cycles for the blocking nature of TCNT2
+        // it takes two cycles avr for the ready signal to actually signal
+        // ready. The i960 needs to detect the signal and act accordingly.
+        // so it will be 6 cycles every single time between the time we start
+        // the trigger and when we have the next transaction starting
         insertCustomNopCount<delayAmount + 2>();
     }
 }
@@ -224,6 +227,10 @@ void
 signalReady(UseReadySignalKind<ReadySignalKind::SoftwareGPIO>) noexcept {
     toggle<Pin::ReadyDirect>();
     if constexpr (delayAmount > 0) {
+        // it takes two cycles avr for the ready signal to actually signal
+        // ready. The i960 needs to detect the signal and act accordingly.
+        // so it will be 6 cycles every single time between the time we start
+        // the trigger and when we have the next transaction starting
         insertCustomNopCount<delayAmount + 2>();
     }
 }

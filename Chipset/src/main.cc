@@ -363,18 +363,11 @@ doNothing() {
     }
     signalReady<0>();
 }
-
 template<bool isReadOperation>
 inline 
 void
-doCoreIO() noexcept {
-    switch (
-#if 0
-            AddressLinesInterface.view8.data[0]
-#else
-            getInputRegister<Port::AddressLinesLowest>()
-#endif
-            ) {
+doLegacyIO() noexcept {
+    switch ( getInputRegister<Port::AddressLinesLowest>()) {
     
         case 0: { 
                     if constexpr (isReadOperation) { 
@@ -696,7 +689,20 @@ template<bool isReadOperation>
 inline
 void 
 doIO() noexcept { 
-    doCoreIO<isReadOperation>();
+    enum class IOSpaceMapping : uint8_t {
+        Legacy = 0,
+        SerialConsole,
+        Serial2,
+        Serial3,
+    };
+    // Legacy IO is mapped to the start of the IO space and we need to preserve
+    // this as well as the behavior when it is unmapped
+    switch (static_cast<IOSpaceMapping>(AddressLinesInterface.view8.data[1])) {
+        case IOSpaceMapping::Legacy:
+        default:
+            doLegacyIO<isReadOperation>();
+            break;
+    }
 }
 
 void 
@@ -910,4 +916,82 @@ loop() {
     // time slicing design to make sure that we have the ability to process
     // packets from external chips connected over serial.
     ExecutionBody();
+}
+#if 0
+template<bool isReadOperation>
+inline
+void
+doSerialConsoleInteraction(HardwareSerial& serialPort) noexcept {
+    switch ( getInputRegister<Port::AddressLinesLowest>()) {
+        case 0x00: 
+            {
+                if constexpr (isReadOperation) {
+                    volatile auto value = serialPort.read();
+                    DataInterface::setData(value);
+                } else {
+                    volatile auto value = DataInterface::getDataByte<0>(); 
+                    serialPort.write(value);
+                }
+                I960_Signal_Switch;
+                doNothing<isReadOperation>();
+                return;
+            }
+        case 0x04: // flush
+            {
+                if constexpr (isReadOperation) {
+                    DataInterface::setData(0);
+                } else {
+                    serialPort.flush();
+                }
+                I960_Signal_Switch;
+                // these addresses do not support burst transactions
+                doNothing<isReadOperation>();
+                return;
+            }
+        case 0x10: {
+                       // burst read/write operation, must start aligned as
+                       // well
+                       // can read up to 8 characters at a time
+                       do {
+                           if constexpr (isReadOperation) {
+                                volatile auto value = serialPort.read();
+                                DataInterface::setData(value);
+                           } else {
+                                volatile auto value = DataInterface::getDataByte<0>();
+                                serialPort.write(value);
+                           }
+                           I960_Signal_Switch;
+                       } while (true);
+                       break;
+            }
+        case 0x20: {
+                    
+                   }
+
+        default:
+            doNothing<isReadOperation>();
+            return;
+    }
+    signalReady<0>();
+}
+#endif
+
+void
+HardwareSerialInterface::processReadRequest() noexcept {
+    switch (getInputRegister<Port::AddressLinesLowest>()) {
+        default:
+            doNothing<true>();
+            return;
+    }
+    signalReady<0>();
+}
+
+void
+HardwareSerialInterface::processWriteRequest() noexcept {
+    switch (getInputRegister<Port::AddressLinesLowest>()) {
+        default:
+            doNothing<false>();
+            return;
+    }
+    signalReady<0>();
 }

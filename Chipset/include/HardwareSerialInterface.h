@@ -44,7 +44,19 @@ class HardwareSerialInterface {
         begin() noexcept {
             _interface.begin(_baud, _cfg);
         }
-
+        
+        template<bool isReadOperation>
+        void
+        processRequest() noexcept {
+            if constexpr (isReadOperation) {
+                processReadRequest();
+            } else {
+                processWriteRequest();
+            }
+        }
+    private:
+        void processReadRequest() noexcept;
+        void processWriteRequest() noexcept;
     private:
         HardwareSerial& _interface;
         uint32_t _baud;

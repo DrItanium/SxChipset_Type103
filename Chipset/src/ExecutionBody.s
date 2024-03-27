@@ -44,8 +44,10 @@ ExternalAddressLinesInterface = 0x2300
 AddressLinesInterface = InternalAddressLinesInterface
 MemoryWindowUpper = 0x22
 TCNT2 = 0xb2
-CH351DataLinesLo8 = 0x2208
-CH351DataLinesHi8 = 0x2209
+CH351DataLinesLo8 = 0x2308
+CH351DataLinesHi8 = 0x2309
+CH351DataLinesDirLo8 = 0x230C
+CH351DataLinesDirHi8 = 0x230D
 __highest_data_byte960__ = 8
 __higher_data_byte960__ = 7
 __high_data_byte960__ = 6
@@ -147,9 +149,16 @@ signalReady_Counter
 .macro SkipNextIfBE1High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 4
 .endm
-.macro setDataLinesDirection dir ; 3 cycles
+.macro setDataLinesDirection_CH351 dir ; 8 cycles
+	sts CH351DataLinesDirLo8, \dir
+	sts CH351DataLinesDirHi8, \dir
+.endm
+.macro setDataLinesDirection_AVRGPIO dir ; 3 cycles
 	out DDRF, \dir ; 1 cycle
 	sts DDRK, \dir ; 2 cycle
+.endm
+.macro setDataLinesDirection dir
+	setDataLinesDirection_AVRGPIO \dir
 .endm
 .macro getDataWord960 ; 3 cycles
 	getLowDataByte960 ; 1 cycle

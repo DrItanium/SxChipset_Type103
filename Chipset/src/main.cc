@@ -25,8 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
-#include <ArduinoJson.h>
-#include <PacketSerial.h>
 
 
 #include "Detect.h"
@@ -689,20 +687,9 @@ template<bool isReadOperation>
 inline
 void 
 doIO() noexcept { 
-    enum class IOSpaceMapping : uint8_t {
-        Legacy = 0,
-        SerialConsole,
-        Serial2,
-        Serial3,
-    };
     // Legacy IO is mapped to the start of the IO space and we need to preserve
     // this as well as the behavior when it is unmapped
-    switch (static_cast<IOSpaceMapping>(AddressLinesInterface.view8.data[1])) {
-        case IOSpaceMapping::Legacy:
-        default:
-            doLegacyIO<isReadOperation>();
-            break;
-    }
+    doLegacyIO<isReadOperation>();
 }
 
 void 
@@ -916,95 +903,4 @@ loop() {
     // time slicing design to make sure that we have the ability to process
     // packets from external chips connected over serial.
     ExecutionBody();
-}
-#if 0
-template<bool isReadOperation>
-inline
-void
-doSerialConsoleInteraction(HardwareSerial& serialPort) noexcept {
-    switch ( getInputRegister<Port::AddressLinesLowest>()) {
-        case 0x00: 
-            {
-                if constexpr (isReadOperation) {
-                    volatile auto value = serialPort.read();
-                    DataInterface::setData(value);
-                } else {
-                    volatile auto value = DataInterface::getDataByte<0>(); 
-                    serialPort.write(value);
-                }
-                I960_Signal_Switch;
-                doNothing<isReadOperation>();
-                return;
-            }
-        case 0x04: // flush
-            {
-                if constexpr (isReadOperation) {
-                    DataInterface::setData(0);
-                } else {
-                    serialPort.flush();
-                }
-                I960_Signal_Switch;
-                // these addresses do not support burst transactions
-                doNothing<isReadOperation>();
-                return;
-            }
-        case 0x10: {
-                       // burst read/write operation, must start aligned as
-                       // well
-                       // can read up to 8 characters at a time
-                       do {
-                           if constexpr (isReadOperation) {
-                                volatile auto value = serialPort.read();
-                                DataInterface::setData(value);
-                           } else {
-                                volatile auto value = DataInterface::getDataByte<0>();
-                                serialPort.write(value);
-                           }
-                           I960_Signal_Switch;
-                       } while (true);
-                       break;
-            }
-        case 0x20: {
-                    
-                   }
-
-        default:
-            doNothing<isReadOperation>();
-            return;
-    }
-    signalReady<0>();
-}
-#endif
-enum class HardwareSerialInterfaceDataMapping : uint8_t {
-    Available = 0x00, // R
-    AvailableForWrite = 0x02, // R
-    Data = 0x04, // RW
-    Flush = 0x06, // W
-    Baud = 0x08, // RW, allow the baud rate to be specified (32-bits wide)
-    ControlBits = 0x10, // RW, configuration settings for 
-    Begin = 0x10, // W, configure the baud
-    RW_Burst16 = 0x80, // RW, write each value out as a separate character, up to 16 of them
-    RW_Burst8W = 0x90, // RW, each character is 16-bits wide but we only care about the lower half of each word
-
-    
-
-};
-void
-HardwareSerialInterface::processReadRequest() noexcept {
-    switch (getInputRegister<Port::AddressLinesLowest>()) {
-        default:
-            doNothing<true>();
-            return;
-    }
-    signalReady<0>();
-}
-
-void
-HardwareSerialInterface::processWriteRequest() noexcept {
-    switch (getInputRegister<Port::AddressLinesLowest>()) {
-        default:
-            doNothing<false>();
-            return;
-    }
-    signalReady<0>();
 }

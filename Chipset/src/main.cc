@@ -339,6 +339,13 @@ public:
                 Serial.print('.');
             }
         }
+#if 0
+        AddressLinesInterface.view32.data = 0;
+        volatile auto* theBuffer2 = memoryPointer<uint32_t>(MemoryWindowBaseAddress);
+        for (auto i = 0u; i < (TransferBufferSize / sizeof(uint32_t)); ++i) {
+            Serial.printf(F("0x%x: 0x%lx\n"), i, theBuffer2[i]);
+        }
+#endif
     }
 };
 

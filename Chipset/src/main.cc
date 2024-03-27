@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Types.h"
 #include "Pinout.h"
 #include "Setup.h"
-#include "HardwareSerialInterface.h"
 
 extern "C" [[noreturn]] void ExecutionBody();
 extern "C" [[gnu::used]] void doIOReadOperation();

@@ -975,7 +975,20 @@ doSerialConsoleInteraction(HardwareSerial& serialPort) noexcept {
     signalReady<0>();
 }
 #endif
+enum class HardwareSerialInterfaceDataMapping : uint8_t {
+    Available = 0x00, // R
+    AvailableForWrite = 0x02, // R
+    Data = 0x04, // RW
+    Flush = 0x06, // W
+    Baud = 0x08, // RW, allow the baud rate to be specified (32-bits wide)
+    ControlBits = 0x10, // RW, configuration settings for 
+    Begin = 0x10, // W, configure the baud
+    RW_Burst16 = 0x80, // RW, write each value out as a separate character, up to 16 of them
+    RW_Burst8W = 0x90, // RW, each character is 16-bits wide but we only care about the lower half of each word
 
+    
+
+};
 void
 HardwareSerialInterface::processReadRequest() noexcept {
     switch (getInputRegister<Port::AddressLinesLowest>()) {

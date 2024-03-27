@@ -5,13 +5,13 @@ IWR  IRD IA8 IA9 IA10 IA11 IA12 IA13 IA14 GND
 IA15 S3  S2  S1  S0   EBI  IOX  IEN  XEN  VCC
 
 /EBI = /IWR * IRD + IWR * /IRD
-/XEN = IA15 * /IWR * IRD + IA15 * IWR * /IRD 
-/IOX = /IA15 *  IA14 * /IWR * IRD + /IA15 * IA14 * IWR * /IRD
-S3   = /IA15 * /IA14 * IA13 * IA12 * /IWR * IRD + /IA15 * /IA14 * IA13 * IA12 * IWR * /IRD
-S2   = /IA15 * /IA14 * IA13 * /IA12 * IA11 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * IA11 * IWR * /IRD
-S1   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 * IWR * /IRD
-S0   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 * IWR * /IRD 
-/IEN = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8 * IWR * /IRD 
+/XEN = IA15
+/IOX = /IA15 *  IA14 
+S3   = /IA15 * /IA14 * IA13 * IA12 
+S2   = /IA15 * /IA14 * IA13 * /IA12 * IA11 
+S1   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 
+S0   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 
+/IEN = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8
 
 DESCRIPTION
 
@@ -23,3 +23,18 @@ using a 16-bit bus
 0x2400-0x27FF & /EBI -> S1 (1k)
 0x2300-0x23FF & /EBI -> S0 (256 bytes)
 0x2200-0x22FF & /EBI -> IBUS (256 bytes)
+
+
+If we wait for the enable lines to be correct then we will be slower that we
+should be. So instead, it makes more sense to deactivate the wait states by
+pulling the chip select low ahead of time. It looks like you need both the
+wr/rd pins plus chip enable low to activate things. So we can actually use this
+to accelerate the number of cycles for reads and writes!
+
+/XEN = IA15 * /IWR * IRD + IA15 * IWR * /IRD 
+/IOX = /IA15 *  IA14 * /IWR * IRD + /IA15 * IA14 * IWR * /IRD
+S3   = /IA15 * /IA14 * IA13 * IA12 * /IWR * IRD + /IA15 * /IA14 * IA13 * IA12 * IWR * /IRD
+S2   = /IA15 * /IA14 * IA13 * /IA12 * IA11 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * IA11 * IWR * /IRD
+S1   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 * IWR * /IRD
+S0   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 * IWR * /IRD 
+/IEN = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8 * IWR * /IRD 

@@ -192,7 +192,7 @@ template<ReadySignalKind kind>
 struct UseReadySignalKind final {
 
 };
-constexpr auto TargetReadySignal = ReadySignalKind::SoftwareGPIO;
+constexpr auto TargetReadySignal = ReadySignalKind::TimerBased;
 static_assert(valid(TargetReadySignal), "Invalid READY signal handler specified!");
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
     return 0xFF - (cycles - 1);
@@ -851,8 +851,8 @@ setup() {
     pinMode(Pin::WriteTransaction, INPUT);
     // setup the EBI
     XMCRB=0b0'0000'000;
-    //XMCRA=0b1'010'01'01;  
-    XMCRA=0b1'010'00'00;
+    XMCRA=0b1'010'01'01;  
+    //XMCRA=0b1'010'00'00;
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     AddressLinesInterface.view32.direction = 0xFFFF'FFFE;

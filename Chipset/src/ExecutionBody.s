@@ -58,7 +58,7 @@ __direction_ff_reg__ = 2
 	sts TCNT2, __rdy_signal_count_reg__  
 .endm
 .macro signalReady
-signalReady_Pin
+signalReady_Counter
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbis \a, \b 	; 1 cycle if false, 2 cycles if true

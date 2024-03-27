@@ -16,7 +16,7 @@
   12   | GND      | GND
   13   | A22      | Input
   14   | A23      | Input
-  15   | SRAM     | Input
+  15   | SRAM     | NC
   16   | EN7      | Output
   17   | EN6      | Output
   18   | EN5      | Output

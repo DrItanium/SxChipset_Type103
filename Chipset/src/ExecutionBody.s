@@ -44,6 +44,8 @@ ExternalAddressLinesInterface = 0x2300
 AddressLinesInterface = InternalAddressLinesInterface
 MemoryWindowUpper = 0x22
 TCNT2 = 0xb2
+CH351DataLinesLo8 = 0x2208
+CH351DataLinesHi8 = 0x2209
 __highest_data_byte960__ = 8
 __higher_data_byte960__ = 7
 __high_data_byte960__ = 6
@@ -95,22 +97,43 @@ signalReady_Counter
 .macro clearEIFR ; 1 cycle
 	out EIFR, __eifr_mask_reg__ ; 1 cycle
 .endm
-
-.macro StoreToDataPort lo,hi ; 3 cycles
+.macro StoreToDataPort_CH351 lo, hi ; 8 cycles
+	sts CH351DataLinesLo8, \lo
+	sts CH351DataLinesHi8, \hi
+.endm
+.macro StoreToDataPort_AVRGPIO lo,hi ; 3 cycles
 	out PORTF, \lo 	; 1 cycle
 	sts PORTK, \hi	; 2 cycles
 .endm
+
+.macro StoreToDataPort lo,hi ; 3 cycles
+	StoreToDataPort_AVRGPIO \lo, \hi
+.endm
+
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbisrj PING, 5, \dest
 .endm
 .macro WhenBlastIsHighGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbicrj PING, 5, \dest
 .endm
-.macro getLowDataByte960  ; 1 cycle
+.macro getLowDataByte960_CH351 ; 4 cycles
+	lds __low_data_byte960__, CH351DataLinesLo8
+.endm
+.macro getHighDataByte960_CH351 ; 4 cycles
+	lds __high_data_byte960__, CH351DataLinesHi8
+.endm
+.macro getLowDataByte960_AVRGPIO  ; 1 cycle
 	in __low_data_byte960__, PINF
 .endm
-.macro getHighDataByte960 ; 2 cycles
+.macro getHighDataByte960_AVRGPIO ; 2 cycles
 	lds __high_data_byte960__, PINK
+.endm
+
+.macro getLowDataByte960  ; 1 cycle
+	getLowDataByte960_AVRGPIO
+.endm
+.macro getHighDataByte960 ; 2 cycles
+	getHighDataByte960_AVRGPIO
 .endm
 .macro justWaitForTransaction
 1: sbisrj EIFR, 4, 1b

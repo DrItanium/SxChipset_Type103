@@ -266,11 +266,12 @@ ExecutionBody:
 	ldd __high_data_byte960__,Y+13
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
+	signalReady
 	ldd __low_data_byte960__,Y+14
 	ldd __high_data_byte960__,Y+15
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady
+	rjmp .LXB_ReadTransactionStart
 .LXB_ShiftFromWriteToRead:
 	setDataLinesDirection __direction_ff_reg__ ; change the direction to output
 	clearEIFR						      ; Waiting for next memory transaction
@@ -314,7 +315,8 @@ ExecutionBody:
 	ldd __low_data_byte960__,Y+14
 	ldd __high_data_byte960__,Y+15
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady
+	rjmp .LXB_ReadTransactionStart
 
 .LXB_Write_DoIO_Nothing:
 	sbicrj PINE, 2, 1f

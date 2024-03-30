@@ -432,3 +432,17 @@ ExecutionBody:
 	StoreHighByteIfBE1Low 3
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	FallthroughExecutionBody_WriteOperation
+
+; the idea scenario is to not load or store to SRAM if I don't need to. The
+; problem is that I have to have access to the data ahead of time to make this determination which
+; defeats the point completely. It does save four avr cycles each time we can eliminate this overhead
+
+; The only other place to eliminate overhead has to do with the spinup time. 
+; I am wondering if there is some sort of way to encode system state into the shape of the code 
+; itself... I do this currently with reads and writes to eliminate the overhead
+; of switching the direction registers constantly. 
+
+; If I go back to the DEN pin then I can use that safely as long as I make sure that I don't sample 
+; DEN too quickly at the end of a transaction!
+
+; Then I do not need to clear EIFR

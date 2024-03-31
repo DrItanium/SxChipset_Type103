@@ -27,7 +27,10 @@ __SREG__ = 0x3f
 __RAMPZ__ = 0x3b
 __tmp_reg__ = 0
 __zero_reg__ = 1
+GPIOR0 = 0x1E
 PIND = 0x09
+; PD6 -> DEN
+; PD7 -> WR
 PINE = 0x0C
 PINF = 0x0F
 DDRF = 0x10
@@ -139,9 +142,14 @@ signalReady_Counter
 .endm
 .macro justWaitForTransaction
 1: sbisrj EIFR, 4, 1b
+clearEIFR
+.endm
+.macro justWaitForTransaction_GPIOR
+1: sbisrj GPIOR0, 1, 1b
+cbi GPIOR0, 1
 .endm
 .macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
-	justWaitForTransaction
+	justWaitForTransaction_GPIOR
 .endm
 .macro SkipNextIfBE0High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 3
@@ -172,8 +180,7 @@ signalReady_Counter
 	signalReady 
 
 	waitForTransaction
-	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
-	clearEIFR
+	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getLowDataByte960                  							; Load lower byte from
@@ -219,9 +226,8 @@ ExecutionBody:
 	signalReady
 .LXB_ReadTransactionStart:
 	waitForTransaction 										; minimum is 2 cycles for the skip
-	sbicrj EIFR,5, .LXB_ShiftFromReadToWrite 				; 2 cycles skipped, 3 cycles taken
+	sbicrj PIND, 7, .LXB_ShiftFromReadToWrite
 .LXB_PrimaryReadTransaction:
-	clearEIFR						; Waiting for next memory transaction (1 cycle avr)
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing		   ; 2 cycles (avr) if we skip over, 3 cycles if we take the operation
 	computeTransactionWindow								   ; 2 cycles (avr)
 	ld __low_data_byte960__,Y 		 						   ; 4 cycles (avr)
@@ -274,7 +280,6 @@ ExecutionBody:
 	rjmp .LXB_ReadTransactionStart
 .LXB_ShiftFromWriteToRead:
 	setDataLinesDirection __direction_ff_reg__ ; change the direction to output
-	clearEIFR						      ; Waiting for next memory transaction
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
 	computeTransactionWindow
 	ld __low_data_byte960__,Y
@@ -329,8 +334,7 @@ ExecutionBody:
 	signalReady 
 .LXB_WriteTransactionStart:
 	waitForTransaction
-	sbisrj EIFR,5, .LXB_ShiftFromWriteToRead 
-	clearEIFR
+	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 .LXB_doWriteTransaction_Primary:
 	computeTransactionWindow
@@ -415,7 +419,6 @@ ExecutionBody:
 .LXB_ShiftFromReadToWrite:
 ; start setting up for a write operation here
 	setDataLinesDirection __zero_reg__ 	
-	clearEIFR
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getLowDataByte960                  ; Load lower byte from

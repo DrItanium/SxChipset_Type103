@@ -689,10 +689,181 @@ doLegacyIO() noexcept {
     } 
     signalReady<0>(); 
 }
+class DataBlock {
+public:
+    void clear() {
+        for (int i = 0 ; i< 256; ++i) {
+            block[i] = 0;
+        }
+    }
+    template<bool isReadOperation>
+    void processRequest(uint8_t offset) {
+        auto* blockStart = &block[offset];
+        if constexpr (isReadOperation) {
+            processReadRequest(blockStart);
+        } else {
+            processWriteRequest(blockStart);
+        }
+    }
+    [[nodiscard]] uint8_t& operator[](uint8_t index) noexcept {
+        return block[index];
+    }
+private:
+    void processReadRequest(uint8_t* ptr) noexcept;
+    void processWriteRequest(uint8_t* ptr) noexcept;
+private:
+    uint8_t block[256];
+};
+
+void 
+DataBlock::processWriteRequest(uint8_t* ptr) noexcept {
+    if (digitalRead<Pin::BE0>() == LOW) {
+        ptr[0] = getDataByte<0>();
+    }
+    if (digitalRead<Pin::BE1>() == LOW) {
+        ptr[1] = getDataByte<1>();
+    }
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    // unlike with the EBI, this is internal memory so it is very fast to
+    // perform the transfer
+    ptr[2] = getDataByte<0>();
+    ptr[3] = getDataByte<1>();
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    // unlike with the EBI, this is internal memory so it is very fast to
+    // perform the transfer
+    ptr[4] = getDataByte<0>();
+    ptr[5] = getDataByte<1>();
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    ptr[6] = getDataByte<0>();
+    ptr[7] = getDataByte<1>();
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    ptr[8] = getDataByte<0>();
+    ptr[9] = getDataByte<1>();
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    ptr[10] = getDataByte<0>();
+    ptr[11] = getDataByte<1>();
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    ptr[12] = getDataByte<0>();
+    ptr[13] = getDataByte<1>();
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    ptr[14] = getDataByte<0>();
+    ptr[15] = getDataByte<1>();
+    signalReady();
+}
+void 
+DataBlock::processReadRequest(uint8_t* ptr) noexcept {
+    setDataByte<0>(ptr[0]);
+    setDataByte<1>(ptr[1]);
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    setDataByte<0>(ptr[2]);
+    setDataByte<1>(ptr[3]);
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    setDataByte<0>(ptr[4]);
+    setDataByte<1>(ptr[5]);
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    setDataByte<0>(ptr[6]);
+    setDataByte<1>(ptr[7]);
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    setDataByte<0>(ptr[8]);
+    setDataByte<1>(ptr[9]);
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    setDataByte<0>(ptr[10]);
+    setDataByte<1>(ptr[11]);
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    setDataByte<0>(ptr[12]);
+    setDataByte<1>(ptr[13]);
+    if (isBurstLast()) {
+        signalReady<0>();
+        return;
+    }
+    signalReady();
+    setDataByte<0>(ptr[14]);
+    setDataByte<1>(ptr[15]);
+    signalReady();
+}
+constexpr auto NumberOfBlocks = 4;
+DataBlock blocks[NumberOfBlocks];
+void setupDataBlocks() {
+    for (int i = 0; i < NumberOfBlocks; ++i) {
+        for (int j = 0; j < 256; ++j) {
+            blocks[i][j] = random();
+        }
+        blocks[i].clear();
+    }
+}
 template<bool isReadOperation>
 inline
 void 
 doIO() noexcept { 
+    switch (AddressLinesInterface.view8.data[1]) {
+        case 0x01: // this is a 256byte data mapping
+            blocks[0].processRequest<isReadOperation>(getInputRegister<Port::AddressLinesLowest>());
+            break;
+        case 0x02: // this is a 256byte data mapping
+            blocks[1].processRequest<isReadOperation>(getInputRegister<Port::AddressLinesLowest>());
+            break;
+        case 0x03: // this is a 256byte data mapping
+            blocks[2].processRequest<isReadOperation>(getInputRegister<Port::AddressLinesLowest>());
+            break;
+        case 0x04: // this is a 256byte data mapping
+            blocks[3].processRequest<isReadOperation>(getInputRegister<Port::AddressLinesLowest>());
+            break;
+        default:
+            doLegacyIO<isReadOperation>();
+            break;
+    }
     // Legacy IO is mapped to the start of the IO space and we need to preserve
     // this as well as the behavior when it is unmapped
     doLegacyIO<isReadOperation>();
@@ -874,6 +1045,7 @@ setup() {
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
     GPIOR0 = 0;
     putCPUInReset();
+    setupDataBlocks();
     Serial.println(F("Looking for an SD Card!"));
     {
         while (!SD.begin(static_cast<int>(Pin::SD_EN))) {

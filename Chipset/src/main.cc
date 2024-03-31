@@ -40,7 +40,7 @@ SdFs SD;
 FsFile disk0;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
-constexpr bool EnableRegularHoldSignal = true;
+constexpr bool EnableRegularHoldSignal = false;
 
 [[gnu::address(0x2300)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2308)]] inline volatile CH351 DataLinesInterface;

@@ -697,7 +697,7 @@ public:
         }
     }
     template<bool isReadOperation>
-    void processRequest(uint8_t offset) {
+    [[gnu::always_inline]] inline void processRequest(uint8_t offset) {
         auto* blockStart = &block[offset];
         if constexpr (isReadOperation) {
             processReadRequest(blockStart);
@@ -708,131 +708,150 @@ public:
     [[nodiscard]] uint8_t& operator[](uint8_t index) noexcept {
         return block[index];
     }
+    template<typename T>
+    T& as() noexcept {
+        static_assert(sizeof(T) <= sizeof(block), "The given type is larger than the available size of this data block!");
+        return *reinterpret_cast<T*>(block);
+    }
+
 private:
-    void processReadRequest(uint8_t* ptr) noexcept;
-    void processWriteRequest(uint8_t* ptr) noexcept;
+    void 
+    processReadRequest(uint8_t* ptr) noexcept {
+        uint16_t* ptr16 = reinterpret_cast<uint16_t*>(ptr);
+        DataInterface::setData(ptr16[0]);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady();
+        DataInterface::setData(ptr16[1]);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady();
+        DataInterface::setData(ptr16[2]);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady();
+        DataInterface::setData(ptr16[3]);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady();
+        DataInterface::setData(ptr16[4]);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady();
+        DataInterface::setData(ptr16[5]);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady();
+        DataInterface::setData(ptr16[6]);
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady();
+        DataInterface::setData(ptr16[7]);
+        signalReady();
+    }
+    void 
+    processWriteRequest(uint8_t* ptr) noexcept {
+        if (digitalRead<Pin::BE0>() == LOW) {
+            ptr[0] = getDataByte<0>();
+        }
+        if (digitalRead<Pin::BE1>() == LOW) {
+            ptr[1] = getDataByte<1>();
+        }
+        if (isBurstLast()) {
+            signalReady<0>();
+            return;
+        }
+        signalReady();
+        // flow into this
+        ptr[2] = getDataByte<0>();
+        if (isBurstLast()) {
+            if (digitalRead<Pin::BE1>() == LOW) {
+                ptr[3] = getDataByte<1>();
+            }
+            signalReady<0>();
+            return;
+        }
+        ptr[3] = getDataByte<1>();
+        signalReady();
+        // flow into this
+        ptr[4] = getDataByte<0>();
+        if (isBurstLast()) {
+            if (digitalRead<Pin::BE1>() == LOW) {
+                ptr[5] = getDataByte<1>();
+            }
+            signalReady<0>();
+            return;
+        }
+        ptr[5] = getDataByte<1>();
+        signalReady();
+        // we flow into this
+        ptr[6] = getDataByte<0>();
+        if (isBurstLast()) {
+            if (digitalRead<Pin::BE1>() == LOW) {
+                ptr[7] = getDataByte<1>();
+            }
+            signalReady<0>();
+            return;
+        }
+        ptr[7] = getDataByte<1>();
+        signalReady();
+        // we flow into this
+        ptr[8] = getDataByte<0>();
+        if (isBurstLast()) {
+            if (digitalRead<Pin::BE1>() == LOW) {
+                ptr[9] = getDataByte<1>();
+            }
+            signalReady<0>();
+            return;
+        }
+        ptr[9] = getDataByte<1>();
+        signalReady();
+        // we flow into this
+        ptr[10] = getDataByte<0>();
+        if (isBurstLast()) {
+            if (digitalRead<Pin::BE1>() == LOW) {
+                ptr[11] = getDataByte<1>();
+            }
+            signalReady<0>();
+            return;
+        }
+        ptr[11] = getDataByte<1>();
+        signalReady();
+        // we flow into this
+        ptr[12] = getDataByte<0>();
+        if (isBurstLast()) {
+            if (digitalRead<Pin::BE1>() == LOW) {
+                ptr[13] = getDataByte<1>();
+            }
+            signalReady<0>();
+            return;
+        }
+        ptr[13] = getDataByte<1>();
+        signalReady();
+        ptr[14] = getDataByte<0>();
+        if (digitalRead<Pin::BE1>() == LOW) {
+            ptr[15] = getDataByte<1>();
+        }
+        signalReady();
+    }
 private:
     uint8_t block[256];
 };
 
-void 
-DataBlock::processWriteRequest(uint8_t* ptr) noexcept {
-    if (digitalRead<Pin::BE0>() == LOW) {
-        ptr[0] = getDataByte<0>();
-    }
-    if (digitalRead<Pin::BE1>() == LOW) {
-        ptr[1] = getDataByte<1>();
-    }
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    // unlike with the EBI, this is internal memory so it is very fast to
-    // perform the transfer
-    ptr[2] = getDataByte<0>();
-    ptr[3] = getDataByte<1>();
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    // unlike with the EBI, this is internal memory so it is very fast to
-    // perform the transfer
-    ptr[4] = getDataByte<0>();
-    ptr[5] = getDataByte<1>();
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    ptr[6] = getDataByte<0>();
-    ptr[7] = getDataByte<1>();
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    ptr[8] = getDataByte<0>();
-    ptr[9] = getDataByte<1>();
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    ptr[10] = getDataByte<0>();
-    ptr[11] = getDataByte<1>();
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    ptr[12] = getDataByte<0>();
-    ptr[13] = getDataByte<1>();
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    ptr[14] = getDataByte<0>();
-    ptr[15] = getDataByte<1>();
-    signalReady();
-}
-void 
-DataBlock::processReadRequest(uint8_t* ptr) noexcept {
-    setDataByte<0>(ptr[0]);
-    setDataByte<1>(ptr[1]);
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    setDataByte<0>(ptr[2]);
-    setDataByte<1>(ptr[3]);
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    setDataByte<0>(ptr[4]);
-    setDataByte<1>(ptr[5]);
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    setDataByte<0>(ptr[6]);
-    setDataByte<1>(ptr[7]);
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    setDataByte<0>(ptr[8]);
-    setDataByte<1>(ptr[9]);
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    setDataByte<0>(ptr[10]);
-    setDataByte<1>(ptr[11]);
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    setDataByte<0>(ptr[12]);
-    setDataByte<1>(ptr[13]);
-    if (isBurstLast()) {
-        signalReady<0>();
-        return;
-    }
-    signalReady();
-    setDataByte<0>(ptr[14]);
-    setDataByte<1>(ptr[15]);
-    signalReady();
-}
 constexpr auto NumberOfBlocks = 4;
 DataBlock blocks[NumberOfBlocks];
 void setupDataBlocks() {

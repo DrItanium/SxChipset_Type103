@@ -898,8 +898,7 @@ setup() {
     // attach interrupts
     EICRA = 0b11'00'00'00; // rising edge on INT0 but no trigger at this
                            // point, trigger on high
-    EICRB = 0b1010'1010; // falling edge on the upper four interrupts
-                         // don't enable the interrupt handler
+    EICRB = 0b0000'0010; // falling edge on INT4 only
     pullCPUOutOfReset();
     if constexpr (EnableRegularHoldSignal) {
         bitSet(EIMSK, INT3); // only activate after we have pulled the cpu out of

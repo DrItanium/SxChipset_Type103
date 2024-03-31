@@ -144,12 +144,8 @@ signalReady_Counter
 1: sbisrj EIFR, 4, 1b
 clearEIFR
 .endm
-.macro justWaitForTransaction_GPIOR
-1: sbisrj GPIOR0, 1, 1b
-cbi GPIOR0, 1
-.endm
 .macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
-	justWaitForTransaction_GPIOR
+	justWaitForTransaction
 .endm
 .macro SkipNextIfBE0High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 3

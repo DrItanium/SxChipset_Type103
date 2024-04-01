@@ -36,6 +36,7 @@ extern "C" [[noreturn]] void ExecutionBody();
 extern "C" [[gnu::used]] void doIOReadOperation();
 extern "C" [[gnu::used]] void doIOWriteOperation();
 using DataRegister8 = volatile uint8_t*;
+using DataRegister16 = volatile uint16_t*;
 SdFs SD;
 FsFile disk0;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
@@ -697,8 +698,8 @@ public:
         }
     }
     template<bool isReadOperation>
-    [[gnu::always_inline]] inline void processRequest(uint8_t offset) {
-        auto* blockStart = &block[offset];
+    void processRequest() {
+        DataRegister8 blockStart = &block[getInputRegister<Port::AddressLinesLowest>()];
         if constexpr (isReadOperation) {
             processReadRequest(blockStart);
         } else {
@@ -708,16 +709,11 @@ public:
     [[nodiscard]] uint8_t& operator[](uint8_t index) noexcept {
         return block[index];
     }
-    template<typename T>
-    T& as() noexcept {
-        static_assert(sizeof(T) <= sizeof(block), "The given type is larger than the available size of this data block!");
-        return *reinterpret_cast<T*>(block);
-    }
 
 private:
     void 
-    processReadRequest(uint8_t* ptr) noexcept {
-        uint16_t* ptr16 = reinterpret_cast<uint16_t*>(ptr);
+    processReadRequest(DataRegister8 ptr) noexcept {
+        DataRegister16 ptr16 = reinterpret_cast<DataRegister16>(ptr);
         DataInterface::setData(ptr16[0]);
         if (isBurstLast()) {
             signalReady<0>();
@@ -764,7 +760,7 @@ private:
         signalReady();
     }
     void 
-    processWriteRequest(uint8_t* ptr) noexcept {
+    processWriteRequest(DataRegister8 ptr) noexcept {
         if (digitalRead<Pin::BE0>() == LOW) {
             ptr[0] = getDataByte<0>();
         }
@@ -863,21 +859,23 @@ void setupDataBlocks() {
     }
 }
 template<bool isReadOperation>
-inline
 void 
 doIO() noexcept { 
     switch (AddressLinesInterface.view8.data[1]) {
+        case 0x00:
+            doLegacyIO<isReadOperation>();
+            break;
         case 0x01: // this is a 256byte data mapping
-            blocks[0].processRequest<isReadOperation>(getInputRegister<Port::AddressLinesLowest>());
+            blocks[0].processRequest<isReadOperation>();
             break;
         case 0x02: // this is a 256byte data mapping
-            blocks[1].processRequest<isReadOperation>(getInputRegister<Port::AddressLinesLowest>());
+            blocks[1].processRequest<isReadOperation>();
             break;
         case 0x03: // this is a 256byte data mapping
-            blocks[2].processRequest<isReadOperation>(getInputRegister<Port::AddressLinesLowest>());
+            blocks[2].processRequest<isReadOperation>();
             break;
         case 0x04: // this is a 256byte data mapping
-            blocks[3].processRequest<isReadOperation>(getInputRegister<Port::AddressLinesLowest>());
+            blocks[3].processRequest<isReadOperation>();
             break;
         default:
             doLegacyIO<isReadOperation>();
@@ -885,7 +883,7 @@ doIO() noexcept {
     }
     // Legacy IO is mapped to the start of the IO space and we need to preserve
     // this as well as the behavior when it is unmapped
-    doLegacyIO<isReadOperation>();
+    //doLegacyIO<isReadOperation>();
 }
 
 void 
@@ -961,10 +959,21 @@ setupReadySignal() noexcept {
     }
 }
 void
-setupCLK1() noexcept {
+setupCLK5Mhz() noexcept {
+    pinMode<Pin::CLK5Mhz>(OUTPUT);
+    digitalWrite<Pin::CLK5Mhz, LOW>();
+    OCR4A = 1;
+    TCNT4 = 0;
+    TCCR4A = 0b01'00'00'00;
+    TCCR4B = 0b00'0'01'001;
+}
+void
+setupCLK10Mhz() noexcept {
     // configure PE3 to be CLK1
     pinMode<Pin::CLK1>(OUTPUT);
     digitalWrite<Pin::CLK1, LOW>();
+    OCR3A = 0;
+    TCNT3 = 0;
     TCCR3A = 0b01'00'00'00;
     TCCR3B = 0b00'0'01'001;
 }
@@ -1021,7 +1030,7 @@ setup() {
     // power down the ADC
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC
-    setupCLK1();
+    setupCLK10Mhz();
     setupReadySignal();
     setupHoldTimer();
     

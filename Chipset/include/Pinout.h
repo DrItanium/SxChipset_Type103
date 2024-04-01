@@ -84,6 +84,8 @@ Count = NUM_DIGITAL_PINS,
     BE1 = PortG4,
     BLAST = PortG5,
 
+    CLK5Mhz = PortH3,
+    CLK10Mhz_2 = PortH4, // a test
     ONE_SHOT_READY = PortH6, // OC2B
 
 

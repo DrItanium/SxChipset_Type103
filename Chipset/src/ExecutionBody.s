@@ -51,6 +51,7 @@ CH351DataLinesLo8 = 0x2308
 CH351DataLinesHi8 = 0x2309
 CH351DataLinesDirLo8 = 0x230C
 CH351DataLinesDirHi8 = 0x230D
+__snapshot__ = 9;
 __highest_data_byte960__ = 8
 __higher_data_byte960__ = 7
 __high_data_byte960__ = 6
@@ -179,6 +180,7 @@ clearEIFR
 	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
+	takeSnapshot
 	getLowDataByte960                  							; Load lower byte from
 	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
@@ -187,6 +189,7 @@ clearEIFR
 	signalReady 												; first word down, onto the next one
 	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
+	takeSnapshot
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
@@ -198,6 +201,59 @@ clearEIFR
 1: signalReady
    delay6cycles
    WhenBlastIsHighGoto 1b
+.endm
+.macro ReadBodyPrimary
+	computeTransactionWindow
+	ld __low_data_byte960__,Y
+	ldd __high_data_byte960__,Y+1
+	StoreToDataPort __low_data_byte960__,__high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart 
+	signalReady 
+	ldd __low_data_byte960__,Y+2
+	ldd __high_data_byte960__,Y+3
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart 
+	signalReady 
+	ldd __low_data_byte960__,Y+4
+	ldd __high_data_byte960__,Y+5
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+6
+	ldd __high_data_byte960__,Y+7
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+8
+	ldd __high_data_byte960__,Y+9
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+10
+	ldd __high_data_byte960__,Y+11
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+12
+	ldd __high_data_byte960__,Y+13
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
+	signalReady 
+	ldd __low_data_byte960__,Y+14
+	ldd __high_data_byte960__,Y+15
+	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+.endm
+
+.macro FallthroughExecution_ReadBody
+	signalReady
+	waitForTransaction 
+	sbicrj PIND, 7, .LXB_ShiftFromReadToWrite
+	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
+	ReadBodyPrimary
+	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
+.endm
+.macro takeSnapshot
+	in __snapshot__, PING
 .endm
 .global ExecutionBody
 .global doIOReadOperation
@@ -213,7 +269,7 @@ ExecutionBody:
 .LXB_readOperation_CheckIO_Nothing:
 	sbicrj PINE, 2, 1f 
 	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
-	rjmp .LXB_ReadTransactionStart		  ; And we are done :)
+	rjmp .LXB_ReadTransactionStart
 1:
 	StoreToDataPort __zero_reg__, __zero_reg__ ; make sure we don't leak previous state because this is a read from an open bus area
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
@@ -224,90 +280,13 @@ ExecutionBody:
 	waitForTransaction 
 	sbicrj PIND, 7, .LXB_ShiftFromReadToWrite
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
-	computeTransactionWindow
-	ld __low_data_byte960__,Y
-	ldd __high_data_byte960__,Y+1
-	StoreToDataPort __low_data_byte960__,__high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+2
-	ldd __high_data_byte960__,Y+3
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+4
-	ldd __high_data_byte960__,Y+5
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+6
-	ldd __high_data_byte960__,Y+7
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+8
-	ldd __high_data_byte960__,Y+9
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+10
-	ldd __high_data_byte960__,Y+11
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+12
-	ldd __high_data_byte960__,Y+13
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+14
-	ldd __high_data_byte960__,Y+15
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
+	ReadBodyPrimary
+	FallthroughExecution_ReadBody
 .LXB_ShiftFromWriteToRead:
 	setDataLinesDirection __direction_ff_reg__ ; change the direction to output
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
-	computeTransactionWindow
-	ld __low_data_byte960__,Y
-	ldd __high_data_byte960__,Y+1
-	StoreToDataPort __low_data_byte960__,__high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+2
-	ldd __high_data_byte960__,Y+3
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+4
-	ldd __high_data_byte960__,Y+5
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+6
-	ldd __high_data_byte960__,Y+7
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+8
-	ldd __high_data_byte960__,Y+9
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+10
-	ldd __high_data_byte960__,Y+11
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+12
-	ldd __high_data_byte960__,Y+13
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
-	signalReady 
-	ldd __low_data_byte960__,Y+14
-	ldd __high_data_byte960__,Y+15
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
-	signalReady
-	rjmp .LXB_ReadTransactionStart
+	ReadBodyPrimary
+	FallthroughExecution_ReadBody
 
 .LXB_Write_DoIO_Nothing:
 	sbicrj PINE, 2, 1f
@@ -322,16 +301,17 @@ ExecutionBody:
 	waitForTransaction
 	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
-.LXB_doWriteTransaction_Primary:
 	computeTransactionWindow
 	getLowDataByte960                  							; Load lower byte from
 	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
+	takeSnapshot
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	getHighDataByte960                 							; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	signalReady 												; first word down, onto the next one
 	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
+	takeSnapshot
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
@@ -343,6 +323,7 @@ ExecutionBody:
 	signalReady 				  ; start the next word signal and we can use the 6 cycles to get ready
 	std Y+2,__low_data_byte960__  ; use the time to store into memory while the ready signal counter is doing its thing
 	std Y+3,__high_data_byte960__ ; use the time to store into memory while the ready signal counter is doing its thing
+	takeSnapshot
 	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End	; We can now safely check if we should terminate execution
 	getDataWord960				
 	signalReady					  ; Start the process for the next word ( at this point we will be at a 64-bit number once this ready goes through)
@@ -358,11 +339,13 @@ ExecutionBody:
 	signalReady
 	std Y+6,__low_data_byte960__
 	std Y+7,__high_data_byte960__
+	takeSnapshot
 	WhenBlastIsLowGoto .LXB_WriteBytes8_and_9_End
 	getDataWord960
 	signalReady
 	std Y+8,__low_data_byte960__
 	std Y+9,__high_data_byte960__
+	takeSnapshot
 	WhenBlastIsHighGoto .L657
 	getDataWord960
 	StoreHighByteIfBE1Low 11
@@ -373,6 +356,7 @@ ExecutionBody:
 	signalReady
 	std Y+10,__low_data_byte960__
 	std Y+11,__high_data_byte960__
+	takeSnapshot
 	WhenBlastIsHighGoto .L661
 	getDataWord960
 	StoreHighByteIfBE1Low 13

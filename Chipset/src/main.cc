@@ -861,29 +861,29 @@ void setupDataBlocks() {
 template<bool isReadOperation>
 void 
 doIO() noexcept { 
-    switch (AddressLinesInterface.view8.data[1]) {
-        case 0x00:
-            doLegacyIO<isReadOperation>();
-            break;
-        case 0x01: // this is a 256byte data mapping
-            blocks[0].processRequest<isReadOperation>();
-            break;
-        case 0x02: // this is a 256byte data mapping
-            blocks[1].processRequest<isReadOperation>();
-            break;
-        case 0x03: // this is a 256byte data mapping
-            blocks[2].processRequest<isReadOperation>();
-            break;
-        case 0x04: // this is a 256byte data mapping
-            blocks[3].processRequest<isReadOperation>();
-            break;
-        default:
-            doLegacyIO<isReadOperation>();
-            break;
-    }
-    // Legacy IO is mapped to the start of the IO space and we need to preserve
-    // this as well as the behavior when it is unmapped
-    //doLegacyIO<isReadOperation>();
+    do {
+        switch (AddressLinesInterface.view8.data[1]) {
+            case 0x00:
+                doLegacyIO<isReadOperation>();
+                break;
+            case 0x01: // this is a 256byte data mapping
+                blocks[0].processRequest<isReadOperation>();
+                break;
+            case 0x02: // this is a 256byte data mapping
+                blocks[1].processRequest<isReadOperation>();
+                break;
+            case 0x03: // this is a 256byte data mapping
+                blocks[2].processRequest<isReadOperation>();
+                break;
+            case 0x04: // this is a 256byte data mapping
+                blocks[3].processRequest<isReadOperation>();
+                break;
+            default:
+                doLegacyIO<isReadOperation>();
+                break;
+        }
+        // at this point we should just stay here until we get a signal to return
+    } while (true);
 }
 
 void 

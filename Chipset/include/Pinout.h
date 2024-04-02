@@ -67,13 +67,11 @@ Count = NUM_DIGITAL_PINS,
     HLDA = PortD3,
     Lock = PortD4,
     Reset = PortD5,
-    DEN = PortD6,
-    WR = PortD7,
 
     IsMemorySpaceOperation = PortE2,
     CLK1 = PortE3,
     NewTransaction = PortE4,
-    WriteTransaction = PortE5,
+    WR = PortE5,
     ExternalMemoryOperation = PortE6,
 
     CLK2 = PortE7, // hardwired for this purpose
@@ -85,7 +83,6 @@ Count = NUM_DIGITAL_PINS,
     BLAST = PortG5,
 
     CLK5Mhz = PortH3,
-    CLK10Mhz_2 = PortH4, // a test
     ONE_SHOT_READY = PortH6, // OC2B
 
 

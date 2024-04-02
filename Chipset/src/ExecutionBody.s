@@ -59,9 +59,6 @@ __low_data_byte960__ = 5
 __rdy_signal_count_reg__ = 4
 __eifr_mask_reg__ = 3
 __direction_ff_reg__ = 2
-.macro signalReady_Pin ; 2 cycles itself, 6 cycles after that before the next part of the transaction
-	sbi PIND, 6 ; toggle the output pin
-.endm
 .macro signalReady_Counter ; 2 cycles itself, 6 cycles after that before next part of transaction
 	sts TCNT2, __rdy_signal_count_reg__  
 .endm
@@ -177,7 +174,7 @@ clearEIFR
 	signalReady 
 
 	waitForTransaction
-	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
+	sbisrj PINE, 5, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getDataWord960
@@ -244,7 +241,7 @@ clearEIFR
 .macro FallthroughExecution_ReadBody
 	signalReady
 	waitForTransaction 
-	sbicrj PIND, 7, .LXB_ShiftFromReadToWrite
+	sbicrj PINE, 5, .LXB_ShiftFromReadToWrite
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
@@ -283,7 +280,7 @@ ExecutionBody:
 	signalReady
 .LXB_ReadTransactionStart:
 	waitForTransaction 
-	sbicrj PIND, 7, .LXB_ShiftFromReadToWrite
+	sbicrj PINE, 5, .LXB_ShiftFromReadToWrite
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
@@ -305,7 +302,7 @@ ExecutionBody:
 	signalReady 
 .LXB_WriteTransactionStart:
 	waitForTransaction
-	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
+	sbisrj PINE, 5, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getDataWord960

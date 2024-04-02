@@ -180,11 +180,10 @@ clearEIFR
 	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
-	getLowDataByte960                  							; Load lower byte from
+	getDataWord960
 	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
-	getHighDataByte960                 							; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	signalReady 												; first word down, onto the next one
 	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
@@ -293,7 +292,6 @@ ExecutionBody:
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
-
 .LXB_Write_DoIO_Nothing:
 	sbicrj PINE, 2, 1f
 	call doIOWriteOperation 			 ; perform the write operation
@@ -301,6 +299,8 @@ ExecutionBody:
 1:
 	WhenBlastIsLowGoto .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
 	DoNothingResponseLoop
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart
+
 .LXB_SignalReady_ThenWriteTransactionStart:
 	signalReady 
 .LXB_WriteTransactionStart:
@@ -308,11 +308,10 @@ ExecutionBody:
 	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
-	getLowDataByte960                  							; Load lower byte from
+	getDataWord960
 	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
-	getHighDataByte960                 							; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	signalReady 												; first word down, onto the next one
 	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
@@ -382,7 +381,6 @@ ExecutionBody:
 	std Y+8,__low_data_byte960__
 	FallthroughExecutionBody_WriteOperation
 .LXB_do16BitWriteOperation:
-	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	StoreHighByteIfBE1Low 1
 	FallthroughExecutionBody_WriteOperation
 
@@ -391,11 +389,10 @@ ExecutionBody:
 	setDataLinesDirection __zero_reg__ 	
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
-	getLowDataByte960                  ; Load lower byte from
+	getDataWord960
 	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   ; Yes, so store to the EBI
 	WhenBlastIsLowGoto	.LXB_do16BitWriteOperation
-	getHighDataByte960                 ; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	signalReady 											
 	std Y+1,__high_data_byte960__												; Store the upper byte to the EBI
 	delay2cycles

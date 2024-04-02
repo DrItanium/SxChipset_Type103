@@ -180,7 +180,6 @@ clearEIFR
 	sbisrj PIND, 7, .LXB_ShiftFromWriteToRead 
 	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
-	takeSnapshot
 	getLowDataByte960                  							; Load lower byte from
 	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
@@ -189,7 +188,6 @@ clearEIFR
 	signalReady 												; first word down, onto the next one
 	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
-	takeSnapshot
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
@@ -255,6 +253,14 @@ clearEIFR
 .macro takeSnapshot
 	in __snapshot__, PING
 .endm
+.macro sbrsrj a, b, dest 
+	sbrs \a, \b
+	rjmp \dest
+.endm
+.macro sbrcrj a, b, dest 
+	sbrc \a, \b
+	rjmp \dest
+.endm
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
@@ -305,13 +311,11 @@ ExecutionBody:
 	getLowDataByte960                  							; Load lower byte from
 	SkipNextIfBE0High
 	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
-	takeSnapshot
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	getHighDataByte960                 							; At this point we know that we will always be writing the upper byte (we are flowing to the next 16-bits)
 	signalReady 												; first word down, onto the next one
 	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
-	takeSnapshot
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
@@ -323,7 +327,6 @@ ExecutionBody:
 	signalReady 				  ; start the next word signal and we can use the 6 cycles to get ready
 	std Y+2,__low_data_byte960__  ; use the time to store into memory while the ready signal counter is doing its thing
 	std Y+3,__high_data_byte960__ ; use the time to store into memory while the ready signal counter is doing its thing
-	takeSnapshot
 	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End	; We can now safely check if we should terminate execution
 	getDataWord960				
 	signalReady					  ; Start the process for the next word ( at this point we will be at a 64-bit number once this ready goes through)
@@ -339,13 +342,11 @@ ExecutionBody:
 	signalReady
 	std Y+6,__low_data_byte960__
 	std Y+7,__high_data_byte960__
-	takeSnapshot
 	WhenBlastIsLowGoto .LXB_WriteBytes8_and_9_End
 	getDataWord960
 	signalReady
 	std Y+8,__low_data_byte960__
 	std Y+9,__high_data_byte960__
-	takeSnapshot
 	WhenBlastIsHighGoto .L657
 	getDataWord960
 	StoreHighByteIfBE1Low 11
@@ -356,7 +357,6 @@ ExecutionBody:
 	signalReady
 	std Y+10,__low_data_byte960__
 	std Y+11,__high_data_byte960__
-	takeSnapshot
 	WhenBlastIsHighGoto .L661
 	getDataWord960
 	StoreHighByteIfBE1Low 13

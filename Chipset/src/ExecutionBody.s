@@ -223,7 +223,6 @@ ExecutionBody:
 .LXB_ReadTransactionStart:
 	waitForTransaction 										; minimum is 2 cycles for the skip
 	sbicrj PIND, 7, .LXB_ShiftFromReadToWrite
-.LXB_PrimaryReadTransaction:
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing		   ; 2 cycles (avr) if we skip over, 3 cycles if we take the operation
 	computeTransactionWindow								   ; 2 cycles (avr)
 	ld __low_data_byte960__,Y 		 						   ; 4 cycles (avr)

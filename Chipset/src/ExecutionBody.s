@@ -218,6 +218,12 @@ ExecutionBody:
 	StoreToDataPort __zero_reg__, __zero_reg__ ; make sure we don't leak previous state because this is a read from an open bus area
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
 	DoNothingResponseLoop
+	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
+.LXB_Do16BitReadTransaction:
+	ld __low_data_byte960__,Y 		 						   ; 4 cycles (avr)
+	ldd __high_data_byte960__,Y+1   						   ; 4 cycles (avr)
+.LXB_UpdateDataPort_ThenSignalReady_ThenReadTransactionStart:
+	StoreToDataPort __low_data_byte960__,__high_data_byte960__ ; 3 cycles (avr)
 .LXB_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 .LXB_ReadTransactionStart:
@@ -225,11 +231,10 @@ ExecutionBody:
 	sbicrj PIND, 7, .LXB_ShiftFromReadToWrite
 	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing		   ; 2 cycles (avr) if we skip over, 3 cycles if we take the operation
 	computeTransactionWindow								   ; 2 cycles (avr)
+	WhenBlastIsLowGoto .LXB_Do16BitReadTransaction
 	ld __low_data_byte960__,Y 		 						   ; 4 cycles (avr)
 	ldd __high_data_byte960__,Y+1   						   ; 4 cycles (avr)
 	StoreToDataPort __low_data_byte960__,__high_data_byte960__ ; 3 cycles (avr)
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; 3 cycles when done, 2 cycles when needing to continue (avr)
-																	  ; if we are done here then the total cycles is 23 cycles => 1150 ns
 	signalReady 											   ; 2 cycles (avr) but also need to wait 6 cycles before the next part of the transaction starts
 	ldd __low_data_byte960__,Y+2							   ; 4 cycles (avr)
 	ldd __high_data_byte960__,Y+3							   ; 4 cycles (avr) (mid way through this operation ready has been signaled) so

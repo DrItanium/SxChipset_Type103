@@ -1053,7 +1053,7 @@ setup() {
     pinMode(Pin::ExternalMemoryOperation, INPUT);
     pinMode(Pin::WR, INPUT);
     // setup the EBI
-    XMCRB=0b0'0000'000;
+    XMCRB=0b0'0000'110;
     XMCRA=0b1'010'01'01;  
     //XMCRA=0b1'010'00'00;
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF

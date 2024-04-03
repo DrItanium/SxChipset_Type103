@@ -1,21 +1,27 @@
 GAL16V8
 NewIntegratedChip1
 
-IWR  IRD IA8 IA9 IA10 IA11 IA12 IA13 IA14 GND
-IA15 S3  S2  S1  S0   EBI  IOX  IEN  XEN  VCC
+IWR  IRD IA8 IA9 NC NC  NC  NC  NC  GND
+NC   NC  NC  NC  S0 EBI IOX IEN XEN VCC
 
 /EBI = /IWR * IRD + IWR * /IRD
-/XEN = IA15
-/IOX = /IA15 *  IA14 
-S3   = /IA15 * /IA14 * IA13 * IA12 
-S2   = /IA15 * /IA14 * IA13 * /IA12 * IA11 
-S1   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 
-S0   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 
-/IEN = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8
+/IEN = /IA8 * /IA9
+  S0 =  IA8 * /IA9
+/XEN = /IA8 *  IA9
+/IOX =  IA8 *  IA9
 
 DESCRIPTION
 
+using a 10-bit bus
+0x0000-0x00FF => IBUS
+0x0100-0x01FF => S0
+0x0200-0x02FF => XBUS
+0x0300-0x03FF => IOX
+
 using a 16-bit bus
+
+IWR  IRD IA8 IA9 IA10 IA11 IA12 IA13 IA14 GND
+IA15 S3  S2  S1  S0   EBI  IOX  IEN  XEN  VCC
 0x8000-0xFFFF & /EBI -> /XBUS (32k)
 0x4000-0x7FFF & /EBI -> /IOX (16k)
 0x3000-0x3FFF & /EBI -> S3 (4k)
@@ -23,6 +29,14 @@ using a 16-bit bus
 0x2400-0x27FF & /EBI -> S1 (1k)
 0x2300-0x23FF & /EBI -> S0 (256 bytes)
 0x2200-0x22FF & /EBI -> IBUS (256 bytes)
+
+/XEN = IA15
+/IOX = /IA15 *  IA14 
+S3   = /IA15 * /IA14 * IA13 * IA12 
+S2   = /IA15 * /IA14 * IA13 * /IA12 * IA11 
+S1   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 
+S0   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 
+/IEN = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8
 
 
 If we wait for the enable lines to be correct then we will be slower that we
@@ -38,3 +52,7 @@ S2   = /IA15 * /IA14 * IA13 * /IA12 * IA11 * /IWR * IRD + /IA15 * /IA14 * IA13 *
 S1   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * IA10 * IWR * /IRD
 S0   = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * IA8 * IWR * /IRD 
 /IEN = /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8 * /IWR * IRD + /IA15 * /IA14 * IA13 * /IA12 * /IA11 * /IA10 * IA9 * /IA8 * IWR * /IRD 
+
+The previous design for a 16-bit data bus
+
+

@@ -73,8 +73,12 @@ signalReady_Counter
 	sbic \a, \b		; 1 cycle if false, 2 cycles if true
 	rjmp \dest		; 2 cycles
 .endm
+.macro displayAddress
+;	call printOutDebugInfo
+.endm
 .macro computeTransactionWindow ; 2 cycles
 	lds r28, AddressLinesInterface	; 2 cycles internal, 4 cycles external
+	displayAddress
 .endm
 .macro setupRegisterConstants
 ; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
@@ -108,9 +112,13 @@ signalReady_Counter
 	out PORTF, \lo 	; 1 cycle
 	sts PORTK, \hi	; 2 cycles
 .endm
+.macro displayDataLinesValue_Read
+;	call displayReadParameters
+.endm
 
 .macro StoreToDataPort lo,hi ; 3 cycles
 	StoreToDataPort_AVRGPIO \lo, \hi
+	displayDataLinesValue_Read
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -175,7 +183,7 @@ clearEIFR
 
 	waitForTransaction
 	sbisrj PINE, 5, .LXB_ShiftFromWriteToRead 
-	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
+	sbisrj PINE, 2, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
@@ -190,11 +198,6 @@ clearEIFR
 	StoreHighByteIfBE1Low 3
 	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
-.endm
-.macro DoNothingResponseLoop
-1: signalReady
-   delay6cycles
-   WhenBlastIsHighGoto 1b
 .endm
 .macro ReadBodyPrimary
 	computeTransactionWindow
@@ -242,7 +245,7 @@ clearEIFR
 	signalReady
 	waitForTransaction 
 	sbicrj PINE, 5, .LXB_ShiftFromReadToWrite
-	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
+	sbisrj PINE, 2, .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 .endm
@@ -276,12 +279,12 @@ ExecutionBody:
 .LXB_ReadTransactionStart:
 	waitForTransaction 
 	sbicrj PINE, 5, .LXB_ShiftFromReadToWrite
-	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
+	sbisrj PINE, 2, .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
 .LXB_ShiftFromWriteToRead:
 	setDataLinesDirection __direction_ff_reg__ ; change the direction to output
-	sbicrj PINE, 6, .LXB_readOperation_CheckIO_Nothing
+	sbisrj PINE, 2, .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
 .LXB_Write_DoIO_Nothing:
@@ -293,7 +296,7 @@ ExecutionBody:
 .LXB_WriteTransactionStart:
 	waitForTransaction
 	sbisrj PINE, 5, .LXB_ShiftFromWriteToRead 
-	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
+	sbisrj PINE, 2, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
@@ -374,7 +377,7 @@ ExecutionBody:
 .LXB_ShiftFromReadToWrite:
 ; start setting up for a write operation here
 	setDataLinesDirection __zero_reg__ 	
-	sbicrj PINE, 6, .LXB_Write_DoIO_Nothing
+	sbisrj PINE, 2, .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High

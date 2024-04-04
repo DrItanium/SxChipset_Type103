@@ -1042,3 +1042,22 @@ loop() {
     ExecutionBody();
 }
 
+extern "C" void printOutDebugInfo() noexcept {
+    Serial.print(F("Address: 0x"));
+    Serial.println(AddressLinesInterface.view32.data, HEX);
+    Serial.print(F("Lowest Byte: 0x"));
+    Serial.println(getInputRegister<Port::AddressLinesLowest>(), HEX);
+}
+constexpr uint8_t MemoryWindowUpperHalf = 0xFC;
+constexpr uintptr_t MemoryWindowBaseAddress = (static_cast<uint16_t>(MemoryWindowUpperHalf) << 8);
+extern "C" void displayReadParameters() noexcept {
+    uint8_t* mem = MemoryWindowBaseAddress;
+    mem += getInputRegister<Port::AddressLinesLowest>();
+    // construct a fake address pointer
+    Serial.print(F("lines.DataLow: 0x")); Serial.println(getOutputRegister<Port::DataLinesLower>(), HEX);
+    Serial.print(F("lines.DataHigh: 0x")); Serial.println(getOutputRegister<Port::DataLinesUpper>(), HEX);
+    Serial.println();
+    Serial.print(F("mem.DataLow: 0x")); Serial.println(mem[0], HEX);
+    Serial.print(F("mem.DataHigh: 0x")); Serial.println(mem[1], HEX);
+    Serial.println();
+}

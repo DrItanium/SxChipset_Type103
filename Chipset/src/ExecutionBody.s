@@ -269,13 +269,8 @@ ExecutionBody:
 	setupRegisterConstants
 	rjmp .LXB_ReadTransactionStart ; jump into the top of the invocation loop
 .LXB_readOperation_CheckIO_Nothing:
-	sbicrj PINE, 2, 1f 
 	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
 	rjmp .LXB_ReadTransactionStart
-1:
-	StoreToDataPort __zero_reg__, __zero_reg__ ; make sure we don't leak previous state because this is a read from an open bus area
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart ; if BLAST is low then we are done and just return
-	DoNothingResponseLoop
 .LXB_FirstSignalReady_ThenReadTransactionStart:
 	signalReady
 .LXB_ReadTransactionStart:
@@ -290,13 +285,8 @@ ExecutionBody:
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
 .LXB_Write_DoIO_Nothing:
-	sbicrj PINE, 2, 1f
 	call doIOWriteOperation 			 ; perform the write operation
 	rjmp .LXB_WriteTransactionStart		 ; restart execution
-1:
-	WhenBlastIsLowGoto .LXB_SignalReady_ThenWriteTransactionStart ; if BLAST is low then we are done and just return
-	DoNothingResponseLoop
-	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 
 .LXB_SignalReady_ThenWriteTransactionStart:
 	signalReady 

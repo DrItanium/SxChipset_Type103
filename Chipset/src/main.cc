@@ -46,25 +46,7 @@ constexpr bool EnableRegularHoldSignal = false;
 [[gnu::address(0x2300)]] inline volatile CH351 AddressLinesInterface;
 [[gnu::address(0x2308)]] inline volatile CH351 DataLinesInterface;
 [[gnu::address(0x2310)]] inline volatile CH351 ControlSignals;
-inline 
-void
-holdBus() noexcept {
-    if (bit_is_clear(GPIOR0, 0)) {
-        digitalWrite<Pin::HOLD, HIGH>();
-        bitSet(GPIOR0, 0);
-    }
-}
 
-inline 
-void
-releaseBus() noexcept {
-    if (bit_is_set(GPIOR0, 0)) {
-        digitalWrite<Pin::HOLD, LOW>();
-        bitClear(GPIOR0, 0);
-    }
-}
-
-// allocate 1024 bytes total
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
 }

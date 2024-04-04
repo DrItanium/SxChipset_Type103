@@ -42,10 +42,11 @@ FsFile disk0;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 constexpr bool EnableRegularHoldSignal = false;
-
-[[gnu::address(0x2300)]] inline volatile CH351 AddressLinesInterface;
-[[gnu::address(0x2308)]] inline volatile CH351 DataLinesInterface;
-[[gnu::address(0x2310)]] inline volatile CH351 ControlSignals;
+// 0b1111'1100
+// 0b1111'1101 -> 
+[[gnu::address(0xFD00)]] inline volatile CH351 AddressLinesInterface;
+[[gnu::address(0xFD08)]] inline volatile CH351 DataLinesInterface;
+[[gnu::address(0xFD10)]] inline volatile CH351 ControlSignals;
 
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
@@ -304,7 +305,7 @@ struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
-    static constexpr uint8_t MemoryWindowUpperHalf = 0x22;
+    static constexpr uint8_t MemoryWindowUpperHalf = 0xFC;
     static constexpr uintptr_t MemoryWindowBaseAddress = (static_cast<uint16_t>(MemoryWindowUpperHalf) << 8);
     static constexpr auto TransferBufferSize = 256;
 public:
@@ -959,7 +960,7 @@ setupCLK10Mhz() noexcept {
 void 
 setupTimers() {
     setupCLK10Mhz();
-    setupCLK5Mhz();
+//    setupCLK5Mhz();
     setupReadySignal();
 }
 void
@@ -1030,11 +1031,8 @@ setup() {
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
     // attach interrupts
-    EICRA = 0b11'00'00'00; // rising edge on INT3 but no trigger at this
-                           // point, trigger on high
     EICRB = 0b0000'0010; // falling edge on INT4 only
     pullCPUOutOfReset();
-    // now we can enable the hold system
 }
 void 
 loop() {

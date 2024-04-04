@@ -981,12 +981,7 @@ setupHoldTimer() noexcept {
     OCR5A = 0xFFFF;
     OCR5B = 0x8000;
     OCR5C = 0xC000;
-    if constexpr (EnableRegularHoldSignal) {
-        TIMSK5 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
-                                 // interrupts
-    } else {
-        TIMSK5 = 0;
-    }
+    TIMSK5 = 0; // don't activate the timer yet
     TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
 }
 ISR(TIMER5_OVF_vect) {
@@ -1013,6 +1008,21 @@ ISR(INT3_vect) {
     }
 }
 void
+enableHoldSystem() noexcept {
+    if constexpr (EnableRegularHoldSignal) {
+        TIMSK5 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
+                                 // interrupts
+        bitSet(EIMSK, INT3); // only activate after we have pulled the cpu out of
+                             // reset
+    }
+}
+void 
+setupTimers() {
+    setupCLK10Mhz();
+    setupReadySignal();
+    setupHoldTimer();
+}
+void
 setup() {
     int32_t seed = 0;
 #define X(value) seed += analogRead(value) 
@@ -1027,10 +1037,7 @@ setup() {
     // power down the ADC
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC
-    setupCLK10Mhz();
-    setupReadySignal();
-    setupHoldTimer();
-    
+    setupTimers();
     // enable interrupt pin output
     pinMode<Pin::INT0_960_>(OUTPUT);
     digitalWrite<Pin::INT0_960_, HIGH>();
@@ -1091,14 +1098,12 @@ setup() {
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
     // attach interrupts
-    EICRA = 0b11'00'00'00; // rising edge on INT0 but no trigger at this
+    EICRA = 0b11'00'00'00; // rising edge on INT3 but no trigger at this
                            // point, trigger on high
     EICRB = 0b0000'0010; // falling edge on INT4 only
     pullCPUOutOfReset();
-    if constexpr (EnableRegularHoldSignal) {
-        bitSet(EIMSK, INT3); // only activate after we have pulled the cpu out of
-                             // reset
-    }
+    // now we can enable the hold system
+    enableHoldSystem();
 }
 void 
 loop() {

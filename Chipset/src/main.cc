@@ -975,63 +975,13 @@ setupCLK10Mhz() noexcept {
     TCCR3B = 0b00'0'01'001;
 }
 void 
-setupHoldTimer() noexcept {
-    TCCR5A = 0b00'00'00'01; // Normal timer mode
-    TCNT5 = 0; // zero out the timer
-    OCR5A = 0xFFFF;
-    OCR5B = 0x8000;
-    OCR5C = 0xC000;
-    TIMSK5 = 0; // don't activate the timer yet
-    TCCR5B = 0b0'0'0'00'011; // divide by 8 prescalar
-}
-ISR(TIMER5_OVF_vect) {
-    if constexpr (EnableRegularHoldSignal) {
-        if (digitalRead<Pin::Lock>() == HIGH) {
-            holdBus();
-        }
-    }
-}
-
-ISR(INT3_vect) {
-    if constexpr (EnableRegularHoldSignal) {
-        {
-            AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
-            AddressLinesInterface.view32.data = 0;
-            {
-                // code goes here
-                // if we get here then it is a legit operation
-                // at the end we want to revert all of our direction changes as well
-            }
-            AddressLinesInterface.view32.direction = 0;
-        }
-        releaseBus();
-    }
-}
-void
-enableHoldSystem() noexcept {
-    if constexpr (EnableRegularHoldSignal) {
-        TIMSK5 = 0b00'0'0'000'1; // overflow interrupt enable plus the comparison
-                                 // interrupts
-        bitSet(EIMSK, INT3); // only activate after we have pulled the cpu out of
-                             // reset
-    }
-}
-void 
 setupTimers() {
     setupCLK10Mhz();
+    setupCLK5Mhz();
     setupReadySignal();
-    setupHoldTimer();
 }
 void
 setup() {
-    int32_t seed = 0;
-#define X(value) seed += analogRead(value) 
-    X(A0); X(A1); X(A2); X(A3);
-    X(A4); X(A5); X(A6); X(A7);
-    X(A8); X(A9); X(A10); X(A11);
-    X(A12); X(A13); X(A14); X(A15);
-#undef X
-    randomSeed(seed);
     Serial.begin(115200);
     SPI.begin();
     // power down the ADC
@@ -1103,7 +1053,6 @@ setup() {
     EICRB = 0b0000'0010; // falling edge on INT4 only
     pullCPUOutOfReset();
     // now we can enable the hold system
-    enableHoldSystem();
 }
 void 
 loop() {

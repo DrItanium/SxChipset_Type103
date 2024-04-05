@@ -17,10 +17,10 @@
   13   | A30      | Input
   14   | A31      | Input
   15   | SP4      | NC
-  16   | SP3      | NC
-  17   | SP2      | NC
-  18   | SP1      | NC
-  19   | SP0      | NC
+  16   | IO       | NC
+  17   | RAM      | NC
+  18   | FLASH    | NC
+  19   | SRAM     | Output
   20   | PE6      | Output
   21   | PE5      | Output
   22   | PE4      | Output

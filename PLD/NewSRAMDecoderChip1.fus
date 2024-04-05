@@ -5,10 +5,10 @@ AR
 
 Pin 23 = EN0          S0 = 0   S1 = 1
   1  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-  2  ---- -x-- -x-- ---- ---- ---- -x-- ---- -x-- -x-x -x-x
-  3  ---- x--- -x-- ---- ---- ---- -x-- ---- -x-- -x-x -xx-
-  4  ---- -x-- x--- ---- ---- ---- -x-- ---- -x-- -xx- -x-x
-  5  ---- x--- x--- ---- ---- ---- -x-- ---- -x-- -xx- -xx-
+  2  ---- -x-- -x-- ---- ---- ---- ---- ---- -x-x -x-x -x-x
+  3  ---- x--- -x-- ---- ---- ---- ---- ---- -x-x -x-x -xx-
+  4  ---- -x-- x--- ---- ---- ---- ---- ---- -x-x -xx- -x-x
+  5  ---- x--- x--- ---- ---- ---- ---- ---- -x-x -xx- -xx-
   6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   7  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   8  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -16,10 +16,10 @@ Pin 23 = EN0          S0 = 0   S1 = 1
 
 Pin 22 = EN1          S0 = 0   S1 = 1
  10  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 11  ---- -x-- -x-- ---- ---- ---- -x-- ---- x--- -x-x -x-x
- 12  ---- x--- -x-- ---- ---- ---- -x-- ---- x--- -x-x -xx-
- 13  ---- -x-- x--- ---- ---- ---- -x-- ---- x--- -xx- -x-x
- 14  ---- x--- x--- ---- ---- ---- -x-- ---- x--- -xx- -xx-
+ 11  ---- -x-- -x-- ---- ---- ---- ---- ---- x--x -x-x -x-x
+ 12  ---- x--- -x-- ---- ---- ---- ---- ---- x--x -x-x -xx-
+ 13  ---- -x-- x--- ---- ---- ---- ---- ---- x--x -xx- -x-x
+ 14  ---- x--- x--- ---- ---- ---- ---- ---- x--x -xx- -xx-
  15  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  16  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  17  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -29,10 +29,10 @@ Pin 22 = EN1          S0 = 0   S1 = 1
 
 Pin 21 = EN2          S0 = 0   S1 = 1
  21  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 22  ---- -x-- -x-- ---- ---- ---- -x-- ---- -x-- x--x -x-x
- 23  ---- x--- -x-- ---- ---- ---- -x-- ---- -x-- x--x -xx-
- 24  ---- -x-- x--- ---- ---- ---- -x-- ---- -x-- x-x- -x-x
- 25  ---- x--- x--- ---- ---- ---- -x-- ---- -x-- x-x- -xx-
+ 22  ---- -x-- -x-- ---- ---- ---- ---- ---- -x-x x--x -x-x
+ 23  ---- x--- -x-- ---- ---- ---- ---- ---- -x-x x--x -xx-
+ 24  ---- -x-- x--- ---- ---- ---- ---- ---- -x-x x-x- -x-x
+ 25  ---- x--- x--- ---- ---- ---- ---- ---- -x-x x-x- -xx-
  26  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  27  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  28  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -44,10 +44,10 @@ Pin 21 = EN2          S0 = 0   S1 = 1
 
 Pin 20 = EN3          S0 = 0   S1 = 1
  34  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 35  ---- -x-- -x-- ---- ---- ---- -x-- ---- x--- x--x -x-x
- 36  ---- x--- -x-- ---- ---- ---- -x-- ---- x--- x--x -xx-
- 37  ---- -x-- x--- ---- ---- ---- -x-- ---- x--- x-x- -x-x
- 38  ---- x--- x--- ---- ---- ---- -x-- ---- x--- x-x- -xx-
+ 35  ---- -x-- -x-- ---- ---- ---- ---- ---- x--x x--x -x-x
+ 36  ---- x--- -x-- ---- ---- ---- ---- ---- x--x x--x -xx-
+ 37  ---- -x-- x--- ---- ---- ---- ---- ---- x--x x-x- -x-x
+ 38  ---- x--- x--- ---- ---- ---- ---- ---- x--x x-x- -xx-
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  40  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  41  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -61,10 +61,10 @@ Pin 20 = EN3          S0 = 0   S1 = 1
 
 Pin 19 = EN4          S0 = 0   S1 = 1
  49  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 50  ---- -x-- -x-- ---- ---- ---- -x-- ---- -x-- -x-x x--x
- 51  ---- x--- -x-- ---- ---- ---- -x-- ---- -x-- -x-x x-x-
- 52  ---- -x-- x--- ---- ---- ---- -x-- ---- -x-- -xx- x--x
- 53  ---- x--- x--- ---- ---- ---- -x-- ---- -x-- -xx- x-x-
+ 50  ---- -x-- -x-- ---- ---- ---- ---- ---- -x-x -x-x x--x
+ 51  ---- x--- -x-- ---- ---- ---- ---- ---- -x-x -x-x x-x-
+ 52  ---- -x-- x--- ---- ---- ---- ---- ---- -x-x -xx- x--x
+ 53  ---- x--- x--- ---- ---- ---- ---- ---- -x-x -xx- x-x-
  54  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  55  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  56  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -80,10 +80,10 @@ Pin 19 = EN4          S0 = 0   S1 = 1
 
 Pin 18 = EN5          S0 = 0   S1 = 1
  66  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 67  ---- -x-- -x-- ---- ---- ---- -x-- ---- x--- -x-x x--x
- 68  ---- x--- -x-- ---- ---- ---- -x-- ---- x--- -x-x x-x-
- 69  ---- -x-- x--- ---- ---- ---- -x-- ---- x--- -xx- x--x
- 70  ---- x--- x--- ---- ---- ---- -x-- ---- x--- -xx- x-x-
+ 67  ---- -x-- -x-- ---- ---- ---- ---- ---- x--x -x-x x--x
+ 68  ---- x--- -x-- ---- ---- ---- ---- ---- x--x -x-x x-x-
+ 69  ---- -x-- x--- ---- ---- ---- ---- ---- x--x -xx- x--x
+ 70  ---- x--- x--- ---- ---- ---- ---- ---- x--x -xx- x-x-
  71  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  72  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  73  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -99,10 +99,10 @@ Pin 18 = EN5          S0 = 0   S1 = 1
 
 Pin 17 = EN6          S0 = 0   S1 = 1
  83  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 84  ---- -x-- -x-- ---- ---- ---- -x-- ---- -x-- x--x x--x
- 85  ---- x--- -x-- ---- ---- ---- -x-- ---- -x-- x--x x-x-
- 86  ---- -x-- x--- ---- ---- ---- -x-- ---- -x-- x-x- x--x
- 87  ---- x--- x--- ---- ---- ---- -x-- ---- -x-- x-x- x-x-
+ 84  ---- -x-- -x-- ---- ---- ---- ---- ---- -x-x x--x x--x
+ 85  ---- x--- -x-- ---- ---- ---- ---- ---- -x-x x--x x-x-
+ 86  ---- -x-- x--- ---- ---- ---- ---- ---- -x-x x-x- x--x
+ 87  ---- x--- x--- ---- ---- ---- ---- ---- -x-x x-x- x-x-
  88  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  89  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  90  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -116,10 +116,10 @@ Pin 17 = EN6          S0 = 0   S1 = 1
 
 Pin 16 = EN7          S0 = 0   S1 = 1
  98  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 99  ---- -x-- -x-- ---- ---- ---- -x-- ---- x--- x--x x--x
-100  ---- x--- -x-- ---- ---- ---- -x-- ---- x--- x--x x-x-
-101  ---- -x-- x--- ---- ---- ---- -x-- ---- x--- x-x- x--x
-102  ---- x--- x--- ---- ---- ---- -x-- ---- x--- x-x- x-x-
+ 99  ---- -x-- -x-- ---- ---- ---- ---- ---- x--x x--x x--x
+100  ---- x--- -x-- ---- ---- ---- ---- ---- x--x x--x x-x-
+101  ---- -x-- x--- ---- ---- ---- ---- ---- x--x x-x- x--x
+102  ---- x--- x--- ---- ---- ---- ---- ---- x--x x-x- x-x-
 103  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 104  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 105  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -129,7 +129,7 @@ Pin 16 = EN7          S0 = 0   S1 = 1
 109  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 110  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
-Pin 15 = SRAM         S0 = 0   S1 = 0
+Pin 15 = SRAM         S0 = 0   S1 = 1
 111  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 112  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 113  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

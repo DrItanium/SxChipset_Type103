@@ -982,11 +982,6 @@ setup() {
     pinMode(Pin::Reset, OUTPUT);
     digitalWrite<Pin::Reset, LOW>();
     // set these up ahead of time
-    pinMode(Pin::Lock, INPUT);
-    pinMode(Pin::HOLD, OUTPUT);
-    digitalWrite<Pin::HOLD, LOW>();
-    pinMode(Pin::HLDA, INPUT);
-    // setup bank capture to read in address lines
     pinMode(Pin::LED, OUTPUT);
     digitalWrite<Pin::LED, LOW>();
     pinMode(Pin::NewTransaction, INPUT);
@@ -1051,7 +1046,7 @@ extern "C" void printOutDebugInfo() noexcept {
 constexpr uint8_t MemoryWindowUpperHalf = 0xFC;
 constexpr uintptr_t MemoryWindowBaseAddress = (static_cast<uint16_t>(MemoryWindowUpperHalf) << 8);
 extern "C" void displayReadParameters() noexcept {
-    uint8_t* mem = MemoryWindowBaseAddress;
+    uint8_t* mem = reinterpret_cast<uint8_t*>(MemoryWindowBaseAddress);
     mem += getInputRegister<Port::AddressLinesLowest>();
     // construct a fake address pointer
     Serial.print(F("lines.DataLow: 0x")); Serial.println(getOutputRegister<Port::DataLinesLower>(), HEX);

@@ -62,10 +62,7 @@ Count = NUM_DIGITAL_PINS,
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
     ReadyDirect = PortB6,
-    HOLD = PortB7,
 
-    HLDA = PortD3,
-    Lock = PortD4,
     Reset = PortD5,
 
     IsMemorySpaceOperation = PortE2,

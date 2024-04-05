@@ -1028,6 +1028,10 @@ setup() {
     // attach interrupts
     EICRB = 0b0000'0010; // falling edge on INT4 only
     pullCPUOutOfReset();
+    // I want to move the data lines over to fast ports and I want to
+    // eliminate the use of the CH351s as well. So bits 8-23 need to be
+    // directly connected to the microcontroller. The idea is to do the same
+    // thing we do now with the CH351 but with the microcontroller pins instead
 }
 void 
 loop() {

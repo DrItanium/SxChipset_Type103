@@ -1036,7 +1036,7 @@ loop() {
     // packets from external chips connected over serial.
     ExecutionBody();
 }
-
+#if 0
 extern "C" void printOutDebugInfo() noexcept {
     Serial.print(F("Address: 0x"));
     Serial.println(AddressLinesInterface.view32.data, HEX);
@@ -1056,3 +1056,4 @@ extern "C" void displayReadParameters() noexcept {
     Serial.print(F("mem.DataHigh: 0x")); Serial.println(mem[1], HEX);
     Serial.println();
 }
+#endif

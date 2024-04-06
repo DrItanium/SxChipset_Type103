@@ -41,12 +41,6 @@ SdFs SD;
 FsFile disk0;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
-constexpr bool EnableRegularHoldSignal = false;
-// 0b1111'1100
-// 0b1111'1101 -> 
-[[gnu::address(0xFD00)]] inline volatile CH351 AddressLinesInterface;
-[[gnu::address(0xFD08)]] inline volatile CH351 DataLinesInterface;
-[[gnu::address(0xFD10)]] inline volatile CH351 ControlSignals;
 
 [[gnu::always_inline]] inline bool isBurstLast() noexcept { 
     return digitalRead<Pin::BLAST>() == LOW; 
@@ -74,8 +68,6 @@ struct DataPortInterface {
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
     static void configureInterface() noexcept {
-        DataLinesInterface.view32.direction = 0;
-        DataLinesInterface.view32.data = 0;
         getDirectionRegister<Port::DataLinesUpper>() = 0;
         getDirectionRegister<Port::DataLinesLower>() = 0;
     }
@@ -103,8 +95,6 @@ struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
     static inline void setLowerDataByte(uint8_t value) noexcept { getOutputRegister<Port::DataLinesLower>() = value; }
     static inline void setUpperDataByte(uint8_t value) noexcept { getOutputRegister<Port::DataLinesUpper>() = value; }
     static void configureInterface() noexcept {
-        DataLinesInterface.view32.direction = 0;
-        DataLinesInterface.view32.data = 0;
         getDirectionRegister<Port::DataLinesUpper>() = 0xff;
         getDirectionRegister<Port::DataLinesLower>() = 0xff;
     }
@@ -317,7 +307,16 @@ public:
         int counter = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize, ++counter) {
             // just modify the bank as we go along
+#if 0
             AddressLinesInterface.view32.data = address;
+#else
+            uint8_t a8_15 = static_cast<uint8_t>(address >> 8);
+            uint8_t a16_23 = static_cast<uint8_t>(address >> 16);
+            digitalWrite(Pin::AddressLineA16, a16_23 & 0b0000'0001 ? HIGH : LOW);
+            digitalWrite(Pin::AddressLineA17, a16_23 & 0b0000'0010 ? HIGH : LOW);
+            getOutputRegister<Port::AddressLines18_23>() = a16_23;
+            getOutputRegister<Port::AddressLines8_15>() = a8_15;
+#endif
             theFirmware.read(const_cast<uint8_t*>(theBuffer), TransferBufferSize);
             if ((counter % 32) == 0) {
                 Serial.print('.');
@@ -844,7 +843,7 @@ void setupDataBlocks() {
 template<bool isReadOperation>
 void 
 doIO() noexcept { 
-    switch (AddressLinesInterface.view8.data[1]) {
+    switch (getInputRegister<Port::AddressLines8_15>()) {
         case 0x00:
             doLegacyIO<isReadOperation>();
             break;
@@ -993,14 +992,25 @@ setup() {
     //XMCRA=0b1'010'00'00;
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
-    AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
-    AddressLinesInterface.view32.data = 0;
-    getDirectionRegister<Port::AddressLinesLowest>() = 0;
-    getOutputRegister<Port::AddressLinesLowest>() = 0;
     DataInterface::configureInterface();
     MemoryInterface::configure();
+    getDirectionRegister<Port::AddressLinesLowest>() = 0;
+    getOutputRegister<Port::AddressLinesLowest>() = 0;
+#if 0
+    AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
+    AddressLinesInterface.view32.data = 0;
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000000;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
+#else
+    pinMode(Pin::AddressLineA16, OUTPUT);
+    digitalWrite<Pin::AddressLineA16, LOW>();
+    pinMode(Pin::AddressLineA17, OUTPUT);
+    digitalWrite<Pin::AddressLineA17, LOW>();
+    getDirectionRegister<Port::AddressLines18_23>() = 0xFF; // just configure them all for output
+    getOutputRegister<Port::AddressLines18_23>() = 0;
+    getDirectionRegister<Port::AddressLines8_15>() = 0xFF; // just configure them all for output
+    getOutputRegister<Port::AddressLines8_15>() = 0;
+#endif
     GPIOR0 = 0;
     putCPUInReset();
     setupDataBlocks();
@@ -1023,15 +1033,22 @@ setup() {
         Serial.println(F("Could not open disk0.dsk"));
         Serial.println(F("No hard drive will be available"));
     }
+#if 0
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
+#else
+    pinMode(Pin::AddressLineA16, INPUT);
+    digitalWrite<Pin::AddressLineA16, LOW>();
+    pinMode(Pin::AddressLineA17, INPUT);
+    digitalWrite<Pin::AddressLineA17, LOW>();
+    getDirectionRegister<Port::AddressLines18_23>() = 0; 
+    getOutputRegister<Port::AddressLines18_23>() = 0;
+    getDirectionRegister<Port::AddressLines8_15>() = 0; 
+    getOutputRegister<Port::AddressLines8_15>() = 0;
+#endif
     // attach interrupts
     EICRB = 0b0000'0010; // falling edge on INT4 only
     pullCPUOutOfReset();
-    // I want to move the data lines over to fast ports and I want to
-    // eliminate the use of the CH351s as well. So bits 8-23 need to be
-    // directly connected to the microcontroller. The idea is to do the same
-    // thing we do now with the CH351 but with the microcontroller pins instead
 }
 void 
 loop() {

@@ -64,6 +64,8 @@ Count = NUM_DIGITAL_PINS,
     ReadyDirect = PortB6,
 
     Reset = PortD5,
+    AddressLineA16 = PortD6,
+    AddressLineA17 = PortD7,
 
     IsMemorySpaceOperation = PortE2,
     CLK1 = PortE3,
@@ -85,7 +87,6 @@ Count = NUM_DIGITAL_PINS,
 
 
 
-
 };
 enum class Port : byte {
     // stop at mega2560 tier
@@ -97,6 +98,8 @@ enum class Port : byte {
     DataLinesLower = F,
     DataLinesUpper = K,
     AddressLinesLowest = L,
+    AddressLines8_15 = J,
+    AddressLines18_23 = C,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

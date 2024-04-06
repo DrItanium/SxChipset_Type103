@@ -308,13 +308,9 @@ public:
         int counter = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize, ++counter) {
             // just modify the bank as we go along
-#if 0
-            AddressLinesInterface.view32.data = address;
-#else
             getOutputRegister<Port::AddressLines8_15>() = static_cast<uint8_t>(address >> 8);
             getOutputRegister<Port::AddressLines16_23>() = static_cast<uint8_t>(address >> 16);
             getOutputRegister<Port::AddressLines24_31>() = static_cast<uint8_t>(address >> 24);
-#endif
             theFirmware.read(temporaryBuffer, TransferBufferSize);
             memcpy(const_cast<uint8_t*>(theBuffer), temporaryBuffer, TransferBufferSize); 
             // now do a sanity check
@@ -334,15 +330,6 @@ public:
                 Serial.print('.');
             }
         }
-#if 1
-        getOutputRegister<Port::AddressLines24_31>() = 0;
-        getOutputRegister<Port::AddressLines16_23>() = 0;
-        getOutputRegister<Port::AddressLines8_15>() = 0;
-        volatile auto* theBuffer2 = memoryPointer<uint32_t>(MemoryWindowBaseAddress);
-        for (auto i = 0u; i < (TransferBufferSize / sizeof(uint32_t)); ++i) {
-            Serial.printf(F("0x%x: 0x%lx\n"), i, theBuffer2[i]);
-        }
-#endif
     }
 };
 
@@ -1010,19 +997,12 @@ setup() {
     MemoryInterface::configure();
     getDirectionRegister<Port::AddressLinesLowest>() = 0;
     getOutputRegister<Port::AddressLinesLowest>() = 0;
-#if 0
-    AddressLinesInterface.view32.direction = 0xFFFF'FFFE;
-    AddressLinesInterface.view32.data = 0;
-    ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000000;
-    ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
-#else
     getDirectionRegister<Port::AddressLines8_15>() = 0xFF; // just configure them all for output
     getOutputRegister<Port::AddressLines8_15>() = 0;
     getDirectionRegister<Port::AddressLines16_23>() = 0xFF; // just configure them all for output
     getOutputRegister<Port::AddressLines16_23>() = 0;
     getDirectionRegister<Port::AddressLines24_31>() = 0xFF;
     getOutputRegister<Port::AddressLines24_31>() = 0;
-#endif
     GPIOR0 = 0;
     putCPUInReset();
     setupDataBlocks();
@@ -1045,17 +1025,12 @@ setup() {
         Serial.println(F("Could not open disk0.dsk"));
         Serial.println(F("No hard drive will be available"));
     }
-#if 0
-    // put the address line capture io expander back into input mode
-    AddressLinesInterface.view32.direction = 0;
-#else
     getDirectionRegister<Port::AddressLines8_15>() = 0; 
     getOutputRegister<Port::AddressLines8_15>() = 0;
     getDirectionRegister<Port::AddressLines16_23>() = 0; 
     getOutputRegister<Port::AddressLines16_23>() = 0;
     getDirectionRegister<Port::AddressLines24_31>() = 0;
     getOutputRegister<Port::AddressLines24_31>() = 0;
-#endif
     // attach interrupts
     EICRB = 0b0000'0010; // falling edge on INT4 only
     pullCPUOutOfReset();
@@ -1067,24 +1042,3 @@ loop() {
     // packets from external chips connected over serial.
     ExecutionBody();
 }
-#if 0
-extern "C" void printOutDebugInfo() noexcept {
-    Serial.print(F("Address: 0x"));
-    Serial.println(AddressLinesInterface.view32.data, HEX);
-    Serial.print(F("Lowest Byte: 0x"));
-    Serial.println(getInputRegister<Port::AddressLinesLowest>(), HEX);
-}
-constexpr uint8_t MemoryWindowUpperHalf = 0xFC;
-constexpr uintptr_t MemoryWindowBaseAddress = (static_cast<uint16_t>(MemoryWindowUpperHalf) << 8);
-extern "C" void displayReadParameters() noexcept {
-    uint8_t* mem = reinterpret_cast<uint8_t*>(MemoryWindowBaseAddress);
-    mem += getInputRegister<Port::AddressLinesLowest>();
-    // construct a fake address pointer
-    Serial.print(F("lines.DataLow: 0x")); Serial.println(getOutputRegister<Port::DataLinesLower>(), HEX);
-    Serial.print(F("lines.DataHigh: 0x")); Serial.println(getOutputRegister<Port::DataLinesUpper>(), HEX);
-    Serial.println();
-    Serial.print(F("mem.DataLow: 0x")); Serial.println(mem[0], HEX);
-    Serial.print(F("mem.DataHigh: 0x")); Serial.println(mem[1], HEX);
-    Serial.println();
-}
-#endif

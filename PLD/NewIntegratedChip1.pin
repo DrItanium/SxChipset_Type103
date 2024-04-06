@@ -4,8 +4,8 @@
 -----------------------------
    1   | IWR      | Input
    2   | IRD      | Input
-   3   | IA8      | Input
-   4   | IA9      | Input
+   3   | NC       | Input
+   4   | NC       | Input
    5   | NC       | Input
    6   | NC       | Input
    7   | NC       | Input
@@ -16,10 +16,10 @@
   12   | NC       | NC
   13   | NC       | NC
   14   | NC       | NC
-  15   | S0       | Output
+  15   | NC       | NC
   16   | EBI      | Output
-  17   | IOX      | Output
-  18   | IEN      | Output
-  19   | XEN      | Output
+  17   | NC       | NC
+  18   | NC       | NC
+  19   | NC       | NC
   20   | VCC      | VCC
 

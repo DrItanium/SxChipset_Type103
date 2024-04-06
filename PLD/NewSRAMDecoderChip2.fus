@@ -5,8 +5,8 @@ AR
 
 Pin 23 = EA8          S0 = 1   S1 = 1
   1  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
-  2  ---- -x-- ---- ---- ---- ---- ---- ---- ---- ---- x---
-  3  ---- x--- ---- ---- x--- ---- ---- ---- ---- ---- ----
+  2  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- x---
+  3  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   4  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   5  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
   6  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -16,8 +16,8 @@ Pin 23 = EA8          S0 = 1   S1 = 1
 
 Pin 22 = EA9          S0 = 1   S1 = 1
  10  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 11  ---- -x-- ---- ---- ---- ---- ---- ---- ---- ---- --x-
- 12  ---- x--- ---- ---- ---- x--- ---- ---- ---- ---- ----
+ 11  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- --x-
+ 12  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  13  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  14  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  15  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -29,8 +29,8 @@ Pin 22 = EA9          S0 = 1   S1 = 1
 
 Pin 21 = EA10         S0 = 1   S1 = 1
  21  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 22  ---- -x-- ---- ---- ---- ---- ---- ---- ---- --x- ----
- 23  ---- x--- ---- ---- ---- ---- x--- ---- ---- ---- ----
+ 22  ---- ---- ---- ---- ---- ---- ---- ---- ---- --x- ----
+ 23  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  24  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  25  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  26  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -44,8 +44,8 @@ Pin 21 = EA10         S0 = 1   S1 = 1
 
 Pin 20 = EA11         S0 = 1   S1 = 1
  34  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 35  ---- -x-- ---- ---- ---- ---- ---- ---- --x- ---- ----
- 36  ---- x--- ---- ---- ---- ---- ---- x--- ---- ---- ----
+ 35  ---- ---- ---- ---- ---- ---- ---- ---- --x- ---- ----
+ 36  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  37  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  38  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  39  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -61,8 +61,8 @@ Pin 20 = EA11         S0 = 1   S1 = 1
 
 Pin 19 = EA12         S0 = 1   S1 = 1
  49  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 50  ---- -x-- ---- ---- ---- ---- ---- --x- ---- ---- ----
- 51  ---- x--- ---- ---- ---- ---- ---- ---- x--- ---- ----
+ 50  ---- ---- ---- ---- ---- ---- ---- --x- ---- ---- ----
+ 51  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  52  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  53  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  54  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
@@ -80,8 +80,8 @@ Pin 19 = EA12         S0 = 1   S1 = 1
 
 Pin 18 = EA13         S0 = 1   S1 = 1
  66  ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
- 67  ---- -x-- ---- ---- ---- ---- --x- ---- ---- ---- ----
- 68  ---- x--- ---- ---- ---- ---- ---- ---- ---- x--- ----
+ 67  ---- ---- ---- ---- ---- ---- --x- ---- ---- ---- ----
+ 68  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  69  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  70  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  71  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

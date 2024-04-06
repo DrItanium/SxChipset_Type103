@@ -1,16 +1,14 @@
 GAL16V8
 NewIntegratedChip1
 
-IWR  IRD IA8 IA9 NC NC  NC  NC  NC  GND
-NC   NC  NC  NC  S0 EBI IOX IEN XEN VCC
+IWR  IRD NC  NC  NC NC  NC NC NC GND
+NC   NC  NC  NC  NC EBI NC NC NC VCC
 
 /EBI = /IWR * IRD + IWR * /IRD
-/IEN = /IA8 * /IA9
-  S0 =  IA8 * /IA9
-/XEN = /IA8 *  IA9
-/IOX =  IA8 *  IA9
 
 DESCRIPTION
+using an 8-bit bus so this is now useless but still is in my current hardware
+PCBs
 
 using a 10-bit bus
 0x0000-0x00FF => IBUS

@@ -303,6 +303,7 @@ public:
     }
     [[gnu::noinline]]
     static void installMemoryImage(File& theFirmware) {
+        uint8_t temporaryBuffer[256];
         volatile auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
         int counter = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize, ++counter) {
@@ -312,18 +313,31 @@ public:
 #else
             uint8_t a8_15 = static_cast<uint8_t>(address >> 8);
             uint8_t a16_23 = static_cast<uint8_t>(address >> 16);
-            digitalWrite(Pin::AddressLineA16, a16_23 & 0b0000'0001 ? HIGH : LOW);
-            digitalWrite(Pin::AddressLineA17, a16_23 & 0b0000'0010 ? HIGH : LOW);
-            getOutputRegister<Port::AddressLines18_23>() = a16_23;
             getOutputRegister<Port::AddressLines8_15>() = a8_15;
+            getOutputRegister<Port::AddressLines16_23>() = a16_23;
 #endif
-            theFirmware.read(const_cast<uint8_t*>(theBuffer), TransferBufferSize);
+            theFirmware.read(temporaryBuffer, TransferBufferSize);
+            memcpy(const_cast<uint8_t*>(theBuffer), temporaryBuffer, TransferBufferSize); 
+            // now do a sanity check
+            bool mismatch = false;
+            for (int i = 0; i < TransferBufferSize; ++i) {
+                auto a = temporaryBuffer[i];
+                auto b = theBuffer[i];
+                if (a != b) {
+                    Serial.printf(F("Mismatch@0x%lx want: 0x%x got: 0x%x\n"), address + i, a, b);
+                    mismatch = true;
+                }
+            }
+            if (mismatch) {
+                while (true);
+            }
             if ((counter % 32) == 0) {
                 Serial.print('.');
             }
         }
-#if 0
-        AddressLinesInterface.view32.data = 0;
+#if 1
+        getOutputRegister<Port::AddressLines16_23>() = 0;
+        getOutputRegister<Port::AddressLines8_15>() = 0;
         volatile auto* theBuffer2 = memoryPointer<uint32_t>(MemoryWindowBaseAddress);
         for (auto i = 0u; i < (TransferBufferSize / sizeof(uint32_t)); ++i) {
             Serial.printf(F("0x%x: 0x%lx\n"), i, theBuffer2[i]);
@@ -987,7 +1001,7 @@ setup() {
     pinMode(Pin::ExternalMemoryOperation, INPUT);
     pinMode(Pin::WR, INPUT);
     // setup the EBI
-    XMCRB=0b0'0000'110;
+    XMCRB=0b1'0000'111;
     XMCRA=0b1'010'01'01;  
     //XMCRA=0b1'010'00'00;
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
@@ -1002,12 +1016,8 @@ setup() {
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000000;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
 #else
-    pinMode(Pin::AddressLineA16, OUTPUT);
-    digitalWrite<Pin::AddressLineA16, LOW>();
-    pinMode(Pin::AddressLineA17, OUTPUT);
-    digitalWrite<Pin::AddressLineA17, LOW>();
-    getDirectionRegister<Port::AddressLines18_23>() = 0xFF; // just configure them all for output
-    getOutputRegister<Port::AddressLines18_23>() = 0;
+    getDirectionRegister<Port::AddressLines16_23>() = 0xFF; // just configure them all for output
+    getOutputRegister<Port::AddressLines16_23>() = 0;
     getDirectionRegister<Port::AddressLines8_15>() = 0xFF; // just configure them all for output
     getOutputRegister<Port::AddressLines8_15>() = 0;
 #endif
@@ -1037,12 +1047,8 @@ setup() {
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
 #else
-    pinMode(Pin::AddressLineA16, INPUT);
-    digitalWrite<Pin::AddressLineA16, LOW>();
-    pinMode(Pin::AddressLineA17, INPUT);
-    digitalWrite<Pin::AddressLineA17, LOW>();
-    getDirectionRegister<Port::AddressLines18_23>() = 0; 
-    getOutputRegister<Port::AddressLines18_23>() = 0;
+    getDirectionRegister<Port::AddressLines16_23>() = 0; 
+    getOutputRegister<Port::AddressLines16_23>() = 0;
     getDirectionRegister<Port::AddressLines8_15>() = 0; 
     getOutputRegister<Port::AddressLines8_15>() = 0;
 #endif

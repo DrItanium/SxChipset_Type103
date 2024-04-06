@@ -63,9 +63,6 @@ Count = NUM_DIGITAL_PINS,
     INT0_960_ = PortB5, // OC1A
     ReadyDirect = PortB6,
 
-    Reset = PortD5,
-    AddressLineA16 = PortD6,
-    AddressLineA17 = PortD7,
 
     IsMemorySpaceOperation = PortE2,
     CLK1 = PortE3,
@@ -83,6 +80,7 @@ Count = NUM_DIGITAL_PINS,
 
     CLK5Mhz = PortH3,
     ONE_SHOT_READY = PortH6, // OC2B
+    Reset = PortH7,
 
 
 
@@ -99,7 +97,7 @@ enum class Port : byte {
     DataLinesUpper = K,
     AddressLinesLowest = L,
     AddressLines8_15 = J,
-    AddressLines18_23 = C,
+    AddressLines16_23 = C,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

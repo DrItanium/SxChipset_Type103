@@ -62,6 +62,7 @@ Count = NUM_DIGITAL_PINS,
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
     ReadyDirect = PortB6,
+    Reset = PortB7,
 
 
     IsMemorySpaceOperation = PortE2,
@@ -80,7 +81,6 @@ Count = NUM_DIGITAL_PINS,
 
     CLK5Mhz = PortH3,
     ONE_SHOT_READY = PortH6, // OC2B
-    Reset = PortH7,
 
 
 

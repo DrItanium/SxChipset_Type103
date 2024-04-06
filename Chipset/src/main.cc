@@ -311,10 +311,9 @@ public:
 #if 0
             AddressLinesInterface.view32.data = address;
 #else
-            uint8_t a8_15 = static_cast<uint8_t>(address >> 8);
-            uint8_t a16_23 = static_cast<uint8_t>(address >> 16);
-            getOutputRegister<Port::AddressLines8_15>() = a8_15;
-            getOutputRegister<Port::AddressLines16_23>() = a16_23;
+            getOutputRegister<Port::AddressLines8_15>() = static_cast<uint8_t>(address >> 8);
+            getOutputRegister<Port::AddressLines16_23>() = static_cast<uint8_t>(address >> 16);
+            getOutputRegister<Port::AddressLines24_31>() = static_cast<uint8_t>(address >> 24);
 #endif
             theFirmware.read(temporaryBuffer, TransferBufferSize);
             memcpy(const_cast<uint8_t*>(theBuffer), temporaryBuffer, TransferBufferSize); 
@@ -336,6 +335,7 @@ public:
             }
         }
 #if 1
+        getOutputRegister<Port::AddressLines24_31>() = 0;
         getOutputRegister<Port::AddressLines16_23>() = 0;
         getOutputRegister<Port::AddressLines8_15>() = 0;
         volatile auto* theBuffer2 = memoryPointer<uint32_t>(MemoryWindowBaseAddress);
@@ -1016,10 +1016,12 @@ setup() {
     ControlSignals.view32.direction = 0b10000000'11111110'00000000'00000000;
     ControlSignals.view32.data =      0b00000000'11111110'00000000'00000000;
 #else
-    getDirectionRegister<Port::AddressLines16_23>() = 0xFF; // just configure them all for output
-    getOutputRegister<Port::AddressLines16_23>() = 0;
     getDirectionRegister<Port::AddressLines8_15>() = 0xFF; // just configure them all for output
     getOutputRegister<Port::AddressLines8_15>() = 0;
+    getDirectionRegister<Port::AddressLines16_23>() = 0xFF; // just configure them all for output
+    getOutputRegister<Port::AddressLines16_23>() = 0;
+    getDirectionRegister<Port::AddressLines24_31>() = 0xFF;
+    getOutputRegister<Port::AddressLines24_31>() = 0;
 #endif
     GPIOR0 = 0;
     putCPUInReset();
@@ -1047,10 +1049,12 @@ setup() {
     // put the address line capture io expander back into input mode
     AddressLinesInterface.view32.direction = 0;
 #else
-    getDirectionRegister<Port::AddressLines16_23>() = 0; 
-    getOutputRegister<Port::AddressLines16_23>() = 0;
     getDirectionRegister<Port::AddressLines8_15>() = 0; 
     getOutputRegister<Port::AddressLines8_15>() = 0;
+    getDirectionRegister<Port::AddressLines16_23>() = 0; 
+    getOutputRegister<Port::AddressLines16_23>() = 0;
+    getDirectionRegister<Port::AddressLines24_31>() = 0;
+    getOutputRegister<Port::AddressLines24_31>() = 0;
 #endif
     // attach interrupts
     EICRB = 0b0000'0010; // falling edge on INT4 only

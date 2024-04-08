@@ -939,15 +939,6 @@ setupReadySignal() noexcept {
     }
 }
 void
-setupCLK5Mhz() noexcept {
-    pinMode<Pin::CLK5Mhz>(OUTPUT);
-    digitalWrite<Pin::CLK5Mhz, LOW>();
-    OCR4A = 1;
-    TCNT4 = 0;
-    TCCR4A = 0b01'00'00'00;
-    TCCR4B = 0b00'0'01'001;
-}
-void
 setupCLK10Mhz() noexcept {
     // configure PE3 to be CLK1
     pinMode<Pin::CLK1>(OUTPUT);
@@ -960,7 +951,6 @@ setupCLK10Mhz() noexcept {
 void 
 setupTimers() {
     setupCLK10Mhz();
-//    setupCLK5Mhz();
     setupReadySignal();
 }
 void

@@ -35,12 +35,25 @@ constexpr auto ElementCount = sizeof(W) / sizeof(E);
 template<typename W, typename T>
 using ElementContainer = T[ElementCount<W, T>];
 template<typename T>
-struct TagDispatcher {
+struct TypeTagDispatcher {
     using UnderlyingType = T;
 };
+
+template<auto value>
+struct ValueTagDispatcher {
+    using UnderlyingType = decltype(value);
+    using TagDispatchType = TypeTagDispatcher<UnderlyingType>;
+};
+
 template<typename T>
-using TreatAs = TagDispatcher<T>;
+using TreatAs = TypeTagDispatcher<T>;
 using TreatAsOrdinal = TreatAs<uint32_t>;
+
+template<auto value>
+using TagDispatchOnValue = ValueTagDispatcher<value>;
+
+template<typename T>
+using TagDispatchOnType = TreatAs<T>;
 
 union SplitWord32 {
     uint32_t full;

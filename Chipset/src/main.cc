@@ -163,11 +163,11 @@ constexpr bool valid(ReadySignalKind kind) noexcept {
     }
 }
 template<ReadySignalKind kind>
-struct UseReadySignalKind final {
+using UseReadySignalKind = TagDispatchOnValue<kind>;
 
-};
-constexpr auto TargetReadySignal = ReadySignalKind::TimerBased;
-static_assert(valid(TargetReadySignal), "Invalid READY signal handler specified!");
+using TargetReadySignal = UseReadySignalKind<ReadySignalKind::TimerBased>;
+
+static_assert(valid(TargetReadySignal::UnderlyingValue), "Invalid READY signal handler specified!");
 constexpr uint8_t computeCycleWidth(uint8_t cycles) {
     return 0xFF - (cycles - 1);
 }
@@ -209,7 +209,7 @@ template<uint8_t delayAmount = 4>
 [[gnu::always_inline]]
 inline void
 signalReady() noexcept {
-    signalReady<delayAmount>(UseReadySignalKind<TargetReadySignal>{});
+    signalReady<delayAmount>(TargetReadySignal{});
 }
 
 using Register8 = volatile uint8_t&;
@@ -906,7 +906,7 @@ installMemoryImage() noexcept {
 
 void 
 setupReadySignal() noexcept {
-    if constexpr (TargetReadySignal == ReadySignalKind::TimerBased) {
+    if constexpr (TargetReadySignal::matches(ReadySignalKind::TimerBased)) {
         pinMode<Pin::ReadyDirect>(INPUT);
         pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
         // taken from https://github.com/bigjosh/TimerShot/blob/master/TimerShot.ino and adapted to work with a mega2560
@@ -927,7 +927,7 @@ setupReadySignal() noexcept {
         TCCR2A = _BV(COM2B1) | _BV(WGM20) | _BV(WGM21); // waveform generation
                                                         // using FastPWM mode
         TCCR2B = _BV(WGM22) | _BV(CS20); // enable the counter and select fastPWM mode 7
-    } else if (TargetReadySignal == ReadySignalKind::SoftwareGPIO) {
+    } else if constexpr (TargetReadySignal::matches(ReadySignalKind::SoftwareGPIO)) {
         pinMode<Pin::ONE_SHOT_READY>(INPUT);
         pinMode<Pin::ReadyDirect>(OUTPUT);
         digitalWrite<Pin::ReadyDirect, HIGH>();

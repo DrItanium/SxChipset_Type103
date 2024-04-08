@@ -41,8 +41,13 @@ struct TypeTagDispatcher {
 
 template<auto value>
 struct ValueTagDispatcher {
+    static constexpr auto UnderlyingValue = value;
     using UnderlyingType = decltype(value);
     using TagDispatchType = TypeTagDispatcher<UnderlyingType>;
+
+    static constexpr bool matches(UnderlyingType other) noexcept {
+        return other == UnderlyingValue;
+    }
 };
 
 template<typename T>

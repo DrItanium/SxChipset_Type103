@@ -123,6 +123,15 @@ using PortInputRegister = volatile byte&;
 using PortDirectionRegister = volatile byte&;
 using PinState = decltype(LOW);
 using PinDirection = decltype(OUTPUT);
+struct FakeGPIOPort {
+    uint8_t direction;
+    uint8_t output;
+    uint8_t input;
+};
+FakeGPIOPort& getFakePort() noexcept {
+    static FakeGPIOPort port;
+    return port;
+}
 constexpr Port getPort(Pin pin) noexcept {
     switch (pin) {
 #define X(port, ind) case Pin :: Port ## port ## ind : return Port:: port ;
@@ -170,7 +179,8 @@ getOutputRegister(Port port) noexcept {
 #define X(name) case Port :: name : return PORT ## name ;
 #include "AVRPorts.def"
 #undef X
-        default: return GPIOR0;
+        default: 
+            return getFakePort().output;
     }
 }
 
@@ -203,7 +213,8 @@ getInputRegister(Port port) noexcept {
 #define X(name) case Port :: name : return PIN ## name ;
 #include "AVRPorts.def"
 #undef X
-        default: return GPIOR1;
+        default: 
+            return getFakePort().input;
     }
 }
 template<Port port>
@@ -234,7 +245,8 @@ getDirectionRegister(Port port) noexcept {
 #define X(name) case Port:: name : return DDR ## name ;
 #include "AVRPorts.def"
 #undef X
-        default: return GPIOR2;
+        default: 
+            return getFakePort().direction;
     }
 }
 template<Port port>
@@ -354,22 +366,4 @@ pulse() noexcept {
     toggle<pin>();
 }
 
-
-constexpr bool hasPWM(Pin pin) noexcept {
-    return digitalPinHasPWM(static_cast<byte>(pin));
-}
-
-template<Pin p>
-constexpr auto HasPWM_v = hasPWM(p);
-
-template<Pin p>
-[[gnu::always_inline]]
-inline bool sampleOutputState() noexcept {
-    // we want to look at what we currently have the output register set to
-    return (getOutputRegister<p>() & getPinMask<p>()) != 0;
-}
-
-inline void analogWrite(Pin pin, int value) noexcept {
-    ::analogWrite(static_cast<int>(pin), value);
-}
 #endif // end SXCHIPSET_TYPE103_PINOUT_H

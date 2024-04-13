@@ -159,29 +159,6 @@ DefinePort H, 0x100
 DefinePort J, 0x103
 DefinePort K, 0x106
 DefinePort L, 0x109
-EIFR = 0x1c
-GPIOR0 = 0x1e
-
-DefinePinFunction WR, D, 6
-DefinePinFunction Ready, E, 4
-DefinePinFunction ADS, E, 5
-DefinePinFunction HLDA, E, 6
-DefinePinFunction IsIOOperation, E, 2
-DefinePinFunction BE0, G, 3
-DefinePinFunction BE1, G, 4
-DefinePinFunction BLAST, G, 5
-
-DefinePortFunction DataLinesLower, F
-DefinePortFunction DataLinesUpper, C
-DefinePortFunction AddressLinesLowest, L
-DefinePortFunction AddressLinesLower, J
-DefinePortFunction AddressLinesHigher, H
-DefinePortFunction AddressLinesHighest, K
-
-MemoryWindowUpper = 0xfc
-__high_data_byte960__ = 4
-__low_data_byte960__ = 3
-__direction_ff_reg__ = 2
 .macro signalReady
 	Ready_Output_Toggle
 .endm
@@ -274,8 +251,8 @@ clearEIFR
 	signalReady 
 
 	waitForTransaction
-	sbisrj PINE, 5, .LXB_ShiftFromWriteToRead 
-	sbisrj PINE, 2, .LXB_Write_DoIO_Nothing
+	WR_IfBitIsClearGoto .LXB_ShiftFromWriteToRead
+	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
@@ -336,8 +313,8 @@ clearEIFR
 .macro FallthroughExecution_ReadBody
 	signalReady
 	waitForTransaction 
-	sbicrj PINE, 5, .LXB_ShiftFromReadToWrite
-	sbisrj PINE, 2, .LXB_readOperation_CheckIO_Nothing
+	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite
+	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
 .endm
@@ -349,6 +326,29 @@ clearEIFR
 	sbrc \a, \b
 	rjmp \dest
 .endm
+EIFR = 0x1c
+GPIOR0 = 0x1e
+
+DefinePinFunction WR, D, 6
+DefinePinFunction Ready, E, 4
+DefinePinFunction ADS, E, 5
+DefinePinFunction HLDA, E, 6
+DefinePinFunction IsIOOperation, E, 2
+DefinePinFunction BE0, G, 3
+DefinePinFunction BE1, G, 4
+DefinePinFunction BLAST, G, 5
+
+DefinePortFunction DataLinesLower, F
+DefinePortFunction DataLinesUpper, C
+DefinePortFunction AddressLinesLowest, L
+DefinePortFunction AddressLinesLower, J
+DefinePortFunction AddressLinesHigher, H
+DefinePortFunction AddressLinesHighest, K
+
+MemoryWindowUpper = 0xfc
+__high_data_byte960__ = 4
+__low_data_byte960__ = 3
+__direction_ff_reg__ = 2
 .global ExecutionBody
 .global doIOReadOperation
 .global doIOWriteOperation
@@ -371,12 +371,12 @@ ExecutionBody:
 	waitForTransaction 
 	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite
 
-	sbisrj PINE, 2, .LXB_readOperation_CheckIO_Nothing
+	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
 .LXB_ShiftFromWriteToRead:
 	setDataLinesDirection __direction_ff_reg__ ; change the direction to output
-	sbisrj PINE, 2, .LXB_readOperation_CheckIO_Nothing
+	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
 .LXB_Write_DoIO_Nothing:
@@ -387,8 +387,8 @@ ExecutionBody:
 	signalReady 
 .LXB_WriteTransactionStart:
 	waitForTransaction
-	sbisrj PINE, 5, .LXB_ShiftFromWriteToRead 
-	sbisrj PINE, 2, .LXB_Write_DoIO_Nothing
+	WR_IfBitIsClearGoto .LXB_ShiftFromWriteToRead
+	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
@@ -469,7 +469,7 @@ ExecutionBody:
 .LXB_ShiftFromReadToWrite:
 ; start setting up for a write operation here
 	setDataLinesDirection __zero_reg__ 	
-	sbisrj PINE, 2, .LXB_Write_DoIO_Nothing
+	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High

@@ -60,7 +60,8 @@ Count = NUM_DIGITAL_PINS,
     LED = LED_BUILTIN,
 #endif
     SD_EN = PortB0,
-    INT0_960_ = PortB5, // OC1A
+    XINT2 = PortB4,
+    XINT0 = PortB5, // OC1A
     Lock = PortB6,
     Hold = PortB7,
 
@@ -74,10 +75,11 @@ Count = NUM_DIGITAL_PINS,
     ADS = PortE5,
     HLDA = PortE6,
     CLK2 = PortE7, // hardwired for this purpose
-                   
+                   //
     EBI_WR = PortG0,
     EBI_RD = PortG1,
     EBI_ALE = PortG2,
+
     BE0 = PortG3,
     BE1 = PortG4,
     BLAST = PortG5,

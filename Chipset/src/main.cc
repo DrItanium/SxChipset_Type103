@@ -154,14 +154,6 @@ constexpr TimerDescriptor< index > timer ## index
 X(1);
 #undef X
 
-void 
-putCPUInReset() noexcept {
-    digitalWrite<Pin::Reset, LOW>();
-}
-void 
-pullCPUOutOfReset() noexcept {
-    digitalWrite<Pin::Reset, HIGH>();
-}
 
 template<uint8_t index>
 inline void setDataByte(uint8_t value) noexcept {
@@ -188,31 +180,14 @@ inline uint8_t getDataByte() noexcept {
         return 0;
     }
 }
-enum class IBUSMemoryViewKind {
-    EightBit,
-};
-
-constexpr auto MemoryViewKind = IBUSMemoryViewKind::EightBit;
-
-template<IBUSMemoryViewKind kind>
-struct MemoryInterfaceBackend {
-    using Self = MemoryInterfaceBackend<kind>;
-    MemoryInterfaceBackend() = delete;
-    ~MemoryInterfaceBackend() = delete;
-    MemoryInterfaceBackend(const Self&) = delete;
-    MemoryInterfaceBackend(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
-};
 
 
-template<>
-struct MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit> {
-    using Self = MemoryInterfaceBackend<IBUSMemoryViewKind::EightBit>;
-    MemoryInterfaceBackend() = delete;
-    ~MemoryInterfaceBackend() = delete;
-    MemoryInterfaceBackend(const Self&) = delete;
-    MemoryInterfaceBackend(Self&&) = delete;
+struct MemoryInterface {
+    using Self = MemoryInterface;
+    MemoryInterface() = delete;
+    ~MemoryInterface() = delete;
+    MemoryInterface(const Self&) = delete;
+    MemoryInterface(Self&&) = delete;
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = delete;
 private:
@@ -254,7 +229,6 @@ public:
     }
 };
 
-using MemoryInterface = MemoryInterfaceBackend<MemoryViewKind>;
 #define I960_Signal_Switch \
     if (isBurstLast()) { \
         break; \
@@ -824,88 +798,71 @@ installMemoryImage() noexcept {
     // okay so now end reading from the SD Card
     SPI.endTransaction();
 }
-
-void 
-setupReadySignal() noexcept {
-    if constexpr (TargetReadySignal::matches(ReadySignalKind::TimerBased)) {
-        pinMode<Pin::ReadyDirect>(INPUT);
-        pinMode<Pin::ONE_SHOT_READY>(OUTPUT);
-        // taken from https://github.com/bigjosh/TimerShot/blob/master/TimerShot.ino and adapted to work with a mega2560
-        TCCR2B = 0; // disable the counter completely
-        TCNT2 = 0x00; // start counting at the bottom
-        OCR2A = 0; // set TOP to 0. This will keep us from counting because the
-                   // counter just keeps resetting back to zero.
-
-                   // we break out of this by manually setting TCNT higher than 0,
-                   // in which case it will count all the way up to MAX and then
-                   // overflow back to 0 and get locked up again.
-        OCR2B = ReadyCycleWidth; // we want two cycles at 20MHz, this also makes new OCR
-                                 // values get loaded from the buffer on every clock
-                                 // cycle
-
-                                 // we want to generate a falling signal so do Clear OC2B on Compare Match
-                                 // and set OC2B at BOTTOM
-        TCCR2A = _BV(COM2B1) | _BV(WGM20) | _BV(WGM21); // waveform generation
-                                                        // using FastPWM mode
-        TCCR2B = _BV(WGM22) | _BV(CS20); // enable the counter and select fastPWM mode 7
-    } else if constexpr (TargetReadySignal::matches(ReadySignalKind::SoftwareGPIO)) {
-        pinMode<Pin::ONE_SHOT_READY>(INPUT);
-        pinMode<Pin::ReadyDirect>(OUTPUT);
-        digitalWrite<Pin::ReadyDirect, HIGH>();
-    } else {
-        Serial.println(F("NO READY SIGNAL SPECIFIED... HALTING"));
-        while (true) {
-            delay(1000);
-        }
-    }
-}
+template<Pin p>
+[[gnu::always_inline]]
+inline
 void
-setupCLK10Mhz() noexcept {
-    // configure PE3 to be CLK1
-    pinMode<Pin::CLK1>(OUTPUT);
-    digitalWrite<Pin::CLK1, LOW>();
-    OCR3A = 0;
-    TCNT3 = 0;
-    TCCR3A = 0b01'00'00'00;
-    TCCR3B = 0b00'0'01'001;
+outputPin() noexcept {
+    pinMode<p>(OUTPUT);
 }
-void 
-setupTimers() {
-    setupCLK10Mhz();
-    setupReadySignal();
+
+template<Pin p>
+[[gnu::always_inline]]
+inline
+void
+inputPin() noexcept {
+    pinMode<p>(INPUT);
+}
+
+
+
+void
+configurePins() noexcept {
+    // put the i960 in reset as soon as possible to make sure
+    outputPin<Pin::Reset>();
+    digitalWrite<Pin::Reset, LOW>();
+    outputPin<Pin::XINT0>();
+    outputPin<Pin::XINT2>();
+    outputPin<Pin::XINT4>();
+    outputPin<Pin::Hold>();
+    outputPin<Pin::ReadyDirect>();
+
+    inputPin<Pin::Lock>();
+    inputPin<Pin::WR>();
+    inputPin<Pin::IsIOOperation>();
+    inputPin<Pin::ADS>();
+    inputPin<Pin::HLDA>();
+    inputPin<Pin::BE0>();
+    inputPin<Pin::BE1>();
+    inputPin<Pin::BLAST>();
+
+    digitalWrite<Pin::XINT0, HIGH>();
+    digitalWrite<Pin::XINT2, HIGH>();
+    digitalWrite<Pin::XINT4, HIGH>();
+    digitalWrite<Pin::HOLD, LOW>();
 }
 void
 setup() {
+    configurePins();
+    // now we can start setting up peripherals
     Serial.begin(115200);
     SPI.begin();
     // power down the ADC
     // currently we can't use them
     PRR0 = 0b0000'0001; // deactivate ADC
-    setupTimers();
-    // enable interrupt pin output
-    pinMode<Pin::INT0_960_>(OUTPUT);
-    digitalWrite<Pin::INT0_960_, HIGH>();
-    // setup the IBUS bank
-    pinMode(Pin::IsMemorySpaceOperation, INPUT);
-    pinMode(Pin::BE0, INPUT);
-    pinMode(Pin::BE1, INPUT);
-    pinMode(Pin::BLAST, INPUT);
-    pinMode(Pin::Reset, OUTPUT);
-    digitalWrite<Pin::Reset, LOW>();
-    // set these up ahead of time
-    pinMode(Pin::LED, OUTPUT);
-    digitalWrite<Pin::LED, LOW>();
-    pinMode(Pin::NewTransaction, INPUT);
-    pinMode(Pin::ExternalMemoryOperation, INPUT);
-    pinMode(Pin::WR, INPUT);
+    PRR1 = 0b0000'0110; // deactivate USART2 and USART3, they are not
+                        // accessible at all!
+                        // But leave the timers available since they can be
+                        // used for internal purposes
+    GPIOR0 = 0;
     // setup the EBI
     XMCRB=0b1'0000'111;
     XMCRA=0b1'010'01'01;  
-    //XMCRA=0b1'010'00'00;
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     DataInterface::configureInterface();
     MemoryInterface::configure();
+
     getDirectionRegister<AddressLines[0]>() = 0;
     getOutputRegister<AddressLines[0]>() = 0;
     getDirectionRegister<AddressLines[1]>() = 0xFF; // just configure them all for output
@@ -914,8 +871,6 @@ setup() {
     getOutputRegister<AddressLines[2]>() = 0;
     getDirectionRegister<AddressLines[3]>() = 0xFF;
     getOutputRegister<AddressLines[3]>() = 0;
-    GPIOR0 = 0;
-    putCPUInReset();
     setupDataBlocks();
     Serial.println(F("Looking for an SD Card!"));
     {
@@ -944,7 +899,7 @@ setup() {
     getOutputRegister<AddressLines[3]>() = 0;
     // attach interrupts
     EICRB = 0b0000'0010; // falling edge on INT4 only
-    pullCPUOutOfReset();
+    digitalWrite<Pin::Reset, HIGH>(); /
 }
 void 
 loop() {

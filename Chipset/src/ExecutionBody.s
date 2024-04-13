@@ -47,10 +47,6 @@ ExternalAddressLinesInterface = 0xFD00
 AddressLinesInterface = InternalAddressLinesInterface
 MemoryWindowUpper = 0xFC
 TCNT2 = 0xb2
-CH351DataLinesLo8 = 0xFD08
-CH351DataLinesHi8 = 0xFD09
-CH351DataLinesDirLo8 = 0xFD0C
-CH351DataLinesDirHi8 = 0xFD0D
 __snapshot__ = 9;
 __highest_data_byte960__ = 8
 __higher_data_byte960__ = 7
@@ -104,10 +100,6 @@ signalReady_Counter
 .macro clearEIFR ; 1 cycle
 	out EIFR, __eifr_mask_reg__ ; 1 cycle
 .endm
-.macro StoreToDataPort_CH351 lo, hi ; 8 cycles
-	sts CH351DataLinesLo8, \lo
-	sts CH351DataLinesHi8, \hi
-.endm
 .macro StoreToDataPort_AVRGPIO lo,hi ; 3 cycles
 	out PORTF, \lo 	; 1 cycle
 	sts PORTK, \hi	; 2 cycles
@@ -126,12 +118,6 @@ signalReady_Counter
 .endm
 .macro WhenBlastIsHighGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbicrj PING, 5, \dest
-.endm
-.macro getLowDataByte960_CH351 ; 4 cycles
-	lds __low_data_byte960__, CH351DataLinesLo8
-.endm
-.macro getHighDataByte960_CH351 ; 4 cycles
-	lds __high_data_byte960__, CH351DataLinesHi8
 .endm
 .macro getLowDataByte960_AVRGPIO  ; 1 cycle
 	in __low_data_byte960__, PINF
@@ -158,10 +144,6 @@ clearEIFR
 .endm
 .macro SkipNextIfBE1High  ; 1 cycle when false, 2 cycles when true
 	sbis PING, 4
-.endm
-.macro setDataLinesDirection_CH351 dir ; 8 cycles
-	sts CH351DataLinesDirLo8, \dir
-	sts CH351DataLinesDirHi8, \dir
 .endm
 .macro setDataLinesDirection_AVRGPIO dir ; 3 cycles
 	out DDRF, \dir ; 1 cycle

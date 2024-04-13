@@ -188,7 +188,7 @@ DefinePort L, 0x109
 	sbi EIFR, ADS_BitIndex
 .endm
 
-.macro StoreToDataPort lo,hi ; 3 cycles
+.macro StoreToDataPort lo=__low_data_byte960__,hi=__high_data_byte960__ ; 3 cycles
 	DataLinesLower_Write \lo
 	DataLinesUpper_Write \hi
 .endm
@@ -243,9 +243,23 @@ clearEIFR
 		ldd \reg, Y+\offset
 	.endif
 .endm
+.macro Load16FromMemoryWindow offset, lo=__low_data_byte960__, hi=__high_data_byte960__
+	LoadFromMemoryWindow \lo, \offset
+	LoadFromMemoryWindow \hi, \offset\()+1
+.endm
+.macro Store16ToMemoryWindow offset, lo=__low_data_byte960__, hi=__high_data_byte960__
+	StoreToMemoryWindow \lo, \offset
+	StoreToMemoryWindow \hi , \offset\()+1
+.endm
+.macro StoreLowByteToMemoryWindow offset
+	StoreToMemoryWindow __low_data_byte960__, \offset
+.endm
+.macro StoreHighByteToMemoryWindow offset
+	StoreToMemoryWindow __high_data_byte960__, \offset
+.endm
 .macro StoreHighByteIfBE1Low offset ; 2 cycles when BE1 is HIGH, 5 cycles when BE1 is LOW
 	SkipNextIfBE1High	; 1 cycle when false, 2 cycles when skipping
-	StoreToMemoryWindow __high_data_byte960__, \offset ; 4 cycles
+	StoreHighByteToMemoryWindow \offset ; 4 cycles
 .endm
 .macro FallthroughExecutionBody_WriteOperation
 	signalReady 
@@ -256,58 +270,50 @@ clearEIFR
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
-	StoreToMemoryWindow __low_data_byte960__, 0 				; Yes, so store to the EBI
+	StoreLowByteToMemoryWindow 0 								; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 												; first word down, onto the next one
-	StoreToMemoryWindow __high_data_byte960__, 1 				; Store the upper byte to the EBI
+	StoreHighByteToMemoryWindow 1 								; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
 	StoreHighByteIfBE1Low 3
-	StoreToMemoryWindow __low_data_byte960__, 2 				; save it without checking BE0 since we flowed into this part of the transaction
+	StoreLowByteToMemoryWindow 2 								; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .endm
 .macro ReadBodyPrimary
 	computeTransactionWindow
-	LoadFromMemoryWindow __low_data_byte960__, 0
-	LoadFromMemoryWindow __high_data_byte960__, 1
-	StoreToDataPort __low_data_byte960__,__high_data_byte960__
+	Load16FromMemoryWindow 0
+	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart 
 	signalReady 
-	LoadFromMemoryWindow __low_data_byte960__, 2
-	LoadFromMemoryWindow __high_data_byte960__, 3
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	Load16FromMemoryWindow 2
+	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart 
 	signalReady 
-	LoadFromMemoryWindow __low_data_byte960__, 4
-	LoadFromMemoryWindow __high_data_byte960__, 5
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	Load16FromMemoryWindow 4
+	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	LoadFromMemoryWindow __low_data_byte960__, 6
-	LoadFromMemoryWindow __high_data_byte960__, 7
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	Load16FromMemoryWindow 6
+	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	LoadFromMemoryWindow __low_data_byte960__, 8
-	LoadFromMemoryWindow __high_data_byte960__, 9
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	Load16FromMemoryWindow 8
+	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	LoadFromMemoryWindow __low_data_byte960__, 10
-	LoadFromMemoryWindow __high_data_byte960__, 11
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	Load16FromMemoryWindow 10
+	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	LoadFromMemoryWindow __low_data_byte960__, 12
-	LoadFromMemoryWindow __high_data_byte960__, 13
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	Load16FromMemoryWindow 12
+	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	LoadFromMemoryWindow __low_data_byte960__, 14
-	LoadFromMemoryWindow __high_data_byte960__, 15
-	StoreToDataPort __low_data_byte960__, __high_data_byte960__
+	Load16FromMemoryWindow 14
+	StoreToDataPort 
 .endm
 
 .macro FallthroughExecution_ReadBody
@@ -392,75 +398,69 @@ ExecutionBody:
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
-	StoreToMemoryWindow __low_data_byte960__, 0 				; Yes, so store to the EBI
+	StoreLowByteToMemoryWindow 0 								; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 												; first word down, onto the next one
-	StoreToMemoryWindow __high_data_byte960__, 1 				; Store the upper byte to the EBI
+	StoreHighByteToMemoryWindow 1 								; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
 	StoreHighByteIfBE1Low 3
-	StoreToMemoryWindow __low_data_byte960__, 2 				; save it without checking BE0 since we flowed into this part of the transaction
+	StoreLowByteToMemoryWindow 2 								; save it without checking BE0 since we flowed into this part of the transaction
 	FallthroughExecutionBody_WriteOperation
 .L642:
 	getDataWord960				
 	signalReady 				  ; start the next word signal and we can use the 6 cycles to get ready
-	StoreToMemoryWindow __low_data_byte960__, 2 ; use the time to store into memory while the ready signal counter is doing its thing
-	StoreToMemoryWindow __high_data_byte960__, 3 ; use the time to store into memory while the ready signal counter is doing its thing
+	Store16ToMemoryWindow 2       ; use the time to store into memory while the ready signal counter is doing its thing
 	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End	; We can now safely check if we should terminate execution
 	getDataWord960				
 	signalReady					  ; Start the process for the next word ( at this point we will be at a 64-bit number once this ready goes through)
-	std Y+4,__low_data_byte960__  ; save the word (bits 32-39)
-	std Y+5,__high_data_byte960__ ; save the word (bits 40-47)
+	Store16ToMemoryWindow 4 	  ; save the word (bits 32-47)
 	WhenBlastIsHighGoto .L649	  ; we have more data to transfer
 	getDataWord960				
 	StoreHighByteIfBE1Low 7
-	std Y+6,__low_data_byte960__  ; always save the lower byte since we flowed into here
+	StoreLowByteToMemoryWindow 6  ; always save the lower byte since we flowed into here
 	FallthroughExecutionBody_WriteOperation
 .L649:
 	getDataWord960
 	signalReady
-	std Y+6,__low_data_byte960__
-	std Y+7,__high_data_byte960__
+	Store16ToMemoryWindow 6
 	WhenBlastIsLowGoto .LXB_WriteBytes8_and_9_End
 	getDataWord960
 	signalReady
-	std Y+8,__low_data_byte960__
-	std Y+9,__high_data_byte960__
+	Store16ToMemoryWindow 8
 	WhenBlastIsHighGoto .L657
 	getDataWord960
 	StoreHighByteIfBE1Low 11
-	std Y+10,__low_data_byte960__
+	StoreLowByteToMemoryWindow 10
 	FallthroughExecutionBody_WriteOperation
 .L657:
 	getDataWord960
 	signalReady
-	std Y+10,__low_data_byte960__
-	std Y+11,__high_data_byte960__
+	Store16ToMemoryWindow 10
 	WhenBlastIsHighGoto .L661
 	getDataWord960
 	StoreHighByteIfBE1Low 13
-	std Y+12,__low_data_byte960__
+	StoreLowByteToMemoryWindow 12
 	FallthroughExecutionBody_WriteOperation
 .L661:
 	getDataWord960
 	signalReady
-	std Y+12,__low_data_byte960__
-	std Y+13,__high_data_byte960__
+	Store16ToMemoryWindow 12
 	getDataWord960
 	StoreHighByteIfBE1Low 15
-	std Y+14,__low_data_byte960__
+	StoreLowByteToMemoryWindow 14
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes4_and_5_End:
 	getDataWord960
 	StoreHighByteIfBE1Low 5
-	std Y+4,__low_data_byte960__
+	StoreLowByteToMemoryWindow 4
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes8_and_9_End:
 	getDataWord960
 	StoreHighByteIfBE1Low 9
-	std Y+8,__low_data_byte960__
+	StoreLowByteToMemoryWindow 8
 	FallthroughExecutionBody_WriteOperation
 .LXB_do16BitWriteOperation:
 	StoreHighByteIfBE1Low 1
@@ -473,29 +473,14 @@ ExecutionBody:
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
-	st Y, __low_data_byte960__		   ; Yes, so store to the EBI
+	StoreLowByteToMemoryWindow 0
 	WhenBlastIsLowGoto	.LXB_do16BitWriteOperation
-	signalReady 											
-	std Y+1,__high_data_byte960__												; Store the upper byte to the EBI
+	signalReady 
+	StoreHighByteToMemoryWindow 1
 	delay2cycles
 	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
 	StoreHighByteIfBE1Low 3
-	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
+	StoreLowByteToMemoryWindow 2 ; save it without checking BE0 since we flowed into this part of the transaction
 	FallthroughExecutionBody_WriteOperation
-
-; the idea scenario is to not load or store to SRAM if I don't need to. The
-; problem is that I have to have access to the data ahead of time to make this determination which
-; defeats the point completely. It does save four avr cycles each time we can eliminate this overhead
-
-; The only other place to eliminate overhead has to do with the spinup time. 
-; I am wondering if there is some sort of way to encode system state into the shape of the code 
-; itself... I do this currently with reads and writes to eliminate the overhead
-; of switching the direction registers constantly. 
-
-; If I go back to the DEN pin then I can use that safely as long as I make sure that I don't sample 
-; DEN too quickly at the end of a transaction!
-
-; Then I do not need to clear EIFR
-

@@ -75,31 +75,40 @@ DefineReadWriteFunctions Port\letter\()_Direction, Port\letter\()_Direction
 .endm
 
 .macro DefinePinFunction func, port, index
-\func\()Output = Port\port\()_Output
-\func\()Input = Port\port\()_Input
-\func\()Direction = Port\port\()_Direction
-\func\()BitIndex = \index
+\func\()_Output = Port\port\()_Output
+\func\()_Input = Port\port\()_Input
+\func\()_Direction = Port\port\()_Direction
+\func\()_BitIndex = \index
 .if Port\port\()_BaseAddress<=0x3f
-.macro \func\()_toggleOutput
-	sbi \func\()Output , \func\()BitIndex
+.macro \func\()_Output_Toggle
+	sbi \func\()_Output , \func\()_BitIndex
 .endm
-.macro sbic_\func\()Output 
-	sbic \func\()Output, \func\()BitIndex
+.macro \func\()_Output_SkipNextIfClear
+	sbic \func\()_Output, \func\()_BitIndex
 .endm
-.macro sbic_\func\()Input 
-	sbic \func\()Input, \func\()BitIndex
+.macro \func\()_Output_SkipNextIfSet
+	sbis \func\()_Output, \func\()_BitIndex
 .endm
-.macro sbic_\func\()Direction 
-	sbic \func\()Direction, \func\()BitIndex
+.macro \func\()_Input_SkipNextIfClear
+	sbic \func\()_Input, \func\()_BitIndex
 .endm
-.macro sbis_\func\()Output 
-	sbis \func\()Output, \func\()BitIndex
+.macro \func\()_Input_SkipNextIfSet
+	sbis \func\()_Input, \func\()_BitIndex
 .endm
-.macro sbis_\func\()Input 
-	sbis \func\()Input, \func\()BitIndex
+
+.macro \func\()_Direction_SkipNextIfClear
+	sbic \func\()_Direction, \func\()_BitIndex
 .endm
-.macro sbis_\func\()Direction 
-	sbis \func\()Direction, \func\()BitIndex
+.macro \func\()_Direction_SkipNextIfSet
+	sbis \func\()_Direction, \func\()_BitIndex
+.endm
+
+; general purpose versions for input pins
+.macro \func\()_SkipNextIfClear
+	\func\()_Input_SkipNextIfClear
+.endm
+.macro \func\()_SkipNextIfSet
+	\func\()_Input_SkipNextIfSet
 .endm
 
 .endif
@@ -163,7 +172,7 @@ __rdy_signal_count_reg__ = 4
 __eifr_mask_reg__ = 3
 __direction_ff_reg__ = 2
 .macro signalReady
-	Ready_toggleOutput
+	Ready_Output_Toggle
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbis \a, \b 	; 1 cycle if false, 2 cycles if true
@@ -174,7 +183,7 @@ __direction_ff_reg__ = 2
 	rjmp \dest		; 2 cycles
 .endm
 .macro computeTransactionWindow ; 2 cycles
-	lds r28, AddressLinesInterface	; 2 cycles internal, 4 cycles external
+	AddressLinesLowest_Read r28
 .endm
 .macro setupRegisterConstants
 ; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
@@ -207,10 +216,12 @@ __direction_ff_reg__ = 2
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
-	sbisrj BLASTInput, BLASTBitIndex, \dest
+	BLAST_SkipNextIfSet
+	rjmp \dest
 .endm
 .macro WhenBlastIsHighGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
-	sbicrj BLASTInput, BLASTBitIndex, \dest
+	BLAST_SkipNextIfClear
+	rjmp \dest
 .endm
 
 .macro getLowDataByte960
@@ -220,24 +231,21 @@ __direction_ff_reg__ = 2
 	DataLinesUpper_Read __high_data_byte960__
 .endm
 .macro justWaitForTransaction
-1: sbisrj EIFR, ADSBitIndex, 1b
+1: sbisrj EIFR, ADS_BitIndex, 1b
 clearEIFR
 .endm
 .macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
 	justWaitForTransaction
 .endm
 .macro SkipNextIfBE0High  ; 1 cycle when false, 2 cycles when true
-	sbis PING, 3
+	BE0_SkipNextIfSet
 .endm
 .macro SkipNextIfBE1High  ; 1 cycle when false, 2 cycles when true
-	sbis PING, 4
-.endm
-.macro setDataLinesDirection_AVRGPIO dir ; 3 cycles
-	out DDRF, \dir ; 1 cycle
-	sts DDRK, \dir ; 2 cycle
+	BE1_SkipNextIfSet
 .endm
 .macro setDataLinesDirection dir
-	setDataLinesDirection_AVRGPIO \dir
+	Write_DataLinesLower_Direction \dir
+	Write_DataLinesUpper_Direction \dir
 .endm
 .macro getDataWord960 ; 3 cycles
 	getLowDataByte960 ; 1 cycle

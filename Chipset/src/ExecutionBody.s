@@ -67,7 +67,7 @@ DDR\letter = \base + 1
 PORT\letter = \base + 2
 Port\letter\()_Output = PORT\letter
 Port\letter\()_Input = PIN\letter
-Port\letter\()_Direction = PIN\letter
+Port\letter\()_Direction = DDR\letter
 Port\letter\()_BaseAddress = \base
 DefineReadWriteFunctions Port\letter\()_Output, Port\letter\()_Output
 DefineReadWriteFunctions Port\letter\()_Input, Port\letter\()_Input
@@ -106,9 +106,20 @@ DefineReadWriteFunctions Port\letter\()_Direction, Port\letter\()_Direction
 .endm
 
 .macro DefinePortFunction func, port
-\func\()Output = PORT\port
-\func\()Input = PIN\port
-\func\()Direction = DDR\port
+\func\()_Output = Port\port\()_Output
+\func\()_Input = Port\port\()_Input
+\func\()_Direction = Port\port\()_Direction
+\func\()_BaseAddress = Port\port\()_BaseAddress
+DefineReadWriteFunctions \func\()_Output, \func\()_Output
+DefineReadWriteFunctions \func\()_Input, \func\()_Input
+DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
+.macro \func\()_Read dest
+	Read_\()\func\()_Input \dest
+.endm
+.macro \func\()_Write dest
+	Write_\()\func\()_Output \dest
+.endm
+
 .endm
 
 
@@ -133,8 +144,13 @@ DefinePinFunction IsIOOperation, E, 2
 DefinePinFunction BE0, G, 3
 DefinePinFunction BE1, G, 4
 DefinePinFunction BLAST, G, 5
+
 DefinePortFunction DataLinesLower, F
 DefinePortFunction DataLinesUpper, C
+DefinePortFunction AddressLinesLowest, L
+DefinePortFunction AddressLinesLower, J
+DefinePortFunction AddressLinesHigher, H
+DefinePortFunction AddressLinesHighest, K
 
 ; PD6 -> DEN
 ; PD7 -> WR
@@ -186,8 +202,8 @@ __direction_ff_reg__ = 2
 .endm
 
 .macro StoreToDataPort lo,hi ; 3 cycles
-	out DataLinesLowerOutput, \lo ; 1 cycle
-	out DataLinesUpperOutput, \lo ; 1 cycle
+	DataLinesLower_Write \lo
+	DataLinesUpper_Write \hi
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -196,18 +212,12 @@ __direction_ff_reg__ = 2
 .macro WhenBlastIsHighGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbicrj BLASTInput, BLASTBitIndex, \dest
 .endm
-.macro getLowDataByte960_AVRGPIO  ; 1 cycle
-	in __low_data_byte960__, PINF
-.endm
-.macro getHighDataByte960_AVRGPIO ; 2 cycles
-	in __high_data_byte960__, PINC
-.endm
 
-.macro getLowDataByte960  ; 1 cycle
-	getLowDataByte960_AVRGPIO
+.macro getLowDataByte960
+	DataLinesLower_Read __low_data_byte960__
 .endm
-.macro getHighDataByte960 ; 2 cycles
-	getHighDataByte960_AVRGPIO
+.macro getHighDataByte960 
+	DataLinesUpper_Read __high_data_byte960__
 .endm
 .macro justWaitForTransaction
 1: sbisrj EIFR, ADSBitIndex, 1b

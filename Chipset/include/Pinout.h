@@ -61,29 +61,26 @@ Count = NUM_DIGITAL_PINS,
 #endif
     SD_EN = PortB0,
     INT0_960_ = PortB5, // OC1A
-    ReadyDirect = PortB6,
-    Reset = PortB7,
+    Lock = PortB6,
+    Hold = PortB7,
+
+    WR = PortD6,
+    Reset = PortD7,
 
 
-    IsMemorySpaceOperation = PortE2,
-    CLK1 = PortE3,
-    NewTransaction = PortE4,
-    WR = PortE5,
-    ExternalMemoryOperation = PortE6,
-
+    IsIOOperation = PortE2,
+    XINT4 = PortE3,
+    ReadyDirect = PortE4,
+    ADS = PortE5,
+    HLDA = PortE6,
     CLK2 = PortE7, // hardwired for this purpose
+                   
     EBI_WR = PortG0,
     EBI_RD = PortG1,
     EBI_ALE = PortG2,
     BE0 = PortG3,
     BE1 = PortG4,
     BLAST = PortG5,
-
-    CLK5Mhz = PortH3,
-    ONE_SHOT_READY = PortH6, // OC2B
-
-
-
 
 };
 enum class Port : byte {

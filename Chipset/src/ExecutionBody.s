@@ -257,9 +257,14 @@ clearEIFR
 .macro StoreHighByteToMemoryWindow offset
 	StoreToMemoryWindow __high_data_byte960__, \offset
 .endm
+
 .macro StoreHighByteIfBE1Low offset ; 2 cycles when BE1 is HIGH, 5 cycles when BE1 is LOW
 	SkipNextIfBE1High	; 1 cycle when false, 2 cycles when skipping
 	StoreHighByteToMemoryWindow \offset ; 4 cycles
+.endm
+.macro HandleLastTwoBytesInWriteTransaction offset
+	StoreHighByteIfBE1Low \offset\()+1
+	StoreLowByteToMemoryWindow \offset ; save it without checking BE0 since we flowed into this part of the transaction
 .endm
 .macro FallthroughExecutionBody_WriteOperation
 	signalReady 
@@ -278,8 +283,7 @@ clearEIFR
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
-	StoreHighByteIfBE1Low 3
-	StoreLowByteToMemoryWindow 2 								; save it without checking BE0 since we flowed into this part of the transaction
+	HandleLastTwoBytesInWriteTransaction 2
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .endm
 .macro ReadBodyPrimary
@@ -406,8 +410,7 @@ ExecutionBody:
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
-	StoreHighByteIfBE1Low 3
-	StoreLowByteToMemoryWindow 2 								; save it without checking BE0 since we flowed into this part of the transaction
+	HandleLastTwoBytesInWriteTransaction 2
 	FallthroughExecutionBody_WriteOperation
 .L642:
 	getDataWord960				
@@ -419,8 +422,7 @@ ExecutionBody:
 	Store16ToMemoryWindow 4 	  ; save the word (bits 32-47)
 	WhenBlastIsHighGoto .L649	  ; we have more data to transfer
 	getDataWord960				
-	StoreHighByteIfBE1Low 7
-	StoreLowByteToMemoryWindow 6  ; always save the lower byte since we flowed into here
+	HandleLastTwoBytesInWriteTransaction 6
 	FallthroughExecutionBody_WriteOperation
 .L649:
 	getDataWord960
@@ -432,8 +434,7 @@ ExecutionBody:
 	Store16ToMemoryWindow 8
 	WhenBlastIsHighGoto .L657
 	getDataWord960
-	StoreHighByteIfBE1Low 11
-	StoreLowByteToMemoryWindow 10
+	HandleLastTwoBytesInWriteTransaction 10
 	FallthroughExecutionBody_WriteOperation
 .L657:
 	getDataWord960
@@ -441,26 +442,22 @@ ExecutionBody:
 	Store16ToMemoryWindow 10
 	WhenBlastIsHighGoto .L661
 	getDataWord960
-	StoreHighByteIfBE1Low 13
-	StoreLowByteToMemoryWindow 12
+	HandleLastTwoBytesInWriteTransaction 12
 	FallthroughExecutionBody_WriteOperation
 .L661:
 	getDataWord960
 	signalReady
 	Store16ToMemoryWindow 12
 	getDataWord960
-	StoreHighByteIfBE1Low 15
-	StoreLowByteToMemoryWindow 14
+	HandleLastTwoBytesInWriteTransaction 14
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes4_and_5_End:
 	getDataWord960
-	StoreHighByteIfBE1Low 5
-	StoreLowByteToMemoryWindow 4
+	HandleLastTwoBytesInWriteTransaction 4
 	FallthroughExecutionBody_WriteOperation
 .LXB_WriteBytes8_and_9_End:
 	getDataWord960
-	StoreHighByteIfBE1Low 9
-	StoreLowByteToMemoryWindow 8
+	HandleLastTwoBytesInWriteTransaction 8
 	FallthroughExecutionBody_WriteOperation
 .LXB_do16BitWriteOperation:
 	StoreHighByteIfBE1Low 1
@@ -481,6 +478,5 @@ ExecutionBody:
 	WhenBlastIsHighGoto .L642 ; this is checking blast for the second set of 16-bits not the first
 	; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
-	StoreHighByteIfBE1Low 3
-	StoreLowByteToMemoryWindow 2 ; save it without checking BE0 since we flowed into this part of the transaction
+	HandleLastTwoBytesInWriteTransaction 2
 	FallthroughExecutionBody_WriteOperation

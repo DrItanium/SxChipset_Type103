@@ -34,8 +34,13 @@ DDR\letter = \base + 1
 PORT\letter = \base + 2
 .endm
 .macro DefinePinFunction func, port, index
-\func\()Port = PORT\port
+\func\()Output = PORT\port
+\func\()Input = PIN\port
+\func\()Direction = DDR\port
 \func\()BitIndex = \index
+.macro toggle\func
+	sbi \func\()Output , \func\()BitIndex
+.endm
 .endm
 
 .macro DefinePortFunction func, port
@@ -80,7 +85,7 @@ __rdy_signal_count_reg__ = 4
 __eifr_mask_reg__ = 3
 __direction_ff_reg__ = 2
 .macro signalReady
-	sbi ReadyPort, ReadyBitIndex
+	toggleReady
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbis \a, \b 	; 1 cycle if false, 2 cycles if true
@@ -124,10 +129,10 @@ __direction_ff_reg__ = 2
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
-	sbisrj BLASTPort, BLASTBitIndex, \dest
+	sbisrj BLASTInput, BLASTBitIndex, \dest
 .endm
 .macro WhenBlastIsHighGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
-	sbicrj BLASTPort, BLASTBitIndex, \dest
+	sbicrj BLASTInput, BLASTBitIndex, \dest
 .endm
 .macro getLowDataByte960_AVRGPIO  ; 1 cycle
 	in __low_data_byte960__, PINF

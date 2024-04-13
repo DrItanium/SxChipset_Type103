@@ -858,7 +858,7 @@ setup() {
     GPIOR0 = 0;
     // setup the EBI
     XMCRB=0b1'0000'111;
-    XMCRA=0b1'010'01'01;  
+    XMCRA=0b1'010'11'11;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     DataInterface::configureInterface();

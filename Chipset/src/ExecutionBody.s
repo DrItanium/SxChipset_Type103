@@ -27,39 +27,60 @@ __SREG__ = 0x3f
 __RAMPZ__ = 0x3b
 __tmp_reg__ = 0
 __zero_reg__ = 1
-GPIOR0 = 0x1E
-PIND = 0x09
+; declarations
+.macro DefinePort letter, base
+PIN\letter = \base
+DDR\letter = \base + 1
+PORT\letter = \base + 2
+.endm
+.macro DefinePinFunction func, port, index
+\func\()Port = PORT\port
+\func\()BitIndex = \index
+.endm
+
+.macro DefinePortFunction func, port
+\func\()Output = PORT\port
+\func\()Input = PIN\port
+\func\()Direction = DDR\port
+.endm
+
+
+DefinePort A, 0x00
+DefinePort B, 0x03
+DefinePort C, 0x06
+DefinePort D, 0x09
+DefinePort E, 0x0c
+DefinePort F, 0x0f
+DefinePort G, 0x12
+DefinePort H, 0x100
+DefinePort J, 0x103
+DefinePort K, 0x106
+DefinePort L, 0x109
+EIFR = 0x1c
+GPIOR0 = 0x1e
+
+DefinePinFunction Ready, E, 4
+DefinePinFunction ADS, E, 5
+DefinePinFunction HLDA, E, 6
+DefinePinFunction IsIOOperation, E, 2
+DefinePinFunction BE0, G, 3
+DefinePinFunction BE1, G, 4
+DefinePinFunction BLAST, G, 5
+DefinePortFunction DataLinesLower, F
+DefinePortFunction DataLinesUpper, C
+
 ; PD6 -> DEN
 ; PD7 -> WR
-PINE = 0x0C
-PINF = 0x0F
-DDRF = 0x10
-PORTF = 0x11
-PING = 0x12
-PINK = 262
-PINL = 0x109
-PINJ = 0x103
-DDRK = 263
-PORTK = 264
-EIFR = 0x1c
-InternalAddressLinesInterface = PINL
-ExternalAddressLinesInterface = 0xFD00
-AddressLinesInterface = InternalAddressLinesInterface
-MemoryWindowUpper = 0xFC
-TCNT2 = 0xb2
+AddressLinesInterface = PINL 
+MemoryWindowUpper = 0xfc
 __snapshot__ = 9;
-__highest_data_byte960__ = 8
-__higher_data_byte960__ = 7
 __high_data_byte960__ = 6
 __low_data_byte960__ = 5
 __rdy_signal_count_reg__ = 4
 __eifr_mask_reg__ = 3
 __direction_ff_reg__ = 2
-.macro signalReady_Counter ; 2 cycles itself, 6 cycles after that before next part of transaction
-	sts TCNT2, __rdy_signal_count_reg__  
-.endm
 .macro signalReady
-signalReady_Counter
+	sbi ReadyPort, ReadyBitIndex
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbis \a, \b 	; 1 cycle if false, 2 cycles if true
@@ -69,12 +90,8 @@ signalReady_Counter
 	sbic \a, \b		; 1 cycle if false, 2 cycles if true
 	rjmp \dest		; 2 cycles
 .endm
-.macro displayAddress
-;	call printOutDebugInfo
-.endm
 .macro computeTransactionWindow ; 2 cycles
 	lds r28, AddressLinesInterface	; 2 cycles internal, 4 cycles external
-	displayAddress
 .endm
 .macro setupRegisterConstants
 ; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
@@ -100,30 +117,23 @@ signalReady_Counter
 .macro clearEIFR ; 1 cycle
 	out EIFR, __eifr_mask_reg__ ; 1 cycle
 .endm
-.macro StoreToDataPort_AVRGPIO lo,hi ; 3 cycles
-	out PORTF, \lo 	; 1 cycle
-	sts PORTK, \hi	; 2 cycles
-.endm
-.macro displayDataLinesValue_Read
-;	call displayReadParameters
-.endm
 
 .macro StoreToDataPort lo,hi ; 3 cycles
-	StoreToDataPort_AVRGPIO \lo, \hi
-	displayDataLinesValue_Read
+	out DataLinesLowerOutput, \lo ; 1 cycle
+	out DataLinesUpperOutput, \lo ; 1 cycle
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
-	sbisrj PING, 5, \dest
+	sbisrj BLASTPort, BLASTBitIndex, \dest
 .endm
 .macro WhenBlastIsHighGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
-	sbicrj PING, 5, \dest
+	sbicrj BLASTPort, BLASTBitIndex, \dest
 .endm
 .macro getLowDataByte960_AVRGPIO  ; 1 cycle
 	in __low_data_byte960__, PINF
 .endm
 .macro getHighDataByte960_AVRGPIO ; 2 cycles
-	lds __high_data_byte960__, PINK
+	in __high_data_byte960__, PINC
 .endm
 
 .macro getLowDataByte960  ; 1 cycle
@@ -133,7 +143,7 @@ signalReady_Counter
 	getHighDataByte960_AVRGPIO
 .endm
 .macro justWaitForTransaction
-1: sbisrj EIFR, 4, 1b
+1: sbisrj EIFR, ADSBitIndex, 1b
 clearEIFR
 .endm
 .macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met

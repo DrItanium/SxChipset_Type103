@@ -32,15 +32,37 @@ __zero_reg__ = 1
 PIN\letter = \base
 DDR\letter = \base + 1
 PORT\letter = \base + 2
+BaseAddress\letter = \base
 .endm
 .macro DefinePinFunction func, port, index
 \func\()Output = PORT\port
 \func\()Input = PIN\port
 \func\()Direction = DDR\port
 \func\()BitIndex = \index
-.macro toggle\func
+.if BaseAddress\port <= 0x3f
+.macro toggleOutput\func
 	sbi \func\()Output , \func\()BitIndex
 .endm
+.macro sbic_\func\()Output 
+	sbic \func\()Output, \func\()BitIndex
+.endm
+.macro sbic_\func\()Input 
+	sbic \func\()Input, \func\()BitIndex
+.endm
+.macro sbic_\func\()Direction 
+	sbic \func\()Direction, \func\()BitIndex
+.endm
+.macro sbis_\func\()Output 
+	sbis \func\()Output, \func\()BitIndex
+.endm
+.macro sbis_\func\()Input 
+	sbis \func\()Input, \func\()BitIndex
+.endm
+.macro sbis_\func\()Direction 
+	sbis \func\()Direction, \func\()BitIndex
+.endm
+
+.endif
 .endm
 
 .macro DefinePortFunction func, port
@@ -85,7 +107,7 @@ __rdy_signal_count_reg__ = 4
 __eifr_mask_reg__ = 3
 __direction_ff_reg__ = 2
 .macro signalReady
-	toggleReady
+	toggleOutputReady
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbis \a, \b 	; 1 cycle if false, 2 cycles if true

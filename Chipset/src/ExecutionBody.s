@@ -69,9 +69,9 @@ Port\letter\()_Output = PORT\letter
 Port\letter\()_Input = PIN\letter
 Port\letter\()_Direction = PIN\letter
 Port\letter\()_BaseAddress = \base
-DefineReadWriteFunctions Port\letter\()_Output
-DefineReadWriteFunctions Port\letter\()_Input
-DefineReadWriteFunctions Port\letter\()_Direction
+DefineReadWriteFunctions Port\letter\()_Output, Port\letter\()_Output
+DefineReadWriteFunctions Port\letter\()_Input, Port\letter\()_Input
+DefineReadWriteFunctions Port\letter\()_Direction, Port\letter\()_Direction
 .endm
 
 .macro DefinePinFunction func, port, index
@@ -465,3 +465,4 @@ ExecutionBody:
 ; DEN too quickly at the end of a transaction!
 
 ; Then I do not need to clear EIFR
+

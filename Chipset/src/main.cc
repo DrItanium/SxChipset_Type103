@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <SPI.h>
 #include <SdFat.h>
+#include <Wire.h>
 
 
 #include "Detect.h"
@@ -51,33 +52,8 @@ struct ViewIs final {
     using Type = decltype(ViewKind);
     static constexpr Type Value = ViewKind;
 };
-enum class DataPortInterfaceKind {
-    None,
-    AVRGPIO,
-};
 
-template<DataPortInterfaceKind kind>
 struct DataPortInterface {
-    static constexpr bool Valid = false;
-    static constexpr auto InterfaceKind = kind;
-    using Self = DataPortInterface<InterfaceKind>;
-    DataPortInterface() = delete;
-    ~DataPortInterface() = delete;
-    DataPortInterface(const Self&) = delete;
-    DataPortInterface(Self&&) = delete;
-    Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
-    static void configureInterface() noexcept {
-        getDirectionRegister<Port::DataLinesUpper>() = 0;
-        getDirectionRegister<Port::DataLinesLower>() = 0;
-    }
-};
-
-template<>
-struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
-    static constexpr bool Valid = true;
-    static constexpr auto InterfaceKind = DataPortInterfaceKind::AVRGPIO;
-    using Self = DataPortInterface<InterfaceKind>;
     DataPortInterface() = delete;
     ~DataPortInterface() = delete;
     DataPortInterface(const Self&) = delete;
@@ -101,17 +77,10 @@ struct DataPortInterface<DataPortInterfaceKind::AVRGPIO> {
 };
 
 
-template<DataPortInterfaceKind kind>
-constexpr auto isValidKind_v = DataPortInterface<kind>::Valid;
-constexpr auto getDataPortKind() noexcept { 
-    return DataPortInterfaceKind::AVRGPIO;
-}
-constexpr auto DataPortKind = getDataPortKind();
-static_assert(isValidKind_v<DataPortKind>, "unsupported data interface kind provided");
 
 
 struct DataInterface {
-    using UnderlyingDataInterface = DataPortInterface<DataPortKind>;
+    using UnderlyingDataInterface = DataPortInterface;
     using Self = DataInterface;
     DataInterface() = delete;
     ~DataInterface() = delete;
@@ -149,53 +118,11 @@ struct DataInterface {
     }
 };
 
-enum class ReadySignalKind : uint8_t {
-    TimerBased,
-    SoftwareGPIO,
-};
-constexpr bool valid(ReadySignalKind kind) noexcept {
-    switch (kind) {
-        case ReadySignalKind::TimerBased:
-        case ReadySignalKind::SoftwareGPIO:
-            return true;
-        default:
-            return false;
-    }
-}
-template<ReadySignalKind kind>
-using UseReadySignalKind = TagDispatchOnValue<kind>;
-
-using TargetReadySignal = UseReadySignalKind<ReadySignalKind::TimerBased>;
-
-static_assert(valid(TargetReadySignal::UnderlyingValue), "Invalid READY signal handler specified!");
-constexpr uint8_t computeCycleWidth(uint8_t cycles) {
-    return 0xFF - (cycles - 1);
-}
-constexpr uint8_t ReadyCycleWidth = computeCycleWidth(2);
-constexpr uint8_t ReadyCycleStart = ReadyCycleWidth - 1;
-[[gnu::always_inline]] inline void oneShotFire() noexcept {
-    // fire a one-shot pulse. Use the most recently set width!
-    TCNT2 = ReadyCycleStart;
-}
-
-template<uint8_t delayAmount = 4>
-[[gnu::always_inline]] inline void signalReady(UseReadySignalKind<ReadySignalKind::TimerBased>) noexcept {
-    // wait for the one shot to go on
-    oneShotFire();
-    if constexpr (delayAmount > 0) {
-        // it takes two cycles avr for the ready signal to actually signal
-        // ready. The i960 needs to detect the signal and act accordingly.
-        // so it will be 6 cycles every single time between the time we start
-        // the trigger and when we have the next transaction starting
-        insertCustomNopCount<delayAmount + 2>();
-    }
-}
-
 template<uint8_t delayAmount = 4>
 [[gnu::always_inline]] 
 inline 
 void 
-signalReady(UseReadySignalKind<ReadySignalKind::SoftwareGPIO>) noexcept {
+signalReady() noexcept {
     toggle<Pin::ReadyDirect>();
     if constexpr (delayAmount > 0) {
         // it takes two cycles avr for the ready signal to actually signal
@@ -204,12 +131,6 @@ signalReady(UseReadySignalKind<ReadySignalKind::SoftwareGPIO>) noexcept {
         // the trigger and when we have the next transaction starting
         insertCustomNopCount<delayAmount + 2>();
     }
-}
-template<uint8_t delayAmount = 4>
-[[gnu::always_inline]]
-inline void
-signalReady() noexcept {
-    signalReady<delayAmount>(TargetReadySignal{});
 }
 
 using Register8 = volatile uint8_t&;
@@ -355,7 +276,7 @@ template<bool isReadOperation>
 inline 
 void
 doLegacyIO() noexcept {
-    switch ( getInputRegister<Port::AddressLinesLowest>()) {
+    switch ( getInputRegister<AddressLines[0]>()) {
     
         case 0: { 
                     if constexpr (isReadOperation) { 
@@ -985,14 +906,14 @@ setup() {
     // the single cycle wait state is necessary even with the AHC573s
     DataInterface::configureInterface();
     MemoryInterface::configure();
-    getDirectionRegister<Port::AddressLinesLowest>() = 0;
-    getOutputRegister<Port::AddressLinesLowest>() = 0;
-    getDirectionRegister<Port::AddressLines8_15>() = 0xFF; // just configure them all for output
-    getOutputRegister<Port::AddressLines8_15>() = 0;
-    getDirectionRegister<Port::AddressLines16_23>() = 0xFF; // just configure them all for output
-    getOutputRegister<Port::AddressLines16_23>() = 0;
-    getDirectionRegister<Port::AddressLines24_31>() = 0xFF;
-    getOutputRegister<Port::AddressLines24_31>() = 0;
+    getDirectionRegister<AddressLines[0]>() = 0;
+    getOutputRegister<AddressLines[0]>() = 0;
+    getDirectionRegister<AddressLines[1]>() = 0xFF; // just configure them all for output
+    getOutputRegister<AddressLines[1]>() = 0;
+    getDirectionRegister<AddressLines[2]>() = 0xFF; // just configure them all for output
+    getOutputRegister<AddressLines[2]>() = 0;
+    getDirectionRegister<AddressLines[3]>() = 0xFF;
+    getOutputRegister<AddressLines[3]>() = 0;
     GPIOR0 = 0;
     putCPUInReset();
     setupDataBlocks();
@@ -1015,12 +936,12 @@ setup() {
         Serial.println(F("Could not open disk0.dsk"));
         Serial.println(F("No hard drive will be available"));
     }
-    getDirectionRegister<Port::AddressLines8_15>() = 0; 
-    getOutputRegister<Port::AddressLines8_15>() = 0;
-    getDirectionRegister<Port::AddressLines16_23>() = 0; 
-    getOutputRegister<Port::AddressLines16_23>() = 0;
-    getDirectionRegister<Port::AddressLines24_31>() = 0;
-    getOutputRegister<Port::AddressLines24_31>() = 0;
+    getDirectionRegister<AddressLines[1]>() = 0; 
+    getOutputRegister<AddressLines[1]>() = 0;
+    getDirectionRegister<AddressLines[2]>() = 0; 
+    getOutputRegister<AddressLines[2]>() = 0;
+    getDirectionRegister<AddressLines[3]>() = 0;
+    getOutputRegister<AddressLines[3]>() = 0;
     // attach interrupts
     EICRB = 0b0000'0010; // falling edge on INT4 only
     pullCPUOutOfReset();

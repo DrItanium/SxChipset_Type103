@@ -99,7 +99,7 @@ enum class Port : byte {
     AddressLinesHigher = H,
     AddressLinesHighest = K,
 };
-constexpr auto AddressLines[4] {
+constexpr Port AddressLines[4] {
     Port::AddressLinesLowest,
     Port::AddressLinesLower,
     Port::AddressLinesHigher,

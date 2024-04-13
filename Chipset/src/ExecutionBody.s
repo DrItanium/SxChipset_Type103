@@ -110,6 +110,22 @@ DefineReadWriteFunctions Port\letter\()_Direction, Port\letter\()_Direction
 .macro \func\()_SkipNextIfSet
 	\func\()_Input_SkipNextIfSet
 .endm
+.macro \func\()_SkipNextIfLow
+	\func\()_SkipNextIfClear
+.endm
+.macro \func\()_SkipNextIfHigh
+	\func\()_SkipNextIfSet
+.endm
+
+.macro \func\()_IfBitIsSetGoto dest
+	\func\()_SkipNextIfClear
+	rjmp \dest
+.endm
+
+.macro \func\()_IfBitIsClearGoto dest
+	\func\()_SkipNextIfSet
+	rjmp \dest
+.endm
 
 .endif
 .endm
@@ -146,6 +162,7 @@ DefinePort L, 0x109
 EIFR = 0x1c
 GPIOR0 = 0x1e
 
+DefinePinFunction WR, D, 6
 DefinePinFunction Ready, E, 4
 DefinePinFunction ADS, E, 5
 DefinePinFunction HLDA, E, 6
@@ -161,15 +178,9 @@ DefinePortFunction AddressLinesLower, J
 DefinePortFunction AddressLinesHigher, H
 DefinePortFunction AddressLinesHighest, K
 
-; PD6 -> DEN
-; PD7 -> WR
-AddressLinesInterface = PINL 
 MemoryWindowUpper = 0xfc
-__snapshot__ = 9;
-__high_data_byte960__ = 6
-__low_data_byte960__ = 5
-__rdy_signal_count_reg__ = 4
-__eifr_mask_reg__ = 3
+__high_data_byte960__ = 4
+__low_data_byte960__ = 3
 __direction_ff_reg__ = 2
 .macro signalReady
 	Ready_Output_Toggle
@@ -186,16 +197,6 @@ __direction_ff_reg__ = 2
 	AddressLinesLowest_Read r28
 .endm
 .macro setupRegisterConstants
-; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
-	ldi r16, lo8(112)
-	mov __eifr_mask_reg__, r16
-	ldi r16, lo8(-3)
-	mov __rdy_signal_count_reg__, r16 ; load the ready signal amount
-	ser r16
-	mov __direction_ff_reg__, r16 ; 0xff
-; setup index register Y to be the actual memory window, that way we can only update the lower half
-	clr r28
-	ldi r29, MemoryWindowUpper
 .endm
 .macro delay2cycles ; 2 cycles
 	rjmp 1f
@@ -207,7 +208,7 @@ __direction_ff_reg__ = 2
 .endm
 
 .macro clearEIFR ; 1 cycle
-	out EIFR, __eifr_mask_reg__ ; 1 cycle
+	sbi EIFR, ADS_BitIndex
 .endm
 
 .macro StoreToDataPort lo,hi ; 3 cycles
@@ -251,9 +252,23 @@ clearEIFR
 	getLowDataByte960 ; 1 cycle
 	getHighDataByte960 ; 2 cycles
 .endm
+.macro StoreToMemoryWindow reg, offset
+	.if offset == 0
+		st Y, \reg
+	.else
+		std Y+\offset , \reg
+	.endif
+.endm
+.macro LoadFromMemoryWindow reg, offset
+	.if offset == 0
+		ld \reg, Y
+	.else
+		ldd \reg, Y+\offset
+	.endif
+.endm
 .macro StoreHighByteIfBE1Low offset ; 2 cycles when BE1 is HIGH, 5 cycles when BE1 is LOW
 	SkipNextIfBE1High	; 1 cycle when false, 2 cycles when skipping
-	std Y+\offset, __high_data_byte960__ ; 4 cycles
+	StoreToMemoryWindow __high_data_byte960__, \offset ; 4 cycles
 .endm
 .macro FallthroughExecutionBody_WriteOperation
 	signalReady 
@@ -264,57 +279,57 @@ clearEIFR
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
-	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
+	StoreToMemoryWindow __low_data_byte960__, 0 				; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 												; first word down, onto the next one
-	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
+	StoreToMemoryWindow __high_data_byte960__, 1 				; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
 	StoreHighByteIfBE1Low 3
-	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
+	StoreToMemoryWindow __low_data_byte960__, 2 				; save it without checking BE0 since we flowed into this part of the transaction
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .endm
 .macro ReadBodyPrimary
 	computeTransactionWindow
-	ld __low_data_byte960__,Y
-	ldd __high_data_byte960__,Y+1
+	LoadFromMemoryWindow __low_data_byte960__, 0
+	LoadFromMemoryWindow __high_data_byte960__, 1
 	StoreToDataPort __low_data_byte960__,__high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart 
 	signalReady 
-	ldd __low_data_byte960__,Y+2
-	ldd __high_data_byte960__,Y+3
+	LoadFromMemoryWindow __low_data_byte960__, 2
+	LoadFromMemoryWindow __high_data_byte960__, 3
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart 
 	signalReady 
-	ldd __low_data_byte960__,Y+4
-	ldd __high_data_byte960__,Y+5
+	LoadFromMemoryWindow __low_data_byte960__, 4
+	LoadFromMemoryWindow __high_data_byte960__, 5
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd __low_data_byte960__,Y+6
-	ldd __high_data_byte960__,Y+7
+	LoadFromMemoryWindow __low_data_byte960__, 6
+	LoadFromMemoryWindow __high_data_byte960__, 7
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd __low_data_byte960__,Y+8
-	ldd __high_data_byte960__,Y+9
+	LoadFromMemoryWindow __low_data_byte960__, 8
+	LoadFromMemoryWindow __high_data_byte960__, 9
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd __low_data_byte960__,Y+10
-	ldd __high_data_byte960__,Y+11
+	LoadFromMemoryWindow __low_data_byte960__, 10
+	LoadFromMemoryWindow __high_data_byte960__, 11
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd __low_data_byte960__,Y+12
-	ldd __high_data_byte960__,Y+13
+	LoadFromMemoryWindow __low_data_byte960__, 12
+	LoadFromMemoryWindow __high_data_byte960__, 13
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart
 	signalReady 
-	ldd __low_data_byte960__,Y+14
-	ldd __high_data_byte960__,Y+15
+	LoadFromMemoryWindow __low_data_byte960__, 14
+	LoadFromMemoryWindow __high_data_byte960__, 15
 	StoreToDataPort __low_data_byte960__, __high_data_byte960__
 .endm
 
@@ -325,9 +340,6 @@ clearEIFR
 	sbisrj PINE, 2, .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart
-.endm
-.macro takeSnapshot
-	in __snapshot__, PING
 .endm
 .macro sbrsrj a, b, dest 
 	sbrs \a, \b
@@ -343,10 +355,12 @@ clearEIFR
 .text
 
 ExecutionBody:
-/* prologue: function */
-/* frame size = 0 */
-/* stack size = 0 */
-	setupRegisterConstants
+	; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
+	ser r16
+	mov __direction_ff_reg__, r16 ; 0xff
+; setup index register Y to be the actual memory window, that way we can only update the lower half
+	clr r28
+	ldi r29, MemoryWindowUpper
 	rjmp .LXB_ReadTransactionStart ; jump into the top of the invocation loop
 .LXB_readOperation_CheckIO_Nothing:
 	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
@@ -355,7 +369,8 @@ ExecutionBody:
 	signalReady
 .LXB_ReadTransactionStart:
 	waitForTransaction 
-	sbicrj PINE, 5, .LXB_ShiftFromReadToWrite
+	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite
+
 	sbisrj PINE, 2, .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
@@ -377,22 +392,22 @@ ExecutionBody:
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
-	st Y, __low_data_byte960__		   							; Yes, so store to the EBI
+	StoreToMemoryWindow __low_data_byte960__, 0 				; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 												; first word down, onto the next one
-	std Y+1,__high_data_byte960__								; Store the upper byte to the EBI
+	StoreToMemoryWindow __high_data_byte960__, 1 				; Store the upper byte to the EBI
 	delay2cycles												; wait for the next cycle to start
 	WhenBlastIsHighGoto .L642                                   ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
 	StoreHighByteIfBE1Low 3
-	std Y+2,__low_data_byte960__  ; save it without checking BE0 since we flowed into this part of the transaction
+	StoreToMemoryWindow __low_data_byte960__, 2 				; save it without checking BE0 since we flowed into this part of the transaction
 	FallthroughExecutionBody_WriteOperation
 .L642:
 	getDataWord960				
 	signalReady 				  ; start the next word signal and we can use the 6 cycles to get ready
-	std Y+2,__low_data_byte960__  ; use the time to store into memory while the ready signal counter is doing its thing
-	std Y+3,__high_data_byte960__ ; use the time to store into memory while the ready signal counter is doing its thing
+	StoreToMemoryWindow __low_data_byte960__, 2 ; use the time to store into memory while the ready signal counter is doing its thing
+	StoreToMemoryWindow __high_data_byte960__, 3 ; use the time to store into memory while the ready signal counter is doing its thing
 	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End	; We can now safely check if we should terminate execution
 	getDataWord960				
 	signalReady					  ; Start the process for the next word ( at this point we will be at a 64-bit number once this ready goes through)

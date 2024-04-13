@@ -893,11 +893,11 @@ setup() {
         Serial.println(F("No hard drive will be available"));
     }
     getDirectionRegister<AddressLines[1]>() = 0; 
-    getOutputRegister<AddressLines[1]>() = 0;
+    getOutputRegister<AddressLines[1]>() = 0xFF; // activate the pullups to make sure
     getDirectionRegister<AddressLines[2]>() = 0; 
-    getOutputRegister<AddressLines[2]>() = 0;
+    getOutputRegister<AddressLines[2]>() = 0xFF; // activate the pullups
     getDirectionRegister<AddressLines[3]>() = 0;
-    getOutputRegister<AddressLines[3]>() = 0;
+    getOutputRegister<AddressLines[3]>() = 0xFF; // activate the pullups
     // attach interrupts
     EICRB = 0b0000'0010; // falling edge on INT4 only
     digitalWrite<Pin::Reset, HIGH>(); 

@@ -27,7 +27,8 @@ all: Type103PLD.jed \
 	NewIntegratedChip1.jed \
 	NewSRAMDecoderChip1.jed \
 	NewSRAMDecoderChip2.jed \
-	NewBasicHardwareChip.jed
+	NewBasicHardwareChip.jed \
+	AddressDecoder.jed
 
 
 install_Type103: Type103PLD.jed
@@ -111,6 +112,8 @@ install_NewSRAMDecoderChip2: NewSRAMDecoderChip2.jed
 install_NewBasicHardwareChip: NewBasicHardwareChip.jed
 	minipro -p "ATF22V10CQ(UES)" --write NewBasicHardwareChip.jed
 
+install_AddressDecoder: AddressDecoder.jed
+	minipro -p ATF16V8C --write AddressDecoder.jed 
 
 
 clean:

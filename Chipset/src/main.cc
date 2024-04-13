@@ -54,6 +54,7 @@ struct ViewIs final {
 };
 
 struct DataPortInterface {
+    using Self = DataPortInterface;
     DataPortInterface() = delete;
     ~DataPortInterface() = delete;
     DataPortInterface(const Self&) = delete;
@@ -204,9 +205,9 @@ public:
         int counter = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize, ++counter) {
             // just modify the bank as we go along
-            getOutputRegister<Port::AddressLines8_15>() = static_cast<uint8_t>(address >> 8);
-            getOutputRegister<Port::AddressLines16_23>() = static_cast<uint8_t>(address >> 16);
-            getOutputRegister<Port::AddressLines24_31>() = static_cast<uint8_t>(address >> 24);
+            getOutputRegister<AddressLines[1]>() = static_cast<uint8_t>(address >> 8);
+            getOutputRegister<AddressLines[2]>() = static_cast<uint8_t>(address >> 16);
+            getOutputRegister<AddressLines[3]>() = static_cast<uint8_t>(address >> 24);
             theFirmware.read(temporaryBuffer, TransferBufferSize);
             memcpy(const_cast<uint8_t*>(theBuffer), temporaryBuffer, TransferBufferSize); 
             // now do a sanity check
@@ -739,7 +740,7 @@ void setupDataBlocks() {
 template<bool isReadOperation>
 void 
 doIO() noexcept { 
-    switch (getInputRegister<Port::AddressLines8_15>()) {
+    switch (getInputRegister<AddressLines[1]>()) {
         case 0x00:
             doLegacyIO<isReadOperation>();
             break;
@@ -839,7 +840,7 @@ configurePins() noexcept {
     digitalWrite<Pin::XINT0, HIGH>();
     digitalWrite<Pin::XINT2, HIGH>();
     digitalWrite<Pin::XINT4, HIGH>();
-    digitalWrite<Pin::HOLD, LOW>();
+    digitalWrite<Pin::Hold, LOW>();
 }
 void
 setup() {
@@ -899,7 +900,7 @@ setup() {
     getOutputRegister<AddressLines[3]>() = 0;
     // attach interrupts
     EICRB = 0b0000'0010; // falling edge on INT4 only
-    digitalWrite<Pin::Reset, HIGH>(); /
+    digitalWrite<Pin::Reset, HIGH>(); 
 }
 void 
 loop() {

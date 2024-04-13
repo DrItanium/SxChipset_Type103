@@ -104,7 +104,7 @@ constexpr Port AddressLines[4] {
     Port::AddressLinesHigher,
     Port::AddressLinesHighest,
 };
-constexpr auto DataLines[2] {
+constexpr Port DataLines[2] {
     Port::DataLinesLower,
     Port::DataLinesUpper,
 };

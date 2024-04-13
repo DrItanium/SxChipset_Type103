@@ -93,11 +93,21 @@ enum class Port : byte {
 #undef X
     None,
     DataLinesLower = F,
-    DataLinesUpper = K,
+    DataLinesUpper = C,
     AddressLinesLowest = L,
-    AddressLines8_15 = J,
-    AddressLines16_23 = C,
-    AddressLines24_31 = D,
+    AddressLinesLower = J,
+    AddressLinesHigher = H,
+    AddressLinesHighest = K,
+};
+constexpr auto AddressLines[4] {
+    Port::AddressLinesLowest,
+    Port::AddressLinesLower,
+    Port::AddressLinesHigher,
+    Port::AddressLinesHighest,
+};
+constexpr auto DataLines[2] {
+    Port::DataLinesLower,
+    Port::DataLinesUpper,
 };
 constexpr auto numberOfAvailablePins() noexcept {
     return 0 

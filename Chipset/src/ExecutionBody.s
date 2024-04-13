@@ -28,19 +28,59 @@ __RAMPZ__ = 0x3b
 __tmp_reg__ = 0
 __zero_reg__ = 1
 ; declarations
+.macro ReadFromAddress addr, reg 
+.if \addr<=0x3f
+	in \reg, \addr
+.else
+	lds \reg, \addr
+.endif
+.endm
+.macro WriteToAddress addr, reg
+.if \addr<=0x3f
+	out \addr, \reg
+.else
+	sts \addr, \reg
+.endif
+.endm
+
+.macro DefineWriteFunction name, addr
+.macro Write_\name reg
+WriteToAddress \addr, \reg
+.endm
+.endm
+
+.macro DefineReadFunction name, addr
+.macro Read_\name reg
+ReadFromAddress \addr, \reg
+.endm
+.endm
+
+.macro DefineReadWriteFunctions name, addr
+DefineReadFunction \name, \addr
+DefineWriteFunction \name, \addr
+.endm
+
+
 .macro DefinePort letter, base
 PIN\letter = \base
 DDR\letter = \base + 1
 PORT\letter = \base + 2
-BaseAddress\letter = \base
+Port\letter\()_Output = PORT\letter
+Port\letter\()_Input = PIN\letter
+Port\letter\()_Direction = PIN\letter
+Port\letter\()_BaseAddress = \base
+DefineReadWriteFunctions Port\letter\()_Output
+DefineReadWriteFunctions Port\letter\()_Input
+DefineReadWriteFunctions Port\letter\()_Direction
 .endm
+
 .macro DefinePinFunction func, port, index
-\func\()Output = PORT\port
-\func\()Input = PIN\port
-\func\()Direction = DDR\port
+\func\()Output = Port\port\()_Output
+\func\()Input = Port\port\()_Input
+\func\()Direction = Port\port\()_Direction
 \func\()BitIndex = \index
-.if BaseAddress\port <= 0x3f
-.macro toggleOutput\func
+.if Port\port\()_BaseAddress<=0x3f
+.macro \func\()_toggleOutput
 	sbi \func\()Output , \func\()BitIndex
 .endm
 .macro sbic_\func\()Output 
@@ -107,7 +147,7 @@ __rdy_signal_count_reg__ = 4
 __eifr_mask_reg__ = 3
 __direction_ff_reg__ = 2
 .macro signalReady
-	toggleOutputReady
+	Ready_toggleOutput
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
 	sbis \a, \b 	; 1 cycle if false, 2 cycles if true

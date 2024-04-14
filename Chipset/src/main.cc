@@ -55,6 +55,7 @@ static_assert(3_clocks_i960 == (3 * NumberOfMicrocontrollerClocksPerCPUClock));
 static_assert(4_clocks_i960 == (4 * NumberOfMicrocontrollerClocksPerCPUClock));
 
 extern "C" [[noreturn]] void ExecutionBody();
+extern "C" [[noreturn]] void ExecutionBody_5MHz();
 extern "C" [[gnu::used]] void doIOReadOperation();
 extern "C" [[gnu::used]] void doIOWriteOperation();
 using DataRegister8 = volatile uint8_t*;
@@ -978,7 +979,11 @@ loop() {
     // instead of controlling execution directly, we should be using a slight
     // time slicing design to make sure that we have the ability to process
     // packets from external chips connected over serial.
-    ExecutionBody();
+    if constexpr (CPUSpeed == HalfClockSpeed) {
+        ExecutionBody();
+    } else if constexpr (CPUSpeed == QuarterClockSpeed) {
+        ExecutionBody_5MHz();
+    } 
 }
 
 extern "C" 

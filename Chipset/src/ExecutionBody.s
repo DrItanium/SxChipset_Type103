@@ -359,6 +359,7 @@ __high_data_byte960__ = 4
 __low_data_byte960__ = 3
 __direction_ff_reg__ = 2
 .global ExecutionBody
+.global ExecutionBody_5MHz
 .global doIOReadOperation
 .global doIOWriteOperation
 .text

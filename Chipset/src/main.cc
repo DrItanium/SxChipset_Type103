@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 constexpr uint32_t MicrocontrollerSpeed = F_CPU;
 constexpr uint32_t HalfClockSpeed = F_CPU / 2;
 constexpr uint32_t QuarterClockSpeed = F_CPU / 4;
-constexpr uint32_t CPUSpeed = HalfClockSpeed;
+constexpr uint32_t CPUSpeed = QuarterClockSpeed;
 constexpr uint32_t NumberOfMicrocontrollerClocksPerCPUClock = MicrocontrollerSpeed / CPUSpeed;
 
 // Given the number of i960 clocks we return the equivalent number of AVR

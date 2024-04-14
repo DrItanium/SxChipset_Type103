@@ -218,6 +218,10 @@ public:
                 if (a != b) {
                     Serial.printf(F("Mismatch@0x%lx want: 0x%x got: 0x%x\n"), address + i, a, b);
                     mismatch = true;
+                } else {
+                    if (mismatch) {
+                        Serial.printf(F("Match@0x%lx want: 0x%x got: 0x%x\n"), address + i, a, b);
+                    }
                 }
             }
             if (mismatch) {
@@ -804,7 +808,7 @@ template<Pin p>
 inline
 void
 outputPin() noexcept {
-    pinMode<p>(OUTPUT);
+    pinMode(p, OUTPUT);
 }
 
 template<Pin p>
@@ -812,7 +816,7 @@ template<Pin p>
 inline
 void
 inputPin() noexcept {
-    pinMode<p>(INPUT);
+    pinMode(p, INPUT);
 }
 
 
@@ -823,10 +827,15 @@ configurePins() noexcept {
     outputPin<Pin::Reset>();
     digitalWrite<Pin::Reset, LOW>();
     outputPin<Pin::XINT0>();
+    digitalWrite<Pin::XINT0, HIGH>();
     outputPin<Pin::XINT2>();
+    digitalWrite<Pin::XINT2, HIGH>();
     outputPin<Pin::XINT4>();
+    digitalWrite<Pin::XINT4, HIGH>();
     outputPin<Pin::Hold>();
+    digitalWrite<Pin::Hold, LOW>();
     outputPin<Pin::ReadyDirect>();
+    digitalWrite<Pin::ReadyDirect, LOW>();
 
     inputPin<Pin::Lock>();
     inputPin<Pin::WR>();
@@ -836,15 +845,9 @@ configurePins() noexcept {
     inputPin<Pin::BE0>();
     inputPin<Pin::BE1>();
     inputPin<Pin::BLAST>();
-
-    digitalWrite<Pin::XINT0, HIGH>();
-    digitalWrite<Pin::XINT2, HIGH>();
-    digitalWrite<Pin::XINT4, HIGH>();
-    digitalWrite<Pin::Hold, LOW>();
 }
 void
 setup() {
-    configurePins();
     // now we can start setting up peripherals
     Serial.begin(115200);
     SPI.begin();
@@ -855,10 +858,11 @@ setup() {
                         // accessible at all!
                         // But leave the timers available since they can be
                         // used for internal purposes
+    configurePins();
     GPIOR0 = 0;
     // setup the EBI
     XMCRB=0b1'0000'111;
-    XMCRA=0b1'010'11'11;  
+    XMCRA=0b1'010'01'01;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     DataInterface::configureInterface();
@@ -893,13 +897,13 @@ setup() {
         Serial.println(F("No hard drive will be available"));
     }
     getDirectionRegister<AddressLines[1]>() = 0; 
-    getOutputRegister<AddressLines[1]>() = 0xFF; // activate the pullups to make sure
+    getOutputRegister<AddressLines[1]>() = 0; 
     getDirectionRegister<AddressLines[2]>() = 0; 
-    getOutputRegister<AddressLines[2]>() = 0xFF; // activate the pullups
+    getOutputRegister<AddressLines[2]>() = 0;
     getDirectionRegister<AddressLines[3]>() = 0;
-    getOutputRegister<AddressLines[3]>() = 0xFF; // activate the pullups
+    getOutputRegister<AddressLines[3]>() = 0;
     // attach interrupts
-    EICRB = 0b0000'0010; // falling edge on INT4 only
+    EICRB = 0b0000'1000; // falling edge on INT5 only
     digitalWrite<Pin::Reset, HIGH>(); 
 }
 void 
@@ -908,4 +912,22 @@ loop() {
     // time slicing design to make sure that we have the ability to process
     // packets from external chips connected over serial.
     ExecutionBody();
+}
+
+extern "C" 
+void displayAddress() noexcept {
+    Serial.printf(F("0x%x%x%x%x\n"),
+            getInputRegister<AddressLines[3]>(),
+            getInputRegister<AddressLines[2]>(),
+            getInputRegister<AddressLines[1]>(),
+            getInputRegister<AddressLines[0]>());
+}
+extern "C"
+void displayReadTransaction() noexcept {
+    Serial.println(F("Read Transaction!"));
+}
+
+extern "C"
+void displaySignalReady() noexcept {
+    Serial.println(F("Signal Ready and Waiting!"));
 }

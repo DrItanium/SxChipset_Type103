@@ -148,18 +148,8 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 .endm
 
 
-DefinePort A, 0x00
-DefinePort B, 0x03
-DefinePort C, 0x06
-DefinePort D, 0x09
-DefinePort E, 0x0c
-DefinePort F, 0x0f
-DefinePort G, 0x12
-DefinePort H, 0x100
-DefinePort J, 0x103
-DefinePort K, 0x106
-DefinePort L, 0x109
 .macro signalReady
+	call displaySignalReady
 	Ready_Output_Toggle
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -214,6 +204,7 @@ clearEIFR
 .endm
 .macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
 	justWaitForTransaction
+	call displayAddress
 .endm
 .macro SkipNextIfBE0High  ; 1 cycle when false, 2 cycles when true
 	BE0_SkipNextIfSet
@@ -287,6 +278,7 @@ clearEIFR
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .endm
 .macro ReadBodyPrimary
+	call displayReadTransaction
 	computeTransactionWindow
 	Load16FromMemoryWindow 0
 	StoreToDataPort 
@@ -339,6 +331,17 @@ clearEIFR
 EIFR = 0x1c
 GPIOR0 = 0x1e
 
+DefinePort A, 0x00
+DefinePort B, 0x03
+DefinePort C, 0x06
+DefinePort D, 0x09
+DefinePort E, 0x0c
+DefinePort F, 0x0f
+DefinePort G, 0x12
+DefinePort H, 0x100
+DefinePort J, 0x103
+DefinePort K, 0x106
+DefinePort L, 0x109
 DefinePinFunction WR, D, 6
 DefinePinFunction Ready, E, 4
 DefinePinFunction ADS, E, 5
@@ -380,7 +383,6 @@ ExecutionBody:
 .LXB_ReadTransactionStart:
 	waitForTransaction 
 	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite
-
 	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody

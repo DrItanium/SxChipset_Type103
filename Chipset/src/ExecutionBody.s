@@ -565,14 +565,14 @@ ExecutionBody_5MHz:
 	; at this point we can safely wait :)
 .LXB_WriteTransactionStart_5MHz:
 	waitForTransaction_5MHz
-	WR_IfBitIsClearGoto .LXB_ShiftFromWriteToRead
-	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing
+	WR_IfBitIsClearGoto .LXB_ShiftFromWriteToRead_5MHz
+	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing_5MHz
 .LXB_WriteTransactionBody_Start_5MHz:
 	computeTransactionWindow
 	getDataWord960
 	SkipNextIfBE0High
 	StoreLowByteToMemoryWindow 0 								; Yes, so store to the EBI
-	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
+	WhenBlastIsLowGoto .LXB_do16BitWriteOperation_5MHz 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 												; first word down, onto the next one
 	StoreHighByteToMemoryWindow 1 								; Store the upper byte to the EBI, this takes 4 cycles
 	delay2cycles												; wait for the next cycle to start

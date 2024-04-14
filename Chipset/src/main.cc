@@ -153,7 +153,7 @@ signalReady() noexcept {
         // ready. The i960 needs to detect the signal and act accordingly.
         // so it will be 6 cycles every single time between the time we start
         // the trigger and when we have the next transaction starting
-        insertCustomNopCount<delayAmount + 1_clocks_i960>();
+        insertCustomNopCount<delayAmount + 2_clocks_i960>();
     }
 }
 

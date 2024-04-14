@@ -1,0 +1,22 @@
+CH351s have been removed and the data lines are now connected to fast ports!
+
+   FLOPS C Program (Double Precision), V2.0 18 Dec 1992
+
+   Module     Error        RunTime      MFLOPS
+                            (usec)
+     1      2.1316e-14     51.5801      0.2714
+     2     -3.8192e-14     32.9163      0.2127
+     3     -1.7902e-13     58.5552      0.2903
+     4     -2.7744e-13     49.2146      0.3048
+     5      1.0579e-12    104.5724      0.2773
+     6     -2.0101e-13    101.5991      0.2854
+     7      6.2528e-13     57.5468      0.2085
+     8     -5.7265e-13    102.4818      0.2927
+
+   Iterations      =     500000
+   NullTime (usec) =     0.7169
+   MFLOPS(1)       =     0.2330
+   MFLOPS(2)       =     0.2552
+   MFLOPS(3)       =     0.2778
+   MFLOPS(4)       =     0.2918
+

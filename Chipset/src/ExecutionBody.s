@@ -480,3 +480,140 @@ ExecutionBody:
 	HandleLastTwoBytesInWriteTransaction 2
 	FallthroughExecutionBody_WriteOperation
 
+ExecutionBody_5MHz:
+	; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
+	ser r16
+	mov __direction_ff_reg__, r16 ; 0xff
+; setup index register Y to be the actual memory window, that way we can only update the lower half
+	clr r28
+	ldi r29, MemoryWindowUpper
+	rjmp .LXB_ReadTransactionStart_5MHz ; jump into the top of the invocation loop
+.LXB_readOperation_CheckIO_Nothing_5MHz:
+	call doIOReadOperation			      ; It is so call doIOReadOperation, back to c++
+	rjmp .LXB_ReadTransactionStart_5MHz
+.LXB_FirstSignalReady_ThenReadTransactionStart_5MHz:
+	signalReady
+.LXB_ReadTransactionStart_5MHz:
+	waitForTransaction 
+	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite_5MHz
+	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing_5MHz
+.LXB_ReadBodyPrimary_5MHz:
+	computeTransactionWindow
+	Load16FromMemoryWindow 0 ; this will take 8 cycles avr
+	StoreToDataPort  ; this will take 2 cycles avr
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+	signalReady ; this will take 1 cycle avr
+	; at this point we have three cycles i960 or 12 cycles avr before we have signalled ready
+	Load16FromMemoryWindow 2 ; this will take 8 cycles avr
+	; at this point we have four more cycles before we are ready for the next step
+	StoreToDataPort 
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+	signalReady 
+	Load16FromMemoryWindow 4
+	StoreToDataPort 
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+	signalReady 
+	Load16FromMemoryWindow 6
+	StoreToDataPort 
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+	signalReady 
+	Load16FromMemoryWindow 8
+	StoreToDataPort 
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+	signalReady 
+	Load16FromMemoryWindow 10
+	StoreToDataPort 
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+	signalReady 
+	Load16FromMemoryWindow 12
+	StoreToDataPort 
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+	signalReady 
+	Load16FromMemoryWindow 14
+	StoreToDataPort 
+	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+.LXB_ShiftFromWriteToRead_5MHz:
+	setDataLinesDirection __direction_ff_reg__ ; change the direction to output
+	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing_5MHz
+	rjmp .LXB_ReadBodyPrimary_5MHz
+.LXB_Write_DoIO_Nothing_5MHz:
+	call doIOWriteOperation 			 ; perform the write operation
+	rjmp .LXB_WriteTransactionStart_5MHz		 ; restart execution
+
+.LXB_SignalReady_ThenWriteTransactionStart_5MHz:
+	signalReady 
+.LXB_WriteTransactionStart_5MHz:
+	waitForTransaction
+	WR_IfBitIsClearGoto .LXB_ShiftFromWriteToRead
+	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing
+.LXB_WriteTransactionBody_Start_5MHz:
+	computeTransactionWindow
+	getDataWord960
+	SkipNextIfBE0High
+	StoreLowByteToMemoryWindow 0 								; Yes, so store to the EBI
+	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
+	signalReady 												; first word down, onto the next one
+	StoreHighByteToMemoryWindow 1 								; Store the upper byte to the EBI
+	delay2cycles												; wait for the next cycle to start
+	WhenBlastIsHighGoto .L642_5MHz                              ; this is checking blast for the second set of 16-bits not the first
+																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
+	getDataWord960
+	HandleLastTwoBytesInWriteTransaction 2
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
+.L642_5MHz:
+	getDataWord960				
+	signalReady 				  ; start the next word signal and we can use the 6 cycles to get ready
+	Store16ToMemoryWindow 2       ; use the time to store into memory while the ready signal counter is doing its thing
+	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End_5MHz	; We can now safely check if we should terminate execution
+	getDataWord960				
+	signalReady					  ; Start the process for the next word ( at this point we will be at a 64-bit number once this ready goes through)
+	Store16ToMemoryWindow 4 	  ; save the word (bits 32-47)
+	WhenBlastIsHighGoto .L649_5MHz	  ; we have more data to transfer
+	getDataWord960				
+	HandleLastTwoBytesInWriteTransaction 6
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
+.L649_5MHz:
+	getDataWord960
+	signalReady
+	Store16ToMemoryWindow 6
+	WhenBlastIsLowGoto .LXB_WriteBytes8_and_9_End_5MHz
+	getDataWord960
+	signalReady
+	Store16ToMemoryWindow 8
+	WhenBlastIsHighGoto .L657_5MHz
+	getDataWord960
+	HandleLastTwoBytesInWriteTransaction 10
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
+.L657_5MHz:
+	getDataWord960
+	signalReady
+	Store16ToMemoryWindow 10
+	WhenBlastIsHighGoto .L661_5MHz
+	getDataWord960
+	HandleLastTwoBytesInWriteTransaction 12
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
+.L661_5MHz:
+	getDataWord960
+	signalReady
+	Store16ToMemoryWindow 12
+	getDataWord960
+	HandleLastTwoBytesInWriteTransaction 14
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
+.LXB_WriteBytes4_and_5_End_5MHz:
+	getDataWord960
+	HandleLastTwoBytesInWriteTransaction 4
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
+.LXB_WriteBytes8_and_9_End_5MHz:
+	getDataWord960
+	HandleLastTwoBytesInWriteTransaction 8
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
+.LXB_do16BitWriteOperation_5MHz:
+	StoreHighByteIfBE1Low 1
+	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
+
+.LXB_ShiftFromReadToWrite_5MHz:
+; start setting up for a write operation here
+	setDataLinesDirection __zero_reg__ 	
+	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing_5MHz
+	rjmp .LXB_WriteTransactionBody_Start_5MHz
+

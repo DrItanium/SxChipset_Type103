@@ -789,7 +789,9 @@ void
 installMemoryImage() noexcept {
     static constexpr uint32_t MaximumFileSize = maxFileSize;
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
-    static constexpr auto filePath = "prog.bin";
+#define filePath (F("prog.bin"))
+
+    //static constexpr auto filePath = "prog.bin";
     // look for firmware.bin and open it readonly
     if (auto theFirmware = SD.open(filePath, FILE_READ); !theFirmware) {
         Serial.printf(F("Could not open %s for reading!"), filePath);
@@ -809,6 +811,7 @@ installMemoryImage() noexcept {
     }
     // okay so now end reading from the SD Card
     SPI.endTransaction();
+#undef filePath
 }
 template<Pin p>
 [[gnu::always_inline]]

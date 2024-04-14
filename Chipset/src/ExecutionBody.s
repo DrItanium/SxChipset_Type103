@@ -181,7 +181,7 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 .macro StoreToDataPort lo=__low_data_byte960__,hi=__high_data_byte960__ ; 3 cycles
 	DataLinesLower_Write \lo
 	DataLinesUpper_Write \hi
-	call displayDataPortValue
+	;call displayDataPortValue
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -205,7 +205,6 @@ clearEIFR
 .endm
 .macro waitForTransaction ; 3 cycles per iteration waiting, 2 cycles when condition met
 	justWaitForTransaction
-	call displayAddress
 .endm
 .macro SkipNextIfBE0High  ; 1 cycle when false, 2 cycles when true
 	BE0_SkipNextIfSet
@@ -385,6 +384,7 @@ ExecutionBody:
 	waitForTransaction 
 	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite
 	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing
+	;call displayAddress
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
 .LXB_ShiftFromWriteToRead:

@@ -231,6 +231,13 @@ public:
                 Serial.print('.');
             }
         }
+        getOutputRegister<AddressLines[1]>() = 0;
+        getOutputRegister<AddressLines[2]>() = 0;
+        getOutputRegister<AddressLines[3]>() = 0;
+        volatile uint32_t* theBuffer32 = memoryPointer<uint32_t>(MemoryWindowBaseAddress);
+        for (int i = 0; i < 8; ++i) {
+            Serial.printf(F("%d: 0x%lx\n"), i, theBuffer32[i]);
+        }
     }
 };
 
@@ -869,7 +876,7 @@ setup() {
     MemoryInterface::configure();
 
     getDirectionRegister<AddressLines[0]>() = 0;
-    getOutputRegister<AddressLines[0]>() = 0xFF;
+    getOutputRegister<AddressLines[0]>() = 0;
     getDirectionRegister<AddressLines[1]>() = 0xFF; // just configure them all for output
     getOutputRegister<AddressLines[1]>() = 0;
     getDirectionRegister<AddressLines[2]>() = 0xFF; // just configure them all for output
@@ -896,13 +903,12 @@ setup() {
         Serial.println(F("Could not open disk0.dsk"));
         Serial.println(F("No hard drive will be available"));
     }
-    // enable pullups
     getDirectionRegister<AddressLines[1]>() = 0; 
-    getOutputRegister<AddressLines[1]>() = 0xFF; 
+    getOutputRegister<AddressLines[1]>() = 0; 
     getDirectionRegister<AddressLines[2]>() = 0; 
-    getOutputRegister<AddressLines[2]>() = 0xFF;
+    getOutputRegister<AddressLines[2]>() = 0;
     getDirectionRegister<AddressLines[3]>() = 0;
-    getOutputRegister<AddressLines[3]>() = 0xFF;
+    getOutputRegister<AddressLines[3]>() = 0;
     // attach interrupts
     EICRB = 0b0000'1000; // falling edge on INT5 only
     digitalWrite<Pin::Reset, HIGH>(); 
@@ -917,7 +923,7 @@ loop() {
 
 extern "C" 
 void displayAddress() noexcept {
-    Serial.printf(F("0x%x%x%x%x\n"),
+    Serial.printf(F("0x%x'%x'%x'%x\n"),
             getInputRegister<AddressLines[3]>(),
             getInputRegister<AddressLines[2]>(),
             getInputRegister<AddressLines[1]>(),

@@ -195,7 +195,7 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 .macro getHighDataByte960 
 	DataLinesUpper_Read __high_data_byte960__
 .endm
-.macro justWaitForTransaction
+.macro justWaitForTransaction ; three cycles each iteration, three cycles leaving, we need some more lead time 
 1: sbisrj EIFR, ADS_BitIndex, 1b
 clearEIFR
 .endm
@@ -480,6 +480,12 @@ ExecutionBody:
 	HandleLastTwoBytesInWriteTransaction 2
 	FallthroughExecutionBody_WriteOperation
 
+.macro waitForTransaction_5MHz 
+	justWaitForTransaction ; 3 cycles per iteration waiting, 3 cycles when condition met
+	; according to the SA/SB manual, W/R is setup at the same time as AS is asserted
+	; so by the time we detect the event it should be safe :)
+.endm
+
 ExecutionBody_5MHz:
 	; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
 	ser r16
@@ -494,8 +500,8 @@ ExecutionBody_5MHz:
 .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz:
 	signalReady
 .LXB_ReadTransactionStart_5MHz:
-	waitForTransaction 
-	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite_5MHz
+	waitForTransaction_5MHz
+	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite_5MHz 
 	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing_5MHz
 .LXB_ReadBodyPrimary_5MHz:
 	computeTransactionWindow
@@ -542,8 +548,9 @@ ExecutionBody_5MHz:
 
 .LXB_SignalReady_ThenWriteTransactionStart_5MHz:
 	signalReady 
+	; at this point we can safely wait :)
 .LXB_WriteTransactionStart_5MHz:
-	waitForTransaction
+	waitForTransaction_5MHz
 	WR_IfBitIsClearGoto .LXB_ShiftFromWriteToRead
 	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing
 .LXB_WriteTransactionBody_Start_5MHz:
@@ -610,10 +617,9 @@ ExecutionBody_5MHz:
 .LXB_do16BitWriteOperation_5MHz:
 	StoreHighByteIfBE1Low 1
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz
-
 .LXB_ShiftFromReadToWrite_5MHz:
 ; start setting up for a write operation here
-	setDataLinesDirection __zero_reg__ 	
-	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing_5MHz
+	setDataLinesDirection __zero_reg__ 	 ; this will take two cycles
+	IsIOOperation_IfBitIsClearGoto .LXB_Write_DoIO_Nothing_5MHz 
 	rjmp .LXB_WriteTransactionBody_Start_5MHz
 

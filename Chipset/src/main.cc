@@ -971,7 +971,11 @@ setup() {
     getDirectionRegister<AddressLines[3]>() = 0;
     getOutputRegister<AddressLines[3]>() = 0;
     // attach interrupts
-    EICRB = 0b0000'1000; // falling edge on INT5 only
+    if constexpr (CPUSpeed == HalfClockSpeed) {
+        EICRB = 0b0000'1000; // falling edge on INT5 only
+    } else if constexpr (CPUSpeed == QuarterClockSpeed) {
+        EICRB = 0b0000'1100; // rising edge on INT5 only
+    }
     digitalWrite<Pin::Reset, HIGH>(); 
 }
 void 

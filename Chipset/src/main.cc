@@ -258,6 +258,10 @@ doNothing() {
     }
     signalReady<0>();
 }
+constexpr uint32_t MicrocontrollerSpeed = F_CPU;
+constexpr uint32_t HalfClockSpeed = F_CPU / 2;
+constexpr uint32_t QuarterClockSpeed = F_CPU / 4;
+constexpr uint32_t CPUSpeed = QuarterClockSpeed;
 template<bool isReadOperation>
 inline 
 void
@@ -266,25 +270,25 @@ doLegacyIO() noexcept {
     
         case 0: { 
                     if constexpr (isReadOperation) { 
-                        DataInterface::setData(static_cast<uint16_t>(F_CPU));
+                        DataInterface::setData(static_cast<uint16_t>(MicrocontrollerSpeed));
                     } 
                     I960_Signal_Switch;
                 } 
         case 2: { 
                     if constexpr (isReadOperation) { 
-                        DataInterface::setData(static_cast<uint16_t>((F_CPU) >> 16));
+                        DataInterface::setData(static_cast<uint16_t>((MicrocontrollerSpeed) >> 16));
                     } 
                     I960_Signal_Switch;
                 } 
         case 4: { 
                     if constexpr (isReadOperation) { 
-                        DataInterface::setData(static_cast<uint16_t>(F_CPU / 2));
+                        DataInterface::setData(static_cast<uint16_t>(CPUSpeed));
                     } 
                     I960_Signal_Switch;
                 } 
         case 6: { 
                     if constexpr (isReadOperation) { 
-                        DataInterface::setData(static_cast<uint16_t>((F_CPU / 2) >> 16));
+                        DataInterface::setData(static_cast<uint16_t>((CPUSpeed) >> 16));
                     } 
                     I960_Signal_Switch;
                 } 

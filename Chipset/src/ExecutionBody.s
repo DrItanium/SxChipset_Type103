@@ -81,7 +81,7 @@ DefineReadWriteFunctions Port\letter\()_Direction, Port\letter\()_Direction
 \func\()_BitIndex = \index
 .if Port\port\()_BaseAddress<=0x3f
 .macro \func\()_Output_Toggle
-	sbi \func\()_Output , \func\()_BitIndex
+	sbi \func\()_Input, \func\()_BitIndex
 .endm
 .macro \func\()_Output_SkipNextIfClear
 	sbic \func\()_Output, \func\()_BitIndex
@@ -149,7 +149,7 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 
 
 .macro signalReady
-	call displaySignalReady
+	;call displaySignalReady
 	Ready_Output_Toggle
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -181,6 +181,7 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 .macro StoreToDataPort lo=__low_data_byte960__,hi=__high_data_byte960__ ; 3 cycles
 	DataLinesLower_Write \lo
 	DataLinesUpper_Write \hi
+	call displayDataPortValue
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -278,7 +279,7 @@ clearEIFR
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .endm
 .macro ReadBodyPrimary
-	call displayReadTransaction
+	;call displayReadTransaction
 	computeTransactionWindow
 	Load16FromMemoryWindow 0
 	StoreToDataPort 

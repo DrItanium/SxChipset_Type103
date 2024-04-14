@@ -861,7 +861,7 @@ setup() {
     configurePins();
     GPIOR0 = 0;
     // setup the EBI
-    XMCRB=0b1'0000'111;
+    XMCRB=0b0'0000'111;
     XMCRA=0b1'010'01'01;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
@@ -869,7 +869,7 @@ setup() {
     MemoryInterface::configure();
 
     getDirectionRegister<AddressLines[0]>() = 0;
-    getOutputRegister<AddressLines[0]>() = 0;
+    getOutputRegister<AddressLines[0]>() = 0xFF;
     getDirectionRegister<AddressLines[1]>() = 0xFF; // just configure them all for output
     getOutputRegister<AddressLines[1]>() = 0;
     getDirectionRegister<AddressLines[2]>() = 0xFF; // just configure them all for output
@@ -896,12 +896,13 @@ setup() {
         Serial.println(F("Could not open disk0.dsk"));
         Serial.println(F("No hard drive will be available"));
     }
+    // enable pullups
     getDirectionRegister<AddressLines[1]>() = 0; 
-    getOutputRegister<AddressLines[1]>() = 0; 
+    getOutputRegister<AddressLines[1]>() = 0xFF; 
     getDirectionRegister<AddressLines[2]>() = 0; 
-    getOutputRegister<AddressLines[2]>() = 0;
+    getOutputRegister<AddressLines[2]>() = 0xFF;
     getDirectionRegister<AddressLines[3]>() = 0;
-    getOutputRegister<AddressLines[3]>() = 0;
+    getOutputRegister<AddressLines[3]>() = 0xFF;
     // attach interrupts
     EICRB = 0b0000'1000; // falling edge on INT5 only
     digitalWrite<Pin::Reset, HIGH>(); 
@@ -930,4 +931,11 @@ void displayReadTransaction() noexcept {
 extern "C"
 void displaySignalReady() noexcept {
     Serial.println(F("Signal Ready and Waiting!"));
+}
+
+extern "C"
+void displayDataPortValue() noexcept {
+    Serial.printf(F("0x%x%x\n"), 
+            getOutputRegister<DataLines[1]>(),
+            getOutputRegister<DataLines[0]>());
 }

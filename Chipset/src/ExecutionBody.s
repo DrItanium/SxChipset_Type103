@@ -169,10 +169,6 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 	rjmp 1f
 1:
 .endm
-.macro delay6cycles ; 6 cycles
-	lpm ; tmp_reg is used implicity, who cares what we get back
-	lpm ; tmp_reg is used implicity, who cares what we get back
-.endm
 
 .macro clearEIFR ; 1 cycle
 	sbi EIFR, ADS_BitIndex
@@ -483,3 +479,4 @@ ExecutionBody:
 	getDataWord960
 	HandleLastTwoBytesInWriteTransaction 2
 	FallthroughExecutionBody_WriteOperation
+

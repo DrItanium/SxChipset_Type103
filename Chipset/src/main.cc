@@ -33,6 +33,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Pinout.h"
 #include "Setup.h"
 
+// Each AVR cycle takes some amount of time to complete. In this case, it is
+// 50ns. When we use the 20MHz clock directly in the i960 then we have a cycle
+// time of 100ns or two avr clock cycles. If we feed a 10MHz signal in the i960
+// then we get 4 clocks per i960 cycle.
+//
+constexpr uint32_t MicrocontrollerSpeed = F_CPU;
+constexpr uint32_t HalfClockSpeed = F_CPU / 2;
+constexpr uint32_t QuarterClockSpeed = F_CPU / 4;
+constexpr uint32_t CPUSpeed = QuarterClockSpeed;
+constexpr uint32_t NumberOfMicrocontrollerClocksPerCPUClock = MicrocontrollerSpeed / CPUSpeed;
+
+// Given the number of i960 clocks we return the equivalent number of AVR
+// cycles
+constexpr uint32_t operator "" _clocks_i960(unsigned long long value) {
+    return static_cast<uint32_t>(value) * NumberOfMicrocontrollerClocksPerCPUClock;
+}
+
+static_assert(3_clocks_i960 == (3 * NumberOfMicrocontrollerClocksPerCPUClock));
+static_assert(4_clocks_i960 == (4 * NumberOfMicrocontrollerClocksPerCPUClock));
+
 extern "C" [[noreturn]] void ExecutionBody();
 extern "C" [[gnu::used]] void doIOReadOperation();
 extern "C" [[gnu::used]] void doIOWriteOperation();
@@ -130,7 +150,7 @@ signalReady() noexcept {
         // ready. The i960 needs to detect the signal and act accordingly.
         // so it will be 6 cycles every single time between the time we start
         // the trigger and when we have the next transaction starting
-        insertCustomNopCount<delayAmount + 2>();
+        insertCustomNopCount<delayAmount + 1_clocks_i960>();
     }
 }
 
@@ -258,10 +278,6 @@ doNothing() {
     }
     signalReady<0>();
 }
-constexpr uint32_t MicrocontrollerSpeed = F_CPU;
-constexpr uint32_t HalfClockSpeed = F_CPU / 2;
-constexpr uint32_t QuarterClockSpeed = F_CPU / 4;
-constexpr uint32_t CPUSpeed = QuarterClockSpeed;
 template<bool isReadOperation>
 inline 
 void

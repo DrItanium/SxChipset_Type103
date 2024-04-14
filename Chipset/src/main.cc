@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <SPI.h>
 #include <SdFat.h>
 #include <Wire.h>
+#include <RTClib.h>
 
 
 #include "Detect.h"
@@ -41,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 constexpr uint32_t MicrocontrollerSpeed = F_CPU;
 constexpr uint32_t HalfClockSpeed = F_CPU / 2;
 constexpr uint32_t QuarterClockSpeed = F_CPU / 4;
-constexpr uint32_t CPUSpeed = QuarterClockSpeed;
+constexpr uint32_t CPUSpeed = HalfClockSpeed;
 constexpr uint32_t NumberOfMicrocontrollerClocksPerCPUClock = MicrocontrollerSpeed / CPUSpeed;
 
 // Given the number of i960 clocks we return the equivalent number of AVR
@@ -60,6 +61,7 @@ using DataRegister8 = volatile uint8_t*;
 using DataRegister16 = volatile uint16_t*;
 SdFs SD;
 FsFile disk0;
+RTC_PCF8523 rtc;
 constexpr auto MaximumBootImageFileSize = 1024ul * 1024ul;
 constexpr bool PerformMemoryImageInstallation = true;
 
@@ -139,7 +141,7 @@ struct DataInterface {
     }
 };
 
-template<uint8_t delayAmount = 4>
+template<uint8_t delayAmount = 2_clocks_i960>
 [[gnu::always_inline]] 
 inline 
 void 
@@ -877,7 +879,41 @@ configurePins() noexcept {
     inputPin<Pin::BLAST>();
 }
 void
+configureRTC() noexcept {
+    if (!rtc.begin()) {
+        Serial.println(F("NO RTC Found!"));
+        bitClear(GPIOR0, 7);
+    } else {
+        bitSet(GPIOR0, 7);
+        if (!rtc.initialized() || rtc.lostPower()) {
+            Serial.println(F("RTC is NOT initialized, performing default configuration!"));
+
+            // set the RTC to the compilation time of this firmware
+            rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        }
+        rtc.start();
+        // default configuration values found in the example sketch
+        // pcf8523.ino, it seems to work pretty well in all the cases I've
+        // found
+        float drift = 43; // seconds plus or minus over the observation period
+                          // - set to 0 to cancel previous calibration
+        float periodSeconds = (7 * 86400); // total observation period in
+                                           // seconds (86400 is the number of
+                                           // seconds in 1 day: 7 days * 86400)
+        float deviationPPM = (drift/periodSeconds * 1'000'000); // deviation in
+                                                             // parts per
+                                                             // million
+        float driftUnit = 4.34; // use with offset mode PCF8523_TwoHours
+        int offset = round(deviationPPM / driftUnit);
+        rtc.calibrate(PCF8523_TwoHours, offset); // perform calibration every
+                                                 // two hours
+        DateTime now = rtc.now();
+        Serial.printf(F("Current rtc unixtime is: %ld\n"), now.unixtime());
+    }
+}
+void
 setup() {
+    GPIOR0 = 0;
     // now we can start setting up peripherals
     Serial.begin(115200);
     SPI.begin();
@@ -889,7 +925,8 @@ setup() {
                         // But leave the timers available since they can be
                         // used for internal purposes
     configurePins();
-    GPIOR0 = 0;
+    configureRTC();
+
     // setup the EBI
     XMCRB=0b0'0000'111;
     XMCRA=0b1'010'01'01;  

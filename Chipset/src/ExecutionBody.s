@@ -485,6 +485,12 @@ ExecutionBody:
 	; according to the SA/SB manual, W/R is setup at the same time as AS is asserted
 	; so by the time we detect the event it should be safe :)
 .endm
+.macro delay8cycles 
+	delay2cycles
+	delay2cycles
+	delay2cycles
+	delay2cycles
+.endm
 
 ExecutionBody_5MHz:
 	; use the lowest registers to make sure that we have Y, r16, and r17 free for usage
@@ -502,40 +508,47 @@ ExecutionBody_5MHz:
 .LXB_ReadTransactionStart_5MHz:
 	waitForTransaction_5MHz
 	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite_5MHz 
-	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing_5MHz
+	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing_5MHz ; we have enough time to detect things here
 .LXB_ReadBodyPrimary_5MHz:
-	computeTransactionWindow
+	computeTransactionWindow ; at this point things are solidified so start as normal
 	Load16FromMemoryWindow 0 ; this will take 8 cycles avr
 	StoreToDataPort  ; this will take 2 cycles avr
-	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
+	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz ; up to this point everything should be normal
 	signalReady ; this will take 1 cycle avr
-	; at this point we have three cycles i960 or 12 cycles avr before we have signalled ready
+	; this is where it starts to get a little different, we have 16 cycles AVR before we can do things again (it should be 12 but lets make sure of that)
 	Load16FromMemoryWindow 2 ; this will take 8 cycles avr
+	delay8cycles			 ; wait another 8 cycles avr, otherwise we will corrupt the data port
 	; at this point we have four more cycles before we are ready for the next step
 	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
 	signalReady 
 	Load16FromMemoryWindow 4
+	delay8cycles			 ; wait another 8 cycles avr to prevent data port corruption
 	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
 	signalReady 
 	Load16FromMemoryWindow 6
+	delay8cycles			 ; wait another 8 cycles avr to prevent data port corruption
 	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
 	signalReady 
 	Load16FromMemoryWindow 8
+	delay8cycles			 ; wait another 8 cycles avr to prevent data port corruption
 	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
 	signalReady 
 	Load16FromMemoryWindow 10
+	delay8cycles			 ; wait another 8 cycles avr to prevent data port corruption
 	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
 	signalReady 
 	Load16FromMemoryWindow 12
+	delay8cycles			 ; wait another 8 cycles avr to prevent data port corruption
 	StoreToDataPort 
 	WhenBlastIsLowGoto .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
 	signalReady 
 	Load16FromMemoryWindow 14
+	delay8cycles			 ; wait another 8 cycles avr to prevent data port corruption
 	StoreToDataPort 
 	rjmp .LXB_FirstSignalReady_ThenReadTransactionStart_5MHz
 .LXB_ShiftFromWriteToRead_5MHz:
@@ -560,8 +573,10 @@ ExecutionBody_5MHz:
 	StoreLowByteToMemoryWindow 0 								; Yes, so store to the EBI
 	WhenBlastIsLowGoto .LXB_do16BitWriteOperation 				; Is blast high? then keep going, otherwise it is a 8/16-bit operations
 	signalReady 												; first word down, onto the next one
-	StoreHighByteToMemoryWindow 1 								; Store the upper byte to the EBI
+	StoreHighByteToMemoryWindow 1 								; Store the upper byte to the EBI, this takes 4 cycles
 	delay2cycles												; wait for the next cycle to start
+	delay2cycles
+	delay8cycles			 ; wait another 8 cycles avr to prevent data corruption
 	WhenBlastIsHighGoto .L642_5MHz                              ; this is checking blast for the second set of 16-bits not the first
 																; this is a 32-bit write operation so we want to check BE1 and then fallthrough to the execution body itself
 	getDataWord960
@@ -571,10 +586,12 @@ ExecutionBody_5MHz:
 	getDataWord960				
 	signalReady 				  ; start the next word signal and we can use the 6 cycles to get ready
 	Store16ToMemoryWindow 2       ; use the time to store into memory while the ready signal counter is doing its thing
+	delay8cycles
 	WhenBlastIsLowGoto .LXB_WriteBytes4_and_5_End_5MHz	; We can now safely check if we should terminate execution
 	getDataWord960				
 	signalReady					  ; Start the process for the next word ( at this point we will be at a 64-bit number once this ready goes through)
 	Store16ToMemoryWindow 4 	  ; save the word (bits 32-47)
+	delay8cycles
 	WhenBlastIsHighGoto .L649_5MHz	  ; we have more data to transfer
 	getDataWord960				
 	HandleLastTwoBytesInWriteTransaction 6
@@ -583,10 +600,12 @@ ExecutionBody_5MHz:
 	getDataWord960
 	signalReady
 	Store16ToMemoryWindow 6
+	delay8cycles
 	WhenBlastIsLowGoto .LXB_WriteBytes8_and_9_End_5MHz
 	getDataWord960
 	signalReady
 	Store16ToMemoryWindow 8
+	delay8cycles
 	WhenBlastIsHighGoto .L657_5MHz
 	getDataWord960
 	HandleLastTwoBytesInWriteTransaction 10
@@ -595,6 +614,7 @@ ExecutionBody_5MHz:
 	getDataWord960
 	signalReady
 	Store16ToMemoryWindow 10
+	delay8cycles
 	WhenBlastIsHighGoto .L661_5MHz
 	getDataWord960
 	HandleLastTwoBytesInWriteTransaction 12
@@ -603,6 +623,7 @@ ExecutionBody_5MHz:
 	getDataWord960
 	signalReady
 	Store16ToMemoryWindow 12
+	delay8cycles
 	getDataWord960
 	HandleLastTwoBytesInWriteTransaction 14
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart_5MHz

@@ -177,7 +177,7 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 .macro StoreToDataPort lo=__low_data_byte960__,hi=__high_data_byte960__ ; 3 cycles
 	DataLinesLower_Write \lo
 	DataLinesUpper_Write \hi
-	;call displayDataPortValue
+	call displayDataPortValue
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -486,11 +486,13 @@ ExecutionBody:
 	; according to the SA/SB manual, W/R is setup at the same time as AS is asserted
 	; so by the time we detect the event it should be safe :)
 .endm
+.macro delay4cycles
+	lpm
+	nop
+.endm
 .macro delay8cycles 
-	delay2cycles
-	delay2cycles
-	delay2cycles
-	delay2cycles
+	delay4cycles
+	delay4cycles
 .endm
 
 ExecutionBody_5MHz:
@@ -508,9 +510,11 @@ ExecutionBody_5MHz:
 	signalReady
 .LXB_ReadTransactionStart_5MHz:
 	waitForTransaction_5MHz
+	delay4cycles
 	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite_5MHz 
 	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing_5MHz ; we have enough time to detect things here
 .LXB_ReadBodyPrimary_5MHz:
+	call displayAddress
 	computeTransactionWindow ; at this point things are solidified so start as normal
 	Load16FromMemoryWindow 0 ; this will take 8 cycles avr
 	StoreToDataPort  ; this will take 2 cycles avr

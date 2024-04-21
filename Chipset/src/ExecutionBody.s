@@ -177,7 +177,7 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 .macro StoreToDataPort lo=__low_data_byte960__,hi=__high_data_byte960__ ; 3 cycles
 	DataLinesLower_Write \lo
 	DataLinesUpper_Write \hi
-	call displayDataPortValue
+	;call displayDataPortValue
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -514,7 +514,7 @@ ExecutionBody_5MHz:
 	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite_5MHz 
 	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing_5MHz ; we have enough time to detect things here
 .LXB_ReadBodyPrimary_5MHz:
-	call displayAddress
+	;call displayAddress
 	computeTransactionWindow ; at this point things are solidified so start as normal
 	Load16FromMemoryWindow 0 ; this will take 8 cycles avr
 	StoreToDataPort  ; this will take 2 cycles avr

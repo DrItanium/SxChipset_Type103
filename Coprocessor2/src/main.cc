@@ -36,33 +36,54 @@ constexpr auto CLK5 = PIN_PD3;
 constexpr auto CLK960_2 = PIN_PA2;
 constexpr auto CLK960_1 = PIN_PF2;
 constexpr auto CLK2560 = PIN_PD2;
+constexpr auto ConfigurationCompleteSignal = PIN_PA6;
+constexpr auto ClockConfigurationBit = PIN_PA5;
 // reserve PC2 and PC3 for TWI
 void
+configureCLK2(Event& evt) {
+    evt.set_user(user::evouta_pin_pa2);
+}
+void
+configureCLK(Event& evt) {
+    evt.set_user(user::evoutf_pin_pf2);
+}
+void
 setupSystemClocks(CPUClockSpeed speed) {
-    // event 0 and 2 handle 10MHz generation, we want this in all cases so the
-    // goal is to provide a way to configure the event system dynamically to
-    // route to PA2 for the CLK2 signal and PC2 for the CLK signal
-    Event0.set_generator(gen0::pin_pa7);
+    // as soon as possible, setup the 20MHz clock source
+    CCP = 0xD8;
+    // internal 20MHz oscillator + enable clkout
+    CLKCTRL.MCLKCTRLA = 0b1000'0000;
+    asm volatile ("nop");
+    // make sure that the 20MHz clock runs in standby
+    CCP = 0xD8;
+    CLKCTRL.OSC20MCTRLA = 0b0000'0010;
+    asm volatile ("nop");
+    pinMode(CLKOUT, OUTPUT);
+    pinMode(CLK10, OUTPUT);
+    pinMode(CLK5, OUTPUT);
+    pinMode(CLK960_2, OUTPUT);
+    pinMode(CLK960_1, OUTPUT);
+    pinMode(CLK2560, OUTPUT);
+    // the goal is to allow clock signals to be properly routed dynamically at
+    // startup
+    Event0.set_generator(gen0::pin_pa7); // 20MHz
+    Event1.set_generator(gen::ccl0_out); // 10MHz
+    Event2.set_generator(gen::ccl2_out); // 5MHz
     Event0.set_user(user::ccl0_event_a);
     Event0.set_user(user::ccl1_event_a);
-    Event1.set_generator(gen::ccl0_out);
+    Event0.set_user(user::evoutd_pin_pd2); // we always emit the 2560 clock on PD2
     Event1.set_user(user::ccl2_event_a);
     Event1.set_user(user::ccl3_event_a);
-    Event2.set_generator(gen::ccl2_out);
-    Event0.set_user(user::evoutd_pin_pd2); // we always emit the 2560 clock on PD2
-
-    switch (speed) {
-        case CPUClockSpeed::MHz_10:
-            Event1.set_user(user::evouta_pin_pa2); // pa3 is routed to pa2 via event1
-            Event2.set_user(user::evoutf_pin_pf2); // ccl2 output is routed to pc2 via event2
-            break;
-        case CPUClockSpeed::MHz_20:
-            Event0.set_user(user::evouta_pin_pa2); // pa7 is routed to pa2 via event3
-            Event1.set_user(user::evoutf_pin_pf2); // ccl0 is routed to pc2 via event1
-            break;
-        default:
-            break;
+    if (digitalReadFast(ClockConfigurationBit) == HIGH) {
+        // configure for 20MHz
+        configureCLK2(Event0); // PA7/CLKOUT
+        configureCLK(Event1); // CCL0
+    } else {
+        // configure for 10MHz
+        configureCLK2(Event1); // PA3/CCL0 out
+        configureCLK(Event2); // CCL2
     }
+    // generate a divide by two circuit
     Logic0.enable = true;
     Logic0.input0 = in::feedback;
     Logic0.input1 = in::disable;
@@ -77,6 +98,8 @@ setupSystemClocks(CPUClockSpeed speed) {
     Logic1.output = out::disable;
     Logic1.sequencer = sequencer::disable;
     Logic1.truth = 0b0101'0101;
+    // feed the result of the divide by two circuit into another divide by two
+    // circuit
     Logic2.enable = true;
     Logic2.input0 = in::feedback;
     Logic2.input1 = in::disable;
@@ -100,33 +123,35 @@ setupSystemClocks(CPUClockSpeed speed) {
     Event0.start();
     Event1.start();
     Event2.start();
-    Event1.start();
 
+}
+void
+receiveTWIEvent(int count) {
+    // just read the bytes and do nothing with them right now
+    while (Wire.available() > 1) {
+        (void)Wire.read();
+    }
+    (void)Wire.read();
+}
+void
+requestTWIEvent() {
+    /// @todo implement
 }
 void 
 setup() {
-    // as soon as possible, setup the 20MHz clock source
-    CCP = 0xD8;
-    // internal 20MHz oscillator + enable clkout
-    CLKCTRL.MCLKCTRLA = 0b1000'0000;
-    asm volatile ("nop");
-    // make sure that the 20MHz clock runs in standby
-    CCP = 0xD8;
-    CLKCTRL.OSC20MCTRLA = 0b0000'0010;
-    asm volatile ("nop");
-    pinMode(CLKOUT, OUTPUT);
-    pinMode(CLK10, OUTPUT);
-    pinMode(CLK5, OUTPUT);
-    pinMode(CLK960_2, OUTPUT);
-    pinMode(CLK960_1, OUTPUT);
-    pinMode(CLK2560, OUTPUT);
-    setupSystemClocks(CPUClockSpeed::MHz_20);
+    pinMode(ClockConfigurationBit, INPUT_PULLUP);
+    pinMode(ConfigurationCompleteSignal, OUTPUT);
+    digitalWriteFast(ConfigurationCompleteSignal, LOW);
+    setupSystemClocks(CPUClockSpeed::MHz_10);
     Logic::start();
     Wire.swap();
-    Wire.begin();
+    Wire.begin(0x9);
+    Wire.onReceive(receiveTWIEvent);
+    Wire.onRequest(requestTWIEvent);
     // then setup the serial port for now, I may disable this at some point
     Serial1.swap(1);
     Serial1.begin(9600);
+    digitalWriteFast(ConfigurationCompleteSignal, HIGH);
 }
 
 

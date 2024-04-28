@@ -49,18 +49,15 @@ setupSystemClocks(CPUClockSpeed speed) {
     Event1.set_user(user::ccl2_event_a);
     Event1.set_user(user::ccl3_event_a);
     Event2.set_generator(gen::ccl2_out);
-    Event3.set_generator(gen::ccl1_out);
+    Event0.set_user(user::evoutd_pin_pd2); // we always emit the 2560 clock on PD2
 
-    // NOTE: if we need to get an event channel back then it becomes trivial to use Event0 for this instead
-    Event4.set_generator(gen::ccl1_out); // this is meant to provide the clock source for the mega2560
-    Event4.set_user(user::evoutd_pin_pd2); // we always emit the 2560 clock on PD2
     switch (speed) {
         case CPUClockSpeed::MHz_10:
             Event1.set_user(user::evouta_pin_pa2); // pa3 is routed to pa2 via event1
             Event2.set_user(user::evoutf_pin_pf2); // ccl2 output is routed to pc2 via event2
             break;
         case CPUClockSpeed::MHz_20:
-            Event3.set_user(user::evouta_pin_pa2); // pa7 is routed to pa2 via event3
+            Event0.set_user(user::evouta_pin_pa2); // pa7 is routed to pa2 via event3
             Event1.set_user(user::evoutf_pin_pf2); // ccl0 is routed to pc2 via event1
             break;
         default:
@@ -92,7 +89,7 @@ setupSystemClocks(CPUClockSpeed speed) {
     Logic3.input0 = in::event_a;
     Logic3.input1 = in::disable;
     Logic3.input2 = in::event_a;
-    Logic3.output = out::enable;
+    Logic3.output = out::disable;
     Logic3.clocksource = clocksource::in2;
     Logic3.sequencer = sequencer::disable;
     Logic3.truth = 0b0101'0101;
@@ -103,8 +100,7 @@ setupSystemClocks(CPUClockSpeed speed) {
     Event0.start();
     Event1.start();
     Event2.start();
-    Event3.start();
-    Event4.start();
+    Event1.start();
 
 }
 void 
@@ -124,7 +120,7 @@ setup() {
     pinMode(CLK960_2, OUTPUT);
     pinMode(CLK960_1, OUTPUT);
     pinMode(CLK2560, OUTPUT);
-    setupSystemClocks(CPUClockSpeed::MHz_10);
+    setupSystemClocks(CPUClockSpeed::MHz_20);
     Logic::start();
     Wire.swap();
     Wire.begin();

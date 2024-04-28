@@ -33,7 +33,7 @@ setupTimerASources() {
 }
 void
 setup10MHzSource() {
-    Event0.set_generator(gen::ccl0_out);
+    Event0.set_generator(gen0::pin_pa7);
     Event0.set_user(user::ccl0_event_a);
     Event0.set_user(user::ccl1_event_a);
     Logic0.enable = true;
@@ -55,6 +55,32 @@ setup10MHzSource() {
     Logic1.init();
     Event0.start();
 }
+void
+setup5MHzSource() {
+    Event1.set_generator(gen::ccl0_out);
+    Event1.set_user(user::ccl2_event_a);
+    Event1.set_user(user::ccl3_event_a);
+    Logic2.enable = true;
+    Logic2.input0 = in::feedback;
+    Logic2.input1 = in::disable;
+    Logic2.input2 = in::event_a;
+    Logic2.output = out::enable;
+    Logic2.clocksource = clocksource::in2;
+    Logic2.truth = 0b0101'0101;
+    Logic2.sequencer = sequencer::jk_flip_flop;
+
+    Logic3.enable = true;
+    Logic3.input0 = in::event_a;
+    Logic3.input1 = in::disable;
+    Logic3.input2 = in::event_a;
+    Logic3.output = out::disable;
+    Logic3.clocksource = clocksource::in2;
+    Logic3.sequencer = sequencer::disable;
+    Logic3.truth = 0b0101'0101;
+    Logic2.init();
+    Logic3.init();
+    Event1.start();
+}
 void 
 setup() {
     // as soon as possible, setup the 20MHz clock source
@@ -66,8 +92,8 @@ setup() {
     CCP = 0xD8;
     CLKCTRL.OSC20MCTRLA = 0b0000'0010;
     asm volatile ("nop");
-
     setup10MHzSource();
+    //setup5MHzSource();
     Logic::start();
     // then setup the serial port for now, I may disable this at some point
     Serial1.swap(1);

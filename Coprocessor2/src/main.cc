@@ -26,10 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Event.h>
 #include <Logic.h>
 #include <Wire.h>
-enum class CPUClockSpeed {
-    MHz_20,
-    MHz_10,
-};
+#include <EEPROM.h>
+#include <SPI.h>
 constexpr auto CLKOUT = PIN_PA7;
 constexpr auto CLK10 = PIN_PA3;
 constexpr auto CLK5 = PIN_PD3;
@@ -48,7 +46,7 @@ configureCLK(Event& evt) {
     evt.set_user(user::evoutf_pin_pf2);
 }
 void
-setupSystemClocks(CPUClockSpeed speed) {
+setupSystemClocks() {
     // as soon as possible, setup the 20MHz clock source
     CCP = 0xD8;
     // internal 20MHz oscillator + enable clkout
@@ -74,7 +72,7 @@ setupSystemClocks(CPUClockSpeed speed) {
     Event0.set_user(user::evoutd_pin_pd2); // we always emit the 2560 clock on PD2
     Event1.set_user(user::ccl2_event_a);
     Event1.set_user(user::ccl3_event_a);
-    if (digitalReadFast(ClockConfigurationBit) == HIGH) {
+    if (digitalReadFast(ClockConfigurationBit) == LOW) {
         // configure for 20MHz
         configureCLK2(Event0); // PA7/CLKOUT
         configureCLK(Event1); // CCL0
@@ -123,31 +121,16 @@ setupSystemClocks(CPUClockSpeed speed) {
     Event0.start();
     Event1.start();
     Event2.start();
-
-}
-void
-receiveTWIEvent(int count) {
-    // just read the bytes and do nothing with them right now
-    while (Wire.available() > 1) {
-        (void)Wire.read();
-    }
-    (void)Wire.read();
-}
-void
-requestTWIEvent() {
-    /// @todo implement
+    Logic::start();
 }
 void 
 setup() {
     pinMode(ClockConfigurationBit, INPUT_PULLUP);
     pinMode(ConfigurationCompleteSignal, OUTPUT);
     digitalWriteFast(ConfigurationCompleteSignal, LOW);
-    setupSystemClocks(CPUClockSpeed::MHz_10);
-    Logic::start();
-    Wire.swap();
-    Wire.begin(0x9);
-    Wire.onReceive(receiveTWIEvent);
-    Wire.onRequest(requestTWIEvent);
+    // this function is super important for the execution of the system!
+    setupSystemClocks();
+    // setup other peripherals
     // then setup the serial port for now, I may disable this at some point
     Serial1.swap(1);
     Serial1.begin(9600);

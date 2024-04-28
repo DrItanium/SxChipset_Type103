@@ -25,17 +25,44 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <Event.h>
 #include <Logic.h>
-
+enum class CPUClockSpeed {
+    MHz_20,
+    MHz_10,
+};
+constexpr auto CLKOUT = PIN_PA7;
+constexpr auto CLK10 = PIN_PA3;
+constexpr auto CLK5 = PIN_PD3;
+constexpr auto CLK960_2 = PIN_PA2;
+constexpr auto CLK960_1 = PIN_PC2;
 void
-setupTimerASources() {
-
-    
-}
-void
-setup10MHzSource() {
+setupSystemClocks(CPUClockSpeed speed) {
+    // event 0 and 2 handle 10MHz generation, we want this in all cases so the
+    // goal is to provide a way to configure the event system dynamically to
+    // route to PA2 for the CLK2 signal and PC2 for the CLK signal
     Event0.set_generator(gen0::pin_pa7);
     Event0.set_user(user::ccl0_event_a);
     Event0.set_user(user::ccl1_event_a);
+    Event1.set_generator(gen::ccl0_out);
+    Event1.set_user(user::ccl2_event_a);
+    Event1.set_user(user::ccl3_event_a);
+    Event2.set_generator(gen::ccl2_out);
+    Event3.set_generator(gen::ccl1_out);
+    switch (speed) {
+        case CPUClockSpeed::MHz_10:
+            Event1.set_user(user::evouta_pin_pa2); // pa3 is routed to pa2 via event1
+            Event2.set_user(user::evoutc_pin_pc2); // ccl2 output is routed to pc2 via event2
+            break;
+        case CPUClockSpeed::MHz_20:
+            Event3.set_user(user::evouta_pin_pa2); // pa7 is routed to pa2 via event3
+            Event1.set_user(user::evoutc_pin_pc2); // ccl0 is routed to pc2 via event1
+            break;
+        default:
+            break;
+    }
+    Event0.start();
+    Event1.start();
+    Event2.start();
+    Event3.start();
     Logic0.enable = true;
     Logic0.input0 = in::feedback;
     Logic0.input1 = in::disable;
@@ -43,7 +70,6 @@ setup10MHzSource() {
     Logic0.output = out::enable;
     Logic0.truth = 0b0101'0101;
     Logic0.sequencer = sequencer::jk_flip_flop;
-
     Logic1.enable = true;
     Logic1.input0 = in::event_a;
     Logic1.input1 = in::disable;
@@ -51,15 +77,6 @@ setup10MHzSource() {
     Logic1.output = out::disable;
     Logic1.sequencer = sequencer::disable;
     Logic1.truth = 0b0101'0101;
-    Logic0.init();
-    Logic1.init();
-    Event0.start();
-}
-void
-setup5MHzSource() {
-    Event1.set_generator(gen::ccl0_out);
-    Event1.set_user(user::ccl2_event_a);
-    Event1.set_user(user::ccl3_event_a);
     Logic2.enable = true;
     Logic2.input0 = in::feedback;
     Logic2.input1 = in::disable;
@@ -68,7 +85,6 @@ setup5MHzSource() {
     Logic2.clocksource = clocksource::in2;
     Logic2.truth = 0b0101'0101;
     Logic2.sequencer = sequencer::jk_flip_flop;
-
     Logic3.enable = true;
     Logic3.input0 = in::event_a;
     Logic3.input1 = in::disable;
@@ -77,9 +93,11 @@ setup5MHzSource() {
     Logic3.clocksource = clocksource::in2;
     Logic3.sequencer = sequencer::disable;
     Logic3.truth = 0b0101'0101;
+    Logic0.init();
+    Logic1.init();
     Logic2.init();
     Logic3.init();
-    Event1.start();
+
 }
 void 
 setup() {
@@ -92,8 +110,12 @@ setup() {
     CCP = 0xD8;
     CLKCTRL.OSC20MCTRLA = 0b0000'0010;
     asm volatile ("nop");
-    setup10MHzSource();
-    //setup5MHzSource();
+    pinMode(CLKOUT, OUTPUT);
+    pinMode(CLK10, OUTPUT);
+    pinMode(CLK5, OUTPUT);
+    pinMode(CLK960_2, OUTPUT);
+    pinMode(CLK960_1, OUTPUT);
+    setupSystemClocks(CPUClockSpeed::MHz_10);
     Logic::start();
     // then setup the serial port for now, I may disable this at some point
     Serial1.swap(1);

@@ -25,6 +25,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Arduino.h>
 #include <Event.h>
 #include <Logic.h>
+#include <Wire.h>
 enum class CPUClockSpeed {
     MHz_20,
     MHz_10,
@@ -33,8 +34,9 @@ constexpr auto CLKOUT = PIN_PA7;
 constexpr auto CLK10 = PIN_PA3;
 constexpr auto CLK5 = PIN_PD3;
 constexpr auto CLK960_2 = PIN_PA2;
-constexpr auto CLK960_1 = PIN_PC2;
+constexpr auto CLK960_1 = PIN_PF2;
 constexpr auto CLK2560 = PIN_PD2;
+// reserve PC2 and PC3 for TWI
 void
 setupSystemClocks(CPUClockSpeed speed) {
     // event 0 and 2 handle 10MHz generation, we want this in all cases so the
@@ -51,16 +53,15 @@ setupSystemClocks(CPUClockSpeed speed) {
 
     // NOTE: if we need to get an event channel back then it becomes trivial to use Event0 for this instead
     Event4.set_generator(gen::ccl1_out); // this is meant to provide the clock source for the mega2560
-    Event4.set_user(user::evoute_pin_pe2); // we always emit the 2560 clock on PD2
-    //Event0.set_user(user::evoutd_pin_pd2);
+    Event4.set_user(user::evoutd_pin_pd2); // we always emit the 2560 clock on PD2
     switch (speed) {
         case CPUClockSpeed::MHz_10:
             Event1.set_user(user::evouta_pin_pa2); // pa3 is routed to pa2 via event1
-            Event2.set_user(user::evoutc_pin_pc2); // ccl2 output is routed to pc2 via event2
+            Event2.set_user(user::evoutf_pin_pf2); // ccl2 output is routed to pc2 via event2
             break;
         case CPUClockSpeed::MHz_20:
             Event3.set_user(user::evouta_pin_pa2); // pa7 is routed to pa2 via event3
-            Event1.set_user(user::evoutc_pin_pc2); // ccl0 is routed to pc2 via event1
+            Event1.set_user(user::evoutf_pin_pf2); // ccl0 is routed to pc2 via event1
             break;
         default:
             break;
@@ -91,7 +92,7 @@ setupSystemClocks(CPUClockSpeed speed) {
     Logic3.input0 = in::event_a;
     Logic3.input1 = in::disable;
     Logic3.input2 = in::event_a;
-    Logic3.output = out::disable;
+    Logic3.output = out::enable;
     Logic3.clocksource = clocksource::in2;
     Logic3.sequencer = sequencer::disable;
     Logic3.truth = 0b0101'0101;
@@ -125,6 +126,8 @@ setup() {
     pinMode(CLK2560, OUTPUT);
     setupSystemClocks(CPUClockSpeed::MHz_10);
     Logic::start();
+    Wire.swap();
+    Wire.begin();
     // then setup the serial port for now, I may disable this at some point
     Serial1.swap(1);
     Serial1.begin(9600);

@@ -23,69 +23,24 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <Arduino.h>
-#include <PacketSerial.h>
-#define Console Serial1
-#define ChannelTo2560 Serial2
-constexpr auto LedPin = LED_BUILTIN;
+#include <Event.h>
+#include <Logic.h>
 
-#define DataPortI960_Lower VPORTD
-// CCL hookups
-// this CCL is responsible for controlling the data lines transceiver output enable
-constexpr auto Signal_Chip_Enable = PIN_PC0;
-constexpr auto Signal_Data_Enable = PIN_PC1;
-constexpr auto Signal_ByteEnable = PIN_PC2;
-constexpr auto Signal_Transceiver_Enable = PIN_PC3;
-// this CCL is responsible for controlling the data lines transceiver direction
-constexpr auto Signal_WR = PIN_PF0;
-constexpr auto Signal_DTR = PIN_PF1;
-constexpr auto Signal_Transceiver_Direction = PIN_PF3;
-// this pin is responsible for starting the data transaction
-constexpr auto Signal_ADS = PIN_PE0;
-// this pin is responsible for signalling ready to the 2560 or the i960, it
-// uses the alternate output for the CCL connected to PortA
-constexpr auto Signal_READY = PIN_PA6;
-[[gnu::always_inline]]
-inline
-uint8_t 
-readDataLinesLower() noexcept {
-    return DataPortI960_Lower.IN;
-}
-[[gnu::always_inline]]
-inline
-void
-writeDataLinesLower(uint8_t value) noexcept {
-    DataPortI960_Lower.OUT = value;
-}
 
-[[gnu::always_inline]]
-inline
-void 
-setDataLinesLowerDirection(uint8_t value) noexcept {
-    DataPortI960_Lower.DIR = value;
-}
-
-void
-setupClockSource() noexcept {
-    // take in the 20MHz signal from the board but do not output a signal
-    CCP = 0xD8;
-    CLKCTRL.MCLKCTRLA = 0b0000'0011;
-    CCP = 0xD8;
-}
-void
-configureGPIO() {
-    setDataLinesLowerDirection(0x00);
-}
 void 
 setup() {
-    setupClockSource();
-    configureGPIO();
-    // setup the pins
-    Console.swap(1);
-    ChannelTo2560.swap(1);
-    Console.begin(115200);
-    ChannelTo2560.begin(115200);
-    Console.println("System Up");
-    // setup the other communication channels
+    // as soon as possible, setup the 20MHz clock source
+    CCP = 0xD8;
+    // internal 20MHz oscillator + enable clkout
+    CLKCTRL.MCLKCTRLA = 0b1000'0000;
+    CCP = 0xD8;
+    // make sure that the 20MHz clock runs in standby
+    CCP = 0xD8;
+    CLKCTRL.OSC20MCTRLA = 0b0000'0010;
+    CCP = 0xD8;
+    // then setup the serial port for now, I may disable this at some point
+    Serial1.swap(1);
+    Serial1.begin(9600);
 }
 
 

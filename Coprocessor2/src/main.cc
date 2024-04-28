@@ -34,6 +34,7 @@ constexpr auto CLK10 = PIN_PA3;
 constexpr auto CLK5 = PIN_PD3;
 constexpr auto CLK960_2 = PIN_PA2;
 constexpr auto CLK960_1 = PIN_PC2;
+constexpr auto CLK2560 = PIN_PD2;
 void
 setupSystemClocks(CPUClockSpeed speed) {
     // event 0 and 2 handle 10MHz generation, we want this in all cases so the
@@ -47,6 +48,11 @@ setupSystemClocks(CPUClockSpeed speed) {
     Event1.set_user(user::ccl3_event_a);
     Event2.set_generator(gen::ccl2_out);
     Event3.set_generator(gen::ccl1_out);
+
+    // NOTE: if we need to get an event channel back then it becomes trivial to use Event0 for this instead
+    Event4.set_generator(gen::ccl1_out); // this is meant to provide the clock source for the mega2560
+    Event4.set_user(user::evoute_pin_pe2); // we always emit the 2560 clock on PD2
+    //Event0.set_user(user::evoutd_pin_pd2);
     switch (speed) {
         case CPUClockSpeed::MHz_10:
             Event1.set_user(user::evouta_pin_pa2); // pa3 is routed to pa2 via event1
@@ -59,10 +65,6 @@ setupSystemClocks(CPUClockSpeed speed) {
         default:
             break;
     }
-    Event0.start();
-    Event1.start();
-    Event2.start();
-    Event3.start();
     Logic0.enable = true;
     Logic0.input0 = in::feedback;
     Logic0.input1 = in::disable;
@@ -97,6 +99,11 @@ setupSystemClocks(CPUClockSpeed speed) {
     Logic1.init();
     Logic2.init();
     Logic3.init();
+    Event0.start();
+    Event1.start();
+    Event2.start();
+    Event3.start();
+    Event4.start();
 
 }
 void 
@@ -115,6 +122,7 @@ setup() {
     pinMode(CLK5, OUTPUT);
     pinMode(CLK960_2, OUTPUT);
     pinMode(CLK960_1, OUTPUT);
+    pinMode(CLK2560, OUTPUT);
     setupSystemClocks(CPUClockSpeed::MHz_10);
     Logic::start();
     // then setup the serial port for now, I may disable this at some point

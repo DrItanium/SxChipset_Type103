@@ -28,6 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Wire.h>
 #include <EEPROM.h>
 #include <SPI.h>
+// The goal of this program is to be a deeply embeded ATMEGA4809 responsible
+// for generating the 20MHz, 10MHz, and 5MHz clocks used by the i960 system.
+// Once powered on, it will continue to run until power is removed. This makes
+// it an ideal device for anything that needs to be available 100% of the time
+
 // PORTA contains all useful stuff so keep it reserved for that
 constexpr auto TWI_SDA = PIN_PA2;
 constexpr auto TWI_SCL = PIN_PA3;

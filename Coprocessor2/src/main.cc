@@ -28,18 +28,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Wire.h>
 #include <EEPROM.h>
 #include <SPI.h>
+// PORTA contains all useful stuff so keep it reserved for that
+constexpr auto TWI_SDA = PIN_PA2;
+constexpr auto TWI_SCL = PIN_PA3;
+constexpr auto SPI_MOSI = PIN_PA4;
+constexpr auto SPI_MISO = PIN_PA5;
+constexpr auto SPI_SCK = PIN_PA6;
 constexpr auto CLKOUT = PIN_PA7;
-constexpr auto CLK10 = PIN_PA3;
+
+constexpr auto CLK10 = PIN_PD2; // use the event system to route the output for 10MHz to PD2
 constexpr auto CLK5 = PIN_PD3;
-constexpr auto CLK960_2 = PIN_PA2;
+constexpr auto ConfigurationCompleteSignal = PIN_PE0;
+constexpr auto ClockConfigurationBit = PIN_PE1;
+constexpr auto CLK960_2 = PIN_PE2;
 constexpr auto CLK960_1 = PIN_PF2;
-constexpr auto CLK2560 = PIN_PD2;
-constexpr auto ConfigurationCompleteSignal = PIN_PA6;
-constexpr auto ClockConfigurationBit = PIN_PA5;
-// reserve PC2 and PC3 for TWI
 void
 configureCLK2(Event& evt) {
-    evt.set_user(user::evouta_pin_pa2);
+    evt.set_user(user::evoute_pin_pe2);
 }
 void
 configureCLK(Event& evt) {
@@ -61,7 +66,6 @@ setupSystemClocks() {
     pinMode(CLK5, OUTPUT);
     pinMode(CLK960_2, OUTPUT);
     pinMode(CLK960_1, OUTPUT);
-    pinMode(CLK2560, OUTPUT);
     // the goal is to allow clock signals to be properly routed dynamically at
     // startup
     Event0.set_generator(gen0::pin_pa7); // 20MHz
@@ -69,7 +73,8 @@ setupSystemClocks() {
     Event2.set_generator(gen::ccl2_out); // 5MHz
     Event0.set_user(user::ccl0_event_a);
     Event0.set_user(user::ccl1_event_a);
-    Event0.set_user(user::evoutd_pin_pd2); // we always emit the 2560 clock on PD2
+    Event1.set_user(user::evoutd_pin_pd2); // connect 10MHz out to PD2, that
+                                           // way it is next to PD3 for 5MHz
     Event1.set_user(user::ccl2_event_a);
     Event1.set_user(user::ccl3_event_a);
     if (digitalReadFast(ClockConfigurationBit) == LOW) {
@@ -86,7 +91,7 @@ setupSystemClocks() {
     Logic0.input0 = in::feedback;
     Logic0.input1 = in::disable;
     Logic0.input2 = in::disable;
-    Logic0.output = out::enable;
+    Logic0.output = out::disable;
     Logic0.truth = 0b0101'0101;
     Logic0.sequencer = sequencer::jk_flip_flop;
     Logic1.enable = true;

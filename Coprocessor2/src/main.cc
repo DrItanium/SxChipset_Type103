@@ -42,6 +42,9 @@ constexpr auto ConfigurationCompleteSignal = PIN_PE0;
 constexpr auto ClockConfigurationBit = PIN_PE1;
 constexpr auto CLK960_2 = PIN_PE2;
 constexpr auto CLK960_1 = PIN_PF2;
+constexpr auto MicrocontrollerClockRate = F_CPU;
+volatile uint32_t I960CLK2Rate = F_CPU;
+volatile uint32_t I960CLKRate = F_CPU / 2;
 void
 configureCLK2(Event& evt) {
     evt.set_user(user::evoute_pin_pe2);
@@ -81,11 +84,14 @@ setupSystemClocks() {
         // configure for 20MHz
         configureCLK2(Event0); // PA7/CLKOUT
         configureCLK(Event1); // CCL0
+        I960CLK2Rate = MicrocontrollerClockRate;
     } else {
         // configure for 10MHz
         configureCLK2(Event1); // PA3/CCL0 out
         configureCLK(Event2); // CCL2
+        I960CLK2Rate = MicrocontrollerClockRate / 2;
     }
+    I960CLKRate = I960CLK2Rate / 2;
     // generate a divide by two circuit
     Logic0.enable = true;
     Logic0.input0 = in::feedback;

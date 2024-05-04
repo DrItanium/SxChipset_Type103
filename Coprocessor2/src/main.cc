@@ -40,7 +40,6 @@ constexpr auto SPI_MOSI = PIN_PA4;
 constexpr auto SPI_MISO = PIN_PA5;
 constexpr auto SPI_SCK = PIN_PA6;
 constexpr auto CLKOUT = PIN_PA7;
-
 constexpr auto CLK10 = PIN_PD2; // use the event system to route the output for 10MHz to PD2
 constexpr auto CLK5 = PIN_PD3;
 constexpr auto ConfigurationCompleteSignal = PIN_PE0;
@@ -141,16 +140,14 @@ setupSystemClocks() {
 }
 void 
 setup() {
-    pinMode(ClockConfigurationBit, INPUT_PULLUP);
-    pinMode(ConfigurationCompleteSignal, OUTPUT);
-    digitalWriteFast(ConfigurationCompleteSignal, LOW);
+    //pinMode(ConfigurationCompleteSignal, OUTPUT);
+    //digitalWriteFast(ConfigurationCompleteSignal, LOW);
     // this function is super important for the execution of the system!
     setupSystemClocks();
     // setup other peripherals
     // then setup the serial port for now, I may disable this at some point
     Serial1.swap(1);
     Serial1.begin(9600);
-    digitalWriteFast(ConfigurationCompleteSignal, HIGH);
 }
 
 

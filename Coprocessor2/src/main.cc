@@ -34,43 +34,58 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // it an ideal device for anything that needs to be available 100% of the time
 
 // PORTA contains all useful stuff so keep it reserved for that
+constexpr auto DEBUG_TXD = PIN_PA0;
+constexpr auto DEBUG_RXD = PIN_PA1;
 constexpr auto TWI_SDA = PIN_PA2;
 constexpr auto TWI_SCL = PIN_PA3;
 constexpr auto SPI_MOSI = PIN_PA4;
 constexpr auto SPI_MISO = PIN_PA5;
 constexpr auto SPI_SCK = PIN_PA6;
 constexpr auto CLKOUT = PIN_PA7;
-constexpr auto CLK10 = PIN_PD2; // use the event system to route the output for 10MHz to PD2
-constexpr auto CLK5 = PIN_PD3;
-constexpr auto ConfigurationCompleteSignal = PIN_PE0;
-constexpr auto ClockConfigurationBit = PIN_PE1;
-constexpr auto CLK960_2 = PIN_PE2;
+constexpr auto NumberOfAnalogChannels = 11;
+constexpr decltype(PIN_PD0) AnalogChannels[NumberOfAnalogChannels] {
+    PIN_PD0,
+    PIN_PD1,
+    PIN_PD2,
+    PIN_PD3,
+    PIN_PD4,
+    PIN_PD5,
+    PIN_PD6,
+    PIN_PD7,
+    PIN_PF3,
+    PIN_PF4,
+    PIN_PF5,
+};
+constexpr auto ClockConfigurationBit = PIN_PF6;
+constexpr auto getClock2_960() noexcept {
+#ifdef REDUCED_HARDWARE
+    return PIN_PC2;
+#else
+    return PIN_PE2;    
+#endif
+}
+constexpr auto CLK960_2 = getClock2_960();
 constexpr auto CLK960_1 = PIN_PF2;
 constexpr auto MicrocontrollerClockRate = F_CPU;
 volatile uint32_t I960CLK2Rate = F_CPU;
 volatile uint32_t I960CLKRate = F_CPU / 2;
 void
 configureCLK2(Event& evt) {
-    evt.set_user(user::evoute_pin_pe2);
+    evt.set_user(
+#ifdef REDUCED_HARDWARE
+    user::evoutc_pin_pc2
+#else
+    user::evoute_pin_pe2
+#endif
+    );
 }
 void
 configureCLK(Event& evt) {
     evt.set_user(user::evoutf_pin_pf2);
 }
 void
-setupSystemClocks() {
-    // as soon as possible, setup the 20MHz clock source
-    CCP = 0xD8;
-    // internal 20MHz oscillator + enable clkout
-    CLKCTRL.MCLKCTRLA = 0b1000'0000;
-    asm volatile ("nop");
-    // make sure that the 20MHz clock runs in standby
-    CCP = 0xD8;
-    CLKCTRL.OSC20MCTRLA = 0b0000'0010;
-    asm volatile ("nop");
+configureCCLs() {
     pinMode(CLKOUT, OUTPUT);
-    pinMode(CLK10, OUTPUT);
-    pinMode(CLK5, OUTPUT);
     pinMode(CLK960_2, OUTPUT);
     pinMode(CLK960_1, OUTPUT);
     // the goal is to allow clock signals to be properly routed dynamically at
@@ -80,8 +95,6 @@ setupSystemClocks() {
     Event2.set_generator(gen::ccl2_out); // 5MHz
     Event0.set_user(user::ccl0_event_a);
     Event0.set_user(user::ccl1_event_a);
-    Event1.set_user(user::evoutd_pin_pd2); // connect 10MHz out to PD2, that
-                                           // way it is next to PD3 for 5MHz
     Event1.set_user(user::ccl2_event_a);
     Event1.set_user(user::ccl3_event_a);
     if (digitalReadFast(ClockConfigurationBit) == LOW) {
@@ -117,7 +130,7 @@ setupSystemClocks() {
     Logic2.input0 = in::feedback;
     Logic2.input1 = in::disable;
     Logic2.input2 = in::event_a;
-    Logic2.output = out::enable;
+    Logic2.output = out::disable;
     Logic2.clocksource = clocksource::in2;
     Logic2.truth = 0b0101'0101;
     Logic2.sequencer = sequencer::jk_flip_flop;
@@ -138,23 +151,35 @@ setupSystemClocks() {
     Event2.start();
     Logic::start();
 }
+void
+setupSystemClocks() {
+    // as soon as possible, setup the 20MHz clock source
+    CCP = 0xD8;
+    // internal 20MHz oscillator + enable clkout
+    CLKCTRL.MCLKCTRLA = 0b1000'0000;
+    asm volatile ("nop");
+    // make sure that the 20MHz clock runs in standby
+    CCP = 0xD8;
+    CLKCTRL.OSC20MCTRLA = 0b0000'0010;
+    asm volatile ("nop");
+}
 void 
 setup() {
-    //pinMode(ConfigurationCompleteSignal, OUTPUT);
-    //digitalWriteFast(ConfigurationCompleteSignal, LOW);
+    pinMode(ClockConfigurationBit, INPUT_PULLUP);
     // this function is super important for the execution of the system!
     setupSystemClocks();
+    configureCCLs();
+    EEPROM.begin();
+    Wire.begin(0x09); 
     // setup other peripherals
     // then setup the serial port for now, I may disable this at some point
-    Serial1.swap(1);
-    Serial1.begin(9600);
+    Serial.begin(9600);
 }
 
 
 
 void 
 loop() {
-    Serial1.println("Donuts");
     delay(1000);
 }
 

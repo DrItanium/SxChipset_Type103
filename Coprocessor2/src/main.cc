@@ -56,6 +56,7 @@ constexpr decltype(PIN_PD0) AnalogChannels[NumberOfAnalogChannels] {
     PIN_PF4,
     PIN_PF5,
 };
+
 constexpr auto ClockConfigurationBit = PIN_PF6;
 constexpr auto getClock2_960() noexcept {
 #ifdef REDUCED_HARDWARE
@@ -163,6 +164,8 @@ setupSystemClocks() {
     CLKCTRL.OSC20MCTRLA = 0b0000'0010;
     asm volatile ("nop");
 }
+void wireReceiveEvent(int howMany);
+void wireRequestEvent();
 void 
 setup() {
     pinMode(ClockConfigurationBit, INPUT_PULLUP);
@@ -170,16 +173,50 @@ setup() {
     setupSystemClocks();
     configureCCLs();
     EEPROM.begin();
-    Wire.begin(0x09); 
+    Wire.begin(0x08); 
+    Wire.onReceive(wireReceiveEvent);
+    Wire.onRequest(wireRequestEvent);
     // setup other peripherals
     // then setup the serial port for now, I may disable this at some point
     Serial.begin(9600);
 }
+decltype(analogRead(A0)) CurrentChannelSamples[NumberOfAnalogChannels] { 0 };
+void
+sampleAnalogChannels() noexcept {
+    for (int i = 0; i < NumberOfAnalogChannels; ++i) {
+        CurrentChannelSamples[i] = analogRead(AnalogChannels[i]);
+    }
+}
 
 
+void
+wireReceiveEvent(int howMany) {
+    while (1 < Wire.available()) {
+        (void)Wire.read();
+    }
+    (void)Wire.read();
+}
+void
+wireRequestEvent() {
+    // send the analog request stuff
+    Wire.write(reinterpret_cast<char*>(CurrentChannelSamples), sizeof(CurrentChannelSamples));
+}
 
 void 
 loop() {
+    sampleAnalogChannels();
     delay(1000);
 }
 
+void
+serialEvent() {
+
+}
+void
+serialEvent1() {
+
+}
+void
+serialEvent2() {
+
+}

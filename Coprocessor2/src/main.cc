@@ -179,6 +179,8 @@ setup() {
     // setup other peripherals
     // then setup the serial port for now, I may disable this at some point
     Serial.begin(9600);
+    Serial1.begin(9600);
+    Serial2.begin(9600);
 }
 decltype(analogRead(A0)) CurrentChannelSamples[NumberOfAnalogChannels] { 0 };
 void

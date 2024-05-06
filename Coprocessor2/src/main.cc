@@ -85,7 +85,7 @@ configureCLK(Event& evt) {
     evt.set_user(user::evoutf_pin_pf2);
 }
 void
-configureCCLs() {
+configureCCLs(bool mode) {
     pinMode(CLKOUT, OUTPUT);
     pinMode(CLK960_2, OUTPUT);
     pinMode(CLK960_1, OUTPUT);
@@ -98,7 +98,7 @@ configureCCLs() {
     Event0.set_user(user::ccl1_event_a);
     Event1.set_user(user::ccl2_event_a);
     Event1.set_user(user::ccl3_event_a);
-    if (digitalReadFast(ClockConfigurationBit) == LOW) {
+    if (mode) {
         // configure for 20MHz
         configureCLK2(Event0); // PA7/CLKOUT
         configureCLK(Event1); // CCL0
@@ -151,6 +151,11 @@ configureCCLs() {
     Event1.start();
     Event2.start();
     Logic::start();
+}
+
+void
+configureCCLs() {
+    configureCCLs(digitalReadFast(ClockConfigurationBit) == LOW);
 }
 void
 setupSystemClocks() {
@@ -209,33 +214,74 @@ enum class WireRequestOpcode : uint8_t {
     AnalogSensors_Channel8,
     AnalogSensors_Channel9,
     AnalogSensors_Channel10,
-    AnalogSensors_Channel11,
     TimeSinceStartup,
 };
+constexpr bool valid(WireRequestOpcode code) noexcept {
+    using T = WireRequestOpcode;
+    switch (code) {
+        case T::CPUClockConfiguration:
+        case T::CPUClockConfiguration_CLK2:
+        case T::CPUClockConfiguration_CLK1:
+        case T::AnalogSensors:
+        case T::AnalogSensors_Channel0:
+        case T::AnalogSensors_Channel1:
+        case T::AnalogSensors_Channel2:
+        case T::AnalogSensors_Channel3:
+        case T::AnalogSensors_Channel4:
+        case T::AnalogSensors_Channel5:
+        case T::AnalogSensors_Channel6:
+        case T::AnalogSensors_Channel7:
+        case T::AnalogSensors_Channel8:
+        case T::AnalogSensors_Channel9:
+        case T::AnalogSensors_Channel10:
+        case T::TimeSinceStartup:
+            return true;
+        default:
+            return false;
+    }
+}
 volatile WireRequestOpcode currentWireMode = WireRequestOpcode::CPUClockConfiguration;
 volatile uint64_t SecondsSincePowerOn = 0;
 void
 sinkWire() {
-    while(1 < Wire.available()) {
+    if (Wire.available()) {
+        while(1 < Wire.available()) {
+            (void)Wire.read();
+        }
         (void)Wire.read();
     }
-    (void)Wire.read();
 }
 void
 wireReceiveEvent(int howMany) {
     if (howMany >= 1) {
         switch (static_cast<WireReceiveOpcode>(Wire.read())) {
-            case WireReceiveOpcode::SetMode:
-                break;
-            case WireReceiveOpcode::ConfigureCPUClockMode:
-                break;
+            case WireReceiveOpcode::SetMode: 
+                {
+                    auto currentOpcode = static_cast<WireRequestOpcode>(Wire.read());
+                    if (valid(currentOpcode)) {
+                        currentWireMode = currentOpcode;
+                    }
+                    break;
+                }
+            case WireReceiveOpcode::ConfigureCPUClockMode: 
+                {
+                    switch (Wire.read()) {
+                        case 0:
+                            configureCCLs(true);
+                            break;
+                        case 1:
+                            configureCCLs(false);
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                }
             default:
-                sinkWire();
                 break;
         }
-    } else {
-        sinkWire();
     }
+    sinkWire();
 }
 void
 wireRequestEvent() {

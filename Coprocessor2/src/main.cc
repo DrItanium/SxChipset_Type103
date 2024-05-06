@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Wire.h>
 #include <EEPROM.h>
 #include <SPI.h>
-// The goal of this program is to be a deeply embeded ATMEGA4809 responsible
+// The goal of this program is to be a deeply embeded atmega808 responsible
 // for generating the 20MHz, 10MHz, and 5MHz clocks used by the i960 system.
 // Once powered on, it will continue to run until power is removed. This makes
 // it an ideal device for anything that needs to be available 100% of the time
@@ -42,43 +42,49 @@ constexpr auto SPI_MOSI = PIN_PA4;
 constexpr auto SPI_MISO = PIN_PA5;
 constexpr auto SPI_SCK = PIN_PA6;
 constexpr auto CLKOUT = PIN_PA7;
+constexpr auto CLK960_2 = PIN_PC2;
+constexpr auto SensorChannel0 = PIN_PD0;
+constexpr auto SensorChannel1 = PIN_PD1;
+constexpr auto SensorChannel2 = PIN_PD2;
+constexpr auto SensorChannel3 = PIN_PD3;
+constexpr auto SensorChannel4 = PIN_PD4;
+constexpr auto SensorChannel5 = PIN_PD5;
+constexpr auto SensorChannel6 = PIN_PD6;
+constexpr auto SensorChannel7 = PIN_PD7;
+constexpr auto CLK960_1 = PIN_PF2;
+constexpr auto SensorPOT = PIN_PF3;
+constexpr auto Sensor5V = PIN_PF4;
+constexpr auto Sensor3V = PIN_PF5;
+constexpr auto ClockConfigurationBit = PIN_PF6;
+
 constexpr auto NumberOfAnalogChannels = 11;
 constexpr decltype(PIN_PD0) AnalogChannels[NumberOfAnalogChannels] {
-    PIN_PD0,
-    PIN_PD1,
-    PIN_PD2,
-    PIN_PD3,
-    PIN_PD4,
-    PIN_PD5,
-    PIN_PD6,
-    PIN_PD7,
-    PIN_PF3,
-    PIN_PF4,
-    PIN_PF5,
+    SensorChannel0,
+    SensorChannel1,
+    SensorChannel2,
+    SensorChannel3,
+    SensorChannel4,
+    SensorChannel5,
+    SensorChannel6,
+    SensorChannel7,
+    SensorPOT,
+    Sensor5V,
+    Sensor3V,
 };
 
-constexpr auto ClockConfigurationBit = PIN_PF6;
-constexpr auto getClock2_960() noexcept {
-#ifdef REDUCED_HARDWARE
-    return PIN_PC2;
-#else
-    return PIN_PE2;    
-#endif
-}
-constexpr auto CLK960_2 = getClock2_960();
-constexpr auto CLK960_1 = PIN_PF2;
 constexpr auto MicrocontrollerClockRate = F_CPU;
 volatile uint32_t I960CLK2Rate = F_CPU;
 volatile uint32_t I960CLKRate = F_CPU / 2;
 void
+configurePins() {
+    pinMode(CLKOUT, OUTPUT);
+    pinMode(CLK960_2, OUTPUT);
+    pinMode(CLK960_1, OUTPUT);
+    pinMode(ClockConfigurationBit, INPUT_PULLUP);
+}
+void
 configureCLK2(Event& evt) {
-    evt.set_user(
-#ifdef REDUCED_HARDWARE
-    user::evoutc_pin_pc2
-#else
-    user::evoute_pin_pe2
-#endif
-    );
+    evt.set_user(user::evoutc_pin_pc2);
 }
 void
 configureCLK(Event& evt) {
@@ -86,9 +92,6 @@ configureCLK(Event& evt) {
 }
 void
 configureCCLs(bool mode) {
-    pinMode(CLKOUT, OUTPUT);
-    pinMode(CLK960_2, OUTPUT);
-    pinMode(CLK960_1, OUTPUT);
     // the goal is to allow clock signals to be properly routed dynamically at
     // startup
     Event0.set_generator(gen0::pin_pa7); // 20MHz
@@ -173,7 +176,7 @@ void wireReceiveEvent(int howMany);
 void wireRequestEvent();
 void 
 setup() {
-    pinMode(ClockConfigurationBit, INPUT_PULLUP);
+    configurePins();
     // this function is super important for the execution of the system!
     setupSystemClocks();
     configureCCLs();
@@ -181,6 +184,7 @@ setup() {
     Wire.begin(0x08); 
     Wire.onReceive(wireReceiveEvent);
     Wire.onRequest(wireRequestEvent);
+    SPI.begin();
     // setup other peripherals
     // then setup the serial port for now, I may disable this at some point
     //Serial.begin(9600);
@@ -197,6 +201,7 @@ sampleAnalogChannels() noexcept {
 enum class WireReceiveOpcode : uint8_t {
     SetMode,
     ConfigureCPUClockMode,
+    EEPROM_Write,
 };
 enum class WireRequestOpcode : uint8_t {
     CPUClockConfiguration,
@@ -302,6 +307,19 @@ wireRequestEvent() {
                     reinterpret_cast<char*>(CurrentChannelSamples), 
                     sizeof(CurrentChannelSamples));
             break;
+#define X(index) case WireRequestOpcode:: AnalogSensors_Channel ## index : Wire.write(CurrentChannelSamples[ index ] ); break
+            X(0);
+            X(1);
+            X(2);
+            X(3);
+            X(4);
+            X(5);
+            X(6);
+            X(7);
+            X(8);
+            X(9);
+            X(10);
+#undef X
         case WireRequestOpcode::TimeSinceStartup:
             Wire.write(
                     const_cast<char*>(reinterpret_cast<volatile char*>(&SecondsSincePowerOn)), 
@@ -316,17 +334,4 @@ void
 loop() {
     sampleAnalogChannels();
     delay(1000);
-}
-
-void
-serialEvent() {
-
-}
-void
-serialEvent1() {
-
-}
-void
-serialEvent2() {
-
 }

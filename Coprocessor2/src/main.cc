@@ -178,8 +178,8 @@ setup() {
     Wire.onRequest(wireRequestEvent);
     // setup other peripherals
     // then setup the serial port for now, I may disable this at some point
-    Serial.begin(9600);
-    Serial1.begin(9600);
+    //Serial.begin(9600);
+    //Serial1.begin(9600);
     Serial2.begin(9600);
 }
 decltype(analogRead(A0)) CurrentChannelSamples[NumberOfAnalogChannels] { 0 };
@@ -189,19 +189,81 @@ sampleAnalogChannels() noexcept {
         CurrentChannelSamples[i] = analogRead(AnalogChannels[i]);
     }
 }
-
-
+enum class WireReceiveOpcode : uint8_t {
+    SetMode,
+    ConfigureCPUClockMode,
+};
+enum class WireRequestOpcode : uint8_t {
+    CPUClockConfiguration,
+    CPUClockConfiguration_CLK2,
+    CPUClockConfiguration_CLK1,
+    AnalogSensors,
+    AnalogSensors_Channel0,
+    AnalogSensors_Channel1,
+    AnalogSensors_Channel2,
+    AnalogSensors_Channel3,
+    AnalogSensors_Channel4,
+    AnalogSensors_Channel5,
+    AnalogSensors_Channel6,
+    AnalogSensors_Channel7,
+    AnalogSensors_Channel8,
+    AnalogSensors_Channel9,
+    AnalogSensors_Channel10,
+    AnalogSensors_Channel11,
+    TimeSinceStartup,
+};
+volatile WireRequestOpcode currentWireMode = WireRequestOpcode::CPUClockConfiguration;
+volatile uint64_t SecondsSincePowerOn = 0;
 void
-wireReceiveEvent(int howMany) {
-    while (1 < Wire.available()) {
+sinkWire() {
+    while(1 < Wire.available()) {
         (void)Wire.read();
     }
     (void)Wire.read();
 }
 void
+wireReceiveEvent(int howMany) {
+    if (howMany >= 1) {
+        switch (static_cast<WireReceiveOpcode>(Wire.read())) {
+            case WireReceiveOpcode::SetMode:
+                break;
+            case WireReceiveOpcode::ConfigureCPUClockMode:
+                break;
+            default:
+                sinkWire();
+                break;
+        }
+    } else {
+        sinkWire();
+    }
+}
+void
 wireRequestEvent() {
     // send the analog request stuff
-    Wire.write(reinterpret_cast<char*>(CurrentChannelSamples), sizeof(CurrentChannelSamples));
+    switch (currentWireMode) {
+        case WireRequestOpcode::CPUClockConfiguration:
+            Wire.write(I960CLK2Rate);
+            Wire.write(I960CLKRate);
+            break;
+        case WireRequestOpcode::CPUClockConfiguration_CLK1:
+            Wire.write(I960CLKRate);
+            break;
+        case WireRequestOpcode::CPUClockConfiguration_CLK2:
+            Wire.write(I960CLK2Rate);
+            break;
+        case WireRequestOpcode::AnalogSensors:
+            Wire.write(
+                    reinterpret_cast<char*>(CurrentChannelSamples), 
+                    sizeof(CurrentChannelSamples));
+            break;
+        case WireRequestOpcode::TimeSinceStartup:
+            Wire.write(
+                    const_cast<char*>(reinterpret_cast<volatile char*>(&SecondsSincePowerOn)), 
+                    sizeof(SecondsSincePowerOn));
+            break;
+        default:
+            break;
+    }
 }
 
 void 

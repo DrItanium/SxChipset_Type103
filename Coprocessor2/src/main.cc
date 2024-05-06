@@ -26,14 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Event.h>
 #include <Logic.h>
 #include <Wire.h>
-#include <EEPROM.h>
-#include <SPI.h>
+//#include <EEPROM.h>
+//#include <SPI.h>
 // The goal of this program is to be a deeply embeded atmega808 responsible
 // for generating the 20MHz, 10MHz, and 5MHz clocks used by the i960 system.
 // Once powered on, it will continue to run until power is removed. This makes
 // it an ideal device for anything that needs to be available 100% of the time
 
 // PORTA contains all useful stuff so keep it reserved for that
+
 constexpr auto DEBUG_TXD = PIN_PA0;
 constexpr auto DEBUG_RXD = PIN_PA1;
 constexpr auto TWI_SDA = PIN_PA2;
@@ -58,7 +59,8 @@ constexpr auto Sensor3V = PIN_PF5;
 constexpr auto ClockConfigurationBit = PIN_PF6;
 
 constexpr auto NumberOfAnalogChannels = 11;
-constexpr decltype(PIN_PD0) AnalogChannels[NumberOfAnalogChannels] {
+using AnalogChannelKind = decltype(PIN_PD0);
+constexpr AnalogChannelKind AnalogChannels[NumberOfAnalogChannels] {
     SensorChannel0,
     SensorChannel1,
     SensorChannel2,
@@ -71,7 +73,8 @@ constexpr decltype(PIN_PD0) AnalogChannels[NumberOfAnalogChannels] {
     Sensor5V,
     Sensor3V,
 };
-
+// make this a macro so that I don't have to "pay" for it unless I use it
+#define DebugConsole Serial2
 constexpr auto MicrocontrollerClockRate = F_CPU;
 volatile uint32_t I960CLK2Rate = F_CPU;
 volatile uint32_t I960CLKRate = F_CPU / 2;
@@ -180,16 +183,16 @@ setup() {
     // this function is super important for the execution of the system!
     setupSystemClocks();
     configureCCLs();
-    EEPROM.begin();
+    //EEPROM.begin();
     Wire.begin(0x08); 
     Wire.onReceive(wireReceiveEvent);
     Wire.onRequest(wireRequestEvent);
-    SPI.begin();
+    //SPI.begin();
     // setup other peripherals
     // then setup the serial port for now, I may disable this at some point
     //Serial.begin(9600);
     //Serial1.begin(9600);
-    Serial2.begin(9600);
+    DebugConsole.begin(9600);
 }
 decltype(analogRead(A0)) CurrentChannelSamples[NumberOfAnalogChannels] { 0 };
 void
@@ -201,7 +204,6 @@ sampleAnalogChannels() noexcept {
 enum class WireReceiveOpcode : uint8_t {
     SetMode,
     ConfigureCPUClockMode,
-    EEPROM_Write,
 };
 enum class WireRequestOpcode : uint8_t {
     CPUClockConfiguration,
@@ -335,3 +337,10 @@ loop() {
     sampleAnalogChannels();
     delay(1000);
 }
+
+void
+serialEvent2() {
+
+}
+// @todo implement RTC overflow counter to keep track of the number of seconds
+// since power on

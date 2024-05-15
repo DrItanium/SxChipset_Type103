@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // it an ideal device for anything that needs to be available 100% of the time
 
 // PORTA contains all useful stuff so keep it reserved for that
-
+// the sodium connector board uses Serial2 for printing out messages
 constexpr auto DEBUG_TXD = PIN_PA0;
 constexpr auto DEBUG_RXD = PIN_PA1;
 constexpr auto TWI_SDA = PIN_PA2;
@@ -334,6 +334,7 @@ wireRequestEvent() {
 
 void 
 loop() {
+    DebugConsole.println("Donuts");
     sampleAnalogChannels();
     delay(1000);
 }

@@ -917,6 +917,7 @@ setup() {
     GPIOR0 = 0;
     // now we can start setting up peripherals
     Serial.begin(115200);
+    Wire.begin();
     SPI.begin();
     // power down the ADC
     // currently we can't use them

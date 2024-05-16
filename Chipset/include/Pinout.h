@@ -64,22 +64,22 @@ Count = NUM_DIGITAL_PINS,
     XINT0 = PortB5, // OC1A
     Lock = PortB6,
     Hold = PortB7,
-
+    
     WR = PortD6,
     Reset = PortD7,
 
-
+    RXD0 = PortE0,
+    TXD0 = PortE1,
     IsIOOperation = PortE2,
     XINT4 = PortE3,
     ReadyDirect = PortE4,
     ADS = PortE5,
     HLDA = PortE6,
-    CLK2 = PortE7, // hardwired for this purpose
-                   //
+    // PortE7 is free from emitting the 20MHz clock, this is handled by a
+    // separate clock controller chip
     EBI_WR = PortG0,
     EBI_RD = PortG1,
     EBI_ALE = PortG2,
-
     BE0 = PortG3,
     BE1 = PortG4,
     BLAST = PortG5,

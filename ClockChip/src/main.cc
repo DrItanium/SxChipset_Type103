@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Event.h>
 #include <Logic.h>
 #include <Wire.h>
-//#include <EEPROM.h>
+#include <EEPROM.h>
 //#include <SPI.h>
 // The goal of this program is to be a deeply embeded atmega808 responsible
 // for generating the 20MHz, 10MHz, and 5MHz clocks used by the i960 system.
@@ -53,9 +53,9 @@ constexpr auto SensorChannel5 = PIN_PD5;
 constexpr auto SensorChannel6 = PIN_PD6;
 constexpr auto SensorChannel7 = PIN_PD7;
 constexpr auto CLK960_1 = PIN_PF2;
-constexpr auto SensorPOT = PIN_PF3;
-constexpr auto Sensor5V = PIN_PF4;
-constexpr auto Sensor3V = PIN_PF5;
+constexpr auto SensorPOT0 = PIN_PF3;
+constexpr auto SensorPOT1 = PIN_PF4;
+constexpr auto SensorPOT2 = PIN_PF5;
 constexpr auto ClockConfigurationBit = PIN_PF6;
 
 constexpr auto NumberOfAnalogChannels = 11;
@@ -69,9 +69,9 @@ constexpr AnalogChannelKind AnalogChannels[NumberOfAnalogChannels] {
     SensorChannel5,
     SensorChannel6,
     SensorChannel7,
-    SensorPOT,
-    Sensor5V,
-    Sensor3V,
+    SensorPOT0,
+    SensorPOT1,
+    SensorPOT2,
 };
 // make this a macro so that I don't have to "pay" for it unless I use it
 #define DebugConsole Serial2
@@ -87,11 +87,11 @@ configurePins() {
 }
 void
 configureCLK2(Event& evt) {
-    evt.set_user(user::evoutc_pin_pc2);
+    evt.set_user(user::evoutf_pin_pf2);
 }
 void
 configureCLK(Event& evt) {
-    evt.set_user(user::evoutf_pin_pf2);
+    evt.set_user(user::evoutc_pin_pc2);
 }
 void
 configureCCLs(bool mode) {
@@ -183,7 +183,7 @@ setup() {
     // this function is super important for the execution of the system!
     setupSystemClocks();
     configureCCLs();
-    //EEPROM.begin();
+    EEPROM.begin();
     Wire.begin(0x08); 
     Wire.onReceive(wireReceiveEvent);
     Wire.onRequest(wireRequestEvent);
@@ -334,7 +334,6 @@ wireRequestEvent() {
 
 void 
 loop() {
-    DebugConsole.println("Donuts");
     sampleAnalogChannels();
     delay(1000);
 }

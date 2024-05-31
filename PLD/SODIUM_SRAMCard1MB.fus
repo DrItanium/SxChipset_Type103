@@ -61,20 +61,20 @@ Pin 14 = NC           XOR = 0   AC1 = 0
  47  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 13 = EN0          XOR = 0   AC1 = 0
- 48  -x-x ---- ---- -x-- ---- ---- -x-- -x--
- 49  -xx- ---- ---- -x-- ---- ---- -x-- x---
- 50  x--x ---- ---- -x-- ---- ---- x--- -x--
- 51  x-x- ---- ---- -x-- ---- ---- x--- x---
+ 48  -x-- -x-- ---- -x-- ---- ---- -x-- -x--
+ 49  x--- -x-- ---- -x-- ---- ---- -x-- x---
+ 50  -x-- x--- ---- -x-- ---- ---- x--- -x--
+ 51  x--- x--- ---- -x-- ---- ---- x--- x---
  52  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  53  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  54  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  55  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
 
 Pin 12 = EN1          XOR = 1   AC1 = 0
- 56  ---- -x-- -x-- -x-- -x-- -x-- ---- ----
- 57  ---- x--- -x-- -x-- -x-- x--- ---- ----
- 58  ---- -x-- x--- -x-- x--- -x-- ---- ----
- 59  ---- x--- x--- -x-- x--- x--- ---- ----
+ 56  ---- ---- -x-- -x-- -x-- -x-- ---- ----
+ 57  ---- ---- x--- -x-- -x-- x--- ---- ----
+ 58  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+ 59  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  60  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  61  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx
  62  xxxx xxxx xxxx xxxx xxxx xxxx xxxx xxxx

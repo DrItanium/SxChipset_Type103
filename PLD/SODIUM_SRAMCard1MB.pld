@@ -1,13 +1,16 @@
 GAL16V8
 SodiumSRAMCard1MB_Decoder
 
-SEL0 SEL1 SEL2 SEL3 SRAM A23 A22 A21 A20 GND
-OE   EN1  EN0  NC   NC   NC  NC  NC  NC  VCC
+NC   SEL1 SEL2 SEL3 SRAM A23 A22 A21 A20 GND
+NC   EN1  EN0  NC   NC   NC  NC  NC  NC  VCC
 
-/EN0 = /SEL0 * /A20 * /SEL1 * /A21 * /SRAM + SEL0 *  A20 * /SEL1 * /A21 * /SRAM + /SEL0 * /A20 *  SEL1 *  A21 * /SRAM + SEL0 *  A20 *  SEL1 *  A21 * /SRAM
-EN1 = /SEL2 * /A22 * /SEL3 * /A23 * /SRAM + SEL2 *  A22 * /SEL3 * /A23 * /SRAM + /SEL2 * /A22 *  SEL3 *  A23 * /SRAM + SEL2 *  A22 *  SEL3 *  A23 * /SRAM
+/EN0 = /A20 * /SEL1 * /A21 * /SEL2 * /SRAM + A20 * SEL1 * /A21 * /SEL2 * /SRAM + /A20 * /SEL1 * A21 * SEL2 * /SRAM + A20 * SEL1 * A21 * SEL2 * /SRAM
+EN1 = /SEL3 * /A22 * /A23 * /SRAM + SEL3 * A22 * /A23 * /SRAM
 
 DESCRIPTION
 
 Divide the set of signals up into the EN1 and EN0 enable lines to make sure
 there are enough product terms
+
+/EN0 = /SEL0 * /A20 * /SEL1 * /A21 * /SRAM + SEL0 *  A20 * /SEL1 * /A21 * /SRAM + /SEL0 * /A20 *  SEL1 *  A21 * /SRAM + SEL0 *  A20 *  SEL1 *  A21 * /SRAM
+ EN1 = /SEL2 * /A22 * /SEL3 * /A23 * /SRAM + SEL2 *  A22 * /SEL3 * /A23 * /SRAM + /SEL2 * /A22 *  SEL3 *  A23 * /SRAM + SEL2 *  A22 *  SEL3 *  A23 * /SRAM

@@ -30,9 +30,12 @@ all: Type103PLD.jed \
 	NewBasicHardwareChip.jed \
 	AddressDecoder.jed \
 	InterconnectV0.jed \
-	NewCPUCardDecoder.jed
+	NewCPUCardDecoder.jed \
+	SODIUM_SRAMCard1MB.jed
 
 
+install_SODIUM_SRAMCard1MB: SODIUM_SRAMCard1MB.jed
+	minipro -p ATF16V8C --write SODIUM_SRAMCard1MB.jed
 install_NewCPUCardDecoder: NewCPUCardDecoder.jed
 	minipro -p ATF16V8C --write NewCPUCardDecoder.jed
 

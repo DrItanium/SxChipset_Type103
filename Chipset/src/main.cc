@@ -862,9 +862,11 @@ configurePins() noexcept {
     outputPin<Pin::XINT0>();
     digitalWrite<Pin::XINT0, HIGH>();
     outputPin<Pin::XINT2>();
-    digitalWrite<Pin::XINT2, HIGH>();
+    digitalWrite<Pin::XINT2, LOW>();
     outputPin<Pin::XINT4>();
-    digitalWrite<Pin::XINT4, HIGH>();
+    digitalWrite<Pin::XINT4, LOW>();
+    outputPin<Pin::XINT6>();
+    digitalWrite<Pin::XINT6, HIGH>();
     outputPin<Pin::Hold>();
     digitalWrite<Pin::Hold, LOW>();
     outputPin<Pin::ReadyDirect>();
@@ -931,7 +933,7 @@ setup() {
 
     // setup the EBI
     XMCRB=0b0'0000'111;
-    XMCRA=0b1'010'01'01;  
+    XMCRA=0b1'010'11'11;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     DataInterface::configureInterface();

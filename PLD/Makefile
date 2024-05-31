@@ -29,8 +29,12 @@ all: Type103PLD.jed \
 	NewSRAMDecoderChip2.jed \
 	NewBasicHardwareChip.jed \
 	AddressDecoder.jed \
-	InterconnectV0.jed 
+	InterconnectV0.jed \
+	NewCPUCardDecoder.jed
 
+
+install_NewCPUCardDecoder: NewCPUCardDecoder.jed
+	minipro -p ATF16V8C --write NewCPUCardDecoder.jed
 
 install_InterconnectV0: InterconnectV0.jed
 	minipro -p "ATF22V10CQZ(UES)" --write InterconnectV0.jed 

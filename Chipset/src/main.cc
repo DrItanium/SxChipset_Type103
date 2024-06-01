@@ -217,49 +217,112 @@ struct MemoryInterface {
 private:
     static constexpr uint8_t MemoryWindowUpperHalf = 0xFC;
     static constexpr uintptr_t MemoryWindowBaseAddress = (static_cast<uint16_t>(MemoryWindowUpperHalf) << 8);
+    static_assert(MemoryWindowBaseAddress == 0xFC00);
     static constexpr auto TransferBufferSize = 256;
+    [[gnu::noinline]] static void displayMemoryBody(volatile uint8_t* body, int size = TransferBufferSize) noexcept {
+        for (int i = 0; i < size; ++i) {
+            auto value = body[i];
+            Serial.printf(F("@0x%x: 0x%x\n"), i, value);
+        }
+    }
+    static inline void setUpper24AddressLines(uint32_t address) noexcept {
+        getOutputRegister<AddressLines[1]>() = static_cast<uint8_t>(address >> 8);
+        getOutputRegister<AddressLines[2]>() = static_cast<uint8_t>(address >> 16);
+        getOutputRegister<AddressLines[3]>() = static_cast<uint8_t>(address >> 24);
+    }
+    [[gnu::noinline]] static void displayMemoryBody(uint32_t address, volatile uint8_t* body, int size = TransferBufferSize) noexcept {
+        setUpper24AddressLines(address);
+        displayMemoryBody(body, size);
+    }
+    template<bool printInBinary = false>
+    static bool sanityCheck(uint8_t* buf0, uint8_t* buf1, uint32_t address, int size, bool printAnyway = false) noexcept {
+        bool mismatch = false;
+        for (int i = 0; i < size; ++i) {
+            auto a = buf0[i];
+            auto b = buf1[i];
+            if (a != b) {
+                if constexpr (printInBinary) {
+                    Serial.printf(F("Mismatch@0x%lx want: 0b"), address + i);
+                    Serial.print(a, BIN);
+                    Serial.print(F(" got: 0b"));
+                    Serial.println(b, BIN);
+                } else {
+                    Serial.printf(F("Mismatch@0x%lx want: 0x%x got: 0x%x\n"), address + i, a, b);
+                }
+                mismatch = true;
+            } else {
+                if (printAnyway || mismatch) {
+                    if constexpr (printInBinary) {
+                        Serial.printf(F("Match@0x%lx want: 0b"), address + i);
+                        Serial.print(a, BIN);
+                        Serial.print(F(" got: 0b"));
+                        Serial.println(b, BIN);
+                    } else { 
+                        Serial.printf(F("Match@0x%lx want: 0x%x got: 0x%x\n"), address + i, a, b);
+                    }
+                }
+            }
+        }
+        return mismatch;
+    }
 public:
     static void configure() noexcept {
     }
     [[gnu::noinline]]
     static void installMemoryImage(File& theFirmware) {
         uint8_t temporaryBuffer[256];
+        uint8_t temporaryBuffer2[256];
         volatile auto* theBuffer = memoryPointer<uint8_t>(MemoryWindowBaseAddress);
         int counter = 0;
         for (uint32_t address = 0; address < theFirmware.size(); address += TransferBufferSize, ++counter) {
             // just modify the bank as we go along
-            getOutputRegister<AddressLines[1]>() = static_cast<uint8_t>(address >> 8);
-            getOutputRegister<AddressLines[2]>() = static_cast<uint8_t>(address >> 16);
-            getOutputRegister<AddressLines[3]>() = static_cast<uint8_t>(address >> 24);
+            setUpper24AddressLines(address);
             theFirmware.read(temporaryBuffer, TransferBufferSize);
             memcpy(const_cast<uint8_t*>(theBuffer), temporaryBuffer, TransferBufferSize); 
-            // now do a sanity check
-            bool mismatch = false;
-            for (int i = 0; i < TransferBufferSize; ++i) {
-                auto a = temporaryBuffer[i];
-                auto b = theBuffer[i];
-                if (a != b) {
-                    Serial.printf(F("Mismatch@0x%lx want: 0x%x got: 0x%x\n"), address + i, a, b);
-                    mismatch = true;
-                } else {
-                    if (mismatch) {
-                        Serial.printf(F("Match@0x%lx want: 0x%x got: 0x%x\n"), address + i, a, b);
-                    }
-                }
-            }
-            if (mismatch) {
+            memcpy(temporaryBuffer2, const_cast<uint8_t*>(theBuffer), TransferBufferSize);
+            if (sanityCheck(temporaryBuffer, temporaryBuffer2, address, TransferBufferSize)) {
+                // halt here
                 while (true);
             }
             if ((counter % 32) == 0) {
                 Serial.print('.');
             }
         }
-        getOutputRegister<AddressLines[1]>() = 0;
-        getOutputRegister<AddressLines[2]>() = 0;
-        getOutputRegister<AddressLines[3]>() = 0;
-        volatile uint32_t* theBuffer32 = memoryPointer<uint32_t>(MemoryWindowBaseAddress);
-        for (int i = 0; i < 8; ++i) {
-            Serial.printf(F("%d: 0x%lx\n"), i, theBuffer32[i]);
+        {
+            // clear temporaryBuffer2 for a second sanity check
+            Serial.println(F("Sanity Check"));
+            Serial.print(F("HLDA State: "));
+            if (digitalRead<Pin::HLDA>() == HIGH) {
+                Serial.println(F("HIGH"));
+            } else {
+                Serial.println(F("LOW"));
+            }
+            theFirmware.seekSet(0);
+            setUpper24AddressLines(0);
+            memset(temporaryBuffer, 0, TransferBufferSize);
+            memset(temporaryBuffer2, 0, TransferBufferSize);
+            theFirmware.read(temporaryBuffer, TransferBufferSize);
+            memcpy(temporaryBuffer2, const_cast<uint8_t*>(theBuffer), TransferBufferSize);
+            if (sanityCheck<true>(temporaryBuffer, temporaryBuffer2, 0, TransferBufferSize)) {
+                // okay, so just run through memory starting from here
+#if 0
+                for (uint32_t address = 0x100; address < theFirmware.size(); address += TransferBufferSize) {
+                    setUpper24AddressLines(address);
+                    theFirmware.read(temporaryBuffer, TransferBufferSize);
+                    memcpy(temporaryBuffer2, const_cast<uint8_t*>(theBuffer), TransferBufferSize);
+                    for (int i = 0; i < TransferBufferSize; ++i) {
+                        auto a = temporaryBuffer[i];
+                        auto b = temporaryBuffer2[i];
+                        if (a != b) {
+                            Serial.printf(F("Mismatch@0x%lx want: 0x%x got: 0x%x\n"), address + i, a, b);
+                        }
+                    }
+                }
+#endif
+                while (true);
+            }
+
+
         }
     }
 };
@@ -761,18 +824,16 @@ private:
     uint8_t block[256];
 };
 
-//constexpr auto NumberOfBlocks = 4;
-//DataBlock blocks[NumberOfBlocks];
+constexpr auto NumberOfBlocks = 4;
+DataBlock blocks[NumberOfBlocks];
 void 
 setupDataBlocks() {
-#if 0
     for (int i = 0; i < NumberOfBlocks; ++i) {
         for (int j = 0; j < 256; ++j) {
             blocks[i][j] = random();
         }
         blocks[i].clear();
     }
-#endif
 }
 template<bool isReadOperation>
 void 
@@ -781,7 +842,6 @@ doIO() noexcept {
         case 0x00:
             doLegacyIO<isReadOperation>();
             break;
-#if 0
         case 0x01: // this is a 256byte data mapping
             blocks[0].processRequest<isReadOperation>();
             break;
@@ -794,7 +854,6 @@ doIO() noexcept {
         case 0x04: // this is a 256byte data mapping
             blocks[3].processRequest<isReadOperation>();
             break;
-#endif
         default:
             doLegacyIO<isReadOperation>();
             break;
@@ -815,7 +874,6 @@ template<uint32_t maxFileSize = MaximumBootImageFileSize>
 [[gnu::noinline]]
 void
 installMemoryImage() noexcept {
-#if 0
     static constexpr uint32_t MaximumFileSize = maxFileSize;
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
 #define filePath (F("prog.bin"))
@@ -841,7 +899,6 @@ installMemoryImage() noexcept {
     // okay so now end reading from the SD Card
     SPI.endTransaction();
 #undef filePath
-#endif
 }
 template<Pin p>
 [[gnu::always_inline]]
@@ -875,7 +932,7 @@ configurePins() noexcept {
     outputPin<Pin::XINT6>();
     digitalWrite<Pin::XINT6, HIGH>();
     outputPin<Pin::Hold>();
-    digitalWrite<Pin::Hold, LOW>();
+    digitalWrite<Pin::Hold, HIGH>();
     outputPin<Pin::ReadyDirect>();
     digitalWrite<Pin::ReadyDirect, HIGH>();
 
@@ -936,11 +993,11 @@ setup() {
                         // But leave the timers available since they can be
                         // used for internal purposes
     configurePins();
-    //configureRTC();
+    configureRTC();
 
     // setup the EBI
-    //XMCRB=0b0'0000'111;
-    //XMCRA=0b1'010'11'11;  
+    XMCRB=0b1'0000'111;
+    XMCRA=0b1'010'01'01;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     DataInterface::configureInterface();
@@ -987,6 +1044,7 @@ setup() {
         EICRA = 0b0011'0000; // rising edge on INT2 only
     }
     digitalWrite<Pin::Reset, HIGH>(); 
+    digitalWrite<Pin::Hold, HIGH>();
 }
 void 
 loop() {
@@ -994,10 +1052,8 @@ loop() {
     // time slicing design to make sure that we have the ability to process
     // packets from external chips connected over serial.
     if constexpr (CPUSpeed == HalfClockSpeed) {
-        Serial.println(F("10MHz mode"));
         ExecutionBody();
     } else if constexpr (CPUSpeed == QuarterClockSpeed) {
-        Serial.println(F("5MHz mode"));
         ExecutionBody_5MHz();
     } 
 }

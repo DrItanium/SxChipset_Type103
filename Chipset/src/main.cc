@@ -931,10 +931,10 @@ configurePins() noexcept {
     digitalWrite<Pin::XINT4, LOW>();
     outputPin<Pin::XINT6>();
     digitalWrite<Pin::XINT6, HIGH>();
-    outputPin<Pin::Hold>();
-    digitalWrite<Pin::Hold, HIGH>();
     outputPin<Pin::ReadyDirect>();
     digitalWrite<Pin::ReadyDirect, HIGH>();
+    outputPin<Pin::Hold>();
+    digitalWrite<Pin::Hold, LOW>();
 
     inputPin<Pin::Lock>();
     inputPin<Pin::WR>();
@@ -997,7 +997,7 @@ setup() {
 
     // setup the EBI
     XMCRB=0b1'0000'111;
-    XMCRA=0b1'010'01'01;  
+    XMCRA=0b1'010'11'11;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     DataInterface::configureInterface();
@@ -1044,7 +1044,7 @@ setup() {
         EICRA = 0b0011'0000; // rising edge on INT2 only
     }
     digitalWrite<Pin::Reset, HIGH>(); 
-    digitalWrite<Pin::Hold, HIGH>();
+    digitalWrite<Pin::Hold, LOW>();
 }
 void 
 loop() {

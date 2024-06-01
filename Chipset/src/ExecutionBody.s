@@ -149,7 +149,7 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 
 
 .macro signalReady
-	;call displaySignalReady
+	call displaySignalReady
 	Ready_Output_Toggle
 .endm
 .macro sbisrj a, b, dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -177,7 +177,7 @@ DefineReadWriteFunctions \func\()_Direction, \func\()_Direction
 .macro StoreToDataPort lo=__low_data_byte960__,hi=__high_data_byte960__ ; 3 cycles
 	DataLinesLower_Write \lo
 	DataLinesUpper_Write \hi
-	;call displayDataPortValue
+	call displayDataPortValue
 .endm
 
 .macro WhenBlastIsLowGoto dest ; 3 cycles when branch taken, 2 cycles when skipped
@@ -274,7 +274,7 @@ clearEIFR
 	rjmp .LXB_SignalReady_ThenWriteTransactionStart
 .endm
 .macro ReadBodyPrimary
-	;call displayReadTransaction
+	call displayReadTransaction
 	computeTransactionWindow
 	Load16FromMemoryWindow 0
 	StoreToDataPort 
@@ -338,21 +338,21 @@ DefinePort H, 0x100
 DefinePort J, 0x103
 DefinePort K, 0x106
 DefinePort L, 0x109
-DefinePinFunction WR, D, 6
-DefinePinFunction Ready, E, 4
-DefinePinFunction ADS, E, 5
-DefinePinFunction HLDA, E, 6
-DefinePinFunction IsIOOperation, E, 2
-DefinePinFunction BE0, G, 3
-DefinePinFunction BE1, G, 4
-DefinePinFunction BLAST, G, 5
+DefinePinFunction ADS, D, 2
+DefinePinFunction BLAST, D, 3
+DefinePinFunction WR, D, 4
+DefinePinFunction BE0, D, 5
+DefinePinFunction BE1, D, 6
+DefinePinFunction IsIOOperation, D, 7
+DefinePinFunction HLDA, E, 4
+DefinePinFunction Ready, G, 4
 
 DefinePortFunction DataLinesLower, F
 DefinePortFunction DataLinesUpper, C
-DefinePortFunction AddressLinesLowest, L
-DefinePortFunction AddressLinesLower, J
-DefinePortFunction AddressLinesHigher, H
-DefinePortFunction AddressLinesHighest, K
+DefinePortFunction AddressLinesLowest, K
+DefinePortFunction AddressLinesLower, H
+DefinePortFunction AddressLinesHigher, J
+DefinePortFunction AddressLinesHighest, L
 
 MemoryWindowUpper = 0xfc
 __high_data_byte960__ = 4
@@ -381,7 +381,7 @@ ExecutionBody:
 	waitForTransaction 
 	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite
 	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing
-	;call displayAddress
+	call displayAddress
 	ReadBodyPrimary
 	FallthroughExecution_ReadBody
 .LXB_ShiftFromWriteToRead:
@@ -514,7 +514,7 @@ ExecutionBody_5MHz:
 	WR_IfBitIsSetGoto .LXB_ShiftFromReadToWrite_5MHz 
 	IsIOOperation_IfBitIsClearGoto .LXB_readOperation_CheckIO_Nothing_5MHz ; we have enough time to detect things here
 .LXB_ReadBodyPrimary_5MHz:
-	;call displayAddress
+	call displayAddress
 	computeTransactionWindow ; at this point things are solidified so start as normal
 	Load16FromMemoryWindow 0 ; this will take 8 cycles avr
 	StoreToDataPort  ; this will take 2 cycles avr

@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 constexpr uint32_t MicrocontrollerSpeed = F_CPU;
 constexpr uint32_t HalfClockSpeed = F_CPU / 2;
 constexpr uint32_t QuarterClockSpeed = F_CPU / 4;
-constexpr uint32_t CPUSpeed = HalfClockSpeed;
+constexpr uint32_t CPUSpeed = QuarterClockSpeed;
 constexpr uint32_t NumberOfMicrocontrollerClocksPerCPUClock = MicrocontrollerSpeed / CPUSpeed;
 
 // Given the number of i960 clocks we return the equivalent number of AVR
@@ -761,15 +761,18 @@ private:
     uint8_t block[256];
 };
 
-constexpr auto NumberOfBlocks = 4;
-DataBlock blocks[NumberOfBlocks];
-void setupDataBlocks() {
+//constexpr auto NumberOfBlocks = 4;
+//DataBlock blocks[NumberOfBlocks];
+void 
+setupDataBlocks() {
+#if 0
     for (int i = 0; i < NumberOfBlocks; ++i) {
         for (int j = 0; j < 256; ++j) {
             blocks[i][j] = random();
         }
         blocks[i].clear();
     }
+#endif
 }
 template<bool isReadOperation>
 void 
@@ -778,6 +781,7 @@ doIO() noexcept {
         case 0x00:
             doLegacyIO<isReadOperation>();
             break;
+#if 0
         case 0x01: // this is a 256byte data mapping
             blocks[0].processRequest<isReadOperation>();
             break;
@@ -790,6 +794,7 @@ doIO() noexcept {
         case 0x04: // this is a 256byte data mapping
             blocks[3].processRequest<isReadOperation>();
             break;
+#endif
         default:
             doLegacyIO<isReadOperation>();
             break;
@@ -810,6 +815,7 @@ template<uint32_t maxFileSize = MaximumBootImageFileSize>
 [[gnu::noinline]]
 void
 installMemoryImage() noexcept {
+#if 0
     static constexpr uint32_t MaximumFileSize = maxFileSize;
     SPI.beginTransaction(SPISettings(F_CPU / 2, MSBFIRST, SPI_MODE0)); // force to 10 MHz
 #define filePath (F("prog.bin"))
@@ -835,6 +841,7 @@ installMemoryImage() noexcept {
     // okay so now end reading from the SD Card
     SPI.endTransaction();
 #undef filePath
+#endif
 }
 template<Pin p>
 [[gnu::always_inline]]
@@ -870,7 +877,7 @@ configurePins() noexcept {
     outputPin<Pin::Hold>();
     digitalWrite<Pin::Hold, LOW>();
     outputPin<Pin::ReadyDirect>();
-    digitalWrite<Pin::ReadyDirect, LOW>();
+    digitalWrite<Pin::ReadyDirect, HIGH>();
 
     inputPin<Pin::Lock>();
     inputPin<Pin::WR>();
@@ -929,11 +936,11 @@ setup() {
                         // But leave the timers available since they can be
                         // used for internal purposes
     configurePins();
-    configureRTC();
+    //configureRTC();
 
     // setup the EBI
-    XMCRB=0b0'0000'111;
-    XMCRA=0b1'010'11'11;  
+    //XMCRB=0b0'0000'111;
+    //XMCRA=0b1'010'11'11;  
     // we divide the sector limits so that it 0x2200-0x3FFF and 0x4000-0xFFFF
     // the single cycle wait state is necessary even with the AHC573s
     DataInterface::configureInterface();
@@ -975,9 +982,9 @@ setup() {
     getOutputRegister<AddressLines[3]>() = 0;
     // attach interrupts
     if constexpr (CPUSpeed == HalfClockSpeed) {
-        EICRB = 0b0000'1000; // falling edge on INT5 only
+        EICRA = 0b0010'0000; // falling edge on INT2 only
     } else if constexpr (CPUSpeed == QuarterClockSpeed) {
-        EICRB = 0b0000'1100; // rising edge on INT5 only
+        EICRA = 0b0011'0000; // rising edge on INT2 only
     }
     digitalWrite<Pin::Reset, HIGH>(); 
 }
@@ -987,8 +994,10 @@ loop() {
     // time slicing design to make sure that we have the ability to process
     // packets from external chips connected over serial.
     if constexpr (CPUSpeed == HalfClockSpeed) {
+        Serial.println(F("10MHz mode"));
         ExecutionBody();
     } else if constexpr (CPUSpeed == QuarterClockSpeed) {
+        Serial.println(F("5MHz mode"));
         ExecutionBody_5MHz();
     } 
 }

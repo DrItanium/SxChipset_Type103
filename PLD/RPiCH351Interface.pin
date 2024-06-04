@@ -2,28 +2,28 @@
 
  Pin # | Name     | Pin Type
 -----------------------------
-   1   | CLK      | Clock/Input
-   2   | A24      | Input
-   3   | A25      | Input
-   4   | A26      | Input
-   5   | A27      | Input
-   6   | A28      | Input
-   7   | A29      | Input
-   8   | A30      | Input
-   9   | A31      | Input
-  10   | P10      | Input
-  11   | P11      | Input
+   1   | NC       | Clock/Input
+   2   | SA5      | Input
+   3   | SA4      | Input
+   4   | SA3      | Input
+   5   | SA2      | Input
+   6   | SA1      | Input
+   7   | SA0      | Input
+   8   | SOE      | Input
+   9   | SWE      | Input
+  10   | NC       | Input
+  11   | NC       | Input
   12   | GND      | GND
-  13   | P13      | Input
-  14   | SEC8     | NC
-  15   | SEC7     | NC
-  16   | SEC6     | NC
-  17   | SEC5     | NC
-  18   | SEC4     | NC
-  19   | SEC3     | NC
-  20   | SEC2     | NC
-  21   | SEC1     | NC
-  22   | SRAM     | Output
-  23   | PD7      | Output
+  13   | NC       | Input
+  14   | NC       | NC
+  15   | NC       | NC
+  16   | NC       | NC
+  17   | DEV1     | Output
+  18   | DEV0     | Output
+  19   | RD       | Output
+  20   | WR       | Output
+  21   | A2       | Output
+  22   | A1       | Output
+  23   | A0       | Output
   24   | VCC      | VCC
 
